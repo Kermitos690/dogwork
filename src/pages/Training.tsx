@@ -17,7 +17,46 @@ export default function Training() {
   const [reps, setReps] = useState(0);
   const [sessionStart] = useState(new Date().toISOString());
 
-  if (!day) return <Layout><p className="pt-10 text-center">Jour non trouvé</p></Layout>;
+  const exercises = day?.exercises || [];
+  const exercise = exercises[currentIndex];
+  const totalExercises = exercises.length;
+
+  const progress = getDayProgress(id) || {
+    dayId: id, status: "in_progress" as const, completedExercises: [], notes: "", validated: false, lastUpdated: new Date().toISOString(),
+  } satisfies DayProgress;
+
+  const isExDone = exercise ? progress.completedExercises.includes(exercise.id) : false;
+  const completedCount = progress.completedExercises.filter((eid) =>
+    exercises.some((e) => e.id === eid)
+  ).length;
+
+  const completeExercise = useCallback(() => {
+    if (!exercise) return;
+    if (!isExDone) {
+      const updated = {
+        ...progress,
+        status: "in_progress" as const,
+        completedExercises: [...progress.completedExercises, exercise.id],
+      };
+      saveDayProgress(updated);
+    }
+    saveSession({
+      dayId: id, exerciseId: exercise.id, startedAt: sessionStart,
+      endedAt: new Date().toISOString(), durationActual: 0,
+      repetitionsDone: reps, completed: true,
+    });
+    if (currentIndex < totalExercises - 1) {
+      setCurrentIndex(currentIndex + 1);
+      setReps(0);
+    }
+  }, [isExDone, progress, exercise, id, sessionStart, reps, currentIndex, totalExercises]);
+
+  const prevExercise = () => { if (currentIndex > 0) { setCurrentIndex(currentIndex - 1); setReps(0); } };
+  const nextExercise = () => { if (currentIndex < totalExercises - 1) { setCurrentIndex(currentIndex + 1); setReps(0); } };
+
+  const sessionPct = Math.round((completedCount / Math.max(totalExercises, 1)) * 100);
+
+  if (!day || !exercise) return <Layout><p className="pt-10 text-center">Jour non trouvé</p></Layout>;
 
   const exercises = day.exercises;
   const exercise = exercises[currentIndex];

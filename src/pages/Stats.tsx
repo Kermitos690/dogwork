@@ -26,8 +26,8 @@ export default function Stats() {
     const avgTension = avg(logs.map((l) => l.tensionLevel));
     const avgDogReaction = avg(logs.map((l) => l.dogReactionLevel));
 
-    const score = (field: string, good: string) => {
-      const vals = logs.map((l) => (l as Record<string, unknown>)[field]).filter(Boolean);
+    const score = (field: keyof typeof logs[0], good: string) => {
+      const vals = logs.map((l) => l[field]).filter(Boolean);
       if (!vals.length) return 0;
       return Math.round((vals.filter((v) => v === good).length / vals.length) * 100);
     };
