@@ -22,7 +22,7 @@ export default function Training() {
   const totalExercises = exercises.length;
 
   const progress = getDayProgress(id) || {
-    dayId: id, status: "in_progress" as const, completedExercises: [], notes: "", validated: false, lastUpdated: new Date().toISOString(),
+    dayId: id, status: "in_progress" as const, completedExercises: [] as string[], notes: "", validated: false, lastUpdated: new Date().toISOString(),
   } satisfies DayProgress;
 
   const isExDone = exercise ? progress.completedExercises.includes(exercise.id) : false;
@@ -58,44 +58,6 @@ export default function Training() {
 
   if (!day || !exercise) return <Layout><p className="pt-10 text-center">Jour non trouvé</p></Layout>;
 
-  const exercises = day.exercises;
-  const exercise = exercises[currentIndex];
-  const totalExercises = exercises.length;
-
-  const progress = getDayProgress(id) || {
-    dayId: id, status: "in_progress" as const, completedExercises: [], notes: "", validated: false, lastUpdated: new Date().toISOString(),
-  } satisfies DayProgress;
-
-  const isExDone = progress.completedExercises.includes(exercise.id);
-  const completedCount = progress.completedExercises.filter((eid) =>
-    exercises.some((e) => e.id === eid)
-  ).length;
-
-  const completeExercise = useCallback(() => {
-    if (!isExDone) {
-      const updated = {
-        ...progress,
-        status: "in_progress" as const,
-        completedExercises: [...progress.completedExercises, exercise.id],
-      };
-      saveDayProgress(updated);
-    }
-    saveSession({
-      dayId: id, exerciseId: exercise.id, startedAt: sessionStart,
-      endedAt: new Date().toISOString(), durationActual: 0,
-      repetitionsDone: reps, completed: true,
-    });
-    if (currentIndex < totalExercises - 1) {
-      setCurrentIndex(currentIndex + 1);
-      setReps(0);
-    }
-  }, [isExDone, progress, exercise.id, id, sessionStart, reps, currentIndex, totalExercises]);
-
-  const prevExercise = () => { if (currentIndex > 0) { setCurrentIndex(currentIndex - 1); setReps(0); } };
-  const nextExercise = () => { if (currentIndex < totalExercises - 1) { setCurrentIndex(currentIndex + 1); setReps(0); } };
-
-  const sessionPct = Math.round(((completedCount + (isExDone ? 0 : 0)) / totalExercises) * 100);
-
   return (
     <Layout>
       <div className="animate-fade-in space-y-5 pt-4">
@@ -106,12 +68,10 @@ export default function Training() {
           <span className="text-xs text-muted-foreground">{currentIndex + 1}/{totalExercises}</span>
         </div>
 
-        {/* Session progress */}
         <div className="h-2 rounded-full bg-muted">
           <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${sessionPct}%` }} />
         </div>
 
-        {/* Exercise info */}
         <div className="rounded-xl border border-border bg-card p-5 space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold">{exercise.name}</h2>
@@ -123,15 +83,11 @@ export default function Training() {
           )}
         </div>
 
-        {/* Timer */}
         <div className="rounded-xl border border-border bg-card p-5">
           <h3 className="mb-3 text-center text-sm font-medium text-muted-foreground">Chronomètre</h3>
-          <Timer
-            presets={exercise.timerSuggested ? [30, exercise.timerSuggested, 180] : [30, 60, 180]}
-          />
+          <Timer presets={exercise.timerSuggested ? [30, exercise.timerSuggested, 180] : [30, 60, 180]} />
         </div>
 
-        {/* Rep counter */}
         <div className="rounded-xl border border-border bg-card p-5">
           <h3 className="mb-3 text-center text-sm font-medium text-muted-foreground">Répétitions</h3>
           <div className="flex items-center justify-center gap-6">
@@ -148,18 +104,11 @@ export default function Training() {
           </div>
         </div>
 
-        {/* Complete exercise */}
-        <Button
-          size="xl"
-          variant="success"
-          className="w-full"
-          onClick={completeExercise}
-        >
+        <Button size="xl" variant="success" className="w-full" onClick={completeExercise}>
           <CheckCircle2 className="h-5 w-5" />
           {currentIndex < totalExercises - 1 ? "Terminer et suivant" : "Terminer l'exercice"}
         </Button>
 
-        {/* Navigation */}
         <div className="flex gap-2">
           <Button variant="outline" className="flex-1" onClick={prevExercise} disabled={currentIndex === 0}>
             <ChevronLeft className="h-4 w-4" /> Précédent
