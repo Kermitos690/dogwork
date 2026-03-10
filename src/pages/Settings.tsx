@@ -15,6 +15,28 @@ export default function Settings() {
   const navigate = useNavigate();
   const [settings, setSettings] = useState(getSettings());
   const [showConfirm, setShowConfirm] = useState(false);
+  const [notifSettings, setNotifSettings] = useState(getNotificationSettings());
+  const [permStatus, setPermStatus] = useState(getPermissionStatus());
+
+  const toggleNotif = async (enabled: boolean) => {
+    if (enabled && permStatus !== "granted") {
+      const p = await requestNotificationPermission();
+      setPermStatus(p);
+      if (p !== "granted") return;
+    }
+    const updated = { ...notifSettings, enabled };
+    setNotifSettings(updated);
+    saveNotificationSettings(updated);
+    if (enabled) scheduleDaily(); else stopSchedule();
+  };
+
+  const updateNotifTime = (time: string) => {
+    const [h, m] = time.split(":").map(Number);
+    const updated = { ...notifSettings, hour: h, minute: m };
+    setNotifSettings(updated);
+    saveNotificationSettings(updated);
+    if (updated.enabled) scheduleDaily();
+  };
 
   const updateDogName = (name: string) => {
     const updated = { ...settings, dogName: name };
