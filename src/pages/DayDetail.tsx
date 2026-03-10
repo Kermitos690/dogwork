@@ -110,12 +110,13 @@ export default function DayDetail() {
               <button
                 key={ex.id}
                 onClick={() => toggleExercise(ex.id)}
-                className={`flex w-full items-start gap-3 rounded-xl border p-4 text-left transition-all ${
+                className={`card-press flex w-full items-start gap-3 rounded-xl border p-4 text-left transition-all ${
                   done ? "border-success/30 bg-success/5" : "border-border bg-card"
                 }`}
+                style={{ animationDelay: `${i * 50}ms` }}
               >
-                <div className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 ${
-                  done ? "bg-success border-success" : "border-muted-foreground/30"
+                <div className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 transition-all ${
+                  done ? "bg-success border-success animate-bounce-check" : "border-muted-foreground/30"
                 }`}>
                   {done && <CheckCircle2 className="h-4 w-4 text-success-foreground" />}
                 </div>
