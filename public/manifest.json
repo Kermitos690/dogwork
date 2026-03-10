@@ -1,0 +1,12 @@
+{
+  "name": "Défi Canin 28 Jours",
+  "short_name": "Défi Canin",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f1ec",
+  "theme_color": "#3d6b5e",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/favicon.ico", "sizes": "64x64", "type": "image/x-icon" }
+  ]
+}

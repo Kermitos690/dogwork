@@ -1,0 +1,123 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Download, Trash2, RotateCcw, Info } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Layout } from "@/components/Layout";
+import { getSettings, saveSettings, resetAll, exportJSON, exportText } from "@/lib/storage";
+
+export default function Settings() {
+  const navigate = useNavigate();
+  const [settings, setSettings] = useState(getSettings());
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const updateDogName = (name: string) => {
+    const updated = { ...settings, dogName: name };
+    setSettings(updated);
+    saveSettings(updated);
+  };
+
+  const handleExportJSON = () => {
+    const data = exportJSON();
+    const blob = new Blob([data], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `defi-canin-${new Date().toISOString().split("T")[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportText = () => {
+    const data = exportText();
+    const blob = new Blob([data], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `defi-canin-resume-${new Date().toISOString().split("T")[0]}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleReset = () => {
+    resetAll();
+    setShowConfirm(false);
+    window.location.href = "/";
+  };
+
+  return (
+    <Layout>
+      <div className="animate-fade-in space-y-5 pt-4">
+        <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground">
+          <ArrowLeft className="h-4 w-4" /> Retour
+        </button>
+
+        <h1 className="text-2xl font-bold">Paramètres</h1>
+
+        {/* Dog name */}
+        <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+          <label className="text-sm font-medium">Nom du chien</label>
+          <input
+            type="text"
+            value={settings.dogName}
+            onChange={(e) => updateDogName(e.target.value)}
+            className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+
+        {/* Export */}
+        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+          <h3 className="text-sm font-semibold">Exporter mes données</h3>
+          <div className="flex flex-col gap-2">
+            <Button variant="outline" className="w-full justify-start" onClick={handleExportJSON}>
+              <Download className="h-4 w-4" /> Exporter en JSON
+            </Button>
+            <Button variant="outline" className="w-full justify-start" onClick={handleExportText}>
+              <Download className="h-4 w-4" /> Exporter un résumé texte
+            </Button>
+          </div>
+        </div>
+
+        {/* Storage info */}
+        <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <Info className="h-4 w-4 text-muted-foreground" />
+            <h3 className="text-sm font-semibold">Sauvegarde locale</h3>
+          </div>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Toutes vos données sont sauvegardées localement sur cet appareil (localStorage).
+            Elles ne sont envoyées nulle part. Si vous effacez les données du navigateur,
+            vos progrès seront perdus. Pensez à exporter régulièrement.
+          </p>
+        </div>
+
+        {/* Reset */}
+        <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-destructive">Zone de danger</h3>
+          {!showConfirm ? (
+            <Button variant="destructive" className="w-full" onClick={() => setShowConfirm(true)}>
+              <Trash2 className="h-4 w-4" /> Remettre à zéro
+            </Button>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-sm text-destructive">Êtes-vous sûr(e) ? Toutes les données seront effacées.</p>
+              <div className="flex gap-2">
+                <Button variant="destructive" className="flex-1" onClick={handleReset}>
+                  <RotateCcw className="h-4 w-4" /> Confirmer
+                </Button>
+                <Button variant="outline" className="flex-1" onClick={() => setShowConfirm(false)}>
+                  Annuler
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Version */}
+        <div className="text-center text-xs text-muted-foreground pb-4">
+          <p>Défi Canin 28 Jours — v1.0</p>
+          <p className="mt-1">Application de suivi d'obéissance canine</p>
+        </div>
+      </div>
+    </Layout>
+  );
+}
