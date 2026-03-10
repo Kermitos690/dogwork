@@ -105,6 +105,40 @@ export default function Settings() {
           </div>
         </div>
 
+        {/* Notifications */}
+        <div className="rounded-xl border border-border bg-card p-4 space-y-4">
+          <div className="flex items-center gap-2">
+            {notifSettings.enabled ? <Bell className="h-4 w-4 text-primary" /> : <BellOff className="h-4 w-4 text-muted-foreground" />}
+            <h3 className="text-sm font-semibold">Rappels quotidiens</h3>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm">Activer les rappels</span>
+            <Switch checked={notifSettings.enabled} onCheckedChange={toggleNotif} />
+          </div>
+          {notifSettings.enabled && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Heure du rappel</span>
+                <input
+                  type="time"
+                  value={`${String(notifSettings.hour).padStart(2, "0")}:${String(notifSettings.minute).padStart(2, "0")}`}
+                  onChange={(e) => updateNotifTime(e.target.value)}
+                  className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <Button variant="outline" size="sm" className="w-full" onClick={sendTestNotification}>
+                Tester la notification
+              </Button>
+            </div>
+          )}
+          {permStatus === "denied" && (
+            <p className="text-xs text-destructive">Les notifications sont bloquées par votre navigateur. Modifiez les paramètres du site.</p>
+          )}
+          {permStatus === "unsupported" && (
+            <p className="text-xs text-muted-foreground">Les notifications ne sont pas supportées par ce navigateur.</p>
+          )}
+        </div>
+
         {/* Storage info */}
         <div className="rounded-xl border border-border bg-card p-4 space-y-2">
           <div className="flex items-center gap-2">

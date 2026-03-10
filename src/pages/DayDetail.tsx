@@ -104,7 +104,7 @@ export default function DayDetail() {
 
         {/* Exercises */}
         <div className="space-y-2">
-          {day.exercises.map((ex) => {
+          {day.exercises.map((ex, i) => {
             const done = progress.completedExercises.includes(ex.id);
             return (
               <button

@@ -68,4 +68,11 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+  .card-press {
+    @apply transition-all duration-150 active:scale-[0.98];
+  }
+  .stagger-item {
+    @apply animate-slide-up opacity-0;
+    animation-fill-mode: forwards;
+  }
 }

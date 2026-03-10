@@ -1,7 +1,11 @@
+import { useState, useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { getSettings } from "@/lib/storage";
+import { scheduleDaily, getNotificationSettings } from "@/lib/notifications";
+import Onboarding from "./pages/Onboarding";
 import Index from "./pages/Index";
 import Program from "./pages/Program";
 import DayDetail from "./pages/DayDetail";
@@ -14,25 +18,45 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/program" element={<Program />} />
-          <Route path="/day/:dayId" element={<DayDetail />} />
-          <Route path="/training/:dayId" element={<Training />} />
-          <Route path="/behavior/:dayId" element={<BehaviorLog />} />
-          <Route path="/stats" element={<Stats />} />
-          <Route path="/safety" element={<Safety />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const [ready, setReady] = useState(false);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
+
+  useEffect(() => {
+    const s = getSettings();
+    setNeedsOnboarding(!s.safetyAcknowledged);
+    setReady(true);
+    // Init notifications
+    const ns = getNotificationSettings();
+    if (ns.enabled) scheduleDaily();
+  }, []);
+
+  if (!ready) return null;
+
+  if (needsOnboarding) {
+    return <Onboarding onComplete={() => setNeedsOnboarding(false)} />;
+  }
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/program" element={<Program />} />
+            <Route path="/day/:dayId" element={<DayDetail />} />
+            <Route path="/training/:dayId" element={<Training />} />
+            <Route path="/behavior/:dayId" element={<BehaviorLog />} />
+            <Route path="/stats" element={<Stats />} />
+            <Route path="/safety" element={<Safety />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

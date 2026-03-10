@@ -79,7 +79,7 @@ const Index = () => {
               <span>{currentDay.difficulty}</span>
             </div>
             <div className="flex flex-col gap-2">
-              <Button size="xl" className="w-full" onClick={() => navigate(`/training/${currentDay.id}`)}>
+              <Button size="xl" className="w-full animate-pulse-glow" onClick={() => navigate(`/training/${currentDay.id}`)}>
                 <Play className="h-5 w-5" />
                 Reprendre aujourd'hui
               </Button>
