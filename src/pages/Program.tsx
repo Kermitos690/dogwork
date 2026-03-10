@@ -41,7 +41,8 @@ export default function Program() {
                     <button
                       key={day.id}
                       onClick={() => navigate(`/day/${day.id}`)}
-                      className="flex w-full items-center gap-3 rounded-xl border border-border bg-card p-4 text-left transition-colors active:bg-muted"
+                      className="card-press flex w-full items-center gap-3 rounded-xl border border-border bg-card p-4 text-left"
+                      style={{ animationDelay: `${(day.id % 7) * 50}ms` }}
                     >
                       <div className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold ${
                         status === "done" ? "bg-success text-success-foreground" :

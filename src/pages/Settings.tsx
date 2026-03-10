@@ -1,14 +1,42 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Download, Trash2, RotateCcw, Info } from "lucide-react";
+import { ArrowLeft, Download, Trash2, RotateCcw, Info, Bell, BellOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Layout } from "@/components/Layout";
 import { getSettings, saveSettings, resetAll, exportJSON, exportText } from "@/lib/storage";
+import {
+  getNotificationSettings, saveNotificationSettings,
+  requestNotificationPermission, getPermissionStatus,
+  sendTestNotification, scheduleDaily, stopSchedule,
+} from "@/lib/notifications";
 
 export default function Settings() {
   const navigate = useNavigate();
   const [settings, setSettings] = useState(getSettings());
   const [showConfirm, setShowConfirm] = useState(false);
+  const [notifSettings, setNotifSettings] = useState(getNotificationSettings());
+  const [permStatus, setPermStatus] = useState(getPermissionStatus());
+
+  const toggleNotif = async (enabled: boolean) => {
+    if (enabled && permStatus !== "granted") {
+      const p = await requestNotificationPermission();
+      setPermStatus(p);
+      if (p !== "granted") return;
+    }
+    const updated = { ...notifSettings, enabled };
+    setNotifSettings(updated);
+    saveNotificationSettings(updated);
+    if (enabled) scheduleDaily(); else stopSchedule();
+  };
+
+  const updateNotifTime = (time: string) => {
+    const [h, m] = time.split(":").map(Number);
+    const updated = { ...notifSettings, hour: h, minute: m };
+    setNotifSettings(updated);
+    saveNotificationSettings(updated);
+    if (updated.enabled) scheduleDaily();
+  };
 
   const updateDogName = (name: string) => {
     const updated = { ...settings, dogName: name };
@@ -75,6 +103,40 @@ export default function Settings() {
               <Download className="h-4 w-4" /> Exporter un résumé texte
             </Button>
           </div>
+        </div>
+
+        {/* Notifications */}
+        <div className="rounded-xl border border-border bg-card p-4 space-y-4">
+          <div className="flex items-center gap-2">
+            {notifSettings.enabled ? <Bell className="h-4 w-4 text-primary" /> : <BellOff className="h-4 w-4 text-muted-foreground" />}
+            <h3 className="text-sm font-semibold">Rappels quotidiens</h3>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm">Activer les rappels</span>
+            <Switch checked={notifSettings.enabled} onCheckedChange={toggleNotif} />
+          </div>
+          {notifSettings.enabled && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Heure du rappel</span>
+                <input
+                  type="time"
+                  value={`${String(notifSettings.hour).padStart(2, "0")}:${String(notifSettings.minute).padStart(2, "0")}`}
+                  onChange={(e) => updateNotifTime(e.target.value)}
+                  className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <Button variant="outline" size="sm" className="w-full" onClick={sendTestNotification}>
+                Tester la notification
+              </Button>
+            </div>
+          )}
+          {permStatus === "denied" && (
+            <p className="text-xs text-destructive">Les notifications sont bloquées par votre navigateur. Modifiez les paramètres du site.</p>
+          )}
+          {permStatus === "unsupported" && (
+            <p className="text-xs text-muted-foreground">Les notifications ne sont pas supportées par ce navigateur.</p>
+          )}
         </div>
 
         {/* Storage info */}
