@@ -1,9 +1,15 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Download, Trash2, RotateCcw, Info } from "lucide-react";
+import { ArrowLeft, Download, Trash2, RotateCcw, Info, Bell, BellOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Layout } from "@/components/Layout";
 import { getSettings, saveSettings, resetAll, exportJSON, exportText } from "@/lib/storage";
+import {
+  getNotificationSettings, saveNotificationSettings,
+  requestNotificationPermission, getPermissionStatus,
+  sendTestNotification, scheduleDaily, stopSchedule,
+} from "@/lib/notifications";
 
 export default function Settings() {
   const navigate = useNavigate();
