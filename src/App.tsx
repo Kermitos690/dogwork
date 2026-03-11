@@ -89,6 +89,7 @@ function ProtectedRoutes() {
         <Route path="/coach/dog/:dogId" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachDogDetail /></CoachGuard></Suspense>} />
         <Route path="/coach/notes" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachNotes /></CoachGuard></Suspense>} />
         <Route path="/coach/stats" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachStats /></CoachGuard></Suspense>} />
+        <Route path="/coach/courses" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachCourses /></CoachGuard></Suspense>} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
