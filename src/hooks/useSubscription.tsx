@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, createContext, useContext } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
 
 export const TIERS = {
   starter: {
@@ -118,6 +119,24 @@ export function useSubscription() {
 
 export function useHasFeature(feature: "ai_plan" | "ai_chat"): boolean {
   const { tier } = useSubscription();
+  const { user } = useAuth();
+
+  // Admin and educator bypass: full access to all features
+  const { data: hasPrivilegedRole } = useQuery({
+    queryKey: ["privileged-role", user?.id],
+    queryFn: async () => {
+      const [{ data: admin }, { data: educator }] = await Promise.all([
+        supabase.rpc("is_admin"),
+        supabase.rpc("is_educator"),
+      ]);
+      return admin === true || educator === true;
+    },
+    enabled: !!user,
+    staleTime: 5 * 60_000,
+  });
+
+  if (hasPrivilegedRole) return true;
+
   if (feature === "ai_plan") return tier === "pro" || tier === "expert";
   if (feature === "ai_chat") return tier === "expert";
   return false;

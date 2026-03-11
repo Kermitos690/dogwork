@@ -148,9 +148,23 @@ export default function CoachCourses() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["coach-courses"] });
       setDialogOpen(false);
+      // Send notification to admin for new courses
+      if (!editingId) {
+        supabase.functions.invoke("send-notification-email", {
+          body: {
+            type: "course_created",
+            data: {
+              title: form.title,
+              category: form.category,
+              price_cents: form.price_cents,
+              location: form.location,
+            },
+          },
+        }).catch(console.error);
+      }
       setEditingId(null);
       setForm(emptyForm);
-      toast({ title: editingId ? "Cours modifié" : "Cours créé" });
+      toast({ title: editingId ? "Cours modifié" : "Cours créé — En attente de validation" });
     },
     onError: (e: Error) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
   });
@@ -262,7 +276,7 @@ export default function CoachCourses() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>Prix (€)</Label>
+                    <Label>Prix (CHF)</Label>
                     <Input
                       type="number"
                       min={0}
@@ -270,7 +284,7 @@ export default function CoachCourses() {
                       onChange={(e) => setForm({ ...form, price_cents: Math.round(Number(e.target.value) * 100) })}
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      Commission 30% : {((form.price_cents * 0.3) / 100).toFixed(2)} € — Vous recevez : {((form.price_cents * 0.7) / 100).toFixed(2)} €
+                      Commission 30% : {((form.price_cents * 0.3) / 100).toFixed(2)} CHF — Vous recevez : {((form.price_cents * 0.7) / 100).toFixed(2)} CHF
                     </p>
                   </div>
                   <div>
@@ -319,13 +333,13 @@ export default function CoachCourses() {
         </Card>
         <Card>
           <CardContent className="p-3 text-center">
-            <p className="text-2xl font-bold text-green-500">{(netRevenue / 100).toFixed(0)} €</p>
+            <p className="text-2xl font-bold text-green-500">{(netRevenue / 100).toFixed(0)} CHF</p>
             <p className="text-xs text-muted-foreground">Revenus nets</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-3 text-center">
-            <p className="text-2xl font-bold text-orange-500">{(totalCommission / 100).toFixed(0)} €</p>
+            <p className="text-2xl font-bold text-orange-500">{(totalCommission / 100).toFixed(0)} CHF</p>
             <p className="text-xs text-muted-foreground">Commission (30%)</p>
           </CardContent>
         </Card>
@@ -389,8 +403,8 @@ export default function CoachCourses() {
                 <div className="grid grid-cols-2 gap-y-1.5 text-sm">
                   <div className="flex items-center gap-1.5 text-muted-foreground">
                     <Euro className="h-3.5 w-3.5" />
-                    <span className="font-medium text-foreground">{(course.price_cents / 100).toFixed(0)} €</span>
-                    <span className="text-xs">(net: {((course.price_cents * 0.7) / 100).toFixed(0)} €)</span>
+                    <span className="font-medium text-foreground">{(course.price_cents / 100).toFixed(0)} CHF</span>
+                    <span className="text-xs">(net: {((course.price_cents * 0.7) / 100).toFixed(0)} CHF)</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-muted-foreground">
                     <Clock className="h-3.5 w-3.5" />

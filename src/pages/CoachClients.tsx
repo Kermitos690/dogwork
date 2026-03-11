@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AppLayout } from "@/components/AppLayout";
+import { CoachLayout } from "@/components/CoachLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -73,7 +73,7 @@ export default function CoachClients() {
   };
 
   return (
-    <AppLayout>
+    <CoachLayout>
       <div className="space-y-4 pb-24">
         {/* Header */}
         <div className="flex items-center gap-3">
@@ -171,6 +171,6 @@ export default function CoachClients() {
           )}
         </div>
       </div>
-    </AppLayout>
+    </CoachLayout>
   );
 }
