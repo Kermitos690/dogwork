@@ -88,6 +88,16 @@ export function AIChatBot() {
   const hasChat = useHasFeature("ai_chat");
   const navigate = useNavigate();
 
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    if (open && inputRef.current) inputRef.current.focus();
+  }, [open]);
+
   if (!hasChat) {
     return (
       <motion.button
@@ -101,16 +111,6 @@ export function AIChatBot() {
       </motion.button>
     );
   }
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
-
-  useEffect(() => {
-    if (open && inputRef.current) inputRef.current.focus();
-  }, [open]);
 
   const send = async () => {
     const text = input.trim();
