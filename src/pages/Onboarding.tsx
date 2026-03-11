@@ -14,13 +14,20 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Dog, Shield, ChevronRight, ChevronLeft, PartyPopper, Sparkles, Heart,
   Target, Clock, Mail, Lock, User, AlertTriangle, CheckCircle2, Loader2,
-  Zap, Brain, PawPrint, Activity, Home, Baby, Users, Weight, Ruler, Calendar
+  Zap, Brain, PawPrint, Activity, Home, Baby, Users, Weight, Ruler, Calendar,
+  Save, Info
 } from "lucide-react";
 import type { Dog as DogType } from "@/hooks/useDogs";
 
 // ===== Constants =====
 const TOTAL_STEPS = 12;
 const STORAGE_KEY = "pawplan_onboarding";
+
+// Steps that count for progress (2-9, excluding 0,1 auth and 10,11 generation)
+const PROGRESS_STEPS = { first: 2, last: 9 };
+const STEP_TIME_MINUTES: Record<number, number> = {
+  2: 0.3, 3: 1, 4: 1.5, 5: 1, 6: 2, 7: 1.5, 8: 1, 9: 0.5,
+};
 
 const PROBLEM_OPTIONS = [
   { key: "saute_sur_gens", label: "Saute sur les gens", icon: "🦘" },
@@ -91,7 +98,7 @@ function clearOnboardingState() {
 // ===== Sub-components =====
 function StepCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`animate-fade-in w-full max-w-md mx-auto ${className}`}>
+    <div className={`w-full max-w-md mx-auto step-transition ${className}`}>
       {children}
     </div>
   );
@@ -132,6 +139,37 @@ function TriChoice({ value, onChange, label }: { value: string; onChange: (v: st
   );
 }
 
+function HintBanner({ icon, text, variant = "info" }: { icon: React.ReactNode; text: string; variant?: "info" | "warning" | "success" }) {
+  const colors = {
+    info: "bg-primary/5 border-primary/15 text-primary",
+    warning: "bg-warning/5 border-warning/20 text-warning",
+    success: "bg-success/5 border-success/20 text-success",
+  };
+  return (
+    <div className={`flex items-start gap-2.5 p-3 rounded-xl border animate-fade-in ${colors[variant]}`}>
+      <span className="flex-shrink-0 mt-0.5">{icon}</span>
+      <p className="text-xs font-medium leading-relaxed">{text}</p>
+    </div>
+  );
+}
+
+// Live profile summary pill
+function ProfilePill({ dogName, securityFlags, filledCount, totalFields }: {
+  dogName: string; securityFlags: string[]; filledCount: number; totalFields: number;
+}) {
+  const percent = Math.round((filledCount / totalFields) * 100);
+  return (
+    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-card border border-border text-xs shadow-sm">
+      <PawPrint className="h-3 w-3 text-primary" />
+      <span className="font-medium text-foreground truncate max-w-[100px]">{dogName || "Profil"}</span>
+      <div className="w-8 h-1.5 rounded-full bg-muted overflow-hidden">
+        <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${percent}%` }} />
+      </div>
+      {securityFlags.length > 0 && <Shield className="h-3 w-3 text-warning" />}
+    </div>
+  );
+}
+
 // ===== Main Component =====
 export default function Onboarding() {
   const navigate = useNavigate();
@@ -141,12 +179,14 @@ export default function Onboarding() {
 
   // Global state
   const [step, setStep] = useState(0);
+  const [direction, setDirection] = useState<"forward" | "back">("forward");
   const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [authError, setAuthError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [savedToast, setSavedToast] = useState(false);
 
   // Dog profile
   const [dogName, setDogName] = useState("");
@@ -226,10 +266,13 @@ export default function Onboarding() {
       if (saved.dailyMinutes) setDailyMinutes(saved.dailyMinutes);
       if (saved.daysPerWeek) setDaysPerWeek(saved.daysPerWeek);
       if (saved.intensity) setIntensity(saved.intensity);
+      if (saved.aloneHours) setAloneHours(saved.aloneHours);
+      if (saved.healthNotes) setHealthNotes(saved.healthNotes);
+      if (saved.adoptionDate) setAdoptionDate(saved.adoptionDate);
     }
   }, []);
 
-  // Auto-save
+  // Auto-save on every change
   useEffect(() => {
     if (step >= 2) {
       saveOnboardingState({
@@ -237,17 +280,47 @@ export default function Onboarding() {
         evaluation, selectedProblems, selectedObjectives, primaryObjective,
         muzzleRequired, biteHistory, weightKg, birthDate, isMixed, isNeutered,
         hasChildren, hasOtherAnimals, jointPain, heartProblems, epilepsy,
-        overweight, dailyMinutes, daysPerWeek, intensity,
+        overweight, dailyMinutes, daysPerWeek, intensity, aloneHours,
+        healthNotes, adoptionDate,
       });
     }
-  }, [step, dogName, breed, sex, size, evaluation, selectedProblems, selectedObjectives, primaryObjective, muzzleRequired, biteHistory]);
+  }, [step, dogName, breed, sex, size, activityLevel, origin, environment, evaluation, selectedProblems, selectedObjectives, primaryObjective, muzzleRequired, biteHistory, weightKg, birthDate, isMixed, isNeutered, hasChildren, hasOtherAnimals, jointPain, heartProblems, epilepsy, overweight, dailyMinutes, daysPerWeek, intensity, aloneHours, healthNotes, adoptionDate]);
 
   // Skip auth steps if already logged in
   useEffect(() => {
     if (user && step <= 1) setStep(2);
   }, [user, step]);
 
-  const progressPercent = Math.round((step / (TOTAL_STEPS - 1)) * 100);
+  // === Derived state ===
+  const stepsInRange = PROGRESS_STEPS.last - PROGRESS_STEPS.first + 1;
+  const currentProgress = step >= PROGRESS_STEPS.first && step <= PROGRESS_STEPS.last
+    ? step - PROGRESS_STEPS.first : step > PROGRESS_STEPS.last ? stepsInRange : 0;
+  const progressPercent = Math.round((currentProgress / stepsInRange) * 100);
+
+  // Time remaining estimate
+  const timeRemaining = useMemo(() => {
+    let mins = 0;
+    for (let s = Math.max(step, PROGRESS_STEPS.first); s <= PROGRESS_STEPS.last; s++) {
+      mins += STEP_TIME_MINUTES[s] || 1;
+    }
+    if (mins < 1) return "< 1 min";
+    return `~${Math.ceil(mins)} min`;
+  }, [step]);
+
+  // Profile completeness
+  const profileFields = useMemo(() => {
+    const filled: string[] = [];
+    const total = ["dogName", "sex", "size", "activityLevel", "environment", "evaluation", "problems", "objectives"];
+    if (dogName.trim()) filled.push("dogName");
+    if (sex) filled.push("sex");
+    if (size) filled.push("size");
+    if (activityLevel) filled.push("activityLevel");
+    if (environment) filled.push("environment");
+    if (Object.keys(evaluation).length >= 5) filled.push("evaluation");
+    if (Object.keys(selectedProblems).length > 0) filled.push("problems");
+    if (selectedObjectives.length > 0) filled.push("objectives");
+    return { filled: filled.length, total: total.length };
+  }, [dogName, sex, size, activityLevel, environment, evaluation, selectedProblems, selectedObjectives]);
 
   const securityFlags = useMemo(() => {
     const flags: string[] = [];
@@ -256,6 +329,39 @@ export default function Onboarding() {
     if (jointPain || heartProblems || epilepsy) flags.push("Contraintes de santé");
     return flags;
   }, [biteHistory, muzzleRequired, jointPain, heartProblems, epilepsy]);
+
+  // Contradiction / hint detection
+  const hints = useMemo(() => {
+    const h: { text: string; variant: "info" | "warning" | "success" }[] = [];
+    // Weight vs size contradiction
+    if (weightKg && size) {
+      const w = Number(weightKg);
+      if (size === "petit" && w > 15) h.push({ text: `${w} kg semble élevé pour un petit chien. Vérifiez la taille ou le poids.`, variant: "info" });
+      if (size === "grand" && w < 10) h.push({ text: `${w} kg semble faible pour un grand chien. Vérifiez la taille ou le poids.`, variant: "info" });
+    }
+    // Bite + no muzzle
+    if (biteHistory && !muzzleRequired) {
+      h.push({ text: "Antécédent de morsure détecté : la muselière est fortement recommandée.", variant: "warning" });
+    }
+    // High reactivity but no problem selected
+    if (evaluation.reacts_to_dogs === "oui" && !selectedProblems.reactivite_chiens && step >= 7) {
+      h.push({ text: "Votre chien réagit aux chiens, mais cette problématique n'est pas cochée.", variant: "info" });
+    }
+    if (evaluation.jumps_on_people === "oui" && !selectedProblems.saute_sur_gens && step >= 7) {
+      h.push({ text: "Votre chien saute sur les gens, mais cette problématique n'est pas cochée.", variant: "info" });
+    }
+    return h;
+  }, [weightKg, size, biteHistory, muzzleRequired, evaluation, selectedProblems, step]);
+
+  // Step completeness hints (gentle, never blocking)
+  const stepSuggestions = useMemo(() => {
+    const suggestions: string[] = [];
+    if (step === 3 && !dogName.trim()) suggestions.push("Le nom de votre chien est nécessaire pour continuer.");
+    if (step === 4 && !size) suggestions.push("Indiquer la taille aide à mieux adapter les exercices.");
+    if (step === 6 && Object.keys(evaluation).length < 5) suggestions.push("Plus vous répondez, plus le plan sera précis.");
+    if (step === 8 && selectedObjectives.length === 0) suggestions.push("Choisissez au moins un objectif pour générer votre plan.");
+    return suggestions;
+  }, [step, dogName, size, evaluation, selectedObjectives]);
 
   // Auth
   const handleAuth = async (e: React.FormEvent) => {
@@ -271,7 +377,7 @@ export default function Onboarding() {
         const { error } = await signIn(email, password);
         if (error) throw error;
       }
-      setStep(2);
+      goTo(2);
     } catch (err: any) {
       setAuthError(err.message);
     } finally {
@@ -279,17 +385,24 @@ export default function Onboarding() {
     }
   };
 
-  const next = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS - 1));
-  const prev = () => setStep((s) => Math.max(s - 1, 0));
+  const goTo = (target: number) => {
+    setDirection(target > step ? "forward" : "back");
+    setStep(target);
+  };
+  const next = () => goTo(Math.min(step + 1, TOTAL_STEPS - 1));
+  const prev = () => goTo(Math.max(step - 1, step <= 2 ? 2 : 0));
+
+  const saveAndQuit = () => {
+    setSavedToast(true);
+    setTimeout(() => setSavedToast(false), 2000);
+    toast({ title: "Progression sauvegardée", description: "Vous pourrez reprendre à tout moment." });
+  };
 
   const toggleProblem = (key: string) => {
     setSelectedProblems((prev) => {
       const copy = { ...prev };
-      if (copy[key]) {
-        delete copy[key];
-      } else {
-        copy[key] = { intensity: 3, frequency: "souvent" };
-      }
+      if (copy[key]) { delete copy[key]; }
+      else { copy[key] = { intensity: 3, frequency: "souvent" }; }
       return copy;
     });
   };
@@ -303,7 +416,7 @@ export default function Onboarding() {
   // Generate plan
   const handleGenerate = useCallback(async () => {
     if (!user) return;
-    setStep(10);
+    goTo(10);
     setGenPhase(0);
 
     const interval = setInterval(() => {
@@ -311,7 +424,6 @@ export default function Onboarding() {
     }, 800);
 
     try {
-      // 1. Create dog
       const dogData: Partial<DogType> = {
         name: dogName || "Mon chien",
         breed, is_mixed: isMixed, sex, is_neutered: isNeutered,
@@ -326,26 +438,22 @@ export default function Onboarding() {
       const createdDog = await createDog.mutateAsync(dogData);
       setCreatedDogId(createdDog.id);
 
-      // 2. Save evaluation
       const evalPayload: any = { dog_id: createdDog.id, user_id: user.id };
       Object.entries(evaluation).forEach(([k, v]) => { evalPayload[k] = v; });
       await supabase.from("dog_evaluations").insert(evalPayload);
 
-      // 3. Save problems
       const problemRows = Object.entries(selectedProblems).map(([k, v]) => ({
         dog_id: createdDog.id, user_id: user.id, problem_key: k,
         intensity: v.intensity, frequency: v.frequency,
       }));
       if (problemRows.length > 0) await supabase.from("dog_problems").insert(problemRows);
 
-      // 4. Save objectives
       const objRows = selectedObjectives.map((k) => ({
         dog_id: createdDog.id, user_id: user.id, objective_key: k,
         is_priority: k === primaryObjective,
       }));
       if (objRows.length > 0) await supabase.from("dog_objectives").insert(objRows);
 
-      // 5. Generate plan
       const profile: DogProfile = {
         dog: { ...dogData, id: createdDog.id, user_id: user.id } as DogType,
         problems: problemRows.map((p) => ({ problem_key: p.problem_key, intensity: p.intensity, frequency: p.frequency })),
@@ -355,7 +463,6 @@ export default function Onboarding() {
       const plan = generatePersonalizedPlan(profile);
       setGeneratedPlan(plan);
 
-      // 6. Save plan
       await supabase.from("training_plans").insert({
         dog_id: createdDog.id, user_id: user.id,
         title: plan.summary.slice(0, 100),
@@ -374,11 +481,11 @@ export default function Onboarding() {
       setGenPhase(GEN_MESSAGES.length - 1);
       await new Promise((r) => setTimeout(r, 600));
       setPlanReady(true);
-      setStep(11);
+      goTo(11);
     } catch (err: any) {
       clearInterval(interval);
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
-      setStep(9);
+      goTo(9);
     }
   }, [user, dogName, breed, isMixed, sex, isNeutered, birthDate, weightKg, size, activityLevel, origin, adoptionDate, environment, hasChildren, hasOtherAnimals, aloneHours, jointPain, heartProblems, epilepsy, overweight, muzzleRequired, biteHistory, healthNotes, evaluation, selectedProblems, selectedObjectives, primaryObjective, createDog, toast]);
 
@@ -390,25 +497,43 @@ export default function Onboarding() {
   // ===== RENDER =====
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Progress bar - visible from step 2+ */}
-      {step >= 2 && step < 11 && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-background/80 glass safe-top">
-          <div className="px-4 pt-3 pb-2">
-            <div className="flex items-center justify-between mb-1.5">
+      {/* Progress header — steps 2–9 */}
+      {step >= 2 && step <= 9 && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-background/90 glass">
+          <div className="px-4 pt-3 pb-2 max-w-md mx-auto">
+            <div className="flex items-center justify-between mb-2">
               <button onClick={prev} className="p-1.5 -ml-1.5 rounded-xl hover:bg-muted transition-colors">
                 <ChevronLeft className="h-5 w-5 text-muted-foreground" />
               </button>
-              <span className="text-xs text-muted-foreground font-medium">
-                Étape {step - 1} / {TOTAL_STEPS - 3}
-              </span>
-              <div className="w-8" />
+
+              <ProfilePill
+                dogName={dogName}
+                securityFlags={securityFlags}
+                filledCount={profileFields.filled}
+                totalFields={profileFields.total}
+              />
+
+              <button onClick={saveAndQuit} className="p-1.5 -mr-1.5 rounded-xl hover:bg-muted transition-colors" title="Sauvegarder et quitter">
+                <Save className="h-4 w-4 text-muted-foreground" />
+              </button>
             </div>
+
             <Progress value={progressPercent} className="h-1.5 rounded-full" />
+
+            <div className="flex items-center justify-between mt-1.5">
+              <span className="text-[10px] text-muted-foreground">
+                Étape {currentProgress + 1} / {stepsInRange}
+              </span>
+              <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                <Clock className="h-2.5 w-2.5" />
+                {timeRemaining} restantes
+              </span>
+            </div>
           </div>
         </div>
       )}
 
-      <div className="flex-1 flex items-center justify-center px-5 py-16">
+      <div className="flex-1 flex items-center justify-center px-5 py-20">
         {/* STEP 0 — Welcome */}
         {step === 0 && (
           <StepCard>
@@ -446,12 +571,17 @@ export default function Onboarding() {
                 ))}
               </div>
 
-              <div className="w-full space-y-3 pt-2">
-                <Button size="lg" className="w-full h-14 text-base rounded-2xl" onClick={() => setStep(1)}>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" />
+                <span>Environ 5 minutes</span>
+              </div>
+
+              <div className="w-full space-y-3">
+                <Button size="lg" className="w-full h-14 text-base rounded-2xl" onClick={() => goTo(1)}>
                   Commencer <ChevronRight className="h-5 w-5 ml-1" />
                 </Button>
                 <button
-                  onClick={() => { setAuthMode("login"); setStep(1); }}
+                  onClick={() => { setAuthMode("login"); goTo(1); }}
                   className="text-sm text-muted-foreground hover:text-primary transition-colors w-full"
                 >
                   J'ai déjà un compte
@@ -541,7 +671,7 @@ export default function Onboarding() {
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted rounded-xl px-4 py-2.5">
                 <Clock className="h-3.5 w-3.5" />
-                <span>Environ 5 minutes</span>
+                <span>Environ 5 minutes — Vous pouvez sauvegarder à tout moment</span>
               </div>
               <Button size="lg" className="w-full h-14 text-base rounded-2xl" onClick={next}>
                 C'est parti <ChevronRight className="h-5 w-5 ml-1" />
@@ -561,7 +691,7 @@ export default function Onboarding() {
 
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label className="text-sm">Nom du chien</Label>
+                  <Label className="text-sm">Nom du chien *</Label>
                   <Input value={dogName} onChange={(e) => setDogName(e.target.value)} placeholder="Ex: Luna, Rex…"
                     className="h-12 rounded-xl text-base" autoFocus />
                 </div>
@@ -590,6 +720,10 @@ export default function Onboarding() {
                   <Switch checked={isNeutered} onCheckedChange={setIsNeutered} />
                 </div>
               </div>
+
+              {stepSuggestions.map((s, i) => (
+                <HintBanner key={i} icon={<Info className="h-3.5 w-3.5" />} text={s} />
+              ))}
 
               <Button size="lg" className="w-full h-13 rounded-2xl" onClick={next} disabled={!dogName.trim()}>
                 Continuer <ChevronRight className="h-5 w-5 ml-1" />
@@ -691,6 +825,15 @@ export default function Onboarding() {
                 </div>
               </div>
 
+              {/* Hints for contradictions */}
+              {hints.filter(h => h.text.includes("taille") || h.text.includes("poids")).map((h, i) => (
+                <HintBanner key={i} icon={<Info className="h-3.5 w-3.5" />} text={h.text} variant={h.variant} />
+              ))}
+
+              {stepSuggestions.map((s, i) => (
+                <HintBanner key={`s${i}`} icon={<Info className="h-3.5 w-3.5" />} text={s} />
+              ))}
+
               <Button size="lg" className="w-full h-13 rounded-2xl" onClick={next}>
                 Continuer <ChevronRight className="h-5 w-5 ml-1" />
               </Button>
@@ -742,12 +885,16 @@ export default function Onboarding() {
                 </div>
 
                 {(biteHistory || muzzleRequired) && (
-                  <div className="p-3 rounded-xl bg-destructive/5 border border-destructive/20 animate-fade-in">
-                    <p className="text-xs text-destructive font-medium">
-                      ⚠️ Le plan sera adapté avec des mesures de sécurité renforcées.
-                    </p>
-                  </div>
+                  <HintBanner
+                    icon={<Shield className="h-3.5 w-3.5" />}
+                    text="Le plan sera adapté avec des mesures de sécurité renforcées. C'est tout à fait normal et prévu."
+                    variant="warning"
+                  />
                 )}
+
+                {hints.filter(h => h.text.includes("muselière") || h.text.includes("morsure")).map((h, i) => (
+                  <HintBanner key={i} icon={<Info className="h-3.5 w-3.5" />} text={h.text} variant={h.variant} />
+                ))}
 
                 <div className="space-y-1.5">
                   <Label className="text-sm">Notes de santé (optionnel)</Label>
@@ -772,6 +919,11 @@ export default function Onboarding() {
                 <p className="text-sm text-muted-foreground">Où en est {dogName || "votre chien"} aujourd'hui ?</p>
               </div>
 
+              <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted rounded-xl px-3 py-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                <span>{Object.keys(evaluation).length} / {EVAL_QUESTIONS.length} répondues</span>
+              </div>
+
               <div className="space-y-4">
                 {EVAL_QUESTIONS.map((q) => (
                   <TriChoice
@@ -782,6 +934,10 @@ export default function Onboarding() {
                   />
                 ))}
               </div>
+
+              {stepSuggestions.map((s, i) => (
+                <HintBanner key={i} icon={<Info className="h-3.5 w-3.5" />} text={s} />
+              ))}
 
               <Button size="lg" className="w-full h-13 rounded-2xl" onClick={next}>
                 Continuer <ChevronRight className="h-5 w-5 ml-1" />
@@ -798,6 +954,11 @@ export default function Onboarding() {
                 <h2 className="text-xl font-bold text-foreground">Problématiques rencontrées</h2>
                 <p className="text-sm text-muted-foreground">Sélectionnez celles qui vous concernent</p>
               </div>
+
+              {/* Cross-check hints from evaluation */}
+              {hints.filter(h => h.text.includes("problématique")).map((h, i) => (
+                <HintBanner key={i} icon={<Info className="h-3.5 w-3.5" />} text={h.text} />
+              ))}
 
               <div className="grid grid-cols-2 gap-2">
                 {PROBLEM_OPTIONS.map((p) => (
@@ -817,7 +978,6 @@ export default function Onboarding() {
                 ))}
               </div>
 
-              {/* Intensity for selected problems */}
               {Object.keys(selectedProblems).length > 0 && (
                 <div className="space-y-3 pt-2 border-t border-border">
                   <p className="text-sm font-medium text-foreground">Intensité</p>
@@ -891,6 +1051,10 @@ export default function Onboarding() {
                 </div>
               )}
 
+              {stepSuggestions.map((s, i) => (
+                <HintBanner key={i} icon={<Info className="h-3.5 w-3.5" />} text={s} />
+              ))}
+
               <Button size="lg" className="w-full h-13 rounded-2xl" onClick={next}
                 disabled={selectedObjectives.length === 0}>
                 Continuer <ChevronRight className="h-5 w-5 ml-1" />
@@ -905,7 +1069,7 @@ export default function Onboarding() {
             <div className="space-y-6">
               <div className="text-center space-y-1">
                 <h2 className="text-xl font-bold text-foreground">Presque terminé !</h2>
-                <p className="text-sm text-muted-foreground">Votre rythme et un résumé du profil</p>
+                <p className="text-sm text-muted-foreground">Votre rythme et résumé du profil</p>
               </div>
 
               {/* Rhythm */}
@@ -940,23 +1104,48 @@ export default function Onboarding() {
                 </div>
               </div>
 
-              {/* Profile Summary */}
+              {/* Live Profile Summary */}
               <div className="p-4 rounded-2xl bg-card border border-border space-y-3">
-                <p className="text-sm font-semibold text-foreground">Résumé du profil</p>
-                <div className="space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-foreground">Résumé du profil</p>
+                  <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                    {profileFields.filled}/{profileFields.total} complété
+                  </span>
+                </div>
+                <div className="space-y-2.5 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Chien</span>
                     <span className="font-medium">{dogName || "—"} {breed ? `(${breed})` : ""}</span>
                   </div>
+                  {size && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Gabarit</span>
+                      <span className="font-medium capitalize">{size}{weightKg ? ` · ${weightKg} kg` : ""}</span>
+                    </div>
+                  )}
+                  {activityLevel && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Énergie</span>
+                      <span className="font-medium capitalize">{activityLevel === "faible" ? "Calme" : activityLevel === "modere" ? "Modéré" : "Énergique"}</span>
+                    </div>
+                  )}
+                  {environment && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Environnement</span>
+                      <span className="font-medium capitalize">{environment.replace("_", " + ")}</span>
+                    </div>
+                  )}
+
                   {securityFlags.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 pt-1">
                       {securityFlags.map((f) => (
-                        <span key={f} className="text-xs bg-destructive/10 text-destructive px-2.5 py-1 rounded-lg font-medium">
+                        <span key={f} className="text-[10px] bg-destructive/10 text-destructive px-2 py-0.5 rounded-lg font-medium">
                           ⚠️ {f}
                         </span>
                       ))}
                     </div>
                   )}
+
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Problématiques</span>
                     <span className="font-medium">{Object.keys(selectedProblems).length}</span>
@@ -965,8 +1154,21 @@ export default function Onboarding() {
                     <span className="text-muted-foreground">Objectifs</span>
                     <span className="font-medium">{selectedObjectives.length}</span>
                   </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Évaluation</span>
+                    <span className="font-medium">{Object.keys(evaluation).length}/{EVAL_QUESTIONS.length} réponses</span>
+                  </div>
                 </div>
+
+                <button onClick={() => goTo(3)} className="text-xs text-primary font-medium hover:underline">
+                  Modifier le profil
+                </button>
               </div>
+
+              {/* Final hints */}
+              {hints.map((h, i) => (
+                <HintBanner key={i} icon={<Info className="h-3.5 w-3.5" />} text={h.text} variant={h.variant} />
+              ))}
 
               <Button size="lg" className="w-full h-14 text-base rounded-2xl" onClick={handleGenerate}>
                 <Sparkles className="h-5 w-5 mr-2" />
@@ -987,7 +1189,7 @@ export default function Onboarding() {
               </div>
               <div className="space-y-3">
                 <h2 className="text-xl font-bold text-foreground">Création en cours…</h2>
-                <p className="text-sm text-muted-foreground animate-fade-in" key={genPhase}>
+                <p className="text-sm text-muted-foreground step-transition" key={genPhase}>
                   {GEN_MESSAGES[genPhase]}
                 </p>
               </div>
@@ -1035,12 +1237,11 @@ export default function Onboarding() {
                 </div>
 
                 {generatedPlan.securityLevel !== "standard" && (
-                  <div className="p-3 rounded-xl bg-warning/5 border border-warning/20 flex items-center gap-2">
-                    <Shield className="h-4 w-4 text-warning flex-shrink-0" />
-                    <span className="text-xs text-warning font-medium">
-                      Niveau de sécurité : {generatedPlan.securityLevel}
-                    </span>
-                  </div>
+                  <HintBanner
+                    icon={<Shield className="h-3.5 w-3.5" />}
+                    text={`Niveau de sécurité : ${generatedPlan.securityLevel}. Le plan intègre des mesures adaptées.`}
+                    variant="warning"
+                  />
                 )}
               </div>
 
