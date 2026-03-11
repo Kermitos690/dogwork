@@ -82,6 +82,117 @@ export type Database = {
           },
         ]
       }
+      client_links: {
+        Row: {
+          client_user_id: string
+          coach_user_id: string
+          created_at: string
+          id: string
+          status: string
+        }
+        Insert: {
+          client_user_id: string
+          coach_user_id: string
+          created_at?: string
+          id?: string
+          status?: string
+        }
+        Update: {
+          client_user_id?: string
+          coach_user_id?: string
+          created_at?: string
+          id?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      coach_notes: {
+        Row: {
+          client_user_id: string | null
+          coach_user_id: string
+          content: string
+          created_at: string
+          dog_id: string | null
+          id: string
+          note_type: string
+          priority_level: string
+          title: string
+          training_plan_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_user_id?: string | null
+          coach_user_id: string
+          content?: string
+          created_at?: string
+          dog_id?: string | null
+          id?: string
+          note_type?: string
+          priority_level?: string
+          title?: string
+          training_plan_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_user_id?: string | null
+          coach_user_id?: string
+          content?: string
+          created_at?: string
+          dog_id?: string | null
+          id?: string
+          note_type?: string
+          priority_level?: string
+          title?: string
+          training_plan_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_notes_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coach_notes_training_plan_id_fkey"
+            columns: ["training_plan_id"]
+            isOneToOne: false
+            referencedRelation: "training_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coach_profiles: {
+        Row: {
+          bio: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          specialty: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          specialty?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          specialty?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       day_progress: {
         Row: {
           completed_exercises: string[] | null
@@ -534,6 +645,107 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "journal_entries_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plan_adjustments: {
+        Row: {
+          adjustment_reason: string
+          adjustment_type: string
+          applied: boolean
+          coach_user_id: string
+          created_at: string
+          dog_id: string
+          id: string
+          recommendation_text: string
+          training_plan_id: string
+        }
+        Insert: {
+          adjustment_reason?: string
+          adjustment_type?: string
+          applied?: boolean
+          coach_user_id: string
+          created_at?: string
+          dog_id: string
+          id?: string
+          recommendation_text?: string
+          training_plan_id: string
+        }
+        Update: {
+          adjustment_reason?: string
+          adjustment_type?: string
+          applied?: boolean
+          coach_user_id?: string
+          created_at?: string
+          dog_id?: string
+          id?: string
+          recommendation_text?: string
+          training_plan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_adjustments_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_adjustments_training_plan_id_fkey"
+            columns: ["training_plan_id"]
+            isOneToOne: false
+            referencedRelation: "training_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      professional_alerts: {
+        Row: {
+          alert_type: string
+          client_user_id: string
+          coach_user_id: string | null
+          created_at: string
+          description: string
+          dog_id: string
+          id: string
+          resolved: boolean
+          resolved_at: string | null
+          severity: string
+          title: string
+        }
+        Insert: {
+          alert_type?: string
+          client_user_id: string
+          coach_user_id?: string | null
+          created_at?: string
+          description?: string
+          dog_id: string
+          id?: string
+          resolved?: boolean
+          resolved_at?: string | null
+          severity?: string
+          title?: string
+        }
+        Update: {
+          alert_type?: string
+          client_user_id?: string
+          coach_user_id?: string | null
+          created_at?: string
+          description?: string
+          dog_id?: string
+          id?: string
+          resolved?: boolean
+          resolved_at?: string | null
+          severity?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professional_alerts_dog_id_fkey"
             columns: ["dog_id"]
             isOneToOne: false
             referencedRelation: "dogs"
