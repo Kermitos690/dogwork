@@ -1,6 +1,6 @@
 import type { Dog } from "@/hooks/useDogs";
 import { EXERCISE_LIBRARY, type LibraryExercise } from "@/data/exerciseLibrary";
-import { PROGRAM, type Day } from "@/types";
+// Plan generator uses EXERCISE_LIBRARY for exercise references
 
 // ===== Problem key mappings =====
 const PROBLEM_KEYS_MAP: Record<string, string> = {
