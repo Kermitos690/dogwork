@@ -31,8 +31,8 @@ const Index = () => {
       <div className="animate-fade-in space-y-5 pt-6">
         {/* Header */}
         <div>
-          <p className="text-sm text-muted-foreground">Défi Canin 28 Jours</p>
-          <h1 className="text-2xl font-bold text-foreground">{settings.dogName}</h1>
+          <h1 className="text-2xl font-bold text-foreground">Mon défi 28 jours</h1>
+          <p className="text-sm text-muted-foreground">Reste sous seuil. Travaille proprement.</p>
         </div>
 
         {/* Progress card */}
