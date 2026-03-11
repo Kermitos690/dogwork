@@ -171,6 +171,6 @@ export default function CoachClients() {
           )}
         </div>
       </div>
-    </AppLayout>
+    </CoachLayout>
   );
 }

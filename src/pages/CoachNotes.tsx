@@ -164,6 +164,6 @@ export default function CoachNotes() {
           )}
         </div>
       </div>
-    </AppLayout>
+    </CoachLayout>
   );
 }

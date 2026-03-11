@@ -121,6 +121,6 @@ export default function CoachDogs() {
           )}
         </div>
       </div>
-    </AppLayout>
+    </CoachLayout>
   );
 }

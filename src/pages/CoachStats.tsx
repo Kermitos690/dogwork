@@ -151,6 +151,6 @@ export default function CoachStats() {
           </div>
         </motion.div>
       </div>
-    </AppLayout>
+    </CoachLayout>
   );
 }

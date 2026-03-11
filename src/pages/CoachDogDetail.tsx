@@ -279,6 +279,6 @@ export default function CoachDogDetail() {
           </TabsContent>
         </Tabs>
       </div>
-    </AppLayout>
+    </CoachLayout>
   );
 }
