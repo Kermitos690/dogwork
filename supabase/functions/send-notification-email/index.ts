@@ -51,7 +51,7 @@ serve(async (req) => {
 
     const { type, data } = await req.json();
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    const FROM_EMAIL = "DogWork <noreply@dogwork.lovable.app>";
+    const FROM_EMAIL = "DogWork <onboarding@resend.dev>";
     const ADMIN_EMAIL = "teba.gaetan@gmail.com";
 
     let subject = "";
