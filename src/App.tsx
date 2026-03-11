@@ -30,6 +30,7 @@ import CoachDogs from "./pages/CoachDogs";
 import CoachNotes from "./pages/CoachNotes";
 import CoachDogDetail from "./pages/CoachDogDetail";
 import CoachStats from "./pages/CoachStats";
+import { CoachGuard } from "./components/CoachGuard";
 import { useDogs } from "./hooks/useDogs";
 
 const queryClient = new QueryClient();
