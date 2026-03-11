@@ -97,7 +97,7 @@ export default function Training() {
   const goNext = () => { if (currentIndex < totalExercises - 1) { setCurrentIndex(currentIndex + 1); setReps(0); } };
   const goPrev = () => { if (currentIndex > 0) { setCurrentIndex(currentIndex - 1); setReps(0); } };
 
-  if ((!standardDay && !planDay) || !exercise) {
+  if ((!standardDay && !planDay) || exercises.length === 0 || !exercise) {
     return (
       <AppLayout>
         <div className="pt-10 text-center space-y-4">

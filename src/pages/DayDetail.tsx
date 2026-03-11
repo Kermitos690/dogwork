@@ -45,12 +45,14 @@ export default function DayDetail() {
   const dayObjective = isPersonalized ? planDay.objective : standardDay?.objective || "";
   const dayDuration = isPersonalized ? planDay.duration : standardDay?.duration || "";
   const dayDifficulty = isPersonalized ? planDay.difficulty : standardDay?.difficulty || "";
-  const dayExercises = isPersonalized
+  const planExercises = isPersonalized
     ? planDay.exercises.map((e: any, i: number) => ({
         id: e.id || `plan-ex-${i}`, name: e.name, instructions: e.instructions,
         repetitionsTarget: e.repetitions, timerSuggested: e.timerSeconds, dayId: id,
       }))
-    : standardDay?.exercises || [];
+    : [];
+  // Fall back to standard exercises when plan day exists but has no exercises
+  const dayExercises = planExercises.length > 0 ? planExercises : (standardDay?.exercises || []);
   const dayVigilance = isPersonalized ? planDay.vigilance : standardDay?.vigilance || "";
   const dayValidation = isPersonalized ? planDay.validationCriteria : standardDay?.validationCriteria || "";
   const dayWeek = isPersonalized ? planDay.week : standardDay?.week || 1;
