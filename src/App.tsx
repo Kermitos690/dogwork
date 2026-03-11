@@ -46,6 +46,7 @@ const HelpPage = lazy(() => import("./pages/Help"));
 const SubscriptionPage = lazy(() => import("./pages/Subscription"));
 const CoursesPage = lazy(() => import("./pages/Courses"));
 const CoachCalendar = lazy(() => import("./pages/CoachCalendar"));
+const CoachSubscription = lazy(() => import("./pages/CoachSubscription"));
 const MessagesPage = lazy(() => import("./pages/Messages"));
 const SettingsPage = lazy(() => import("./pages/Settings"));
 
