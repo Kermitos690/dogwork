@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogOut, Save, Shield, Download, Trash2, User, GraduationCap, ShieldCheck } from "lucide-react";
+import { LogOut, Save, Shield, Download, Trash2, User, GraduationCap, ShieldCheck, HelpCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 
