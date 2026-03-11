@@ -84,8 +84,8 @@ const Index = () => {
                 <Play className="h-5 w-5" />
                 Reprendre aujourd'hui
               </Button>
-              <Button variant="outline" className="w-full" onClick={() => navigate(`/day/${currentDay.id}`)}>
-                Voir la fiche du jour
+              <Button variant="outline" className="w-full" onClick={() => navigate("/program")}>
+                Voir le programme
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>

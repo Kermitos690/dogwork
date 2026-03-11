@@ -101,8 +101,8 @@ export default function Stats() {
 
         {/* Averages */}
         <div className="grid grid-cols-2 gap-3">
-          <StatCard label="Tension moyenne" value={stats.avgTension} unit="/5" color={stats.avgTension > 3 ? "text-destructive" : "text-success"} />
-          <StatCard label="Réactivité moy." value={stats.avgDogReaction} unit="/5" color={stats.avgDogReaction > 3 ? "text-destructive" : "text-success"} />
+          <StatCard label="Moyenne tension" value={stats.avgTension} unit="/5" color={stats.avgTension > 3 ? "text-destructive" : "text-success"} />
+          <StatCard label="Moyenne réactivité" value={stats.avgDogReaction} unit="/5" color={stats.avgDogReaction > 3 ? "text-destructive" : "text-success"} />
         </div>
 
         {/* Tension chart */}

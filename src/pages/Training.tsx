@@ -106,7 +106,7 @@ export default function Training() {
 
         <Button size="xl" variant="success" className="w-full" onClick={completeExercise}>
           <CheckCircle2 className="h-5 w-5" />
-          {currentIndex < totalExercises - 1 ? "Terminer et suivant" : "Terminer l'exercice"}
+          {currentIndex < totalExercises - 1 ? "Terminer l'exercice" : "Terminer l'exercice"}
         </Button>
 
         <div className="flex gap-2">

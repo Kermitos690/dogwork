@@ -164,7 +164,7 @@ export default function Settings() {
               <p className="text-sm text-destructive">Êtes-vous sûr(e) ? Toutes les données seront effacées.</p>
               <div className="flex gap-2">
                 <Button variant="destructive" className="flex-1" onClick={handleReset}>
-                  <RotateCcw className="h-4 w-4" /> Confirmer
+                  <RotateCcw className="h-4 w-4" /> Réinitialiser les données
                 </Button>
                 <Button variant="outline" className="flex-1" onClick={() => setShowConfirm(false)}>
                   Annuler
