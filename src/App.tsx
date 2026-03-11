@@ -43,6 +43,7 @@ const CoachGuard = lazy(() => import("./components/CoachGuard").then(m => ({ def
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const HelpPage = lazy(() => import("./pages/Help"));
 const SubscriptionPage = lazy(() => import("./pages/Subscription"));
+const CoursesPage = lazy(() => import("./pages/Courses"));
 
 const queryClient = new QueryClient();
 
@@ -88,6 +89,7 @@ function ProtectedRoutes() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/help" element={<HelpPage />} />
         <Route path="/subscription" element={<SubscriptionPage />} />
+        <Route path="/courses" element={<CoursesPage />} />
         {/* Coach / Educator routes — guarded by role */}
         <Route path="/coach" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachDashboard /></CoachGuard></Suspense>} />
         <Route path="/coach/clients" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachClients /></CoachGuard></Suspense>} />

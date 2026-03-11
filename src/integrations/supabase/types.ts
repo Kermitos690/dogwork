@@ -240,6 +240,7 @@ export type Database = {
       courses: {
         Row: {
           address: string | null
+          approval_status: string
           category: string | null
           commission_rate: number
           created_at: string | null
@@ -258,6 +259,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          approval_status?: string
           category?: string | null
           commission_rate?: number
           created_at?: string | null
@@ -276,6 +278,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          approval_status?: string
           category?: string | null
           commission_rate?: number
           created_at?: string | null

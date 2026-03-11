@@ -1,12 +1,12 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, Calendar, Play, ClipboardList, BarChart3 } from "lucide-react";
+import { Home, Calendar, Play, GraduationCap, BarChart3 } from "lucide-react";
 import { getSettings } from "@/lib/storage";
 
 const tabs = [
   { label: "Accueil", icon: Home, path: "/" },
   { label: "Programme", icon: Calendar, path: "/program" },
   { label: "Entraînement", icon: Play, path: "/training", dynamic: true },
-  { label: "Suivi", icon: ClipboardList, path: "/behavior", dynamic: true },
+  { label: "Cours", icon: GraduationCap, path: "/courses" },
   { label: "Stats", icon: BarChart3, path: "/stats" },
 ];
 
