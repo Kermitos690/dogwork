@@ -97,7 +97,7 @@ export default function Settings() {
           <h3 className="text-sm font-semibold">Exporter mes données</h3>
           <div className="flex flex-col gap-2">
             <Button variant="outline" className="w-full justify-start" onClick={handleExportJSON}>
-              <Download className="h-4 w-4" /> Exporter en JSON
+              <Download className="h-4 w-4" /> Exporter
             </Button>
             <Button variant="outline" className="w-full justify-start" onClick={handleExportText}>
               <Download className="h-4 w-4" /> Exporter un résumé texte
@@ -154,17 +154,17 @@ export default function Settings() {
 
         {/* Reset */}
         <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 space-y-3">
-          <h3 className="text-sm font-semibold text-destructive">Zone de danger</h3>
+          <h3 className="text-sm font-semibold text-destructive">Réinitialiser</h3>
           {!showConfirm ? (
             <Button variant="destructive" className="w-full" onClick={() => setShowConfirm(true)}>
-              <Trash2 className="h-4 w-4" /> Remettre à zéro
+              <Trash2 className="h-4 w-4" /> Remettre le programme à zéro
             </Button>
           ) : (
             <div className="space-y-2">
               <p className="text-sm text-destructive">Êtes-vous sûr(e) ? Toutes les données seront effacées.</p>
               <div className="flex gap-2">
                 <Button variant="destructive" className="flex-1" onClick={handleReset}>
-                  <RotateCcw className="h-4 w-4" /> Confirmer
+                  <RotateCcw className="h-4 w-4" /> Réinitialiser les données
                 </Button>
                 <Button variant="outline" className="flex-1" onClick={() => setShowConfirm(false)}>
                   Annuler

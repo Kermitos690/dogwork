@@ -72,7 +72,7 @@ export default function Stats() {
         {/* Overview */}
         <div className="grid grid-cols-2 gap-3">
           <StatCard label="Jours validés" value={stats.completedDays} unit="/28" />
-          <StatCard label="Progression" value={stats.completionRate} unit="%" color="text-primary" />
+          <StatCard label="Score de progression" value={stats.completionRate} unit="%" color="text-primary" />
         </div>
 
         {/* Weekly */}
@@ -101,8 +101,8 @@ export default function Stats() {
 
         {/* Averages */}
         <div className="grid grid-cols-2 gap-3">
-          <StatCard label="Tension moyenne" value={stats.avgTension} unit="/5" color={stats.avgTension > 3 ? "text-destructive" : "text-success"} />
-          <StatCard label="Réactivité moy." value={stats.avgDogReaction} unit="/5" color={stats.avgDogReaction > 3 ? "text-destructive" : "text-success"} />
+          <StatCard label="Moyenne tension" value={stats.avgTension} unit="/5" color={stats.avgTension > 3 ? "text-destructive" : "text-success"} />
+          <StatCard label="Moyenne réactivité" value={stats.avgDogReaction} unit="/5" color={stats.avgDogReaction > 3 ? "text-destructive" : "text-success"} />
         </div>
 
         {/* Tension chart */}

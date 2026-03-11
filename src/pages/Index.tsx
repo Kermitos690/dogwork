@@ -31,8 +31,8 @@ const Index = () => {
       <div className="animate-fade-in space-y-5 pt-6">
         {/* Header */}
         <div>
-          <p className="text-sm text-muted-foreground">Défi Canin 28 Jours</p>
-          <h1 className="text-2xl font-bold text-foreground">{settings.dogName}</h1>
+          <h1 className="text-2xl font-bold text-foreground">Mon défi 28 jours</h1>
+          <p className="text-sm text-muted-foreground">Reste sous seuil. Travaille proprement.</p>
         </div>
 
         {/* Progress card */}
@@ -40,6 +40,7 @@ const Index = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-primary-foreground/80">Progression globale</p>
+
               <p className="text-3xl font-bold text-primary-foreground">{pct}%</p>
               <p className="text-sm text-primary-foreground/70">{completedDays}/28 jours validés</p>
             </div>
@@ -67,7 +68,7 @@ const Index = () => {
           <div className="rounded-xl border border-border bg-card p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">Jour {currentDay.id}</p>
+                <p className="text-xs text-muted-foreground">Jour actuel — Jour {currentDay.id}</p>
                 <h2 className="text-lg font-semibold">{currentDay.title}</h2>
               </div>
               <StatusBadge status={dayProgress?.status || "todo"} />
@@ -83,8 +84,8 @@ const Index = () => {
                 <Play className="h-5 w-5" />
                 Reprendre aujourd'hui
               </Button>
-              <Button variant="outline" className="w-full" onClick={() => navigate(`/day/${currentDay.id}`)}>
-                Voir la fiche du jour
+              <Button variant="outline" className="w-full" onClick={() => navigate("/program")}>
+                Voir le programme
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>

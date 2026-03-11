@@ -84,12 +84,12 @@ export default function Training() {
         </div>
 
         <div className="rounded-xl border border-border bg-card p-5">
-          <h3 className="mb-3 text-center text-sm font-medium text-muted-foreground">Chronomètre</h3>
+          <h3 className="mb-3 text-center text-sm font-medium text-muted-foreground">Démarrer le chronomètre</h3>
           <Timer presets={exercise.timerSuggested ? [30, exercise.timerSuggested, 180] : [30, 60, 180]} />
         </div>
 
         <div className="rounded-xl border border-border bg-card p-5">
-          <h3 className="mb-3 text-center text-sm font-medium text-muted-foreground">Répétitions</h3>
+          <h3 className="mb-3 text-center text-sm font-medium text-muted-foreground">Compteur de répétitions</h3>
           <div className="flex items-center justify-center gap-6">
             <Button size="xl" variant="outline" onClick={() => setReps(Math.max(0, reps - 1))} className="h-14 w-14 rounded-full p-0">
               <Minus className="h-6 w-6" />
@@ -106,7 +106,7 @@ export default function Training() {
 
         <Button size="xl" variant="success" className="w-full" onClick={completeExercise}>
           <CheckCircle2 className="h-5 w-5" />
-          {currentIndex < totalExercises - 1 ? "Terminer et suivant" : "Terminer l'exercice"}
+          {currentIndex < totalExercises - 1 ? "Terminer l'exercice" : "Terminer l'exercice"}
         </Button>
 
         <div className="flex gap-2">

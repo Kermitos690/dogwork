@@ -13,8 +13,8 @@ export default function Program() {
     <Layout>
       <div className="animate-fade-in space-y-6 pt-6">
         <div>
-          <h1 className="text-2xl font-bold">Programme 28 jours</h1>
-          <p className="text-sm text-muted-foreground">4 semaines pour la neutralité et le contrôle</p>
+          <h1 className="text-2xl font-bold">Programme</h1>
+          <p className="text-sm text-muted-foreground">Neutralité, contrôle, progression.</p>
         </div>
 
         {[1, 2, 3, 4].map((week) => {
