@@ -362,6 +362,9 @@ export default function CoachCourses() {
                       <Badge variant="secondary" className="text-[10px]">{catLabel}</Badge>
                       <Badge variant="outline" className="text-[10px]">{levelLabel}</Badge>
                       {!course.is_active && <Badge variant="destructive" className="text-[10px]">Inactif</Badge>}
+                      {(course as any).approval_status === "pending" && <Badge className="text-[10px] bg-yellow-500/20 text-yellow-700 border-yellow-300">En attente d'approbation</Badge>}
+                      {(course as any).approval_status === "rejected" && <Badge variant="destructive" className="text-[10px]">Refusé</Badge>}
+                      {(course as any).approval_status === "approved" && <Badge className="text-[10px] bg-green-500/20 text-green-700 border-green-300">Approuvé</Badge>}
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
