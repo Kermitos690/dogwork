@@ -7,7 +7,7 @@ import {
   ShieldCheck, Users, FileText, Plus, Calendar, Sparkles, HelpCircle,
   MessageSquare, Bot, Target, Eye, Zap, PawPrint, Star, Home, Pencil,
   Heart, AlertTriangle, MapPin, Timer, Activity, Settings, Clipboard,
-  Video
+  Video, TrendingUp
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
