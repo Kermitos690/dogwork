@@ -24,6 +24,7 @@ export type Database = {
           dog_id: string
           dog_reaction_level: number | null
           focus_quality: string | null
+          human_reaction_level: number | null
           id: string
           jump_on_human: boolean | null
           leash_walk_quality: string | null
@@ -42,6 +43,7 @@ export type Database = {
           dog_id: string
           dog_reaction_level?: number | null
           focus_quality?: string | null
+          human_reaction_level?: number | null
           id?: string
           jump_on_human?: boolean | null
           leash_walk_quality?: string | null
@@ -60,6 +62,7 @@ export type Database = {
           dog_id?: string
           dog_reaction_level?: number | null
           focus_quality?: string | null
+          human_reaction_level?: number | null
           id?: string
           jump_on_human?: boolean | null
           leash_walk_quality?: string | null
@@ -464,6 +467,80 @@ export type Database = {
           },
         ]
       }
+      journal_entries: {
+        Row: {
+          completed: boolean
+          created_at: string
+          day_id: number | null
+          dog_id: string
+          dog_reaction: string | null
+          entry_date: string
+          focus_quality: string | null
+          id: string
+          incidents: string | null
+          leash_quality: string | null
+          no_quality: string | null
+          notes: string | null
+          recovery_time: string | null
+          stop_quality: string | null
+          success_level: string | null
+          tension_level: number | null
+          triggers_encountered: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          day_id?: number | null
+          dog_id: string
+          dog_reaction?: string | null
+          entry_date?: string
+          focus_quality?: string | null
+          id?: string
+          incidents?: string | null
+          leash_quality?: string | null
+          no_quality?: string | null
+          notes?: string | null
+          recovery_time?: string | null
+          stop_quality?: string | null
+          success_level?: string | null
+          tension_level?: number | null
+          triggers_encountered?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          day_id?: number | null
+          dog_id?: string
+          dog_reaction?: string | null
+          entry_date?: string
+          focus_quality?: string | null
+          id?: string
+          incidents?: string | null
+          leash_quality?: string | null
+          no_quality?: string | null
+          notes?: string | null
+          recovery_time?: string | null
+          stop_quality?: string | null
+          success_level?: string | null
+          tension_level?: number | null
+          triggers_encountered?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_entries_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -490,6 +567,71 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      training_plans: {
+        Row: {
+          average_duration: string
+          axes: Json
+          created_at: string
+          days: Json
+          dog_id: string
+          frequency: string
+          id: string
+          is_active: boolean
+          plan_type: string
+          precautions: Json
+          security_level: string
+          summary: string
+          title: string
+          total_days: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          average_duration?: string
+          axes?: Json
+          created_at?: string
+          days?: Json
+          dog_id: string
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          plan_type?: string
+          precautions?: Json
+          security_level?: string
+          summary?: string
+          title?: string
+          total_days?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          average_duration?: string
+          axes?: Json
+          created_at?: string
+          days?: Json
+          dog_id?: string
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          plan_type?: string
+          precautions?: Json
+          security_level?: string
+          summary?: string
+          title?: string
+          total_days?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_plans_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
