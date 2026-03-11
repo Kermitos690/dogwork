@@ -270,7 +270,7 @@ export default function CoachCourses() {
                       onChange={(e) => setForm({ ...form, price_cents: Math.round(Number(e.target.value) * 100) })}
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      Commission 30% : {((form.price_cents * 0.3) / 100).toFixed(2)} € — Vous recevez : {((form.price_cents * 0.7) / 100).toFixed(2)} €
+                      Commission 30% : {((form.price_cents * 0.3) / 100).toFixed(2)} CHF — Vous recevez : {((form.price_cents * 0.7) / 100).toFixed(2)} CHF
                     </p>
                   </div>
                   <div>
