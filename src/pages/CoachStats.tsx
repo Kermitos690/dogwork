@@ -29,7 +29,7 @@ export default function CoachStats() {
   const fadeUp = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } };
 
   return (
-    <AppLayout>
+    <CoachLayout>
       <div className="space-y-5 pb-24">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate("/coach")}><ArrowLeft className="h-5 w-5" /></Button>
