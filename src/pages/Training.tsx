@@ -1,7 +1,8 @@
 import { useState, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, ChevronLeft, ChevronRight, Plus, Minus, CheckCircle2, Play, Pause, RotateCcw } from "lucide-react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { ArrowLeft, ChevronLeft, ChevronRight, Plus, Minus, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { AppLayout } from "@/components/AppLayout";
 import { Timer } from "@/components/Timer";
@@ -11,16 +12,52 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
+import type { PlanDay } from "@/lib/planGenerator";
 
 export default function Training() {
   const { dayId } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const activeDog = useActiveDog();
   const id = Number(dayId);
-  const day = getDayById(id);
+  const source = searchParams.get("source");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [reps, setReps] = useState(0);
+
+  // Fetch personalized plan day if source=plan
+  const { data: planDay } = useQuery({
+    queryKey: ["training_plan_day", activeDog?.id, id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("training_plans")
+        .select("days")
+        .eq("dog_id", activeDog!.id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!data?.days) return null;
+      const days = data.days as PlanDay[];
+      return days.find(d => d.dayNumber === id) || null;
+    },
+    enabled: !!activeDog && source === "plan",
+  });
+
+  const standardDay = getDayById(id);
+  const isPersonalized = source === "plan" && planDay;
+
+  // Normalize exercises
+  const exercises = isPersonalized
+    ? planDay.exercises.map((e: any, i: number) => ({
+        id: e.id || `plan-ex-${i}`,
+        name: e.name,
+        instructions: e.instructions,
+        repetitionsTarget: e.repetitions,
+        timerSuggested: e.timerSeconds,
+        dayId: id,
+      }))
+    : standardDay?.exercises || [];
 
   const { data: progress, refetch } = useQuery({
     queryKey: ["day_progress_training", activeDog?.id, id],
@@ -30,20 +67,19 @@ export default function Training() {
         .select("*")
         .eq("dog_id", activeDog!.id)
         .eq("day_id", id)
-        .single();
+        .maybeSingle();
       return data;
     },
     enabled: !!activeDog && !!id,
   });
 
-  const exercises = day?.exercises || [];
   const exercise = exercises[currentIndex];
   const totalExercises = exercises.length;
   const completedExercises: string[] = progress?.completed_exercises || [];
 
   const isExDone = exercise ? completedExercises.includes(exercise.id) : false;
-  const completedCount = completedExercises.filter((eid) =>
-    exercises.some((e) => e.id === eid)
+  const completedCount = completedExercises.filter((eid: string) =>
+    exercises.some((e: any) => e.id === eid)
   ).length;
 
   const completeExercise = useCallback(async () => {
@@ -90,7 +126,7 @@ export default function Training() {
 
   const sessionPct = Math.round((completedCount / Math.max(totalExercises, 1)) * 100);
 
-  if (!day || !exercise) {
+  if ((!standardDay && !planDay) || !exercise) {
     return (
       <AppLayout>
         <div className="pt-10 text-center space-y-4">
@@ -101,12 +137,14 @@ export default function Training() {
     );
   }
 
+  const backUrl = source === "plan" ? `/day/${id}?source=plan` : `/day/${id}`;
+
   return (
     <AppLayout>
       <div className="animate-fade-in space-y-4 pt-4">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <button onClick={() => navigate(`/day/${id}`)} className="flex items-center gap-1 text-sm text-muted-foreground">
+          <button onClick={() => navigate(backUrl)} className="flex items-center gap-1 text-sm text-muted-foreground">
             <ArrowLeft className="h-4 w-4" /> Jour {id}
           </button>
           <div className="text-right">
@@ -142,7 +180,7 @@ export default function Training() {
 
         {/* Timer */}
         <div className="rounded-xl border border-border bg-card p-5">
-          <h3 className="mb-3 text-center text-sm font-medium text-muted-foreground">Démarrer le chronomètre</h3>
+          <h3 className="mb-3 text-center text-sm font-medium text-muted-foreground">Chronomètre</h3>
           <Timer presets={exercise.timerSuggested ? [30, exercise.timerSuggested, 180] : [30, 60, 180]} />
         </div>
 
@@ -188,7 +226,7 @@ export default function Training() {
                 <Button variant="outline" className="flex-1" onClick={() => navigate(`/behavior/${id}`)}>
                   Suivi comportemental
                 </Button>
-                <Button className="flex-1" onClick={() => navigate(`/day/${id}`)}>
+                <Button className="flex-1" onClick={() => navigate(backUrl)}>
                   Retour au jour
                 </Button>
               </div>
@@ -199,6 +237,3 @@ export default function Training() {
     </AppLayout>
   );
 }
-
-// Need Card import
-import { Card } from "@/components/ui/card";

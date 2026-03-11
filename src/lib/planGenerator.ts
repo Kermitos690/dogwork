@@ -1,11 +1,10 @@
 import type { Dog } from "@/hooks/useDogs";
 import { EXERCISE_LIBRARY, type LibraryExercise } from "@/data/exerciseLibrary";
-// Plan generator uses EXERCISE_LIBRARY for exercise references
 
-// ===== Problem key mappings =====
+// ===== Problem key mappings (aligned with Problems.tsx keys) =====
 const PROBLEM_KEYS_MAP: Record<string, string> = {
-  saute_gens: "Saute sur les gens",
-  tire_laisse: "Tire en laisse",
+  saute_sur_gens: "Saute sur les gens",
+  tire_en_laisse: "Tire en laisse",
   rappel_faible: "Rappel faible",
   ignore_non: "Ignore le non",
   ignore_stop: "Ignore le stop",
@@ -21,16 +20,16 @@ const PROBLEM_KEYS_MAP: Record<string, string> = {
   hyperactivite: "Hyperactivité",
   frustration: "Frustration",
   proprete: "Propreté",
-  museliere: "Difficulté avec la muselière",
+  difficulte_museliere: "Difficulté avec la muselière",
   agressivite: "Agressivité",
-  morsure: "Morsure antérieure",
+  morsure_anterieure: "Morsure antérieure",
 };
 
 // ===== Types =====
 export interface PlanAxis {
   key: string;
   label: string;
-  priority: number; // 1 = highest
+  priority: number;
   reason: string;
 }
 
@@ -75,7 +74,7 @@ export interface PersonalizedPlan {
 
 // ===== Plan generation engine =====
 
-interface DogProfile {
+export interface DogProfile {
   dog: Dog;
   problems: { problem_key: string; intensity: number | null; frequency: string | null }[];
   objectives: { objective_key: string; is_priority: boolean }[];
@@ -86,8 +85,8 @@ function calculateSecurityLevel(profile: DogProfile): "standard" | "élevé" | "
   const { dog, problems } = profile;
   if (dog.bite_history) return "critique";
   if (dog.muzzle_required) return "critique";
-  const hasAggression = problems.some(p => 
-    (p.problem_key === "agressivite" || p.problem_key === "morsure") && (p.intensity || 0) >= 3
+  const hasAggression = problems.some(p =>
+    (p.problem_key === "agressivite" || p.problem_key === "morsure_anterieure") && (p.intensity || 0) >= 3
   );
   if (hasAggression) return "critique";
   const hasHighReactivity = problems.some(p =>
@@ -98,18 +97,17 @@ function calculateSecurityLevel(profile: DogProfile): "standard" | "élevé" | "
 }
 
 function determineAxes(profile: DogProfile): PlanAxis[] {
-  const { dog, problems, objectives } = profile;
+  const { dog, problems } = profile;
   const axes: PlanAxis[] = [];
   const problemKeys = problems.map(p => p.problem_key);
-  const highIntensity = problems.filter(p => (p.intensity || 0) >= 3);
 
   // Security first
-  if (dog.bite_history || dog.muzzle_required || problemKeys.includes("agressivite")) {
+  if (dog.bite_history || dog.muzzle_required || problemKeys.includes("agressivite") || problemKeys.includes("morsure_anterieure")) {
     axes.push({
       key: "securite",
       label: "Sécurité et prévention",
       priority: 1,
-      reason: dog.bite_history 
+      reason: dog.bite_history
         ? "Antécédent de morsure détecté. Priorité absolue à la sécurité."
         : "Profil nécessitant un cadre de sécurité renforcé.",
     });
@@ -145,7 +143,7 @@ function determineAxes(profile: DogProfile): PlanAxis[] {
   }
 
   // Leash
-  if (problemKeys.includes("tire_laisse")) {
+  if (problemKeys.includes("tire_en_laisse")) {
     axes.push({
       key: "marche",
       label: "Marche en laisse",
@@ -155,7 +153,7 @@ function determineAxes(profile: DogProfile): PlanAxis[] {
   }
 
   // Jumping
-  if (problemKeys.includes("saute_gens")) {
+  if (problemKeys.includes("saute_sur_gens")) {
     axes.push({
       key: "accueil",
       label: "Accueil sans saut",
@@ -185,7 +183,7 @@ function determineAxes(profile: DogProfile): PlanAxis[] {
   }
 
   // Auto-control
-  if (problemKeys.includes("frustration") || problemKeys.includes("hyperactivite") || problemKeys.includes("auto_controle")) {
+  if (problemKeys.includes("frustration") || problemKeys.includes("hyperactivite")) {
     axes.push({
       key: "autocontrole",
       label: "Auto-contrôle et calme",
@@ -205,12 +203,30 @@ function determineAxes(profile: DogProfile): PlanAxis[] {
   }
 
   // Muzzle
-  if (problemKeys.includes("museliere") || dog.muzzle_required) {
+  if (problemKeys.includes("difficulte_museliere") || dog.muzzle_required) {
     axes.push({
       key: "museliere",
       label: "Habituation à la muselière",
       priority: axes.length + 1,
       reason: "Port de muselière nécessaire. Programme d'habituation positive.",
+    });
+  }
+
+  // Stop / Non
+  if (problemKeys.includes("ignore_stop")) {
+    axes.push({
+      key: "stop",
+      label: "Travail du stop",
+      priority: axes.length + 1,
+      reason: "Le chien n'écoute pas le stop. Travail d'arrêt net en marche.",
+    });
+  }
+  if (problemKeys.includes("ignore_non")) {
+    axes.push({
+      key: "non",
+      label: "Travail du non / renoncement",
+      priority: axes.length + 1,
+      reason: "Le chien ignore le non. Travail de renoncement progressif.",
     });
   }
 
@@ -266,9 +282,9 @@ function determinePrecautions(profile: DogProfile): PlanPrecaution[] {
 }
 
 function determineDuration(profile: DogProfile): { frequency: string; avgDuration: string } {
-  const { dog, problems } = profile;
+  const { dog } = profile;
   const age = dog.birth_date ? Math.floor((Date.now() - new Date(dog.birth_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : null;
-  
+
   const hasHealth = dog.joint_pain || dog.heart_problems || dog.epilepsy;
   const isSenior = age ? age >= 8 : false;
   const isPuppy = age ? age < 1 : false;
@@ -294,6 +310,8 @@ function buildExercisesForAxis(axisKey: string, week: number, isSenior: boolean)
     autocontrole: ["lib-auto-1", "lib-tapis-1", "lib-non-1"],
     rappel: ["lib-rappel-1", "lib-focus-1"],
     museliere: ["lib-museliere-1"],
+    stop: ["lib-stop-1", "lib-focus-1"],
+    non: ["lib-non-1", "lib-auto-1"],
   };
 
   const refs = mappings[axisKey] || ["lib-focus-1"];
@@ -325,14 +343,14 @@ function generateDays(axes: PlanAxis[], profile: DogProfile): PlanDay[] {
   for (let week = 1; week <= 4; week++) {
     for (let dayInWeek = 1; dayInWeek <= 7; dayInWeek++) {
       const dayNumber = (week - 1) * 7 + dayInWeek;
-      
+
       // Cycle through axes
       const axisIndex = (dayInWeek - 1) % axes.length;
       const mainAxis = axes[axisIndex];
-      
+
       // Day 7 = review
       const isReview = dayInWeek === 7;
-      
+
       const exercises = isReview
         ? axes.slice(0, 3).flatMap(a => buildExercisesForAxis(a.key, week, isSenior).slice(0, 1))
         : buildExercisesForAxis(mainAxis.key, week, isSenior);
@@ -344,7 +362,7 @@ function generateDays(axes: PlanAxis[], profile: DogProfile): PlanDay[] {
         dayNumber,
         week,
         title: isReview ? `Bilan semaine ${week}` : `${mainAxis.label}`,
-        objective: isReview 
+        objective: isReview
           ? `Réviser les acquis de la semaine ${week} et consolider les fondations.`
           : `Travailler ${mainAxis.label.toLowerCase()} — ${mainAxis.reason.split(".")[0]}.`,
         duration,
@@ -352,7 +370,7 @@ function generateDays(axes: PlanAxis[], profile: DogProfile): PlanDay[] {
         exercises,
         vigilance: isReview
           ? "Observer les progrès et noter les points à renforcer."
-          : mainAxis.key === "securite" 
+          : mainAxis.key === "securite"
             ? "Toujours rester à distance de sécurité. Demi-tour si zone rouge."
             : "Travailler sous seuil. Récompenser le calme.",
         validationCriteria: isReview

@@ -1,13 +1,12 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, Dog, Dumbbell, BookOpen, BarChart3, UserCircle } from "lucide-react";
+import { Home, Dog, BookOpen, ClipboardList, BarChart3 } from "lucide-react";
 
 const tabs = [
   { label: "Accueil", icon: Home, path: "/" },
-  { label: "Mes chiens", icon: Dog, path: "/dogs" },
+  { label: "Chiens", icon: Dog, path: "/dogs" },
   { label: "Plan", icon: BookOpen, path: "/plan" },
-  { label: "Entraînement", icon: Dumbbell, path: "/training" },
+  { label: "Journal", icon: ClipboardList, path: "/journal" },
   { label: "Stats", icon: BarChart3, path: "/stats" },
-  { label: "Profil", icon: UserCircle, path: "/profile" },
 ];
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
