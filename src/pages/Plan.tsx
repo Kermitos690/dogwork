@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Target, ClipboardCheck, AlertTriangle, BookOpen, Zap, Shield, ChevronRight, ChevronDown, Loader2, Info, Sparkles } from "lucide-react";
+import { Target, ClipboardCheck, AlertTriangle, BookOpen, Zap, Shield, ChevronRight, ChevronDown, Loader2, Info, Sparkles, Lock } from "lucide-react";
+import { useHasFeature } from "@/hooks/useSubscription";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PROGRAM } from "@/data/program";
@@ -37,6 +38,7 @@ export default function PlanPage() {
   const [generating, setGenerating] = useState(false);
   const [showPrecautions, setShowPrecautions] = useState(false);
   const [showPrereqs, setShowPrereqs] = useState(false);
+  const hasAiPlan = useHasFeature("ai_plan");
   const adaptiveSuggestion = useAdaptiveSuggestion();
 
   const { data: savedPlan, refetch: refetchPlan } = useQuery({
@@ -199,10 +201,16 @@ export default function PlanPage() {
                         <p className="text-xs text-warning">Renseignez au moins une problématique pour générer le plan.</p>
                       </div>
                     )}
-                    <Button onClick={handleGenerate} disabled={!canGenerate || generating} className="w-full h-12 rounded-xl text-base">
-                      {generating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Zap className="h-5 w-5" />}
-                      {generating ? "Génération..." : "Générer mon plan"}
-                    </Button>
+                    {!hasAiPlan ? (
+                      <Button onClick={() => navigate("/subscription")} className="w-full h-12 rounded-xl text-base bg-accent hover:bg-accent/90">
+                        <Lock className="h-5 w-5" /> Débloquer avec le plan Pro
+                      </Button>
+                    ) : (
+                      <Button onClick={handleGenerate} disabled={!canGenerate || generating} className="w-full h-12 rounded-xl text-base">
+                        {generating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Zap className="h-5 w-5" />}
+                        {generating ? "Génération..." : "Générer mon plan"}
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
 

@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { SubscriptionProvider } from "@/hooks/useSubscription";
 import { useDogs } from "./hooks/useDogs";
 import { AIChatBot } from "@/components/AIChatBot";
 import { GuidedTour } from "@/components/GuidedTour";
@@ -41,6 +42,7 @@ const CoachCourses = lazy(() => import("./pages/CoachCourses"));
 const CoachGuard = lazy(() => import("./components/CoachGuard").then(m => ({ default: m.CoachGuard })));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const HelpPage = lazy(() => import("./pages/Help"));
+const SubscriptionPage = lazy(() => import("./pages/Subscription"));
 
 const queryClient = new QueryClient();
 
@@ -85,6 +87,7 @@ function ProtectedRoutes() {
         <Route path="/exercises/:slug" element={<ExerciseDetail />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/help" element={<HelpPage />} />
+        <Route path="/subscription" element={<SubscriptionPage />} />
         {/* Coach / Educator routes — guarded by role */}
         <Route path="/coach" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachDashboard /></CoachGuard></Suspense>} />
         <Route path="/coach/clients" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachClients /></CoachGuard></Suspense>} />
@@ -106,6 +109,7 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <SubscriptionProvider>
         <TooltipProvider>
           <Toaster />
           <BrowserRouter>
@@ -118,6 +122,7 @@ const App = () => {
             <GuidedTour />
           </BrowserRouter>
         </TooltipProvider>
+        </SubscriptionProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { Bot, X, Send, Loader2, Sparkles } from "lucide-react";
+import { Bot, X, Send, Loader2, Sparkles, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
+import { useHasFeature } from "@/hooks/useSubscription";
+import { useNavigate } from "react-router-dom";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -83,6 +85,8 @@ export function AIChatBot() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const hasChat = useHasFeature("ai_chat");
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -93,6 +97,20 @@ export function AIChatBot() {
   useEffect(() => {
     if (open && inputRef.current) inputRef.current.focus();
   }, [open]);
+
+  if (!hasChat) {
+    return (
+      <motion.button
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        className="fixed bottom-20 right-4 z-50 rounded-full bg-muted p-3.5 shadow-lg"
+        onClick={() => navigate("/subscription")}
+        title="Débloquez le chatbot IA avec le plan Expert"
+      >
+        <Lock className="h-5 w-5 text-muted-foreground" />
+      </motion.button>
+    );
+  }
 
   const send = async () => {
     const text = input.trim();
