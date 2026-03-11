@@ -140,6 +140,15 @@ export default function Dashboard() {
   const hasPlan = !!activePlan;
   const hasIncompleteSession = !!lastSession;
 
+  // ── Next exercise to do ──
+  const completedExerciseIds = inProgress?.completed_exercises || [];
+  const planDays = (activePlan?.days as any[]) || [];
+  const planDay = planDays.find((d: any) => d.id === resumeDay || d.dayId === resumeDay);
+  const planExercises = planDay?.exercises || [];
+  const dayExercises = planExercises.length > 0 ? planExercises : (getDayById(resumeDay)?.exercises || []);
+  const nextExercise = dayExercises.find((ex: any) => !completedExerciseIds.includes(ex.id));
+  const nextExerciseDayData = getDayById(resumeDay);
+
   // Determine primary state for adaptive dashboard
   type DashState = "no_plan" | "no_progress" | "in_progress" | "day_done" | "all_done";
   const dashState: DashState = !hasPlan ? "no_plan"
