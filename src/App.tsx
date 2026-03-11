@@ -122,6 +122,7 @@ const App = () => {
             <GuidedTour />
           </BrowserRouter>
         </TooltipProvider>
+        </SubscriptionProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
