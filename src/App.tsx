@@ -97,6 +97,7 @@ function ProtectedRoutes() {
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
+      <AIChatBot />
     </Suspense>
   );
 }
