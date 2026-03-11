@@ -68,7 +68,7 @@ const Index = () => {
           <div className="rounded-xl border border-border bg-card p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">Jour {currentDay.id}</p>
+                <p className="text-xs text-muted-foreground">Jour actuel — Jour {currentDay.id}</p>
                 <h2 className="text-lg font-semibold">{currentDay.title}</h2>
               </div>
               <StatusBadge status={dayProgress?.status || "todo"} />
