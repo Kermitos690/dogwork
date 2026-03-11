@@ -451,7 +451,6 @@ export default function CoachCourses() {
         })}
       </div>
 
-      <CoachNav />
-    </div>
+    </CoachLayout>
   );
 }
