@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useCreateDog } from "@/hooks/useDogs";
@@ -11,19 +11,18 @@ import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Dog, Shield, ChevronRight, ChevronLeft, PartyPopper, Sparkles, Heart,
   Target, Clock, Mail, Lock, User, AlertTriangle, CheckCircle2, Loader2,
   Zap, Brain, PawPrint, Activity, Home, Baby, Users, Weight, Ruler, Calendar,
-  Save, Info
+  Save, Info, Camera, Upload, X
 } from "lucide-react";
 import type { Dog as DogType } from "@/hooks/useDogs";
 
 // ===== Constants =====
 const TOTAL_STEPS = 12;
 const STORAGE_KEY = "pawplan_onboarding";
-
-// Steps that count for progress (2-9, excluding 0,1 auth and 10,11 generation)
 const PROGRESS_STEPS = { first: 2, last: 9 };
 const STEP_TIME_MINUTES: Record<number, number> = {
   2: 0.3, 3: 1, 4: 1.5, 5: 1, 6: 2, 7: 1.5, 8: 1, 9: 0.5,
@@ -95,15 +94,14 @@ function clearOnboardingState() {
   localStorage.removeItem(STORAGE_KEY);
 }
 
-// ===== Sub-components =====
-function StepCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div className={`w-full max-w-md mx-auto step-transition ${className}`}>
-      {children}
-    </div>
-  );
-}
+// ===== Animation variants =====
+const stepVariants = {
+  enter: (dir: number) => ({ x: dir > 0 ? 60 : -60, opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit: (dir: number) => ({ x: dir > 0 ? -60 : 60, opacity: 0 }),
+};
 
+// ===== Sub-components =====
 function ChoiceChip({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
@@ -146,14 +144,17 @@ function HintBanner({ icon, text, variant = "info" }: { icon: React.ReactNode; t
     success: "bg-success/5 border-success/20 text-success",
   };
   return (
-    <div className={`flex items-start gap-2.5 p-3 rounded-xl border animate-fade-in ${colors[variant]}`}>
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`flex items-start gap-2.5 p-3 rounded-xl border ${colors[variant]}`}
+    >
       <span className="flex-shrink-0 mt-0.5">{icon}</span>
       <p className="text-xs font-medium leading-relaxed">{text}</p>
-    </div>
+    </motion.div>
   );
 }
 
-// Live profile summary pill
 function ProfilePill({ dogName, securityFlags, filledCount, totalFields }: {
   dogName: string; securityFlags: string[]; filledCount: number; totalFields: number;
 }) {
@@ -170,6 +171,62 @@ function ProfilePill({ dogName, securityFlags, filledCount, totalFields }: {
   );
 }
 
+// Photo upload component
+function PhotoUpload({ photoPreview, onPhotoSelect, onPhotoRemove, uploading }: {
+  photoPreview: string | null;
+  onPhotoSelect: (file: File) => void;
+  onPhotoRemove: () => void;
+  uploading: boolean;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) onPhotoSelect(file);
+        }}
+      />
+      {photoPreview ? (
+        <div className="relative">
+          <div className="w-28 h-28 rounded-3xl overflow-hidden border-2 border-primary/20 shadow-lg">
+            <img src={photoPreview} alt="Photo du chien" className="w-full h-full object-cover" />
+          </div>
+          <button
+            type="button"
+            onClick={onPhotoRemove}
+            className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-md"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="w-28 h-28 rounded-3xl border-2 border-dashed border-border bg-muted/50 flex flex-col items-center justify-center gap-1.5 hover:border-primary/30 transition-colors active:scale-95"
+        >
+          {uploading ? (
+            <Loader2 className="h-6 w-6 text-muted-foreground animate-spin" />
+          ) : (
+            <>
+              <Camera className="h-6 w-6 text-muted-foreground" />
+              <span className="text-[10px] text-muted-foreground font-medium">Ajouter photo</span>
+            </>
+          )}
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ===== Main Component =====
 export default function Onboarding() {
   const navigate = useNavigate();
@@ -179,14 +236,13 @@ export default function Onboarding() {
 
   // Global state
   const [step, setStep] = useState(0);
-  const [direction, setDirection] = useState<"forward" | "back">("forward");
+  const [direction, setDirection] = useState(1); // 1 = forward, -1 = back
   const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [authError, setAuthError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [savedToast, setSavedToast] = useState(false);
 
   // Dog profile
   const [dogName, setDogName] = useState("");
@@ -204,6 +260,11 @@ export default function Onboarding() {
   const [hasChildren, setHasChildren] = useState(false);
   const [hasOtherAnimals, setHasOtherAnimals] = useState(false);
   const [aloneHours, setAloneHours] = useState("4");
+
+  // Photo
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
 
   // Health
   const [jointPain, setJointPain] = useState(false);
@@ -272,7 +333,7 @@ export default function Onboarding() {
     }
   }, []);
 
-  // Auto-save on every change
+  // Auto-save
   useEffect(() => {
     if (step >= 2) {
       saveOnboardingState({
@@ -286,7 +347,7 @@ export default function Onboarding() {
     }
   }, [step, dogName, breed, sex, size, activityLevel, origin, environment, evaluation, selectedProblems, selectedObjectives, primaryObjective, muzzleRequired, biteHistory, weightKg, birthDate, isMixed, isNeutered, hasChildren, hasOtherAnimals, jointPain, heartProblems, epilepsy, overweight, dailyMinutes, daysPerWeek, intensity, aloneHours, healthNotes, adoptionDate]);
 
-  // Skip auth steps if already logged in
+  // Skip auth if logged in
   useEffect(() => {
     if (user && step <= 1) setStep(2);
   }, [user, step]);
@@ -297,7 +358,6 @@ export default function Onboarding() {
     ? step - PROGRESS_STEPS.first : step > PROGRESS_STEPS.last ? stepsInRange : 0;
   const progressPercent = Math.round((currentProgress / stepsInRange) * 100);
 
-  // Time remaining estimate
   const timeRemaining = useMemo(() => {
     let mins = 0;
     for (let s = Math.max(step, PROGRESS_STEPS.first); s <= PROGRESS_STEPS.last; s++) {
@@ -307,7 +367,6 @@ export default function Onboarding() {
     return `~${Math.ceil(mins)} min`;
   }, [step]);
 
-  // Profile completeness
   const profileFields = useMemo(() => {
     const filled: string[] = [];
     const total = ["dogName", "sex", "size", "activityLevel", "environment", "evaluation", "problems", "objectives"];
@@ -330,20 +389,16 @@ export default function Onboarding() {
     return flags;
   }, [biteHistory, muzzleRequired, jointPain, heartProblems, epilepsy]);
 
-  // Contradiction / hint detection
   const hints = useMemo(() => {
     const h: { text: string; variant: "info" | "warning" | "success" }[] = [];
-    // Weight vs size contradiction
     if (weightKg && size) {
       const w = Number(weightKg);
       if (size === "petit" && w > 15) h.push({ text: `${w} kg semble élevé pour un petit chien. Vérifiez la taille ou le poids.`, variant: "info" });
       if (size === "grand" && w < 10) h.push({ text: `${w} kg semble faible pour un grand chien. Vérifiez la taille ou le poids.`, variant: "info" });
     }
-    // Bite + no muzzle
     if (biteHistory && !muzzleRequired) {
       h.push({ text: "Antécédent de morsure détecté : la muselière est fortement recommandée.", variant: "warning" });
     }
-    // High reactivity but no problem selected
     if (evaluation.reacts_to_dogs === "oui" && !selectedProblems.reactivite_chiens && step >= 7) {
       h.push({ text: "Votre chien réagit aux chiens, mais cette problématique n'est pas cochée.", variant: "info" });
     }
@@ -353,7 +408,6 @@ export default function Onboarding() {
     return h;
   }, [weightKg, size, biteHistory, muzzleRequired, evaluation, selectedProblems, step]);
 
-  // Step completeness hints (gentle, never blocking)
   const stepSuggestions = useMemo(() => {
     const suggestions: string[] = [];
     if (step === 3 && !dogName.trim()) suggestions.push("Le nom de votre chien est nécessaire pour continuer.");
@@ -362,6 +416,37 @@ export default function Onboarding() {
     if (step === 8 && selectedObjectives.length === 0) suggestions.push("Choisissez au moins un objectif pour générer votre plan.");
     return suggestions;
   }, [step, dogName, size, evaluation, selectedObjectives]);
+
+  // Photo handling
+  const handlePhotoSelect = (file: File) => {
+    setPhotoFile(file);
+    const url = URL.createObjectURL(file);
+    setPhotoPreview(url);
+  };
+
+  const handlePhotoRemove = () => {
+    setPhotoFile(null);
+    if (photoPreview) URL.revokeObjectURL(photoPreview);
+    setPhotoPreview(null);
+  };
+
+  const uploadPhoto = async (dogId: string): Promise<string | null> => {
+    if (!photoFile || !user) return null;
+    setPhotoUploading(true);
+    try {
+      const ext = photoFile.name.split(".").pop() || "jpg";
+      const path = `${user.id}/${dogId}.${ext}`;
+      const { error } = await supabase.storage.from("dog-photos").upload(path, photoFile, { upsert: true });
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from("dog-photos").getPublicUrl(path);
+      return urlData.publicUrl;
+    } catch (err) {
+      console.error("Photo upload failed:", err);
+      return null;
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
 
   // Auth
   const handleAuth = async (e: React.FormEvent) => {
@@ -386,15 +471,13 @@ export default function Onboarding() {
   };
 
   const goTo = (target: number) => {
-    setDirection(target > step ? "forward" : "back");
+    setDirection(target > step ? 1 : -1);
     setStep(target);
   };
   const next = () => goTo(Math.min(step + 1, TOTAL_STEPS - 1));
   const prev = () => goTo(Math.max(step - 1, step <= 2 ? 2 : 0));
 
   const saveAndQuit = () => {
-    setSavedToast(true);
-    setTimeout(() => setSavedToast(false), 2000);
     toast({ title: "Progression sauvegardée", description: "Vous pourrez reprendre à tout moment." });
   };
 
@@ -437,6 +520,12 @@ export default function Onboarding() {
       };
       const createdDog = await createDog.mutateAsync(dogData);
       setCreatedDogId(createdDog.id);
+
+      // Upload photo if selected
+      const photoUrl = await uploadPhoto(createdDog.id);
+      if (photoUrl) {
+        await supabase.from("dogs").update({ photo_url: photoUrl }).eq("id", createdDog.id);
+      }
 
       const evalPayload: any = { dog_id: createdDog.id, user_id: user.id };
       Object.entries(evaluation).forEach(([k, v]) => { evalPayload[k] = v; });
@@ -487,7 +576,7 @@ export default function Onboarding() {
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
       goTo(9);
     }
-  }, [user, dogName, breed, isMixed, sex, isNeutered, birthDate, weightKg, size, activityLevel, origin, adoptionDate, environment, hasChildren, hasOtherAnimals, aloneHours, jointPain, heartProblems, epilepsy, overweight, muzzleRequired, biteHistory, healthNotes, evaluation, selectedProblems, selectedObjectives, primaryObjective, createDog, toast]);
+  }, [user, dogName, breed, isMixed, sex, isNeutered, birthDate, weightKg, size, activityLevel, origin, adoptionDate, environment, hasChildren, hasOtherAnimals, aloneHours, jointPain, heartProblems, epilepsy, overweight, muzzleRequired, biteHistory, healthNotes, evaluation, selectedProblems, selectedObjectives, primaryObjective, createDog, toast, photoFile]);
 
   const finishOnboarding = () => {
     clearOnboardingState();
@@ -499,27 +588,27 @@ export default function Onboarding() {
     <div className="min-h-screen bg-background flex flex-col">
       {/* Progress header — steps 2–9 */}
       {step >= 2 && step <= 9 && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-background/90 glass">
+        <motion.div
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="fixed top-0 left-0 right-0 z-50 bg-background/90 glass"
+        >
           <div className="px-4 pt-3 pb-2 max-w-md mx-auto">
             <div className="flex items-center justify-between mb-2">
               <button onClick={prev} className="p-1.5 -ml-1.5 rounded-xl hover:bg-muted transition-colors">
                 <ChevronLeft className="h-5 w-5 text-muted-foreground" />
               </button>
-
               <ProfilePill
                 dogName={dogName}
                 securityFlags={securityFlags}
                 filledCount={profileFields.filled}
                 totalFields={profileFields.total}
               />
-
               <button onClick={saveAndQuit} className="p-1.5 -mr-1.5 rounded-xl hover:bg-muted transition-colors" title="Sauvegarder et quitter">
                 <Save className="h-4 w-4 text-muted-foreground" />
               </button>
             </div>
-
             <Progress value={progressPercent} className="h-1.5 rounded-full" />
-
             <div className="flex items-center justify-between mt-1.5">
               <span className="text-[10px] text-muted-foreground">
                 Étape {currentProgress + 1} / {stepsInRange}
@@ -530,732 +619,925 @@ export default function Onboarding() {
               </span>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
 
       <div className="flex-1 flex items-center justify-center px-5 py-20">
-        {/* STEP 0 — Welcome */}
-        {step === 0 && (
-          <StepCard>
-            <div className="flex flex-col items-center text-center space-y-8">
-              <div className="relative">
-                <div className="w-24 h-24 rounded-3xl bg-primary/10 flex items-center justify-center">
-                  <PawPrint className="h-12 w-12 text-primary" />
-                </div>
-                <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-xl bg-accent flex items-center justify-center">
-                  <Sparkles className="h-4 w-4 text-accent-foreground" />
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <h1 className="text-3xl font-bold text-foreground tracking-tight leading-tight">
-                  Un plan d'éducation vraiment adapté à votre chien.
-                </h1>
-                <p className="text-base text-muted-foreground leading-relaxed max-w-xs mx-auto">
-                  Créez son profil, identifiez ses difficultés, et obtenez un plan clair et progressif.
-                </p>
-              </div>
-
-              <div className="w-full space-y-3 text-left">
-                {[
-                  { icon: Dog, text: "Profil personnalisé" },
-                  { icon: Target, text: "Plan progressif adapté" },
-                  { icon: Activity, text: "Suivi quotidien simple" },
-                ].map(({ icon: Icon, text }, i) => (
-                  <div key={i} className="flex items-center gap-3 p-3 rounded-2xl bg-card border border-border">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <Icon className="h-5 w-5 text-primary" />
-                    </div>
-                    <span className="text-sm font-medium text-foreground">{text}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Clock className="h-3.5 w-3.5" />
-                <span>Environ 5 minutes</span>
-              </div>
-
-              <div className="w-full space-y-3">
-                <Button size="lg" className="w-full h-14 text-base rounded-2xl" onClick={() => goTo(1)}>
-                  Commencer <ChevronRight className="h-5 w-5 ml-1" />
-                </Button>
-                <button
-                  onClick={() => { setAuthMode("login"); goTo(1); }}
-                  className="text-sm text-muted-foreground hover:text-primary transition-colors w-full"
-                >
-                  J'ai déjà un compte
-                </button>
-              </div>
-            </div>
-          </StepCard>
-        )}
-
-        {/* STEP 1 — Auth */}
-        {step === 1 && !user && (
-          <StepCard>
-            <div className="space-y-6">
-              <div className="text-center space-y-2">
-                <div className="mx-auto w-16 h-16 rounded-2xl bg-primary flex items-center justify-center">
-                  <PawPrint className="h-8 w-8 text-primary-foreground" />
-                </div>
-                <h2 className="text-2xl font-bold text-foreground">
-                  {authMode === "signup" ? "Créer un compte" : "Connexion"}
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  {authMode === "signup" ? "En quelques secondes" : "Retrouvez votre espace"}
-                </p>
-              </div>
-
-              <form onSubmit={handleAuth} className="space-y-4">
-                {authMode === "signup" && (
-                  <div className="space-y-1.5">
-                    <Label className="text-sm">Votre nom</Label>
-                    <div className="relative">
-                      <User className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground" />
-                      <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)}
-                        placeholder="Prénom" className="pl-10 h-12 rounded-xl" autoFocus />
-                    </div>
-                  </div>
-                )}
-                <div className="space-y-1.5">
-                  <Label className="text-sm">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground" />
-                    <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                      placeholder="votre@email.com" required className="pl-10 h-12 rounded-xl" autoFocus={authMode === "login"} />
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-sm">Mot de passe</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground" />
-                    <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••" required minLength={6} className="pl-10 h-12 rounded-xl" />
-                  </div>
-                </div>
-
-                {authError && (
-                  <p className="text-sm text-destructive bg-destructive/10 rounded-xl px-4 py-2.5">{authError}</p>
-                )}
-
-                <Button type="submit" className="w-full h-12 text-base rounded-xl" disabled={submitting}>
-                  {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> :
-                    authMode === "signup" ? "Créer mon compte" : "Se connecter"}
-                </Button>
-              </form>
-
-              <p className="text-center text-sm text-muted-foreground">
-                {authMode === "signup" ? (
-                  <>Déjà un compte ? <button onClick={() => setAuthMode("login")} className="text-primary font-medium">Se connecter</button></>
-                ) : (
-                  <>Pas de compte ? <button onClick={() => setAuthMode("signup")} className="text-primary font-medium">S'inscrire</button></>
-                )}
-              </p>
-            </div>
-          </StepCard>
-        )}
-
-        {/* STEP 2 — Welcome */}
-        {step === 2 && (
-          <StepCard>
-            <div className="flex flex-col items-center text-center space-y-6">
-              <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center">
-                <Heart className="h-10 w-10 text-primary" />
-              </div>
-              <div className="space-y-2">
-                <h2 className="text-2xl font-bold text-foreground">Bienvenue{displayName ? `, ${displayName}` : ""} !</h2>
-                <p className="text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">
-                  En quelques étapes, nous allons créer le profil de votre chien pour vous proposer un plan adapté.
-                </p>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted rounded-xl px-4 py-2.5">
-                <Clock className="h-3.5 w-3.5" />
-                <span>Environ 5 minutes — Vous pouvez sauvegarder à tout moment</span>
-              </div>
-              <Button size="lg" className="w-full h-14 text-base rounded-2xl" onClick={next}>
-                C'est parti <ChevronRight className="h-5 w-5 ml-1" />
-              </Button>
-            </div>
-          </StepCard>
-        )}
-
-        {/* STEP 3 — Dog Identity */}
-        {step === 3 && (
-          <StepCard>
-            <div className="space-y-6">
-              <div className="text-center space-y-1">
-                <h2 className="text-xl font-bold text-foreground">Créons le profil de votre chien</h2>
-                <p className="text-sm text-muted-foreground">Commençons par les bases</p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label className="text-sm">Nom du chien *</Label>
-                  <Input value={dogName} onChange={(e) => setDogName(e.target.value)} placeholder="Ex: Luna, Rex…"
-                    className="h-12 rounded-xl text-base" autoFocus />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-sm">Race</Label>
-                  <Input value={breed} onChange={(e) => setBreed(e.target.value)} placeholder="Ex: Berger allemand"
-                    className="h-12 rounded-xl" />
-                </div>
-
-                <div className="flex items-center justify-between p-3 rounded-xl bg-card border border-border">
-                  <span className="text-sm font-medium">Croisé</span>
-                  <Switch checked={isMixed} onCheckedChange={setIsMixed} />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm">Sexe</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <ChoiceChip selected={sex === "male"} onClick={() => setSex("male")}>♂ Mâle</ChoiceChip>
-                    <ChoiceChip selected={sex === "female"} onClick={() => setSex("female")}>♀ Femelle</ChoiceChip>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-3 rounded-xl bg-card border border-border">
-                  <span className="text-sm font-medium">Stérilisé(e)</span>
-                  <Switch checked={isNeutered} onCheckedChange={setIsNeutered} />
-                </div>
-              </div>
-
-              {stepSuggestions.map((s, i) => (
-                <HintBanner key={i} icon={<Info className="h-3.5 w-3.5" />} text={s} />
-              ))}
-
-              <Button size="lg" className="w-full h-13 rounded-2xl" onClick={next} disabled={!dogName.trim()}>
-                Continuer <ChevronRight className="h-5 w-5 ml-1" />
-              </Button>
-            </div>
-          </StepCard>
-        )}
-
-        {/* STEP 4 — Age, Size, Context */}
-        {step === 4 && (
-          <StepCard>
-            <div className="space-y-6">
-              <div className="text-center space-y-1">
-                <h2 className="text-xl font-bold text-foreground">Gabarit & contexte</h2>
-                <p className="text-sm text-muted-foreground">Pour adapter le programme</p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label className="text-sm">Date de naissance (approximative)</Label>
-                  <Input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)}
-                    className="h-12 rounded-xl" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-sm">Poids (kg)</Label>
-                    <Input type="number" value={weightKg} onChange={(e) => setWeightKg(e.target.value)}
-                      placeholder="25" className="h-12 rounded-xl" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm">Taille</Label>
-                    <div className="grid grid-cols-1 gap-1.5">
-                      {["petit", "moyen", "grand"].map((s) => (
-                        <ChoiceChip key={s} selected={size === s} onClick={() => setSize(s)}>
-                          {s === "petit" ? "Petit" : s === "moyen" ? "Moyen" : "Grand"}
-                        </ChoiceChip>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm">Niveau d'activité</Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { v: "faible", l: "Calme" },
-                      { v: "modere", l: "Modéré" },
-                      { v: "eleve", l: "Énergique" },
-                    ].map((o) => (
-                      <ChoiceChip key={o.v} selected={activityLevel === o.v} onClick={() => setActivityLevel(o.v)}>
-                        {o.l}
-                      </ChoiceChip>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm">Environnement</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { v: "appartement", l: "🏢 Appartement" },
-                      { v: "maison_jardin", l: "🏡 Maison + jardin" },
-                      { v: "rural", l: "🌾 Rural" },
-                      { v: "urbain", l: "🏙️ Urbain dense" },
-                    ].map((o) => (
-                      <ChoiceChip key={o.v} selected={environment === o.v} onClick={() => setEnvironment(o.v)}>
-                        {o.l}
-                      </ChoiceChip>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm">Provenance</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { v: "elevage", l: "Élevage" },
-                      { v: "refuge", l: "Refuge" },
-                      { v: "particulier", l: "Particulier" },
-                      { v: "autre", l: "Autre" },
-                    ].map((o) => (
-                      <ChoiceChip key={o.v} selected={origin === o.v} onClick={() => setOrigin(o.v)}>
-                        {o.l}
-                      </ChoiceChip>
-                    ))}
-                  </div>
+        <AnimatePresence mode="wait" custom={direction}>
+          {/* STEP 0 — Welcome */}
+          {step === 0 && (
+            <motion.div
+              key="step-0"
+              custom={direction}
+              variants={stepVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="w-full max-w-md mx-auto"
+            >
+              <div className="flex flex-col items-center text-center space-y-8">
+                <div className="relative">
+                  <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.15, duration: 0.4 }}
+                    className="w-24 h-24 rounded-3xl bg-primary/10 flex items-center justify-center"
+                  >
+                    <PawPrint className="h-12 w-12 text-primary" />
+                  </motion.div>
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.4, type: "spring", stiffness: 300 }}
+                    className="absolute -bottom-1 -right-1 w-8 h-8 rounded-xl bg-accent flex items-center justify-center"
+                  >
+                    <Sparkles className="h-4 w-4 text-accent-foreground" />
+                  </motion.div>
                 </div>
 
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-card border border-border">
-                    <span className="text-sm">Enfants à la maison</span>
-                    <Switch checked={hasChildren} onCheckedChange={setHasChildren} />
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-card border border-border">
-                    <span className="text-sm">Autres animaux</span>
-                    <Switch checked={hasOtherAnimals} onCheckedChange={setHasOtherAnimals} />
-                  </div>
+                  <h1 className="text-3xl font-bold text-foreground tracking-tight leading-tight">
+                    Un plan d'éducation vraiment adapté à votre chien.
+                  </h1>
+                  <p className="text-base text-muted-foreground leading-relaxed max-w-xs mx-auto">
+                    Créez son profil, identifiez ses difficultés, et obtenez un plan clair et progressif.
+                  </p>
+                </div>
+
+                <div className="w-full space-y-3 text-left">
+                  {[
+                    { icon: Dog, text: "Profil personnalisé" },
+                    { icon: Target, text: "Plan progressif adapté" },
+                    { icon: Activity, text: "Suivi quotidien simple" },
+                  ].map(({ icon: Icon, text }, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.3 + i * 0.1 }}
+                      className="flex items-center gap-3 p-3 rounded-2xl bg-card border border-border"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Icon className="h-5 w-5 text-primary" />
+                      </div>
+                      <span className="text-sm font-medium text-foreground">{text}</span>
+                    </motion.div>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" />
+                  <span>Environ 5 minutes</span>
+                </div>
+
+                <div className="w-full space-y-3">
+                  <Button size="lg" className="w-full h-14 text-base rounded-2xl" onClick={() => goTo(1)}>
+                    Commencer <ChevronRight className="h-5 w-5 ml-1" />
+                  </Button>
+                  <button
+                    onClick={() => { setAuthMode("login"); goTo(1); }}
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors w-full"
+                  >
+                    J'ai déjà un compte
+                  </button>
                 </div>
               </div>
+            </motion.div>
+          )}
 
-              {/* Hints for contradictions */}
-              {hints.filter(h => h.text.includes("taille") || h.text.includes("poids")).map((h, i) => (
-                <HintBanner key={i} icon={<Info className="h-3.5 w-3.5" />} text={h.text} variant={h.variant} />
-              ))}
+          {/* STEP 1 — Auth */}
+          {step === 1 && !user && (
+            <motion.div
+              key="step-1"
+              custom={direction}
+              variants={stepVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="w-full max-w-md mx-auto"
+            >
+              <div className="space-y-6">
+                <div className="text-center space-y-2">
+                  <motion.div
+                    initial={{ scale: 0.8 }}
+                    animate={{ scale: 1 }}
+                    className="mx-auto w-16 h-16 rounded-2xl bg-primary flex items-center justify-center"
+                  >
+                    <PawPrint className="h-8 w-8 text-primary-foreground" />
+                  </motion.div>
+                  <h2 className="text-2xl font-bold text-foreground">
+                    {authMode === "signup" ? "Créer un compte" : "Connexion"}
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    {authMode === "signup" ? "En quelques secondes" : "Retrouvez votre espace"}
+                  </p>
+                </div>
 
-              {stepSuggestions.map((s, i) => (
-                <HintBanner key={`s${i}`} icon={<Info className="h-3.5 w-3.5" />} text={s} />
-              ))}
-
-              <Button size="lg" className="w-full h-13 rounded-2xl" onClick={next}>
-                Continuer <ChevronRight className="h-5 w-5 ml-1" />
-              </Button>
-            </div>
-          </StepCard>
-        )}
-
-        {/* STEP 5 — Health */}
-        {step === 5 && (
-          <StepCard>
-            <div className="space-y-6">
-              <div className="text-center space-y-1">
-                <h2 className="text-xl font-bold text-foreground">Santé & sécurité</h2>
-                <p className="text-sm text-muted-foreground">Points importants pour adapter le plan</p>
-              </div>
-
-              <div className="space-y-3">
-                {[
-                  { label: "Douleurs articulaires", value: jointPain, set: setJointPain, icon: "🦴" },
-                  { label: "Problèmes cardiaques", value: heartProblems, set: setHeartProblems, icon: "❤️" },
-                  { label: "Épilepsie", value: epilepsy, set: setEpilepsy, icon: "⚡" },
-                  { label: "Surpoids", value: overweight, set: setOverweight, icon: "⚖️" },
-                ].map(({ label, value, set, icon }) => (
-                  <div key={label} className="flex items-center justify-between p-3.5 rounded-xl bg-card border border-border">
-                    <div className="flex items-center gap-2.5">
-                      <span>{icon}</span>
-                      <span className="text-sm font-medium">{label}</span>
+                <form onSubmit={handleAuth} className="space-y-4">
+                  {authMode === "signup" && (
+                    <div className="space-y-1.5">
+                      <Label className="text-sm">Votre nom</Label>
+                      <div className="relative">
+                        <User className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground" />
+                        <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)}
+                          placeholder="Prénom" className="pl-10 h-12 rounded-xl" autoFocus />
+                      </div>
                     </div>
-                    <Switch checked={value} onCheckedChange={set} />
+                  )}
+                  <div className="space-y-1.5">
+                    <Label className="text-sm">Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground" />
+                      <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                        placeholder="votre@email.com" required className="pl-10 h-12 rounded-xl" autoFocus={authMode === "login"} />
+                    </div>
                   </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm">Mot de passe</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground" />
+                      <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••" required minLength={6} className="pl-10 h-12 rounded-xl" />
+                    </div>
+                  </div>
+
+                  {authError && (
+                    <motion.p
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-sm text-destructive bg-destructive/10 rounded-xl px-4 py-2.5"
+                    >
+                      {authError}
+                    </motion.p>
+                  )}
+
+                  <Button type="submit" className="w-full h-12 text-base rounded-xl" disabled={submitting}>
+                    {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> :
+                      authMode === "signup" ? "Créer mon compte" : "Se connecter"}
+                  </Button>
+                </form>
+
+                <p className="text-center text-sm text-muted-foreground">
+                  {authMode === "signup" ? (
+                    <>Déjà un compte ? <button onClick={() => setAuthMode("login")} className="text-primary font-medium">Se connecter</button></>
+                  ) : (
+                    <>Pas de compte ? <button onClick={() => setAuthMode("signup")} className="text-primary font-medium">S'inscrire</button></>
+                  )}
+                </p>
+              </div>
+            </motion.div>
+          )}
+
+          {/* STEP 2 — Welcome */}
+          {step === 2 && (
+            <motion.div
+              key="step-2"
+              custom={direction}
+              variants={stepVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="w-full max-w-md mx-auto"
+            >
+              <div className="flex flex-col items-center text-center space-y-6">
+                <motion.div
+                  initial={{ scale: 0.8 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 200 }}
+                  className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center"
+                >
+                  <Heart className="h-10 w-10 text-primary" />
+                </motion.div>
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-bold text-foreground">Bienvenue{displayName ? `, ${displayName}` : ""} !</h2>
+                  <p className="text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">
+                    En quelques étapes, nous allons créer le profil de votre chien pour vous proposer un plan adapté.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted rounded-xl px-4 py-2.5">
+                  <Clock className="h-3.5 w-3.5" />
+                  <span>Environ 5 minutes — Vous pouvez sauvegarder à tout moment</span>
+                </div>
+                <Button size="lg" className="w-full h-14 text-base rounded-2xl" onClick={next}>
+                  C'est parti <ChevronRight className="h-5 w-5 ml-1" />
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* STEP 3 — Dog Identity + Photo */}
+          {step === 3 && (
+            <motion.div
+              key="step-3"
+              custom={direction}
+              variants={stepVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="w-full max-w-md mx-auto"
+            >
+              <div className="space-y-6">
+                <div className="text-center space-y-1">
+                  <h2 className="text-xl font-bold text-foreground">Créons le profil de votre chien</h2>
+                  <p className="text-sm text-muted-foreground">Commençons par les bases</p>
+                </div>
+
+                {/* Photo upload */}
+                <PhotoUpload
+                  photoPreview={photoPreview}
+                  onPhotoSelect={handlePhotoSelect}
+                  onPhotoRemove={handlePhotoRemove}
+                  uploading={photoUploading}
+                />
+
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-sm">Nom du chien *</Label>
+                    <Input value={dogName} onChange={(e) => setDogName(e.target.value)} placeholder="Ex: Luna, Rex…"
+                      className="h-12 rounded-xl text-base" autoFocus />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-sm">Race</Label>
+                    <Input value={breed} onChange={(e) => setBreed(e.target.value)} placeholder="Ex: Berger allemand"
+                      className="h-12 rounded-xl" />
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-card border border-border">
+                    <span className="text-sm font-medium">Croisé</span>
+                    <Switch checked={isMixed} onCheckedChange={setIsMixed} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm">Sexe</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <ChoiceChip selected={sex === "male"} onClick={() => setSex("male")}>♂ Mâle</ChoiceChip>
+                      <ChoiceChip selected={sex === "female"} onClick={() => setSex("female")}>♀ Femelle</ChoiceChip>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-card border border-border">
+                    <span className="text-sm font-medium">Stérilisé(e)</span>
+                    <Switch checked={isNeutered} onCheckedChange={setIsNeutered} />
+                  </div>
+                </div>
+
+                {stepSuggestions.map((s, i) => (
+                  <HintBanner key={i} icon={<Info className="h-3.5 w-3.5" />} text={s} />
                 ))}
 
-                <div className="pt-2 border-t border-border" />
+                <Button size="lg" className="w-full h-13 rounded-2xl" onClick={next} disabled={!dogName.trim()}>
+                  Continuer <ChevronRight className="h-5 w-5 ml-1" />
+                </Button>
+              </div>
+            </motion.div>
+          )}
 
-                <div className="flex items-center justify-between p-3.5 rounded-xl bg-warning/5 border border-warning/20">
-                  <div className="flex items-center gap-2.5">
-                    <Shield className="h-4 w-4 text-warning" />
-                    <span className="text-sm font-medium">Muselière obligatoire</span>
-                  </div>
-                  <Switch checked={muzzleRequired} onCheckedChange={setMuzzleRequired} />
+          {/* STEP 4 — Age, Size, Context */}
+          {step === 4 && (
+            <motion.div
+              key="step-4"
+              custom={direction}
+              variants={stepVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="w-full max-w-md mx-auto"
+            >
+              <div className="space-y-6">
+                <div className="text-center space-y-1">
+                  <h2 className="text-xl font-bold text-foreground">Gabarit & contexte</h2>
+                  <p className="text-sm text-muted-foreground">Pour adapter le programme</p>
                 </div>
 
-                <div className="flex items-center justify-between p-3.5 rounded-xl bg-destructive/5 border border-destructive/20">
-                  <div className="flex items-center gap-2.5">
-                    <AlertTriangle className="h-4 w-4 text-destructive" />
-                    <span className="text-sm font-medium">Antécédent de morsure</span>
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-sm">Date de naissance (approximative)</Label>
+                    <Input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)}
+                      className="h-12 rounded-xl" />
                   </div>
-                  <Switch checked={biteHistory} onCheckedChange={setBiteHistory} />
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-sm">Poids (kg)</Label>
+                      <Input type="number" value={weightKg} onChange={(e) => setWeightKg(e.target.value)}
+                        placeholder="25" className="h-12 rounded-xl" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm">Taille</Label>
+                      <div className="grid grid-cols-1 gap-1.5">
+                        {["petit", "moyen", "grand"].map((s) => (
+                          <ChoiceChip key={s} selected={size === s} onClick={() => setSize(s)}>
+                            {s === "petit" ? "Petit" : s === "moyen" ? "Moyen" : "Grand"}
+                          </ChoiceChip>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm">Niveau d'activité</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { v: "faible", l: "Calme" },
+                        { v: "modere", l: "Modéré" },
+                        { v: "eleve", l: "Énergique" },
+                      ].map((o) => (
+                        <ChoiceChip key={o.v} selected={activityLevel === o.v} onClick={() => setActivityLevel(o.v)}>
+                          {o.l}
+                        </ChoiceChip>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm">Environnement</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { v: "appartement", l: "🏢 Appartement" },
+                        { v: "maison_jardin", l: "🏡 Maison + jardin" },
+                        { v: "rural", l: "🌾 Rural" },
+                        { v: "urbain", l: "🏙️ Urbain" },
+                      ].map((o) => (
+                        <ChoiceChip key={o.v} selected={environment === o.v} onClick={() => setEnvironment(o.v)}>
+                          {o.l}
+                        </ChoiceChip>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm">Provenance</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { v: "elevage", l: "Élevage" },
+                        { v: "refuge", l: "Refuge" },
+                        { v: "particulier", l: "Particulier" },
+                        { v: "autre", l: "Autre" },
+                      ].map((o) => (
+                        <ChoiceChip key={o.v} selected={origin === o.v} onClick={() => setOrigin(o.v)}>
+                          {o.l}
+                        </ChoiceChip>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-card border border-border">
+                      <span className="text-sm">Enfants à la maison</span>
+                      <Switch checked={hasChildren} onCheckedChange={setHasChildren} />
+                    </div>
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-card border border-border">
+                      <span className="text-sm">Autres animaux</span>
+                      <Switch checked={hasOtherAnimals} onCheckedChange={setHasOtherAnimals} />
+                    </div>
+                  </div>
                 </div>
 
-                {(biteHistory || muzzleRequired) && (
-                  <HintBanner
-                    icon={<Shield className="h-3.5 w-3.5" />}
-                    text="Le plan sera adapté avec des mesures de sécurité renforcées. C'est tout à fait normal et prévu."
-                    variant="warning"
-                  />
-                )}
-
-                {hints.filter(h => h.text.includes("muselière") || h.text.includes("morsure")).map((h, i) => (
+                {hints.filter(h => h.text.includes("taille") || h.text.includes("poids")).map((h, i) => (
                   <HintBanner key={i} icon={<Info className="h-3.5 w-3.5" />} text={h.text} variant={h.variant} />
                 ))}
 
-                <div className="space-y-1.5">
-                  <Label className="text-sm">Notes de santé (optionnel)</Label>
-                  <Input value={healthNotes} onChange={(e) => setHealthNotes(e.target.value)}
-                    placeholder="Traitements, restrictions…" className="h-12 rounded-xl" />
+                {stepSuggestions.map((s, i) => (
+                  <HintBanner key={`s${i}`} icon={<Info className="h-3.5 w-3.5" />} text={s} />
+                ))}
+
+                <Button size="lg" className="w-full h-13 rounded-2xl" onClick={next}>
+                  Continuer <ChevronRight className="h-5 w-5 ml-1" />
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* STEP 5 — Health */}
+          {step === 5 && (
+            <motion.div
+              key="step-5"
+              custom={direction}
+              variants={stepVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="w-full max-w-md mx-auto"
+            >
+              <div className="space-y-6">
+                <div className="text-center space-y-1">
+                  <h2 className="text-xl font-bold text-foreground">Santé & sécurité</h2>
+                  <p className="text-sm text-muted-foreground">Points importants pour adapter le plan</p>
                 </div>
-              </div>
 
-              <Button size="lg" className="w-full h-13 rounded-2xl" onClick={next}>
-                Continuer <ChevronRight className="h-5 w-5 ml-1" />
-              </Button>
-            </div>
-          </StepCard>
-        )}
-
-        {/* STEP 6 — Evaluation */}
-        {step === 6 && (
-          <StepCard>
-            <div className="space-y-6">
-              <div className="text-center space-y-1">
-                <h2 className="text-xl font-bold text-foreground">Évaluation comportementale</h2>
-                <p className="text-sm text-muted-foreground">Où en est {dogName || "votre chien"} aujourd'hui ?</p>
-              </div>
-
-              <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted rounded-xl px-3 py-2">
-                <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
-                <span>{Object.keys(evaluation).length} / {EVAL_QUESTIONS.length} répondues</span>
-              </div>
-
-              <div className="space-y-4">
-                {EVAL_QUESTIONS.map((q) => (
-                  <TriChoice
-                    key={q.key}
-                    label={q.label}
-                    value={evaluation[q.key] || ""}
-                    onChange={(v) => setEvaluation((prev) => ({ ...prev, [q.key]: v }))}
-                  />
-                ))}
-              </div>
-
-              {stepSuggestions.map((s, i) => (
-                <HintBanner key={i} icon={<Info className="h-3.5 w-3.5" />} text={s} />
-              ))}
-
-              <Button size="lg" className="w-full h-13 rounded-2xl" onClick={next}>
-                Continuer <ChevronRight className="h-5 w-5 ml-1" />
-              </Button>
-            </div>
-          </StepCard>
-        )}
-
-        {/* STEP 7 — Problems */}
-        {step === 7 && (
-          <StepCard>
-            <div className="space-y-6">
-              <div className="text-center space-y-1">
-                <h2 className="text-xl font-bold text-foreground">Problématiques rencontrées</h2>
-                <p className="text-sm text-muted-foreground">Sélectionnez celles qui vous concernent</p>
-              </div>
-
-              {/* Cross-check hints from evaluation */}
-              {hints.filter(h => h.text.includes("problématique")).map((h, i) => (
-                <HintBanner key={i} icon={<Info className="h-3.5 w-3.5" />} text={h.text} />
-              ))}
-
-              <div className="grid grid-cols-2 gap-2">
-                {PROBLEM_OPTIONS.map((p) => (
-                  <button
-                    key={p.key}
-                    type="button"
-                    onClick={() => toggleProblem(p.key)}
-                    className={`card-press flex items-center gap-2 p-3 rounded-xl border-2 text-left transition-all duration-200 ${
-                      selectedProblems[p.key]
-                        ? "border-primary bg-primary/5 shadow-sm"
-                        : "border-border bg-card hover:border-primary/30"
-                    }`}
-                  >
-                    <span className="text-lg">{p.icon}</span>
-                    <span className="text-xs font-medium leading-tight">{p.label}</span>
-                  </button>
-                ))}
-              </div>
-
-              {Object.keys(selectedProblems).length > 0 && (
-                <div className="space-y-3 pt-2 border-t border-border">
-                  <p className="text-sm font-medium text-foreground">Intensité</p>
-                  {Object.entries(selectedProblems).map(([key, val]) => {
-                    const label = PROBLEM_OPTIONS.find((p) => p.key === key)?.label || key;
-                    return (
-                      <div key={key} className="space-y-1">
-                        <div className="flex justify-between">
-                          <span className="text-xs text-muted-foreground">{label}</span>
-                          <span className="text-xs font-medium text-primary">{val.intensity}/5</span>
-                        </div>
-                        <Slider
-                          min={1} max={5} step={1} value={[val.intensity]}
-                          onValueChange={([v]) => setSelectedProblems((prev) => ({
-                            ...prev, [key]: { ...prev[key], intensity: v },
-                          }))}
-                        />
+                <div className="space-y-3">
+                  {[
+                    { label: "Douleurs articulaires", value: jointPain, set: setJointPain, icon: "🦴" },
+                    { label: "Problèmes cardiaques", value: heartProblems, set: setHeartProblems, icon: "❤️" },
+                    { label: "Épilepsie", value: epilepsy, set: setEpilepsy, icon: "⚡" },
+                    { label: "Surpoids", value: overweight, set: setOverweight, icon: "⚖️" },
+                  ].map(({ label, value, set, icon }) => (
+                    <div key={label} className="flex items-center justify-between p-3.5 rounded-xl bg-card border border-border">
+                      <div className="flex items-center gap-2.5">
+                        <span>{icon}</span>
+                        <span className="text-sm font-medium">{label}</span>
                       </div>
-                    );
-                  })}
+                      <Switch checked={value} onCheckedChange={set} />
+                    </div>
+                  ))}
+
+                  <div className="pt-2 border-t border-border" />
+
+                  <div className="flex items-center justify-between p-3.5 rounded-xl bg-warning/5 border border-warning/20">
+                    <div className="flex items-center gap-2.5">
+                      <Shield className="h-4 w-4 text-warning" />
+                      <span className="text-sm font-medium">Muselière obligatoire</span>
+                    </div>
+                    <Switch checked={muzzleRequired} onCheckedChange={setMuzzleRequired} />
+                  </div>
+
+                  <div className="flex items-center justify-between p-3.5 rounded-xl bg-destructive/5 border border-destructive/20">
+                    <div className="flex items-center gap-2.5">
+                      <AlertTriangle className="h-4 w-4 text-destructive" />
+                      <span className="text-sm font-medium">Antécédent de morsure</span>
+                    </div>
+                    <Switch checked={biteHistory} onCheckedChange={setBiteHistory} />
+                  </div>
+
+                  {(biteHistory || muzzleRequired) && (
+                    <HintBanner
+                      icon={<Shield className="h-3.5 w-3.5" />}
+                      text="Le plan sera adapté avec des mesures de sécurité renforcées. C'est tout à fait normal et prévu."
+                      variant="warning"
+                    />
+                  )}
+
+                  {hints.filter(h => h.text.includes("muselière") || h.text.includes("morsure")).map((h, i) => (
+                    <HintBanner key={i} icon={<Info className="h-3.5 w-3.5" />} text={h.text} variant={h.variant} />
+                  ))}
+
+                  <div className="space-y-1.5">
+                    <Label className="text-sm">Notes de santé (optionnel)</Label>
+                    <Input value={healthNotes} onChange={(e) => setHealthNotes(e.target.value)}
+                      placeholder="Traitements, restrictions…" className="h-12 rounded-xl" />
+                  </div>
                 </div>
-              )}
 
-              <Button size="lg" className="w-full h-13 rounded-2xl" onClick={next}>
-                Continuer <ChevronRight className="h-5 w-5 ml-1" />
-              </Button>
-            </div>
-          </StepCard>
-        )}
-
-        {/* STEP 8 — Objectives */}
-        {step === 8 && (
-          <StepCard>
-            <div className="space-y-6">
-              <div className="text-center space-y-1">
-                <h2 className="text-xl font-bold text-foreground">Vos priorités</h2>
-                <p className="text-sm text-muted-foreground">Qu'aimeriez-vous améliorer en premier ?</p>
+                <Button size="lg" className="w-full h-13 rounded-2xl" onClick={next}>
+                  Continuer <ChevronRight className="h-5 w-5 ml-1" />
+                </Button>
               </div>
+            </motion.div>
+          )}
 
-              <div className="grid grid-cols-2 gap-2">
-                {OBJECTIVE_OPTIONS.map((o) => (
-                  <button
-                    key={o.key}
-                    type="button"
-                    onClick={() => toggleObjective(o.key)}
-                    className={`card-press flex items-center gap-2 p-3 rounded-xl border-2 text-left transition-all duration-200 ${
-                      selectedObjectives.includes(o.key)
-                        ? "border-primary bg-primary/5 shadow-sm"
-                        : "border-border bg-card hover:border-primary/30"
-                    }`}
-                  >
-                    <span className="text-lg">{o.icon}</span>
-                    <span className="text-xs font-medium leading-tight">{o.label}</span>
-                  </button>
+          {/* STEP 6 — Evaluation */}
+          {step === 6 && (
+            <motion.div
+              key="step-6"
+              custom={direction}
+              variants={stepVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="w-full max-w-md mx-auto"
+            >
+              <div className="space-y-6">
+                <div className="text-center space-y-1">
+                  <h2 className="text-xl font-bold text-foreground">Évaluation comportementale</h2>
+                  <p className="text-sm text-muted-foreground">Où en est {dogName || "votre chien"} aujourd'hui ?</p>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted rounded-xl px-3 py-2">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                  <span>{Object.keys(evaluation).length} / {EVAL_QUESTIONS.length} répondues</span>
+                </div>
+
+                <div className="space-y-4">
+                  {EVAL_QUESTIONS.map((q, i) => (
+                    <motion.div
+                      key={q.key}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.03 }}
+                    >
+                      <TriChoice
+                        label={q.label}
+                        value={evaluation[q.key] || ""}
+                        onChange={(v) => setEvaluation((prev) => ({ ...prev, [q.key]: v }))}
+                      />
+                    </motion.div>
+                  ))}
+                </div>
+
+                {stepSuggestions.map((s, i) => (
+                  <HintBanner key={i} icon={<Info className="h-3.5 w-3.5" />} text={s} />
                 ))}
-              </div>
 
-              {selectedObjectives.length > 1 && (
-                <div className="space-y-2 pt-2 border-t border-border">
-                  <p className="text-sm font-medium">Objectif principal</p>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedObjectives.map((key) => {
-                      const label = OBJECTIVE_OPTIONS.find((o) => o.key === key)?.label || key;
+                <Button size="lg" className="w-full h-13 rounded-2xl" onClick={next}>
+                  Continuer <ChevronRight className="h-5 w-5 ml-1" />
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* STEP 7 — Problems */}
+          {step === 7 && (
+            <motion.div
+              key="step-7"
+              custom={direction}
+              variants={stepVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="w-full max-w-md mx-auto"
+            >
+              <div className="space-y-6">
+                <div className="text-center space-y-1">
+                  <h2 className="text-xl font-bold text-foreground">Problématiques rencontrées</h2>
+                  <p className="text-sm text-muted-foreground">Sélectionnez celles qui vous concernent</p>
+                </div>
+
+                {hints.filter(h => h.text.includes("problématique")).map((h, i) => (
+                  <HintBanner key={i} icon={<Info className="h-3.5 w-3.5" />} text={h.text} />
+                ))}
+
+                <div className="grid grid-cols-2 gap-2">
+                  {PROBLEM_OPTIONS.map((p) => (
+                    <motion.button
+                      key={p.key}
+                      type="button"
+                      onClick={() => toggleProblem(p.key)}
+                      whileTap={{ scale: 0.95 }}
+                      className={`flex items-center gap-2 p-3 rounded-xl border-2 text-left transition-all duration-200 ${
+                        selectedProblems[p.key]
+                          ? "border-primary bg-primary/5 shadow-sm"
+                          : "border-border bg-card hover:border-primary/30"
+                      }`}
+                    >
+                      <span className="text-lg">{p.icon}</span>
+                      <span className="text-xs font-medium leading-tight">{p.label}</span>
+                    </motion.button>
+                  ))}
+                </div>
+
+                {Object.keys(selectedProblems).length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    className="space-y-3 pt-2 border-t border-border"
+                  >
+                    <p className="text-sm font-medium text-foreground">Intensité</p>
+                    {Object.entries(selectedProblems).map(([key, val]) => {
+                      const label = PROBLEM_OPTIONS.find((p) => p.key === key)?.label || key;
                       return (
-                        <ChoiceChip key={key} selected={primaryObjective === key} onClick={() => setPrimaryObjective(key)}>
-                          {label}
-                        </ChoiceChip>
+                        <div key={key} className="space-y-1">
+                          <div className="flex justify-between">
+                            <span className="text-xs text-muted-foreground">{label}</span>
+                            <span className="text-xs font-medium text-primary">{val.intensity}/5</span>
+                          </div>
+                          <Slider
+                            min={1} max={5} step={1} value={[val.intensity]}
+                            onValueChange={([v]) => setSelectedProblems((prev) => ({
+                              ...prev, [key]: { ...prev[key], intensity: v },
+                            }))}
+                          />
+                        </div>
                       );
                     })}
-                  </div>
-                </div>
-              )}
+                  </motion.div>
+                )}
 
-              {stepSuggestions.map((s, i) => (
-                <HintBanner key={i} icon={<Info className="h-3.5 w-3.5" />} text={s} />
-              ))}
-
-              <Button size="lg" className="w-full h-13 rounded-2xl" onClick={next}
-                disabled={selectedObjectives.length === 0}>
-                Continuer <ChevronRight className="h-5 w-5 ml-1" />
-              </Button>
-            </div>
-          </StepCard>
-        )}
-
-        {/* STEP 9 — Rhythm & Summary */}
-        {step === 9 && (
-          <StepCard>
-            <div className="space-y-6">
-              <div className="text-center space-y-1">
-                <h2 className="text-xl font-bold text-foreground">Presque terminé !</h2>
-                <p className="text-sm text-muted-foreground">Votre rythme et résumé du profil</p>
+                <Button size="lg" className="w-full h-13 rounded-2xl" onClick={next}>
+                  Continuer <ChevronRight className="h-5 w-5 ml-1" />
+                </Button>
               </div>
+            </motion.div>
+          )}
 
-              {/* Rhythm */}
-              <div className="space-y-4 p-4 rounded-2xl bg-card border border-border">
-                <p className="text-sm font-semibold text-foreground">Votre rythme</p>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Minutes par jour</span>
-                    <span className="font-medium text-primary">{dailyMinutes} min</span>
-                  </div>
-                  <Slider min={5} max={45} step={5} value={[dailyMinutes]}
-                    onValueChange={([v]) => setDailyMinutes(v)} />
-                </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Jours par semaine</span>
-                    <span className="font-medium text-primary">{daysPerWeek}j</span>
-                  </div>
-                  <Slider min={3} max={7} step={1} value={[daysPerWeek]}
-                    onValueChange={([v]) => setDaysPerWeek(v)} />
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { v: "doux", l: "Doux" },
-                    { v: "standard", l: "Standard" },
-                    { v: "intensif", l: "Intensif" },
-                  ].map((o) => (
-                    <ChoiceChip key={o.v} selected={intensity === o.v} onClick={() => setIntensity(o.v)}>
-                      {o.l}
-                    </ChoiceChip>
-                  ))}
-                </div>
-              </div>
-
-              {/* Live Profile Summary */}
-              <div className="p-4 rounded-2xl bg-card border border-border space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-foreground">Résumé du profil</p>
-                  <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                    {profileFields.filled}/{profileFields.total} complété
-                  </span>
-                </div>
-                <div className="space-y-2.5 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Chien</span>
-                    <span className="font-medium">{dogName || "—"} {breed ? `(${breed})` : ""}</span>
-                  </div>
-                  {size && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Gabarit</span>
-                      <span className="font-medium capitalize">{size}{weightKg ? ` · ${weightKg} kg` : ""}</span>
-                    </div>
-                  )}
-                  {activityLevel && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Énergie</span>
-                      <span className="font-medium capitalize">{activityLevel === "faible" ? "Calme" : activityLevel === "modere" ? "Modéré" : "Énergique"}</span>
-                    </div>
-                  )}
-                  {environment && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Environnement</span>
-                      <span className="font-medium capitalize">{environment.replace("_", " + ")}</span>
-                    </div>
-                  )}
-
-                  {securityFlags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {securityFlags.map((f) => (
-                        <span key={f} className="text-[10px] bg-destructive/10 text-destructive px-2 py-0.5 rounded-lg font-medium">
-                          ⚠️ {f}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Problématiques</span>
-                    <span className="font-medium">{Object.keys(selectedProblems).length}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Objectifs</span>
-                    <span className="font-medium">{selectedObjectives.length}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Évaluation</span>
-                    <span className="font-medium">{Object.keys(evaluation).length}/{EVAL_QUESTIONS.length} réponses</span>
-                  </div>
-                </div>
-
-                <button onClick={() => goTo(3)} className="text-xs text-primary font-medium hover:underline">
-                  Modifier le profil
-                </button>
-              </div>
-
-              {/* Final hints */}
-              {hints.map((h, i) => (
-                <HintBanner key={i} icon={<Info className="h-3.5 w-3.5" />} text={h.text} variant={h.variant} />
-              ))}
-
-              <Button size="lg" className="w-full h-14 text-base rounded-2xl" onClick={handleGenerate}>
-                <Sparkles className="h-5 w-5 mr-2" />
-                Générer mon plan
-              </Button>
-            </div>
-          </StepCard>
-        )}
-
-        {/* STEP 10 — Generating */}
-        {step === 10 && (
-          <StepCard className="flex flex-col items-center justify-center text-center">
-            <div className="flex flex-col items-center space-y-8">
-              <div className="relative">
-                <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center animate-pulse">
-                  <Brain className="h-10 w-10 text-primary" />
-                </div>
-              </div>
-              <div className="space-y-3">
-                <h2 className="text-xl font-bold text-foreground">Création en cours…</h2>
-                <p className="text-sm text-muted-foreground step-transition" key={genPhase}>
-                  {GEN_MESSAGES[genPhase]}
-                </p>
-              </div>
-              <Progress value={(genPhase + 1) / GEN_MESSAGES.length * 100} className="h-1.5 w-48 rounded-full" />
-            </div>
-          </StepCard>
-        )}
-
-        {/* STEP 11 — Plan Ready */}
-        {step === 11 && generatedPlan && (
-          <StepCard>
-            <div className="flex flex-col items-center text-center space-y-6">
-              <div className="w-20 h-20 rounded-3xl bg-success/10 flex items-center justify-center">
-                <PartyPopper className="h-10 w-10 text-success" />
-              </div>
-              <div className="space-y-2">
-                <h2 className="text-2xl font-bold text-foreground">Votre plan est prêt !</h2>
-                <p className="text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">
-                  {generatedPlan.summary}
-                </p>
-              </div>
-
-              <div className="w-full space-y-3 text-left">
-                <div className="p-4 rounded-2xl bg-card border border-border space-y-2">
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Axes prioritaires</p>
-                  {generatedPlan.axes.slice(0, 3).map((a: any, i: number) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
-                        {i + 1}
-                      </div>
-                      <span className="text-sm font-medium">{a.label}</span>
-                    </div>
-                  ))}
+          {/* STEP 8 — Objectives */}
+          {step === 8 && (
+            <motion.div
+              key="step-8"
+              custom={direction}
+              variants={stepVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="w-full max-w-md mx-auto"
+            >
+              <div className="space-y-6">
+                <div className="text-center space-y-1">
+                  <h2 className="text-xl font-bold text-foreground">Vos priorités</h2>
+                  <p className="text-sm text-muted-foreground">Qu'aimeriez-vous améliorer en premier ?</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="p-3 rounded-xl bg-card border border-border text-center">
-                    <p className="text-lg font-bold text-primary">{generatedPlan.totalDays}j</p>
-                    <p className="text-xs text-muted-foreground">Durée</p>
+                  {OBJECTIVE_OPTIONS.map((o) => (
+                    <motion.button
+                      key={o.key}
+                      type="button"
+                      onClick={() => toggleObjective(o.key)}
+                      whileTap={{ scale: 0.95 }}
+                      className={`flex items-center gap-2 p-3 rounded-xl border-2 text-left transition-all duration-200 ${
+                        selectedObjectives.includes(o.key)
+                          ? "border-primary bg-primary/5 shadow-sm"
+                          : "border-border bg-card hover:border-primary/30"
+                      }`}
+                    >
+                      <span className="text-lg">{o.icon}</span>
+                      <span className="text-xs font-medium leading-tight">{o.label}</span>
+                    </motion.button>
+                  ))}
+                </div>
+
+                {selectedObjectives.length > 1 && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="space-y-2 pt-2 border-t border-border"
+                  >
+                    <p className="text-sm font-medium">Objectif principal</p>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedObjectives.map((key) => {
+                        const label = OBJECTIVE_OPTIONS.find((o) => o.key === key)?.label || key;
+                        return (
+                          <ChoiceChip key={key} selected={primaryObjective === key} onClick={() => setPrimaryObjective(key)}>
+                            {label}
+                          </ChoiceChip>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+
+                {stepSuggestions.map((s, i) => (
+                  <HintBanner key={i} icon={<Info className="h-3.5 w-3.5" />} text={s} />
+                ))}
+
+                <Button size="lg" className="w-full h-13 rounded-2xl" onClick={next}
+                  disabled={selectedObjectives.length === 0}>
+                  Continuer <ChevronRight className="h-5 w-5 ml-1" />
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* STEP 9 — Rhythm & Summary */}
+          {step === 9 && (
+            <motion.div
+              key="step-9"
+              custom={direction}
+              variants={stepVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="w-full max-w-md mx-auto"
+            >
+              <div className="space-y-6">
+                <div className="text-center space-y-1">
+                  <h2 className="text-xl font-bold text-foreground">Presque terminé !</h2>
+                  <p className="text-sm text-muted-foreground">Votre rythme et résumé du profil</p>
+                </div>
+
+                <div className="space-y-4 p-4 rounded-2xl bg-card border border-border">
+                  <p className="text-sm font-semibold text-foreground">Votre rythme</p>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Minutes par jour</span>
+                      <span className="font-medium text-primary">{dailyMinutes} min</span>
+                    </div>
+                    <Slider min={5} max={45} step={5} value={[dailyMinutes]}
+                      onValueChange={([v]) => setDailyMinutes(v)} />
                   </div>
-                  <div className="p-3 rounded-xl bg-card border border-border text-center">
-                    <p className="text-lg font-bold text-primary">{generatedPlan.averageDuration}</p>
-                    <p className="text-xs text-muted-foreground">Par séance</p>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Jours par semaine</span>
+                      <span className="font-medium text-primary">{daysPerWeek}j</span>
+                    </div>
+                    <Slider min={3} max={7} step={1} value={[daysPerWeek]}
+                      onValueChange={([v]) => setDaysPerWeek(v)} />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { v: "doux", l: "Doux" },
+                      { v: "standard", l: "Standard" },
+                      { v: "intensif", l: "Intensif" },
+                    ].map((o) => (
+                      <ChoiceChip key={o.v} selected={intensity === o.v} onClick={() => setIntensity(o.v)}>
+                        {o.l}
+                      </ChoiceChip>
+                    ))}
                   </div>
                 </div>
 
-                {generatedPlan.securityLevel !== "standard" && (
-                  <HintBanner
-                    icon={<Shield className="h-3.5 w-3.5" />}
-                    text={`Niveau de sécurité : ${generatedPlan.securityLevel}. Le plan intègre des mesures adaptées.`}
-                    variant="warning"
-                  />
-                )}
-              </div>
+                {/* Profile Summary */}
+                <div className="p-4 rounded-2xl bg-card border border-border space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-foreground">Résumé du profil</p>
+                    <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                      {profileFields.filled}/{profileFields.total} complété
+                    </span>
+                  </div>
 
-              <div className="w-full space-y-2 pt-2">
-                <Button size="lg" className="w-full h-14 text-base rounded-2xl" onClick={finishOnboarding}>
-                  Commencer aujourd'hui <ChevronRight className="h-5 w-5 ml-1" />
-                </Button>
-                <Button variant="ghost" className="w-full rounded-xl" onClick={() => { clearOnboardingState(); navigate("/plan"); }}>
-                  Voir mon plan détaillé
+                  {/* Photo preview in summary */}
+                  {photoPreview && (
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl overflow-hidden">
+                        <img src={photoPreview} alt={dogName} className="w-full h-full object-cover" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">{dogName || "—"}</p>
+                        <p className="text-xs text-muted-foreground">{breed || "Race inconnue"}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-2.5 text-sm">
+                    {!photoPreview && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Chien</span>
+                        <span className="font-medium">{dogName || "—"} {breed ? `(${breed})` : ""}</span>
+                      </div>
+                    )}
+                    {size && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Gabarit</span>
+                        <span className="font-medium capitalize">{size}{weightKg ? ` · ${weightKg} kg` : ""}</span>
+                      </div>
+                    )}
+                    {activityLevel && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Énergie</span>
+                        <span className="font-medium capitalize">{activityLevel === "faible" ? "Calme" : activityLevel === "modere" ? "Modéré" : "Énergique"}</span>
+                      </div>
+                    )}
+                    {environment && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Environnement</span>
+                        <span className="font-medium capitalize">{environment.replace("_", " + ")}</span>
+                      </div>
+                    )}
+
+                    {securityFlags.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {securityFlags.map((f) => (
+                          <span key={f} className="text-[10px] bg-destructive/10 text-destructive px-2 py-0.5 rounded-lg font-medium">
+                            ⚠️ {f}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Problématiques</span>
+                      <span className="font-medium">{Object.keys(selectedProblems).length}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Objectifs</span>
+                      <span className="font-medium">{selectedObjectives.length}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Évaluation</span>
+                      <span className="font-medium">{Object.keys(evaluation).length}/{EVAL_QUESTIONS.length} réponses</span>
+                    </div>
+                  </div>
+
+                  <button onClick={() => goTo(3)} className="text-xs text-primary font-medium hover:underline">
+                    Modifier le profil
+                  </button>
+                </div>
+
+                {hints.map((h, i) => (
+                  <HintBanner key={i} icon={<Info className="h-3.5 w-3.5" />} text={h.text} variant={h.variant} />
+                ))}
+
+                <Button size="lg" className="w-full h-14 text-base rounded-2xl" onClick={handleGenerate}>
+                  <Sparkles className="h-5 w-5 mr-2" />
+                  Générer mon plan
                 </Button>
               </div>
-            </div>
-          </StepCard>
-        )}
+            </motion.div>
+          )}
+
+          {/* STEP 10 — Generating */}
+          {step === 10 && (
+            <motion.div
+              key="step-10"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4 }}
+              className="w-full max-w-md mx-auto flex flex-col items-center justify-center text-center"
+            >
+              <div className="flex flex-col items-center space-y-8">
+                <motion.div
+                  animate={{ rotate: [0, 5, -5, 0] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center"
+                >
+                  <Brain className="h-10 w-10 text-primary" />
+                </motion.div>
+                <div className="space-y-3">
+                  <h2 className="text-xl font-bold text-foreground">Création en cours…</h2>
+                  <AnimatePresence mode="wait">
+                    <motion.p
+                      key={genPhase}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      className="text-sm text-muted-foreground"
+                    >
+                      {GEN_MESSAGES[genPhase]}
+                    </motion.p>
+                  </AnimatePresence>
+                </div>
+                <Progress value={(genPhase + 1) / GEN_MESSAGES.length * 100} className="h-1.5 w-48 rounded-full" />
+              </div>
+            </motion.div>
+          )}
+
+          {/* STEP 11 — Plan Ready */}
+          {step === 11 && generatedPlan && (
+            <motion.div
+              key="step-11"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, type: "spring" }}
+              className="w-full max-w-md mx-auto"
+            >
+              <div className="flex flex-col items-center text-center space-y-6">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                  className="w-20 h-20 rounded-3xl bg-success/10 flex items-center justify-center"
+                >
+                  <PartyPopper className="h-10 w-10 text-success" />
+                </motion.div>
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-bold text-foreground">Votre plan est prêt !</h2>
+                  <p className="text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">
+                    {generatedPlan.summary}
+                  </p>
+                </div>
+
+                <div className="w-full space-y-3 text-left">
+                  <div className="p-4 rounded-2xl bg-card border border-border space-y-2">
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Axes prioritaires</p>
+                    {generatedPlan.axes.slice(0, 3).map((a: any, i: number) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.3 + i * 0.1 }}
+                        className="flex items-center gap-2"
+                      >
+                        <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                          {i + 1}
+                        </div>
+                        <span className="text-sm font-medium">{a.label}</span>
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-3 rounded-xl bg-card border border-border text-center">
+                      <p className="text-lg font-bold text-primary">{generatedPlan.totalDays}j</p>
+                      <p className="text-xs text-muted-foreground">Durée</p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-card border border-border text-center">
+                      <p className="text-lg font-bold text-primary">{generatedPlan.averageDuration}</p>
+                      <p className="text-xs text-muted-foreground">Par séance</p>
+                    </div>
+                  </div>
+
+                  {generatedPlan.securityLevel !== "standard" && (
+                    <HintBanner
+                      icon={<Shield className="h-3.5 w-3.5" />}
+                      text={`Niveau de sécurité : ${generatedPlan.securityLevel}. Le plan intègre des mesures adaptées.`}
+                      variant="warning"
+                    />
+                  )}
+                </div>
+
+                <div className="w-full space-y-2 pt-2">
+                  <Button size="lg" className="w-full h-14 text-base rounded-2xl" onClick={finishOnboarding}>
+                    Commencer aujourd'hui <ChevronRight className="h-5 w-5 ml-1" />
+                  </Button>
+                  <Button variant="ghost" className="w-full rounded-xl" onClick={() => { clearOnboardingState(); navigate("/plan"); }}>
+                    Voir mon plan détaillé
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
