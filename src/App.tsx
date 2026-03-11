@@ -123,6 +123,7 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <SubscriptionProvider>
+        <EducatorSubscriptionProvider>
         <TooltipProvider>
           <Toaster />
           <BrowserRouter>
