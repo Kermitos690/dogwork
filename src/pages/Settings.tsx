@@ -157,7 +157,7 @@ export default function Settings() {
           <h3 className="text-sm font-semibold text-destructive">Zone de danger</h3>
           {!showConfirm ? (
             <Button variant="destructive" className="w-full" onClick={() => setShowConfirm(true)}>
-              <Trash2 className="h-4 w-4" /> Remettre à zéro
+              <Trash2 className="h-4 w-4" /> Remettre le programme à zéro
             </Button>
           ) : (
             <div className="space-y-2">
