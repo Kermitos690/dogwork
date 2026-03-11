@@ -35,6 +35,7 @@ const CoachDogs = lazy(() => import("./pages/CoachDogs"));
 const CoachNotes = lazy(() => import("./pages/CoachNotes"));
 const CoachDogDetail = lazy(() => import("./pages/CoachDogDetail"));
 const CoachStats = lazy(() => import("./pages/CoachStats"));
+const CoachCourses = lazy(() => import("./pages/CoachCourses"));
 const CoachGuard = lazy(() => import("./components/CoachGuard").then(m => ({ default: m.CoachGuard })));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 
