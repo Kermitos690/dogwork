@@ -3,7 +3,7 @@ import { SlideMenu } from "@/components/SlideMenu";
 
 export function CoachLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-24 theme-coach">
       <SlideMenu />
       <div className="mx-auto max-w-lg px-4">
         {children}

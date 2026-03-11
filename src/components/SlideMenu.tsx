@@ -186,8 +186,8 @@ export function SlideMenu() {
                 {user?.user_metadata?.display_name || user?.email?.split("@")[0]}
               </p>
               <div className="flex gap-1 mt-0.5">
-                {isAdmin && <Badge variant="destructive" className="text-[9px] px-1.5 py-0">Admin</Badge>}
-                {isEducator && <Badge className="text-[9px] px-1.5 py-0 bg-accent">Éducateur</Badge>}
+                {isAdmin && <Badge className="text-[9px] px-1.5 py-0 bg-amber-600 text-white border-0">Admin</Badge>}
+                {isEducator && <Badge className="text-[9px] px-1.5 py-0 bg-emerald-600 text-white border-0">Éducateur</Badge>}
                 {!isAdmin && !isEducator && <Badge variant="secondary" className="text-[9px] px-1.5 py-0">Utilisateur</Badge>}
               </div>
             </div>
@@ -197,35 +197,55 @@ export function SlideMenu() {
         {/* Navigation */}
         <ScrollArea className="flex-1 h-[calc(100vh-180px)]">
           <div className="py-2">
-            {allSections.map((section) => (
-              <div key={section.title} className="mb-1">
-                <p className="px-5 py-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  {section.title}
-                </p>
-                {section.items.map((item) => {
-                  const active = isActive(item.path);
-                  return (
-                    <button
-                      key={item.path}
-                      onClick={() => handleNav(item.path)}
-                      className={`w-full flex items-center gap-3 px-5 py-2.5 text-sm transition-all ${
-                        active
-                          ? "text-primary bg-primary/10 border-l-2 border-primary"
-                          : "text-foreground/80 hover:bg-muted/50 border-l-2 border-transparent"
-                      }`}
-                    >
-                      <item.icon className={`h-4 w-4 flex-shrink-0 ${active ? "text-primary" : "text-muted-foreground"}`} />
-                      <span className="flex-1 text-left">{item.label}</span>
-                      {item.badge && item.badge > 0 ? (
-                        <Badge variant="destructive" className="text-[9px] px-1.5 py-0 min-w-[18px] justify-center">
-                          {item.badge}
-                        </Badge>
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
+            {allSections.map((section) => {
+              const isCoachSection = section.title === "Espace Éducateur";
+              const isAdminSection = section.title === "Administration";
+              const sectionColor = isCoachSection
+                ? "text-emerald-400"
+                : isAdminSection
+                  ? "text-amber-400"
+                  : "text-muted-foreground";
+              const accentHsl = isCoachSection
+                ? "hsl(160 65% 45%)"
+                : isAdminSection
+                  ? "hsl(25 95% 55%)"
+                  : undefined;
+
+              return (
+                <div key={section.title} className="mb-1">
+                  <p className={`px-5 py-2 text-[10px] font-semibold uppercase tracking-widest ${sectionColor}`}>
+                    {section.title}
+                  </p>
+                  {section.items.map((item) => {
+                    const active = isActive(item.path);
+                    const activeColor = accentHsl ?? "hsl(var(--primary))";
+                    return (
+                      <button
+                        key={item.path}
+                        onClick={() => handleNav(item.path)}
+                        className={`w-full flex items-center gap-3 px-5 py-2.5 text-sm transition-all border-l-2 ${
+                          active
+                            ? "bg-primary/10"
+                            : "text-foreground/80 hover:bg-muted/50 border-transparent"
+                        }`}
+                        style={active ? { color: activeColor, borderColor: activeColor } : undefined}
+                      >
+                        <item.icon
+                          className="h-4 w-4 flex-shrink-0"
+                          style={active ? { color: activeColor } : undefined}
+                        />
+                        <span className="flex-1 text-left">{item.label}</span>
+                        {item.badge && item.badge > 0 ? (
+                          <Badge variant="destructive" className="text-[9px] px-1.5 py-0 min-w-[18px] justify-center">
+                            {item.badge}
+                          </Badge>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })}
           </div>
         </ScrollArea>
 

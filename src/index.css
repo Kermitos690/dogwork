@@ -51,6 +51,33 @@
   }
 }
 
+  /* Coach / Educator theme — Emerald */
+  .theme-coach {
+    --primary: 160 65% 45%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 160 65% 45%;
+    --neon-blue: 160 65% 45%;
+    --neon-purple: 140 50% 55%;
+    --neon-cyan: 170 70% 50%;
+    --glow-primary: 0 0 20px hsl(160 65% 45% / 0.25);
+    --sidebar-primary: 160 65% 45%;
+    --sidebar-ring: 160 65% 45%;
+  }
+
+  /* Admin theme — Amber / Red */
+  .theme-admin {
+    --primary: 25 95% 55%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 25 95% 55%;
+    --neon-blue: 25 95% 55%;
+    --neon-purple: 0 72% 55%;
+    --neon-cyan: 38 92% 55%;
+    --glow-primary: 0 0 20px hsl(25 95% 55% / 0.25);
+    --sidebar-primary: 25 95% 55%;
+    --sidebar-ring: 25 95% 55%;
+  }
+}
+
 @layer base {
   * {
     @apply border-border;
