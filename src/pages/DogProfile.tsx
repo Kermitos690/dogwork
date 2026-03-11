@@ -105,13 +105,9 @@ export default function DogProfile() {
     try {
       let photo_url = form.photo_url;
       if (photoFile && user) {
-        const ext = photoFile.name.split(".").pop();
-        const path = `${user.id}/${Date.now()}.${ext}`;
-        const { error: uploadErr } = await supabase.storage.from("dog-photos").upload(path, photoFile);
-        if (!uploadErr) {
-          const { data: urlData } = supabase.storage.from("dog-photos").getPublicUrl(path);
-          photo_url = urlData.publicUrl;
-        }
+        const { uploadDogPhoto } = await import("@/lib/photoUrl");
+        const uploadedUrl = await uploadDogPhoto(photoFile, user.id, dogId || Date.now().toString());
+        if (uploadedUrl) photo_url = uploadedUrl;
       }
 
       if (isNew) {
