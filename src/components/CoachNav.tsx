@@ -1,10 +1,11 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, Dog, FileText, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Users, Dog, FileText, BarChart3, BookOpen } from "lucide-react";
 
 const tabs = [
-  { label: "Vue d'ensemble", icon: LayoutDashboard, path: "/coach" },
+  { label: "Dashboard", icon: LayoutDashboard, path: "/coach" },
   { label: "Clients", icon: Users, path: "/coach/clients" },
   { label: "Chiens", icon: Dog, path: "/coach/dogs" },
+  { label: "Cours", icon: BookOpen, path: "/coach/courses" },
   { label: "Notes", icon: FileText, path: "/coach/notes" },
   { label: "Stats", icon: BarChart3, path: "/coach/stats" },
 ];
