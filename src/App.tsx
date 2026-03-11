@@ -95,6 +95,8 @@ function ProtectedRoutes() {
         <Route path="/subscription" element={<SubscriptionPage />} />
         <Route path="/courses" element={<CoursesPage />} />
         <Route path="/messages" element={<MessagesPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/program" element={<Navigate to="/plan" replace />} />
         {/* Coach / Educator routes — guarded by role */}
         <Route path="/coach" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachDashboard /></CoachGuard></Suspense>} />
         <Route path="/coach/clients" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachClients /></CoachGuard></Suspense>} />
