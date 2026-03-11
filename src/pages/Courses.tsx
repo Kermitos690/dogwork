@@ -47,16 +47,11 @@ export default function Courses() {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
 
-  // Confirm payment on return from Stripe
+  // Handle return from Stripe (confirmation is done server-side via webhook)
   useEffect(() => {
     const success = searchParams.get("success");
-    const bookingId = searchParams.get("booking");
-    if (success === "true" && bookingId) {
-      supabase.functions.invoke("confirm-course-payment", {
-        body: { bookingId },
-      }).then(() => {
-        toast({ title: "Réservation confirmée ! 🎉", description: "Vous recevrez les détails par email." });
-      });
+    if (success === "true") {
+      toast({ title: "Paiement effectué ! 🎉", description: "Votre réservation sera confirmée sous peu." });
     }
     if (searchParams.get("canceled") === "true") {
       toast({ title: "Paiement annulé", description: "Votre réservation n'a pas été confirmée.", variant: "destructive" });
