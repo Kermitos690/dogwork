@@ -97,7 +97,7 @@ export default function Settings() {
           <h3 className="text-sm font-semibold">Exporter mes données</h3>
           <div className="flex flex-col gap-2">
             <Button variant="outline" className="w-full justify-start" onClick={handleExportJSON}>
-              <Download className="h-4 w-4" /> Exporter en JSON
+              <Download className="h-4 w-4" /> Exporter
             </Button>
             <Button variant="outline" className="w-full justify-start" onClick={handleExportText}>
               <Download className="h-4 w-4" /> Exporter un résumé texte
