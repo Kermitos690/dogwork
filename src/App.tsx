@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
+import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import Dogs from "./pages/Dogs";
 import DogProfile from "./pages/DogProfile";
@@ -22,13 +23,15 @@ import Safety from "./pages/Safety";
 import ProfilePage from "./pages/Profile";
 import ExerciseLibrary from "./pages/ExerciseLibrary";
 import NotFound from "./pages/NotFound";
+import { useDogs } from "./hooks/useDogs";
 
 const queryClient = new QueryClient();
 
 function ProtectedRoutes() {
   const { user, loading } = useAuth();
+  const { data: dogs, isLoading: dogsLoading } = useDogs();
 
-  if (loading) {
+  if (loading || dogsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-pulse text-muted-foreground">Chargement...</div>
@@ -38,9 +41,14 @@ function ProtectedRoutes() {
 
   if (!user) return <Auth />;
 
+  // If user has no dogs, redirect to onboarding
+  const hasDogs = dogs && dogs.length > 0;
+  const onboardingInProgress = !hasDogs;
+
   return (
     <Routes>
-      <Route path="/" element={<Dashboard />} />
+      <Route path="/onboarding" element={<Onboarding />} />
+      <Route path="/" element={onboardingInProgress ? <Navigate to="/onboarding" replace /> : <Dashboard />} />
       <Route path="/dogs" element={<Dogs />} />
       <Route path="/dogs/:dogId" element={<DogProfile />} />
       <Route path="/evaluation" element={<Evaluation />} />
