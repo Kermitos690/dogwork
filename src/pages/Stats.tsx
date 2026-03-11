@@ -1,12 +1,14 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
+import { Card, CardContent } from "@/components/ui/card";
 import { useActiveDog } from "@/hooks/useDogs";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PROGRAM } from "@/data/program";
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
+import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, BarChart, Bar, CartesianGrid } from "recharts";
+import { Badge } from "@/components/ui/badge";
+import { TrendingUp, TrendingDown, Minus as MinusIcon } from "lucide-react";
 
 export default function Stats() {
   const navigate = useNavigate();
@@ -30,23 +32,34 @@ export default function Stats() {
     enabled: !!activeDog,
   });
 
+  const { data: sessionsData } = useQuery({
+    queryKey: ["stats_sessions", activeDog?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("exercise_sessions").select("*").eq("dog_id", activeDog!.id);
+      return data || [];
+    },
+    enabled: !!activeDog,
+  });
+
   const stats = useMemo(() => {
     const progress = progressData || [];
     const logs = behaviorData || [];
+    const sessions = sessionsData || [];
 
     const completedDays = progress.filter((p) => p.validated).length;
     const completionRate = Math.round((completedDays / 28) * 100);
-
-    const progressMap: Record<number, any> = {};
-    progress.forEach((p) => { progressMap[p.day_id] = p; });
+    const totalSessions = sessions.length;
 
     const weeklyProgress = [1, 2, 3, 4].map((w) =>
-      PROGRAM.filter((d) => d.week === w).filter((d) => progressMap[d.id]?.validated).length
+      PROGRAM.filter((d) => d.week === w).filter((d) => progress.some(p => p.day_id === d.id && p.validated)).length
     );
 
     const avg = (arr: number[]) => arr.length ? Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10 : 0;
-    const avgTension = avg(logs.map((l) => l.tension_level || 0));
-    const avgDogReaction = avg(logs.map((l) => l.dog_reaction_level || 0));
+    const avgTension = avg(logs.map((l) => l.tension_level || 0).filter(Boolean));
+    const avgDogReaction = avg(logs.map((l) => l.dog_reaction_level || 0).filter(Boolean));
+
+    // Human reactivity (using dog_reaction_level as proxy since no separate human column)
+    const avgHumanReaction = avg(logs.map((l) => l.dog_reaction_level || 0).filter(Boolean));
 
     const score = (field: string, good: string) => {
       const vals = logs.map((l) => (l as any)[field]).filter(Boolean);
@@ -54,26 +67,61 @@ export default function Stats() {
       return Math.round((vals.filter((v: string) => v === good).length / vals.length) * 100);
     };
 
-    const chartData = logs.map((log) => ({
+    const stopScore = score("stop_response", "oui");
+    const noScore = score("no_response", "oui");
+    const focusScore = score("focus_quality", "bon");
+    const leashScore = score("leash_walk_quality", "bonne");
+
+    // Tension chart
+    const tensionChart = logs.map((log) => ({
       jour: `J${log.day_id}`,
       tension: log.tension_level,
       réactivité: log.dog_reaction_level,
     }));
 
-    return {
-      completedDays, completionRate, weeklyProgress, avgTension, avgDogReaction,
-      stopScore: score("stop_response", "oui"),
-      noScore: score("no_response", "oui"),
-      focusScore: score("focus_quality", "bon"),
-      leashScore: score("leash_walk_quality", "bonne"),
-      chartData,
-    };
-  }, [progressData, behaviorData]);
+    // Weekly bar chart
+    const weeklyBarData = [1, 2, 3, 4].map((w) => ({
+      semaine: `S${w}`,
+      validés: weeklyProgress[w - 1],
+      total: 7,
+    }));
 
-  const StatCard = ({ label, value, unit, color }: { label: string; value: string | number; unit?: string; color?: string }) => (
+    // Best and hardest days
+    const hardestDays = [...logs].sort((a, b) => (b.tension_level || 0) - (a.tension_level || 0)).slice(0, 3).map(l => l.day_id);
+    const bestDays = [...logs].sort((a, b) => (a.tension_level || 0) - (b.tension_level || 0)).slice(0, 3).map(l => l.day_id);
+
+    // Trend
+    const recentLogs = logs.slice(-5);
+    const olderLogs = logs.slice(0, Math.max(logs.length - 5, 0));
+    const recentAvg = avg(recentLogs.map(l => l.tension_level || 0));
+    const olderAvg = avg(olderLogs.map(l => l.tension_level || 0));
+    const trend = olderLogs.length > 0 ? (recentAvg < olderAvg ? "down" : recentAvg > olderAvg ? "up" : "stable") : "stable";
+
+    return {
+      completedDays, completionRate, totalSessions,
+      weeklyProgress, weeklyBarData,
+      avgTension, avgDogReaction, avgHumanReaction,
+      stopScore, noScore, focusScore, leashScore,
+      tensionChart, hardestDays, bestDays, trend,
+    };
+  }, [progressData, behaviorData, sessionsData]);
+
+  const StatCard = ({ label, value, unit, color, size = "default" }: { label: string; value: string | number; unit?: string; color?: string; size?: string }) => (
     <div className="rounded-xl border border-border bg-card p-4">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={`text-2xl font-bold ${color || "text-foreground"}`}>{value}{unit}</p>
+      <p className="text-xs text-muted-foreground mb-1">{label}</p>
+      <p className={`${size === "large" ? "text-3xl" : "text-2xl"} font-bold ${color || "text-foreground"}`}>{value}{unit}</p>
+    </div>
+  );
+
+  const ScoreBar = ({ label, value, color }: { label: string; value: number; color: string }) => (
+    <div className="space-y-1">
+      <div className="flex justify-between text-xs">
+        <span className="text-muted-foreground">{label}</span>
+        <span className="font-semibold text-foreground">{value}%</span>
+      </div>
+      <div className="h-2.5 rounded-full bg-muted">
+        <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${value}%` }} />
+      </div>
     </div>
   );
 
@@ -81,46 +129,69 @@ export default function Stats() {
 
   return (
     <AppLayout>
-      <div className="animate-fade-in space-y-5 pt-4">
-        <h1 className="text-2xl font-bold">Statistiques</h1>
+      <div className="animate-fade-in space-y-5 pt-4 pb-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Statistiques</h1>
+          <p className="text-sm text-muted-foreground">{activeDog.name} — Vue d'ensemble</p>
+        </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        {/* Main stats */}
+        <div className="grid grid-cols-3 gap-2">
           <StatCard label="Jours validés" value={stats.completedDays} unit="/28" />
-          <StatCard label="Score de progression" value={stats.completionRate} unit="%" color="text-primary" />
+          <StatCard label="Séances" value={stats.totalSessions} />
+          <StatCard label="Progression" value={stats.completionRate} unit="%" color="text-primary" />
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-4">
-          <h3 className="mb-3 text-sm font-semibold">Progression par semaine</h3>
-          <div className="space-y-2">
-            {stats.weeklyProgress.map((count, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <span className="text-xs text-muted-foreground w-8">S{i + 1}</span>
-                <div className="flex-1 h-3 rounded-full bg-muted">
-                  <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${(count / 7) * 100}%` }} />
-                </div>
-                <span className="text-xs font-medium w-8 text-right">{count}/7</span>
-              </div>
-            ))}
-          </div>
+        {/* Trend */}
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            {stats.trend === "down" ? (
+              <><TrendingDown className="h-5 w-5 text-success" /><p className="text-sm text-foreground">La tension diminue 📉 Bonne progression !</p></>
+            ) : stats.trend === "up" ? (
+              <><TrendingUp className="h-5 w-5 text-destructive" /><p className="text-sm text-foreground">La tension augmente 📈 Ajustez la difficulté.</p></>
+            ) : (
+              <><MinusIcon className="h-5 w-5 text-muted-foreground" /><p className="text-sm text-foreground">Tendance stable. Continuez le travail.</p></>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Scores */}
+        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+          <p className="text-sm font-semibold text-foreground">Scores comportementaux</p>
+          <ScoreBar label="Score Stop" value={stats.stopScore} color="bg-primary" />
+          <ScoreBar label="Score Non" value={stats.noScore} color="bg-primary" />
+          <ScoreBar label="Score Focus" value={stats.focusScore} color="bg-success" />
+          <ScoreBar label="Score Marche" value={stats.leashScore} color="bg-success" />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <StatCard label="Score Stop" value={stats.stopScore} unit="%" />
-          <StatCard label="Score Non" value={stats.noScore} unit="%" />
-          <StatCard label="Score Focus" value={stats.focusScore} unit="%" />
-          <StatCard label="Score Marche" value={stats.leashScore} unit="%" />
-        </div>
-
+        {/* Averages */}
         <div className="grid grid-cols-2 gap-3">
           <StatCard label="Moyenne tension" value={stats.avgTension} unit="/5" color={stats.avgTension > 3 ? "text-destructive" : "text-success"} />
           <StatCard label="Moyenne réactivité" value={stats.avgDogReaction} unit="/5" color={stats.avgDogReaction > 3 ? "text-destructive" : "text-success"} />
         </div>
 
-        {stats.chartData.length > 0 && (
+        {/* Weekly progress */}
+        <div className="rounded-xl border border-border bg-card p-4">
+          <h3 className="mb-3 text-sm font-semibold text-foreground">Progression par semaine</h3>
+          {stats.weeklyBarData.length > 0 && (
+            <ResponsiveContainer width="100%" height={140}>
+              <BarChart data={stats.weeklyBarData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="semaine" tick={{ fontSize: 11 }} />
+                <YAxis domain={[0, 7]} tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Bar dataKey="validés" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        {/* Tension chart */}
+        {stats.tensionChart.length > 0 && (
           <div className="rounded-xl border border-border bg-card p-4">
-            <h3 className="mb-3 text-sm font-semibold">Tension par jour</h3>
+            <h3 className="mb-3 text-sm font-semibold text-foreground">Évolution tension & réactivité</h3>
             <ResponsiveContainer width="100%" height={180}>
-              <LineChart data={stats.chartData}>
+              <LineChart data={stats.tensionChart}>
                 <XAxis dataKey="jour" tick={{ fontSize: 10 }} />
                 <YAxis domain={[1, 5]} tick={{ fontSize: 10 }} />
                 <Tooltip />
@@ -128,12 +199,41 @@ export default function Stats() {
                 <Line type="monotone" dataKey="réactivité" stroke="hsl(var(--destructive))" strokeWidth={2} dot={{ r: 3 }} />
               </LineChart>
             </ResponsiveContainer>
+            <div className="flex gap-4 justify-center mt-2 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-warning inline-block" /> Tension</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-destructive inline-block" /> Réactivité</span>
+            </div>
           </div>
         )}
 
-        {stats.chartData.length === 0 && (
+        {/* Best and hardest */}
+        <div className="grid grid-cols-2 gap-3">
+          {stats.bestDays.length > 0 && (
+            <div className="rounded-xl border border-success/20 bg-success/5 p-3">
+              <p className="text-xs font-semibold text-success mb-1">Meilleurs jours</p>
+              <div className="flex gap-1 flex-wrap">
+                {stats.bestDays.map(d => (
+                  <Badge key={d} variant="secondary" className="text-xs">J{d}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
+          {stats.hardestDays.length > 0 && (
+            <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-3">
+              <p className="text-xs font-semibold text-destructive mb-1">Jours difficiles</p>
+              <div className="flex gap-1 flex-wrap">
+                {stats.hardestDays.map(d => (
+                  <Badge key={d} variant="secondary" className="text-xs">J{d}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {stats.tensionChart.length === 0 && (
           <div className="rounded-xl border border-border bg-card p-6 text-center">
-            <p className="text-muted-foreground">Pas encore de données de suivi.</p>
+            <p className="text-muted-foreground text-sm">Pas encore de données de suivi.</p>
+            <p className="text-xs text-muted-foreground mt-1">Remplissez le suivi comportemental après chaque séance.</p>
           </div>
         )}
       </div>
