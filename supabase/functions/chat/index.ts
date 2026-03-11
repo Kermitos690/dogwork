@@ -67,6 +67,80 @@ serve(async (req) => {
       );
     }
 
+    const userId = claimsData.claims.sub as string;
+
+    // Server-side subscription check: only Expert tier or admin/educator can use AI chat
+    const adminCheck = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // Check if user has privileged role (admin or educator get free access)
+    const { data: roles } = await adminCheck
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+
+    const isPrivileged = roles?.some(
+      (r: { role: string }) => r.role === "admin" || r.role === "educator"
+    );
+
+    if (!isPrivileged) {
+      // Check Stripe subscription for Expert tier
+      const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
+      if (!STRIPE_SECRET_KEY) {
+        return new Response(
+          JSON.stringify({ error: "Configuration serveur manquante" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Get user email
+      const { data: userData } = await adminCheck.auth.admin.getUserById(userId);
+      const email = userData?.user?.email;
+
+      if (!email) {
+        return new Response(
+          JSON.stringify({ error: "Utilisateur introuvable" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Check Stripe for active Expert subscription
+      const Stripe = (await import("https://esm.sh/stripe@18.5.0")).default;
+      const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2025-08-27.basil" });
+
+      const customers = await stripe.customers.list({ email, limit: 1 });
+      let hasExpertSub = false;
+
+      if (customers.data.length > 0) {
+        const subs = await stripe.subscriptions.list({
+          customer: customers.data[0].id,
+          status: "active",
+          limit: 10,
+        });
+
+        // Expert product ID
+        const EXPERT_PRODUCT_ID = "prod_U83inCbv8JMMgf";
+        for (const sub of subs.data) {
+          for (const item of sub.items.data) {
+            if (item.price.product === EXPERT_PRODUCT_ID) {
+              hasExpertSub = true;
+              break;
+            }
+          }
+          if (hasExpertSub) break;
+        }
+      }
+
+      if (!hasExpertSub) {
+        return new Response(
+          JSON.stringify({ error: "Abonnement Expert requis pour utiliser le chatbot IA." }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     const { messages } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
