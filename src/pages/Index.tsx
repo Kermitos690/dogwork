@@ -40,6 +40,7 @@ const Index = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-primary-foreground/80">Progression globale</p>
+
               <p className="text-3xl font-bold text-primary-foreground">{pct}%</p>
               <p className="text-sm text-primary-foreground/70">{completedDays}/28 jours validés</p>
             </div>
