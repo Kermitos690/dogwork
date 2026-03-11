@@ -40,10 +40,12 @@ const CoachDogDetail = lazy(() => import("./pages/CoachDogDetail"));
 const CoachStats = lazy(() => import("./pages/CoachStats"));
 const CoachCourses = lazy(() => import("./pages/CoachCourses"));
 const CoachGuard = lazy(() => import("./components/CoachGuard").then(m => ({ default: m.CoachGuard })));
+const AdminGuard = lazy(() => import("./components/AdminGuard").then(m => ({ default: m.AdminGuard })));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const HelpPage = lazy(() => import("./pages/Help"));
 const SubscriptionPage = lazy(() => import("./pages/Subscription"));
 const CoursesPage = lazy(() => import("./pages/Courses"));
+const CoachCalendar = lazy(() => import("./pages/CoachCalendar"));
 
 const queryClient = new QueryClient();
 
