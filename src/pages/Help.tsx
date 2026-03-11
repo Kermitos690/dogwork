@@ -314,8 +314,7 @@ function AdminGuide() {
   );
 }
 
-/* ─── TrendingUp import used above ─── */
-import { TrendingUp } from "lucide-react";
+import { RestartTourButton } from "@/components/GuidedTour";
 
 export default function HelpPage() {
   const { user } = useAuth();
