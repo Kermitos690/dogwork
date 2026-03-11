@@ -24,6 +24,12 @@ import ProfilePage from "./pages/Profile";
 import ExerciseLibrary from "./pages/ExerciseLibrary";
 import ExerciseDetail from "./pages/ExerciseDetail";
 import NotFound from "./pages/NotFound";
+import CoachDashboard from "./pages/CoachDashboard";
+import CoachClients from "./pages/CoachClients";
+import CoachDogs from "./pages/CoachDogs";
+import CoachNotes from "./pages/CoachNotes";
+import CoachDogDetail from "./pages/CoachDogDetail";
+import CoachStats from "./pages/CoachStats";
 import { useDogs } from "./hooks/useDogs";
 
 const queryClient = new QueryClient();
@@ -42,7 +48,6 @@ function ProtectedRoutes() {
 
   if (!user) return <Auth />;
 
-  // If user has no dogs, redirect to onboarding
   const hasDogs = dogs && dogs.length > 0;
   const onboardingInProgress = !hasDogs;
 
@@ -66,6 +71,14 @@ function ProtectedRoutes() {
       <Route path="/exercises" element={<ExerciseLibrary />} />
       <Route path="/exercises/:slug" element={<ExerciseDetail />} />
       <Route path="/profile" element={<ProfilePage />} />
+      {/* Coach / Educator routes */}
+      <Route path="/coach" element={<CoachDashboard />} />
+      <Route path="/coach/clients" element={<CoachClients />} />
+      <Route path="/coach/clients/:clientId" element={<CoachClients />} />
+      <Route path="/coach/dogs" element={<CoachDogs />} />
+      <Route path="/coach/dog/:dogId" element={<CoachDogDetail />} />
+      <Route path="/coach/notes" element={<CoachNotes />} />
+      <Route path="/coach/stats" element={<CoachStats />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
