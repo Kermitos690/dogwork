@@ -9,14 +9,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogOut, Save, Shield, Download, Trash2, User, GraduationCap } from "lucide-react";
+import { LogOut, Save, Shield, Download, Trash2, User, GraduationCap, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const activeDog = useActiveDog();
   const { data: isCoach } = useIsCoach();
+  const { data: isAdmin } = useQuery({
+    queryKey: ["is_admin", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("has_role", { _user_id: user!.id, _role: "admin" });
+      return data === true;
+    },
+    enabled: !!user,
+  });
   const { toast } = useToast();
   const [displayName, setDisplayName] = useState("");
 
@@ -93,6 +102,11 @@ export default function ProfilePage() {
             {isCoach && (
               <Button className="w-full justify-start gap-2 bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30" onClick={() => navigate("/coach")}>
                 <GraduationCap className="h-4 w-4" /> Espace Éducateur
+              </Button>
+            )}
+            {isAdmin && (
+              <Button className="w-full justify-start gap-2 bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20" onClick={() => navigate("/admin")}>
+                <ShieldCheck className="h-4 w-4" /> Administration
               </Button>
             )}
           </CardContent>
