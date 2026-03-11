@@ -36,14 +36,15 @@ export default function AdminDashboard() {
   const { data: stats } = useQuery({
     queryKey: ["admin_stats"],
     queryFn: async () => {
-      const [{ count: usersCount }, { count: dogsCount }, { count: educatorsCount }, { count: exercisesCount }, { count: coursesCount }] = await Promise.all([
+      const [{ count: usersCount }, { count: dogsCount }, { count: educatorsCount }, { count: exercisesCount }, { count: coursesCount }, { count: pendingCount }] = await Promise.all([
         supabase.from("profiles").select("*", { count: "exact", head: true }),
         supabase.from("dogs").select("*", { count: "exact", head: true }),
         supabase.from("user_roles").select("*", { count: "exact", head: true }).eq("role", "educator"),
         supabase.from("exercises").select("*", { count: "exact", head: true }),
         supabase.from("courses").select("*", { count: "exact", head: true }),
+        supabase.from("courses").select("*", { count: "exact", head: true }).eq("approval_status", "pending"),
       ]);
-      return { users: usersCount || 0, dogs: dogsCount || 0, educators: educatorsCount || 0, exercises: exercisesCount || 0, courses: coursesCount || 0 };
+      return { users: usersCount || 0, dogs: dogsCount || 0, educators: educatorsCount || 0, exercises: exercisesCount || 0, courses: coursesCount || 0, pendingCourses: pendingCount || 0 };
     },
     enabled: isAdmin === true,
   });
@@ -60,6 +61,32 @@ export default function AdminDashboard() {
     },
     enabled: isAdmin === true,
   });
+
+  // Pending courses
+  const { data: pendingCourses = [], refetch: refetchCourses } = useQuery({
+    queryKey: ["admin_pending_courses"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("courses")
+        .select("*")
+        .order("created_at", { ascending: false });
+      return data || [];
+    },
+    enabled: isAdmin === true,
+  });
+
+  // Bookings stats
+  const { data: allBookings = [] } = useQuery({
+    queryKey: ["admin_all_bookings"],
+    queryFn: async () => {
+      const { data } = await supabase.from("course_bookings").select("*").eq("payment_status", "paid");
+      return data || [];
+    },
+    enabled: isAdmin === true,
+  });
+
+  const totalRevenue = allBookings.reduce((s: number, b: any) => s + (b.amount_cents || 0), 0);
+  const totalCommission = allBookings.reduce((s: number, b: any) => s + (b.commission_cents || 0), 0);
 
   const handleCreateEducator = async () => {
     if (!newEducatorEmail || !newEducatorPassword) return;
