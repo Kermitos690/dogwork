@@ -104,6 +104,11 @@ export default function ProfilePage() {
                 <GraduationCap className="h-4 w-4" /> Espace Éducateur
               </Button>
             )}
+            {isAdmin && (
+              <Button className="w-full justify-start gap-2 bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20" onClick={() => navigate("/admin")}>
+                <ShieldCheck className="h-4 w-4" /> Administration
+              </Button>
+            )}
           </CardContent>
         </Card>
 
