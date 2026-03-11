@@ -11,7 +11,7 @@ import { useState, useMemo } from "react";
 export default function ExerciseLibrary() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const days = getAllDays();
+  const days = PROGRAM;
 
   const allExercises = useMemo(() => {
     const exercises: { exercise: any; day: any }[] = [];

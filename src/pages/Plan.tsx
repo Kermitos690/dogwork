@@ -25,7 +25,7 @@ const statusLabels: Record<string, string> = {
 export default function PlanPage() {
   const navigate = useNavigate();
   const activeDog = useActiveDog();
-  const days = getAllDays();
+  const days = PROGRAM;
 
   const { data: progress } = useQuery({
     queryKey: ["day_progress_all", activeDog?.id],
