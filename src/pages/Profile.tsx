@@ -90,6 +90,7 @@ export default function ProfilePage() {
             <Button variant="outline" className="w-full justify-start gap-2" onClick={() => navigate("/help")}>
               <HelpCircle className="h-4 w-4" /> Guide d'utilisation & IA
             </Button>
+            <Button variant="outline" className="w-full justify-start gap-2" onClick={() => navigate("/safety")}>
               <Shield className="h-4 w-4" /> Sécurité et méthode
             </Button>
             <Button variant="outline" className="w-full justify-start gap-2" onClick={() => navigate("/evaluation")}>
