@@ -941,8 +941,8 @@ export default function Onboarding() {
                     <div className="grid grid-cols-3 gap-2">
                       {[
                         { v: "faible", l: "Calme" },
-                        { v: "modere", l: "Modéré" },
-                        { v: "eleve", l: "Énergique" },
+                        { v: "moyen", l: "Modéré" },
+                        { v: "élevé", l: "Énergique" },
                       ].map((o) => (
                         <ChoiceChip key={o.v} selected={activityLevel === o.v} onClick={() => setActivityLevel(o.v)}>
                           {o.l}
