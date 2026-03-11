@@ -43,6 +43,7 @@ const CoachGuard = lazy(() => import("./components/CoachGuard").then(m => ({ def
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const HelpPage = lazy(() => import("./pages/Help"));
 const SubscriptionPage = lazy(() => import("./pages/Subscription"));
+const CoursesPage = lazy(() => import("./pages/Courses"));
 
 const queryClient = new QueryClient();
 
