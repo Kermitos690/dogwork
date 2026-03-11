@@ -72,14 +72,14 @@ function ProtectedRoutes() {
       <Route path="/exercises" element={<ExerciseLibrary />} />
       <Route path="/exercises/:slug" element={<ExerciseDetail />} />
       <Route path="/profile" element={<ProfilePage />} />
-      {/* Coach / Educator routes */}
-      <Route path="/coach" element={<CoachDashboard />} />
-      <Route path="/coach/clients" element={<CoachClients />} />
-      <Route path="/coach/clients/:clientId" element={<CoachClients />} />
-      <Route path="/coach/dogs" element={<CoachDogs />} />
-      <Route path="/coach/dog/:dogId" element={<CoachDogDetail />} />
-      <Route path="/coach/notes" element={<CoachNotes />} />
-      <Route path="/coach/stats" element={<CoachStats />} />
+      {/* Coach / Educator routes — guarded by role */}
+      <Route path="/coach" element={<CoachGuard><CoachDashboard /></CoachGuard>} />
+      <Route path="/coach/clients" element={<CoachGuard><CoachClients /></CoachGuard>} />
+      <Route path="/coach/clients/:clientId" element={<CoachGuard><CoachClients /></CoachGuard>} />
+      <Route path="/coach/dogs" element={<CoachGuard><CoachDogs /></CoachGuard>} />
+      <Route path="/coach/dog/:dogId" element={<CoachGuard><CoachDogDetail /></CoachGuard>} />
+      <Route path="/coach/notes" element={<CoachGuard><CoachNotes /></CoachGuard>} />
+      <Route path="/coach/stats" element={<CoachGuard><CoachStats /></CoachGuard>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
