@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Dog, Play, BookOpen, BarChart3, ClipboardList, AlertTriangle, Plus, Shield,
   TrendingUp, TrendingDown, ChevronRight, Sparkles, Heart, Calendar, Activity,
-  PawPrint, Eye, Zap, Settings, FileText, Target, ArrowRight
+  PawPrint, Eye, Zap, Settings, FileText, Target, ArrowRight, LogOut, Timer
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
