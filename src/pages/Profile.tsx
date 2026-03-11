@@ -28,6 +28,7 @@ export default function ProfilePage() {
     enabled: !!user,
   });
   const { toast } = useToast();
+  const { tier } = useSubscription();
   const [displayName, setDisplayName] = useState("");
 
   useEffect(() => {
