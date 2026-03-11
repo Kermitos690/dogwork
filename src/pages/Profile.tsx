@@ -16,6 +16,7 @@ export default function ProfilePage() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const activeDog = useActiveDog();
+  const { data: isCoach } = useIsCoach();
   const { toast } = useToast();
   const [displayName, setDisplayName] = useState("");
 
