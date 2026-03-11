@@ -193,6 +193,107 @@ export type Database = {
         }
         Relationships: []
       }
+      course_bookings: {
+        Row: {
+          amount_cents: number | null
+          commission_cents: number | null
+          course_id: string
+          created_at: string | null
+          id: string
+          payment_status: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount_cents?: number | null
+          commission_cents?: number | null
+          course_id: string
+          created_at?: string | null
+          id?: string
+          payment_status?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number | null
+          commission_cents?: number | null
+          course_id?: string
+          created_at?: string | null
+          id?: string
+          payment_status?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_bookings_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courses: {
+        Row: {
+          address: string | null
+          category: string | null
+          commission_rate: number
+          created_at: string | null
+          description: string | null
+          dog_level: string | null
+          duration_minutes: number | null
+          educator_user_id: string
+          id: string
+          is_active: boolean | null
+          location: string | null
+          max_participants: number | null
+          next_session_at: string | null
+          price_cents: number
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          category?: string | null
+          commission_rate?: number
+          created_at?: string | null
+          description?: string | null
+          dog_level?: string | null
+          duration_minutes?: number | null
+          educator_user_id: string
+          id?: string
+          is_active?: boolean | null
+          location?: string | null
+          max_participants?: number | null
+          next_session_at?: string | null
+          price_cents?: number
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          category?: string | null
+          commission_rate?: number
+          created_at?: string | null
+          description?: string | null
+          dog_level?: string | null
+          duration_minutes?: number | null
+          educator_user_id?: string
+          id?: string
+          is_active?: boolean | null
+          location?: string | null
+          max_participants?: number | null
+          next_session_at?: string | null
+          price_cents?: number
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       day_progress: {
         Row: {
           completed_exercises: string[] | null
@@ -528,6 +629,42 @@ export type Database = {
         }
         Relationships: []
       }
+      exercise_categories: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_professional: boolean | null
+          name: string
+          slug: string
+          sort_order: number | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_professional?: boolean | null
+          name: string
+          slug: string
+          sort_order?: number | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_professional?: boolean | null
+          name?: string
+          slug?: string
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
       exercise_sessions: {
         Row: {
           completed: boolean | null
@@ -574,6 +711,170 @@ export type Database = {
             columns: ["dog_id"]
             isOneToOne: false
             referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exercises: {
+        Row: {
+          adaptations: Json | null
+          age_recommendation: string | null
+          category_id: string
+          cognitive_load: number | null
+          compatible_muzzle: boolean | null
+          compatible_puppy: boolean | null
+          compatible_reactivity: boolean | null
+          compatible_senior: boolean | null
+          contraindications: Json | null
+          cover_image: string | null
+          created_at: string | null
+          dedication: string | null
+          description: string | null
+          difficulty: number | null
+          duration: string | null
+          environment: string | null
+          equipment: string[] | null
+          exercise_type: string | null
+          frequency: string | null
+          health_precautions: Json | null
+          id: string
+          intensity_level: number | null
+          is_professional: boolean | null
+          level: string | null
+          mistakes: Json | null
+          name: string
+          objective: string | null
+          physical_load: number | null
+          precautions: Json | null
+          prerequisites: string[] | null
+          priority_axis: string[] | null
+          progression_next: string | null
+          regression_simplified: string | null
+          repetitions: string | null
+          secondary_benefits: string[] | null
+          short_instruction: string | null
+          short_title: string | null
+          slug: string
+          sort_order: number | null
+          steps: Json | null
+          stop_criteria: string | null
+          success_criteria: string | null
+          suitable_profiles: Json | null
+          summary: string | null
+          tags: string[] | null
+          target_breeds: string[] | null
+          target_problems: string[] | null
+          tutorial_steps: Json | null
+          vigilance: string | null
+        }
+        Insert: {
+          adaptations?: Json | null
+          age_recommendation?: string | null
+          category_id: string
+          cognitive_load?: number | null
+          compatible_muzzle?: boolean | null
+          compatible_puppy?: boolean | null
+          compatible_reactivity?: boolean | null
+          compatible_senior?: boolean | null
+          contraindications?: Json | null
+          cover_image?: string | null
+          created_at?: string | null
+          dedication?: string | null
+          description?: string | null
+          difficulty?: number | null
+          duration?: string | null
+          environment?: string | null
+          equipment?: string[] | null
+          exercise_type?: string | null
+          frequency?: string | null
+          health_precautions?: Json | null
+          id?: string
+          intensity_level?: number | null
+          is_professional?: boolean | null
+          level?: string | null
+          mistakes?: Json | null
+          name: string
+          objective?: string | null
+          physical_load?: number | null
+          precautions?: Json | null
+          prerequisites?: string[] | null
+          priority_axis?: string[] | null
+          progression_next?: string | null
+          regression_simplified?: string | null
+          repetitions?: string | null
+          secondary_benefits?: string[] | null
+          short_instruction?: string | null
+          short_title?: string | null
+          slug: string
+          sort_order?: number | null
+          steps?: Json | null
+          stop_criteria?: string | null
+          success_criteria?: string | null
+          suitable_profiles?: Json | null
+          summary?: string | null
+          tags?: string[] | null
+          target_breeds?: string[] | null
+          target_problems?: string[] | null
+          tutorial_steps?: Json | null
+          vigilance?: string | null
+        }
+        Update: {
+          adaptations?: Json | null
+          age_recommendation?: string | null
+          category_id?: string
+          cognitive_load?: number | null
+          compatible_muzzle?: boolean | null
+          compatible_puppy?: boolean | null
+          compatible_reactivity?: boolean | null
+          compatible_senior?: boolean | null
+          contraindications?: Json | null
+          cover_image?: string | null
+          created_at?: string | null
+          dedication?: string | null
+          description?: string | null
+          difficulty?: number | null
+          duration?: string | null
+          environment?: string | null
+          equipment?: string[] | null
+          exercise_type?: string | null
+          frequency?: string | null
+          health_precautions?: Json | null
+          id?: string
+          intensity_level?: number | null
+          is_professional?: boolean | null
+          level?: string | null
+          mistakes?: Json | null
+          name?: string
+          objective?: string | null
+          physical_load?: number | null
+          precautions?: Json | null
+          prerequisites?: string[] | null
+          priority_axis?: string[] | null
+          progression_next?: string | null
+          regression_simplified?: string | null
+          repetitions?: string | null
+          secondary_benefits?: string[] | null
+          short_instruction?: string | null
+          short_title?: string | null
+          slug?: string
+          sort_order?: number | null
+          steps?: Json | null
+          stop_criteria?: string | null
+          success_criteria?: string | null
+          suitable_profiles?: Json | null
+          summary?: string | null
+          tags?: string[] | null
+          target_breeds?: string[] | null
+          target_problems?: string[] | null
+          tutorial_steps?: Json | null
+          vigilance?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exercises_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "exercise_categories"
             referencedColumns: ["id"]
           },
         ]
@@ -877,7 +1178,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "owner" | "educator"
+      app_role: "owner" | "educator" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1005,7 +1306,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["owner", "educator"],
+      app_role: ["owner", "educator", "admin"],
     },
   },
 } as const
