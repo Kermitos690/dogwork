@@ -115,6 +115,7 @@ const App = () => {
               </Routes>
             </Suspense>
             <AIChatBot />
+            <GuidedTour />
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
