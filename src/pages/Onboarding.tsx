@@ -1370,7 +1370,7 @@ export default function Onboarding() {
                     {activityLevel && (
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Énergie</span>
-                        <span className="font-medium capitalize">{activityLevel === "faible" ? "Calme" : activityLevel === "modere" ? "Modéré" : "Énergique"}</span>
+                        <span className="font-medium capitalize">{activityLevel === "faible" ? "Calme" : activityLevel === "moyen" ? "Modéré" : "Énergique"}</span>
                       </div>
                     )}
                     {environment && (
