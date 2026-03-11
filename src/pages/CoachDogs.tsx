@@ -34,7 +34,7 @@ export default function CoachDogs() {
   ];
 
   return (
-    <AppLayout>
+    <CoachLayout>
       <div className="space-y-4 pb-24">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate("/coach")}>
