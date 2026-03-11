@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Play, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppLayout } from "@/components/AppLayout";
@@ -9,16 +9,60 @@ import { useActiveDog } from "@/hooks/useDogs";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { PlanDay } from "@/lib/planGenerator";
 
 export default function DayDetail() {
   const { dayId } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const activeDog = useActiveDog();
   const qc = useQueryClient();
   const id = Number(dayId);
-  const day = getDayById(id);
+  const source = searchParams.get("source");
   const [notes, setNotes] = useState("");
+
+  // Fetch the personalized plan day if source=plan
+  const { data: planDay } = useQuery({
+    queryKey: ["plan_day", activeDog?.id, id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("training_plans")
+        .select("days")
+        .eq("dog_id", activeDog!.id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!data?.days) return null;
+      const days = data.days as unknown as PlanDay[];
+      return days.find(d => d.dayNumber === id) || null;
+    },
+    enabled: !!activeDog && source === "plan",
+  });
+
+  // Use personalized plan day or standard program day
+  const standardDay = getDayById(id);
+  const isPersonalized = source === "plan" && planDay;
+
+  const dayTitle = isPersonalized ? planDay.title : standardDay?.title || "Jour inconnu";
+  const dayObjective = isPersonalized ? planDay.objective : standardDay?.objective || "";
+  const dayDuration = isPersonalized ? planDay.duration : standardDay?.duration || "";
+  const dayDifficulty = isPersonalized ? planDay.difficulty : standardDay?.difficulty || "";
+  const dayExercises = isPersonalized
+    ? planDay.exercises.map((e: any, i: number) => ({
+        id: e.id || `plan-ex-${i}`,
+        name: e.name,
+        instructions: e.instructions,
+        repetitionsTarget: e.repetitions,
+        timerSuggested: e.timerSeconds,
+        dayId: id,
+      }))
+    : standardDay?.exercises || [];
+  const dayVigilance = isPersonalized ? planDay.vigilance : standardDay?.vigilance || "";
+  const dayValidation = isPersonalized ? planDay.validationCriteria : standardDay?.validationCriteria || "";
+  const dayWeek = isPersonalized ? planDay.week : standardDay?.week || 1;
+  const dayFunctions = isPersonalized ? [] : standardDay?.functions || [];
 
   const { data: progress, refetch } = useQuery({
     queryKey: ["day_progress", activeDog?.id, id],
@@ -28,7 +72,7 @@ export default function DayDetail() {
         .select("*")
         .eq("dog_id", activeDog!.id)
         .eq("day_id", id)
-        .single();
+        .maybeSingle();
       return data;
     },
     enabled: !!activeDog,
@@ -38,8 +82,10 @@ export default function DayDetail() {
     if (progress?.notes) setNotes(progress.notes);
   }, [progress]);
 
-  if (!day) return <AppLayout><p className="pt-10 text-center">Jour non trouvé</p></AppLayout>;
-  if (!activeDog) return <AppLayout><p className="pt-10 text-center">Ajoutez d'abord un chien.</p></AppLayout>;
+  if (!standardDay && !planDay) {
+    return <AppLayout><p className="pt-10 text-center text-muted-foreground">Jour non trouvé</p></AppLayout>;
+  }
+  if (!activeDog) return <AppLayout><p className="pt-10 text-center text-muted-foreground">Ajoutez d'abord un chien.</p></AppLayout>;
 
   const completedExercises: string[] = progress?.completed_exercises || [];
   const status = progress?.status || "todo";
@@ -57,11 +103,8 @@ export default function DayDetail() {
       }).eq("id", progress.id);
     } else {
       await supabase.from("day_progress").insert({
-        dog_id: activeDog.id,
-        user_id: user!.id,
-        day_id: id,
-        completed_exercises: newCompleted,
-        status: newStatus,
+        dog_id: activeDog.id, user_id: user!.id, day_id: id,
+        completed_exercises: newCompleted, status: newStatus,
       });
     }
     refetch();
@@ -102,8 +145,10 @@ export default function DayDetail() {
   };
 
   const completedCount = completedExercises.length;
-  const totalExercises = day.exercises.length;
-  const exercisePct = Math.round((completedCount / totalExercises) * 100);
+  const totalExercises = dayExercises.length;
+  const exercisePct = totalExercises > 0 ? Math.round((completedCount / totalExercises) * 100) : 0;
+
+  const trainingUrl = source === "plan" ? `/training/${id}?source=plan` : `/training/${id}`;
 
   return (
     <AppLayout>
@@ -114,25 +159,25 @@ export default function DayDetail() {
 
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-xs text-muted-foreground">Jour {day.id} — Semaine {day.week}</p>
-            <h1 className="text-xl font-bold">{day.title}</h1>
+            <p className="text-xs text-muted-foreground">Jour {id} — Semaine {dayWeek}{isPersonalized ? " (personnalisé)" : ""}</p>
+            <h1 className="text-xl font-bold text-foreground">{dayTitle}</h1>
           </div>
           <StatusBadge status={status as "todo" | "in_progress" | "done"} />
         </div>
 
-        <p className="text-sm text-muted-foreground">{day.objective}</p>
+        <p className="text-sm text-muted-foreground">{dayObjective}</p>
 
         <div className="flex flex-wrap gap-2">
-          <span className="rounded-full bg-muted px-3 py-1 text-xs">⏱ {day.duration}</span>
-          <span className="rounded-full bg-muted px-3 py-1 text-xs">📊 {day.difficulty}</span>
-          {day.functions.map((f) => (
+          <span className="rounded-full bg-muted px-3 py-1 text-xs">⏱ {dayDuration}</span>
+          <span className="rounded-full bg-muted px-3 py-1 text-xs">📊 {dayDifficulty}</span>
+          {dayFunctions.map((f: string) => (
             <span key={f} className="rounded-full bg-primary/10 px-3 py-1 text-xs text-primary font-medium">{f}</span>
           ))}
         </div>
 
         <div className="rounded-xl border border-border bg-card p-4">
           <div className="flex items-center justify-between text-sm">
-            <span className="font-medium">Exercices</span>
+            <span className="font-medium text-foreground">Exercices</span>
             <span className="text-muted-foreground">{completedCount}/{totalExercises} ({exercisePct}%)</span>
           </div>
           <div className="mt-2 h-2 rounded-full bg-muted">
@@ -141,7 +186,7 @@ export default function DayDetail() {
         </div>
 
         <div className="space-y-2">
-          {day.exercises.map((ex, i) => {
+          {dayExercises.map((ex: any) => {
             const done = completedExercises.includes(ex.id);
             return (
               <button
@@ -152,16 +197,16 @@ export default function DayDetail() {
                 }`}
               >
                 <div className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 transition-all ${
-                  done ? "bg-success border-success animate-bounce-check" : "border-muted-foreground/30"
+                  done ? "bg-success border-success" : "border-muted-foreground/30"
                 }`}>
                   {done && <CheckCircle2 className="h-4 w-4 text-success-foreground" />}
                 </div>
                 <div className="flex-1">
-                  <p className={`text-sm font-medium ${done ? "line-through text-muted-foreground" : ""}`}>{ex.name}</p>
+                  <p className={`text-sm font-medium ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>{ex.name}</p>
                   <p className="mt-0.5 text-xs text-muted-foreground">{ex.instructions}</p>
                   <div className="mt-1 flex gap-2 text-xs text-muted-foreground">
-                    <span>×{ex.repetitionsTarget} rép.</span>
-                    {ex.timerSuggested && <span>⏱ {ex.timerSuggested}s</span>}
+                    <span>×{ex.repetitionsTarget || ex.repetitions} rép.</span>
+                    {(ex.timerSuggested || ex.timerSeconds) && <span>⏱ {ex.timerSuggested || ex.timerSeconds}s</span>}
                   </div>
                 </div>
               </button>
@@ -169,32 +214,36 @@ export default function DayDetail() {
           })}
         </div>
 
-        <div className="rounded-xl border border-zone-orange/30 bg-warning/5 p-4">
-          <p className="text-sm font-medium text-warning">⚠️ Point de vigilance</p>
-          <p className="mt-1 text-sm text-foreground">{day.vigilance}</p>
-        </div>
+        {dayVigilance && (
+          <div className="rounded-xl border border-warning/30 bg-warning/5 p-4">
+            <p className="text-sm font-medium text-warning">⚠️ Point de vigilance</p>
+            <p className="mt-1 text-sm text-foreground">{dayVigilance}</p>
+          </div>
+        )}
 
-        <div className="rounded-xl border border-success/30 bg-success/5 p-4">
-          <p className="text-sm font-medium text-success">✅ Critère de validation</p>
-          <p className="mt-1 text-sm text-foreground">{day.validationCriteria}</p>
-        </div>
+        {dayValidation && (
+          <div className="rounded-xl border border-success/30 bg-success/5 p-4">
+            <p className="text-sm font-medium text-success">✅ Critère de validation</p>
+            <p className="mt-1 text-sm text-foreground">{dayValidation}</p>
+          </div>
+        )}
 
         <div className="space-y-2">
-          <label className="text-sm font-medium">Notes du jour</label>
+          <label className="text-sm font-medium text-foreground">Notes du jour</label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Vos observations, réussites, difficultés..."
-            className="w-full rounded-xl border border-border bg-card p-3 text-sm min-h-[80px] resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full rounded-xl border border-border bg-card p-3 text-sm min-h-[80px] resize-none focus:outline-none focus:ring-2 focus:ring-ring text-foreground"
           />
           <Button variant="outline" size="sm" onClick={saveNotes}>Enregistrer mes notes</Button>
         </div>
 
         <div className="flex flex-col gap-2 pb-4">
-          <Button className="w-full h-12" onClick={() => navigate(`/training/${day.id}`)}>
+          <Button className="w-full h-12" onClick={() => navigate(trainingUrl)}>
             <Play className="h-5 w-5" /> Mode entraînement
           </Button>
-          <Button variant="outline" className="w-full" onClick={() => navigate(`/behavior/${day.id}`)}>
+          <Button variant="outline" className="w-full" onClick={() => navigate(`/behavior/${id}`)}>
             Suivi comportemental
           </Button>
           {!progress?.validated && status !== "in_progress" && (

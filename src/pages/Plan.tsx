@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useActiveDog } from "@/hooks/useDogs";
 import { useAuth } from "@/hooks/useAuth";
@@ -7,11 +7,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Target, ClipboardCheck, AlertTriangle, BookOpen, Zap, Shield, ChevronRight } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Target, ClipboardCheck, AlertTriangle, BookOpen, Zap, Shield, ChevronRight, Loader2 } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PROGRAM } from "@/data/program";
 import { generatePersonalizedPlan, type PersonalizedPlan } from "@/lib/planGenerator";
+import { toast } from "@/hooks/use-toast";
 
 const statusColors: Record<string, string> = {
   done: "bg-success text-success-foreground",
@@ -34,7 +35,36 @@ export default function PlanPage() {
   const activeDog = useActiveDog();
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState("personalized");
-  const [generatedPlan, setGeneratedPlan] = useState<PersonalizedPlan | null>(null);
+  const [generating, setGenerating] = useState(false);
+
+  // Fetch saved plan from DB
+  const { data: savedPlan, refetch: refetchPlan } = useQuery({
+    queryKey: ["training_plan", activeDog?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("training_plans")
+        .select("*")
+        .eq("dog_id", activeDog!.id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!data) return null;
+      return {
+        id: data.id,
+        dogName: data.title,
+        summary: data.summary,
+        axes: data.axes as any[],
+        precautions: data.precautions as any[],
+        frequency: data.frequency,
+        averageDuration: data.average_duration,
+        totalDays: data.total_days,
+        securityLevel: data.security_level as "standard" | "élevé" | "critique",
+        days: data.days as any[],
+      } as PersonalizedPlan;
+    },
+    enabled: !!activeDog,
+  });
 
   const { data: progress } = useQuery({
     queryKey: ["day_progress_all", activeDog?.id],
@@ -68,7 +98,7 @@ export default function PlanPage() {
   const { data: evaluation } = useQuery({
     queryKey: ["dog_evaluation_plan", activeDog?.id],
     queryFn: async () => {
-      const { data } = await supabase.from("dog_evaluations").select("*").eq("dog_id", activeDog!.id).order("created_at", { ascending: false }).limit(1).single();
+      const { data } = await supabase.from("dog_evaluations").select("*").eq("dog_id", activeDog!.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
       return data;
     },
     enabled: !!activeDog,
@@ -76,15 +106,43 @@ export default function PlanPage() {
 
   const canGenerate = activeDog && problems && problems.length > 0;
 
-  const handleGenerate = () => {
-    if (!activeDog || !problems) return;
-    const plan = generatePersonalizedPlan({
-      dog: activeDog,
-      problems: problems.map(p => ({ problem_key: p.problem_key, intensity: p.intensity, frequency: p.frequency })),
-      objectives: (objectives || []).map(o => ({ objective_key: o.objective_key, is_priority: o.is_priority || false })),
-      evaluation: evaluation || null,
-    });
-    setGeneratedPlan(plan);
+  const handleGenerate = async () => {
+    if (!activeDog || !problems || !user) return;
+    setGenerating(true);
+    try {
+      const plan = generatePersonalizedPlan({
+        dog: activeDog,
+        problems: problems.map(p => ({ problem_key: p.problem_key, intensity: p.intensity, frequency: p.frequency })),
+        objectives: (objectives || []).map(o => ({ objective_key: o.objective_key, is_priority: o.is_priority || false })),
+        evaluation: evaluation || null,
+      });
+
+      // Deactivate old plans
+      await supabase.from("training_plans").update({ is_active: false }).eq("dog_id", activeDog.id).eq("user_id", user.id);
+
+      // Save new plan
+      await supabase.from("training_plans").insert({
+        dog_id: activeDog.id,
+        user_id: user.id,
+        plan_type: "personalized",
+        title: plan.dogName,
+        summary: plan.summary,
+        axes: plan.axes as any,
+        precautions: plan.precautions as any,
+        frequency: plan.frequency,
+        average_duration: plan.averageDuration,
+        total_days: plan.totalDays,
+        security_level: plan.securityLevel,
+        days: plan.days as any,
+      });
+
+      refetchPlan();
+      toast({ title: "✓ Plan généré", description: `Plan personnalisé pour ${activeDog.name} enregistré.` });
+    } catch (err: any) {
+      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    } finally {
+      setGenerating(false);
+    }
   };
 
   if (!activeDog) {
@@ -98,12 +156,14 @@ export default function PlanPage() {
     );
   }
 
+  const generatedPlan = savedPlan;
+
   return (
     <AppLayout>
       <div className="pt-6 pb-4 space-y-4 animate-fade-in">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Plan personnalisé</h1>
-          <p className="text-sm text-muted-foreground">Neutralité, contrôle, progression.</p>
+          <h1 className="text-2xl font-bold text-foreground">Plan d'entraînement</h1>
+          <p className="text-sm text-muted-foreground">{activeDog.name} — Neutralité, contrôle, progression.</p>
         </div>
 
         {/* Quick links */}
@@ -145,8 +205,9 @@ export default function PlanPage() {
                         </p>
                       </div>
                     )}
-                    <Button onClick={handleGenerate} disabled={!canGenerate} className="w-full h-12 text-base">
-                      <Zap className="h-5 w-5" /> Générer mon plan
+                    <Button onClick={handleGenerate} disabled={!canGenerate || generating} className="w-full h-12 text-base">
+                      {generating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Zap className="h-5 w-5" />}
+                      {generating ? "Génération..." : "Générer mon plan"}
                     </Button>
                   </CardContent>
                 </Card>
@@ -183,7 +244,7 @@ export default function PlanPage() {
                 {/* Axes */}
                 <div className="space-y-2">
                   <p className="text-xs font-semibold text-muted-foreground uppercase">Axes prioritaires</p>
-                  {generatedPlan.axes.map((axis, i) => (
+                  {generatedPlan.axes.map((axis: any, i: number) => (
                     <Card key={axis.key}>
                       <CardContent className="p-3 flex items-start gap-3">
                         <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
@@ -199,15 +260,15 @@ export default function PlanPage() {
                 </div>
 
                 {/* Precautions */}
-                {generatedPlan.precautions.filter(p => p.type === "safety" || p.type === "health").length > 0 && (
+                {generatedPlan.precautions.filter((p: any) => p.type === "safety" || p.type === "health").length > 0 && (
                   <Card className="border-warning/30 bg-warning/5">
                     <CardContent className="p-4 space-y-2">
                       <p className="text-sm font-semibold text-warning flex items-center gap-1">
                         <Shield className="h-4 w-4" /> Précautions
                       </p>
                       {generatedPlan.precautions
-                        .filter(p => p.type === "safety" || p.type === "health")
-                        .map((p, i) => (
+                        .filter((p: any) => p.type === "safety" || p.type === "health")
+                        .map((p: any, i: number) => (
                           <p key={i} className="text-xs text-muted-foreground">• {p.text}</p>
                         ))}
                     </CardContent>
@@ -220,24 +281,31 @@ export default function PlanPage() {
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
                       Semaine {week}
                     </h3>
-                    {generatedPlan.days.filter(d => d.week === week).map((day) => (
-                      <Card key={day.dayNumber} className="card-press" onClick={() => navigate(`/day/${day.dayNumber}`)}>
-                        <CardContent className="p-3 flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
-                            {day.dayNumber}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">{day.title}</p>
-                            <p className="text-xs text-muted-foreground">{day.duration} · {day.difficulty}</p>
-                          </div>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                        </CardContent>
-                      </Card>
-                    ))}
+                    {generatedPlan.days.filter((d: any) => d.week === week).map((day: any) => {
+                      const p = progress?.[day.dayNumber];
+                      const status = p?.status || "todo";
+                      return (
+                        <Card key={day.dayNumber} className="card-press" onClick={() => navigate(`/day/${day.dayNumber}?source=plan`)}>
+                          <CardContent className="p-3 flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${statusColors[status]}`}>
+                              {day.dayNumber}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate">{day.title}</p>
+                              <p className="text-xs text-muted-foreground">{day.duration} · {day.difficulty}</p>
+                            </div>
+                            <Badge variant="secondary" className="text-xs shrink-0">
+                              {statusLabels[status]}
+                            </Badge>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 ))}
 
-                <Button variant="outline" onClick={() => setGeneratedPlan(null)} className="w-full">
+                <Button variant="outline" onClick={handleGenerate} disabled={generating} className="w-full">
+                  {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   Régénérer le plan
                 </Button>
               </div>

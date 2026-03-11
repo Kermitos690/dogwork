@@ -94,6 +94,7 @@ type LogData = {
   leash_walk_quality: string;
   tension_level: number;
   dog_reaction_level: number;
+  human_reaction_level: number;
   comfort_distance_meters: number;
   recovery_after_trigger: string;
   comments: string;
@@ -103,6 +104,7 @@ const defaultLog: LogData = {
   jump_on_human: false, barking: false,
   stop_response: "moyen", no_response: "moyen", focus_quality: "moyen",
   leash_walk_quality: "moyenne", tension_level: 3, dog_reaction_level: 3,
+  human_reaction_level: 3,
   comfort_distance_meters: 20, recovery_after_trigger: "moyenne", comments: "",
 };
 
@@ -130,6 +132,7 @@ export default function BehaviorLogPage() {
             leash_walk_quality: data.leash_walk_quality || "moyenne",
             tension_level: data.tension_level || 3,
             dog_reaction_level: data.dog_reaction_level || 3,
+            human_reaction_level: (data as any).human_reaction_level || 3,
             comfort_distance_meters: data.comfort_distance_meters || 20,
             recovery_after_trigger: data.recovery_after_trigger || "moyenne",
             comments: data.comments || "",
@@ -146,12 +149,16 @@ export default function BehaviorLogPage() {
 
   const save = async () => {
     if (!activeDog || !user) return;
+    const payload = {
+      ...log,
+      dog_id: activeDog.id,
+      user_id: user.id,
+      day_id: id,
+    };
     if (existingId) {
-      await supabase.from("behavior_logs").update(log).eq("id", existingId);
+      await supabase.from("behavior_logs").update(payload).eq("id", existingId);
     } else {
-      const { data } = await supabase.from("behavior_logs").insert({
-        ...log, dog_id: activeDog.id, user_id: user.id, day_id: id,
-      }).select().single();
+      const { data } = await supabase.from("behavior_logs").insert(payload).select().single();
       if (data) setExistingId(data.id);
     }
     setSaved(true);
@@ -200,7 +207,8 @@ export default function BehaviorLogPage() {
           <div className="rounded-xl border border-border bg-card p-4 space-y-4">
             <p className="text-xs font-semibold text-muted-foreground uppercase">Niveaux</p>
             <SliderInput label="Niveau de tension" value={log.tension_level} min={1} max={5} onChange={(v) => update("tension_level", v)} />
-            <SliderInput label="Réaction aux chiens" value={log.dog_reaction_level} min={1} max={5} onChange={(v) => update("dog_reaction_level", v)} />
+            <SliderInput label="Réactivité chiens" value={log.dog_reaction_level} min={1} max={5} onChange={(v) => update("dog_reaction_level", v)} />
+            <SliderInput label="Réactivité humains" value={log.human_reaction_level} min={1} max={5} onChange={(v) => update("human_reaction_level", v)} />
           </div>
 
           {/* Distance */}

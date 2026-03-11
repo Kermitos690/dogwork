@@ -5,7 +5,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Dog, Play, BookOpen, BarChart3, ClipboardList, AlertTriangle, Plus } from "lucide-react";
+import { Dog, Play, BookOpen, BarChart3, ClipboardList, AlertTriangle, Plus, Shield } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getDayById } from "@/data/program";
@@ -37,7 +37,23 @@ export default function Dashboard() {
         .eq("dog_id", activeDog!.id)
         .order("created_at", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!activeDog,
+  });
+
+  const { data: activePlan } = useQuery({
+    queryKey: ["active_plan_dashboard", activeDog?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("training_plans")
+        .select("id, summary, security_level")
+        .eq("dog_id", activeDog!.id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
       return data;
     },
     enabled: !!activeDog,
@@ -100,6 +116,19 @@ export default function Dashboard() {
           </Card>
         )}
 
+        {/* Active plan summary */}
+        {activePlan && (
+          <Card className="card-press" onClick={() => navigate("/plan")}>
+            <CardContent className="p-4 flex items-start gap-3">
+              <Shield className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground">Plan personnalisé actif</p>
+                <p className="text-xs text-muted-foreground line-clamp-2">{activePlan.summary}</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Current day + progression */}
         <div className="grid grid-cols-2 gap-3">
           <Card className="card-press" onClick={() => todayData && navigate(`/day/${currentDay}`)}>
@@ -121,7 +150,7 @@ export default function Dashboard() {
         {/* CTA */}
         <Button
           onClick={() => todayData && navigate(`/training/${Math.min(currentDay, 28)}`)}
-          className="w-full h-14 text-base font-semibold gap-2 animate-pulse-glow"
+          className="w-full h-14 text-base font-semibold gap-2"
         >
           <Play className="h-5 w-5" /> Reprendre aujourd'hui
         </Button>
@@ -154,6 +183,9 @@ export default function Dashboard() {
               </div>
               <div className="flex justify-between text-sm text-muted-foreground">
                 <span>Réactivité chiens</span><span className="font-medium text-foreground">{lastLog.dog_reaction_level}/5</span>
+              </div>
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Réactivité humains</span><span className="font-medium text-foreground">{(lastLog as any).human_reaction_level || "–"}/5</span>
               </div>
             </CardContent>
           </Card>
