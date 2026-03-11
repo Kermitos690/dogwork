@@ -72,7 +72,7 @@ export default function Stats() {
         {/* Overview */}
         <div className="grid grid-cols-2 gap-3">
           <StatCard label="Jours validés" value={stats.completedDays} unit="/28" />
-          <StatCard label="Progression" value={stats.completionRate} unit="%" color="text-primary" />
+          <StatCard label="Score de progression" value={stats.completionRate} unit="%" color="text-primary" />
         </div>
 
         {/* Weekly */}
