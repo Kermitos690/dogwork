@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Target, ClipboardCheck, AlertTriangle, BookOpen } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { getAllDays } from "@/data/program";
+import { PROGRAM } from "@/data/program";
 
 const statusColors: Record<string, string> = {
   done: "bg-success text-success-foreground",

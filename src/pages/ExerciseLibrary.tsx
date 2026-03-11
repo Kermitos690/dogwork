@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { getAllDays } from "@/data/program";
+import { PROGRAM } from "@/data/program";
 import { useState, useMemo } from "react";
 
 export default function ExerciseLibrary() {
