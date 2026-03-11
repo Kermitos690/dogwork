@@ -319,7 +319,7 @@ export default function CoachCourses() {
         </Card>
         <Card>
           <CardContent className="p-3 text-center">
-            <p className="text-2xl font-bold text-green-500">{(netRevenue / 100).toFixed(0)} €</p>
+            <p className="text-2xl font-bold text-green-500">{(netRevenue / 100).toFixed(0)} CHF</p>
             <p className="text-xs text-muted-foreground">Revenus nets</p>
           </CardContent>
         </Card>
