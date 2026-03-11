@@ -201,10 +201,16 @@ export default function PlanPage() {
                         <p className="text-xs text-warning">Renseignez au moins une problématique pour générer le plan.</p>
                       </div>
                     )}
-                    <Button onClick={handleGenerate} disabled={!canGenerate || generating} className="w-full h-12 rounded-xl text-base">
-                      {generating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Zap className="h-5 w-5" />}
-                      {generating ? "Génération..." : "Générer mon plan"}
-                    </Button>
+                    {!hasAiPlan ? (
+                      <Button onClick={() => navigate("/subscription")} className="w-full h-12 rounded-xl text-base bg-accent hover:bg-accent/90">
+                        <Lock className="h-5 w-5" /> Débloquer avec le plan Pro
+                      </Button>
+                    ) : (
+                      <Button onClick={handleGenerate} disabled={!canGenerate || generating} className="w-full h-12 rounded-xl text-base">
+                        {generating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Zap className="h-5 w-5" />}
+                        {generating ? "Génération..." : "Générer mon plan"}
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
 
