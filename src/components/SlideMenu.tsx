@@ -186,8 +186,8 @@ export function SlideMenu() {
                 {user?.user_metadata?.display_name || user?.email?.split("@")[0]}
               </p>
               <div className="flex gap-1 mt-0.5">
-                {isAdmin && <Badge variant="destructive" className="text-[9px] px-1.5 py-0">Admin</Badge>}
-                {isEducator && <Badge className="text-[9px] px-1.5 py-0 bg-accent">Éducateur</Badge>}
+                {isAdmin && <Badge className="text-[9px] px-1.5 py-0 bg-amber-600 text-white border-0">Admin</Badge>}
+                {isEducator && <Badge className="text-[9px] px-1.5 py-0 bg-emerald-600 text-white border-0">Éducateur</Badge>}
                 {!isAdmin && !isEducator && <Badge variant="secondary" className="text-[9px] px-1.5 py-0">Utilisateur</Badge>}
               </div>
             </div>
