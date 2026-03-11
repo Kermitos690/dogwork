@@ -332,6 +332,37 @@ export default function Dashboard() {
           </motion.div>
         )}
 
+        {/* ── Next exercise card ── */}
+        {nextExercise && hasPlan && dashState !== "all_done" && (
+          <motion.div custom={1.8} variants={fadeUp}>
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => navigate(`/training/${resumeDay}?source=plan`)}
+              className="w-full flex items-center gap-3 rounded-2xl bg-primary/5 border border-primary/15 px-4 py-3.5 text-left"
+            >
+              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shrink-0 shadow-md">
+                <Timer className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] text-primary font-bold uppercase tracking-wider">Prochain exercice</p>
+                <p className="text-sm font-bold text-foreground mt-0.5 line-clamp-1">{nextExercise.name}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  {nextExercise.timerSuggested && (
+                    <span className="text-[10px] text-muted-foreground">{Math.floor(nextExercise.timerSuggested / 60)} min</span>
+                  )}
+                  {nextExercise.repetitionsTarget && (
+                    <span className="text-[10px] text-muted-foreground">× {nextExercise.repetitionsTarget} rép.</span>
+                  )}
+                </div>
+              </div>
+              <div className="flex flex-col items-center gap-0.5 shrink-0">
+                <ArrowRight className="h-4 w-4 text-primary" />
+                <span className="text-[9px] text-primary font-semibold">Go</span>
+              </div>
+            </motion.button>
+          </motion.div>
+        )}
+
         {/* ── Progress strip ── */}
         <motion.div custom={2} variants={fadeUp} className="grid grid-cols-3 gap-2">
           {[
