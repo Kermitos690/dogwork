@@ -433,15 +433,15 @@ export default function CoachCourses() {
                   <div className="bg-muted/50 rounded-lg p-2.5 text-xs space-y-1">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">CA brut</span>
-                      <span className="font-medium">{(revenue / 100).toFixed(2)} €</span>
+                      <span className="font-medium">{(revenue / 100).toFixed(2)} CHF</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Commission (30%)</span>
-                      <span className="font-medium text-orange-500">-{(commission / 100).toFixed(2)} €</span>
+                      <span className="font-medium text-orange-500">-{(commission / 100).toFixed(2)} CHF</span>
                     </div>
                     <div className="flex justify-between border-t border-border pt-1">
                       <span className="text-muted-foreground">Net</span>
-                      <span className="font-bold text-green-500">{((revenue - commission) / 100).toFixed(2)} €</span>
+                      <span className="font-bold text-green-500">{((revenue - commission) / 100).toFixed(2)} CHF</span>
                     </div>
                   </div>
                 )}
