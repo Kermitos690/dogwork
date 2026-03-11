@@ -4,6 +4,7 @@ import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { SubscriptionProvider } from "@/hooks/useSubscription";
 import { useDogs } from "./hooks/useDogs";
 import { AIChatBot } from "@/components/AIChatBot";
 import { GuidedTour } from "@/components/GuidedTour";
