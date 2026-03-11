@@ -4,30 +4,28 @@ import { useActiveDog, useDogs } from "@/hooks/useDogs";
 import { useAdaptiveSuggestion } from "@/hooks/useAdaptive";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Dog, Play, BookOpen, BarChart3, ClipboardList, AlertTriangle, Plus, Shield,
   TrendingUp, TrendingDown, ChevronRight, Sparkles, Heart, Calendar, Activity,
-  PawPrint, Eye, Zap, Settings
+  PawPrint, Eye, Zap, Settings, FileText, Target, ArrowRight
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getDayById } from "@/data/program";
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 16 },
-  show: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.06, duration: 0.35 } }),
+  hidden: { opacity: 0, y: 14 },
+  show: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.05, duration: 0.3 } }),
 };
 
-function DogAge(birthDate: string | null) {
+function dogAge(birthDate: string | null) {
   if (!birthDate) return null;
   const diff = Date.now() - new Date(birthDate).getTime();
-  const years = Math.floor(diff / (365.25 * 24 * 60 * 60 * 1000));
-  const months = Math.floor((diff % (365.25 * 24 * 60 * 60 * 1000)) / (30.44 * 24 * 60 * 60 * 1000));
-  if (years > 0) return `${years} an${years > 1 ? "s" : ""}`;
-  return `${months} mois`;
+  const y = Math.floor(diff / (365.25 * 86400000));
+  const m = Math.floor((diff % (365.25 * 86400000)) / (30.44 * 86400000));
+  return y > 0 ? `${y} an${y > 1 ? "s" : ""}` : `${m} mois`;
 }
 
 export default function Dashboard() {
@@ -91,23 +89,40 @@ export default function Dashboard() {
     enabled: !!activeDog,
   });
 
-  // No dogs state
+  const { data: lastSession } = useQuery({
+    queryKey: ["last_session", activeDog?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("exercise_sessions").select("*").eq("dog_id", activeDog!.id)
+        .eq("completed", false).order("started_at", { ascending: false }).limit(1).maybeSingle();
+      return data;
+    },
+    enabled: !!activeDog,
+  });
+
+  // ── No dogs: elegant empty state ──
   if (!dogs || dogs.length === 0) {
     return (
       <AppLayout>
-        <div className="pt-16 space-y-8 text-center">
-          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring" }}>
-            <div className="mx-auto w-24 h-24 rounded-3xl bg-primary/10 flex items-center justify-center">
-              <Dog className="h-12 w-12 text-primary" />
+        <div className="pt-20 pb-8 flex flex-col items-center text-center gap-6">
+          <motion.div initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", damping: 20 }}>
+            <div className="w-20 h-20 rounded-[1.25rem] bg-primary/10 flex items-center justify-center">
+              <Dog className="h-10 w-10 text-primary" />
             </div>
           </motion.div>
-          <div className="space-y-2">
-            <h1 className="text-2xl font-bold text-foreground">Bienvenue sur PawPlan</h1>
-            <p className="text-muted-foreground text-sm max-w-xs mx-auto">Votre compagnon d'éducation canine personnalisée</p>
+          <div className="space-y-1.5">
+            <h1 className="text-xl font-bold text-foreground">Bienvenue sur PawPlan</h1>
+            <p className="text-sm text-muted-foreground max-w-[260px] mx-auto leading-relaxed">
+              Ajoutez votre chien pour démarrer un programme d'éducation adapté.
+            </p>
           </div>
-          <Button onClick={() => navigate("/onboarding")} size="lg" className="gap-2 h-14 rounded-2xl text-base">
-            <Plus className="h-5 w-5" /> Ajouter mon chien
-          </Button>
+          <motion.button
+            whileTap={{ scale: 0.96 }}
+            onClick={() => navigate("/onboarding")}
+            className="flex items-center gap-2.5 h-12 px-6 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm shadow-lg"
+          >
+            <Plus className="h-4.5 w-4.5" /> Ajouter mon chien
+          </motion.button>
         </div>
       </AppLayout>
     );
@@ -123,284 +138,281 @@ export default function Dashboard() {
   const planAxes = activePlan?.axes as any[] | null;
   const resumeDay = inProgress ? inProgress.day_id : Math.min(currentDay, totalDays);
   const hasPlan = !!activePlan;
+  const hasIncompleteSession = !!lastSession;
 
-  // Badges
-  const dogBadges: { label: string; color: string }[] = [];
-  if (activeDog?.bite_history) dogBadges.push({ label: "Profil sensible", color: "bg-destructive/10 text-destructive" });
-  if (activeDog?.muzzle_required) dogBadges.push({ label: "Muselière", color: "bg-warning/10 text-warning" });
-  if (activePlan?.security_level && activePlan.security_level !== "standard") dogBadges.push({ label: "Plan prudent", color: "bg-warning/10 text-warning" });
-  if (activeDog?.birth_date) {
-    const age = (Date.now() - new Date(activeDog.birth_date).getTime()) / (365.25 * 24 * 60 * 60 * 1000);
-    if (age > 8) dogBadges.push({ label: "Senior", color: "bg-muted text-muted-foreground" });
-  }
+  // Determine primary state for adaptive dashboard
+  type DashState = "no_plan" | "no_progress" | "in_progress" | "day_done" | "all_done";
+  const dashState: DashState = !hasPlan ? "no_plan"
+    : validated >= totalDays ? "all_done"
+    : inProgress ? "in_progress"
+    : validated === 0 ? "no_progress"
+    : "day_done";
+
+  // Badges (compact)
+  const dogBadges: { label: string; cls: string }[] = [];
+  if (activeDog?.bite_history) dogBadges.push({ label: "Sensible", cls: "bg-destructive/10 text-destructive" });
+  if (activeDog?.muzzle_required) dogBadges.push({ label: "Muselière", cls: "bg-warning/10 text-warning" });
+  if (activePlan?.security_level && activePlan.security_level !== "standard") dogBadges.push({ label: "Prudent", cls: "bg-warning/10 text-warning" });
+
+  // Smart quick actions based on state
+  const quickActions = [
+    hasPlan && { icon: Play, label: "Entraînement", path: `/training/${resumeDay}?source=plan`, priority: dashState === "in_progress" ? 10 : 5 },
+    { icon: BookOpen, label: "Mon plan", path: "/plan", priority: dashState === "no_plan" ? 10 : 3 },
+    { icon: ClipboardList, label: "Journal", path: "/journal", priority: 2 },
+    { icon: BarChart3, label: "Stats", path: "/stats", priority: 1 },
+    { icon: PawPrint, label: "Profil", path: activeDog ? `/dogs/${activeDog.id}` : "/dogs", priority: 0 },
+    { icon: Activity, label: "Exercices", path: "/exercises", priority: 0 },
+  ].filter(Boolean).sort((a: any, b: any) => b.priority - a.priority) as { icon: any; label: string; path: string; priority: number }[];
 
   return (
     <AppLayout>
-      <motion.div
-        initial="hidden"
-        animate="show"
-        className="pt-6 pb-4 space-y-4"
-      >
-        {/* BLOC 1 — Dog Card */}
+      <motion.div initial="hidden" animate="show" className="pt-5 pb-4 space-y-3.5">
+
+        {/* ── Header: greeting + dog pill ── */}
         <motion.div custom={0} variants={fadeUp} className="flex items-center justify-between">
-          <div>
-            <p className="text-xs text-muted-foreground font-medium">Bonjour 👋</p>
-            <h1 className="text-2xl font-bold text-foreground">Aujourd'hui</h1>
-          </div>
-          <button
+          <h1 className="text-xl font-bold text-foreground">Aujourd'hui</h1>
+          <motion.button
+            whileTap={{ scale: 0.95 }}
             onClick={() => navigate(`/dogs/${activeDog?.id}`)}
-            className="flex items-center gap-2.5 px-3 py-2 rounded-2xl bg-card border border-border active:scale-95 transition-all shadow-sm"
+            className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-full bg-card border border-border shadow-sm"
           >
             {activeDog?.photo_url ? (
-              <img src={activeDog.photo_url} alt={activeDog.name} className="w-9 h-9 rounded-xl object-cover" />
+              <img src={activeDog.photo_url} alt="" className="w-7 h-7 rounded-full object-cover" />
             ) : (
-              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Dog className="h-4.5 w-4.5 text-primary" />
+              <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
+                <Dog className="h-3.5 w-3.5 text-primary" />
               </div>
             )}
-            <div className="text-left">
-              <span className="text-sm font-semibold text-foreground block leading-tight">{activeDog?.name}</span>
-              {activeDog?.breed && (
-                <span className="text-[10px] text-muted-foreground leading-tight">{activeDog.breed}</span>
-              )}
-            </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground ml-1" />
-          </button>
-        </motion.div>
-
-        {/* Dog badges */}
-        {dogBadges.length > 0 && (
-          <motion.div custom={0.5} variants={fadeUp} className="flex flex-wrap gap-1.5">
-            {dogBadges.map((b, i) => (
-              <span key={i} className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${b.color}`}>
-                {b.label}
-              </span>
-            ))}
-            {activeDog?.birth_date && (
-              <span className="text-[10px] font-medium px-2.5 py-1 rounded-full bg-muted text-muted-foreground">
-                {DogAge(activeDog.birth_date)}
+            <span className="text-xs font-semibold text-foreground">{activeDog?.name}</span>
+            {dogBadges.length > 0 && (
+              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${dogBadges[0].cls}`}>
+                {dogBadges[0].label}
               </span>
             )}
-          </motion.div>
-        )}
+          </motion.button>
+        </motion.div>
 
-        {/* BLOC 4 — Security Alerts */}
+        {/* ── Security alert (compact) ── */}
         {hasAlerts && (
-          <motion.div custom={1} variants={fadeUp}>
-            <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-4 flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-              <div className="text-sm space-y-0.5">
-                <p className="font-semibold text-destructive">Vigilance renforcée</p>
-                {activeDog!.muzzle_required && <p className="text-xs text-muted-foreground">Muselière obligatoire en extérieur</p>}
-                {activeDog!.bite_history && <p className="text-xs text-muted-foreground">Antécédent de morsure — Aucun contact direct</p>}
-              </div>
+          <motion.div custom={0.5} variants={fadeUp}>
+            <div className="rounded-xl border border-destructive/15 bg-destructive/5 px-3.5 py-2.5 flex items-center gap-2.5">
+              <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+              <p className="text-xs text-foreground font-medium leading-snug">
+                {activeDog!.muzzle_required ? "Muselière obligatoire" : "Profil sensible"} — Privilégiez les environnements calmes.
+              </p>
             </div>
           </motion.div>
         )}
 
-        {/* Adaptive suggestion */}
-        {adaptiveSuggestion && (
-          <motion.div custom={1.5} variants={fadeUp}>
-            <div className={`rounded-2xl border p-3.5 flex items-start gap-3 ${
-              adaptiveSuggestion.type === "warning" ? "border-warning/20 bg-warning/5" :
-              adaptiveSuggestion.type === "success" ? "border-success/20 bg-success/5" :
-              "border-border bg-card"
+        {/* ── Adaptive suggestion (inline) ── */}
+        {adaptiveSuggestion && !hasAlerts && (
+          <motion.div custom={0.5} variants={fadeUp}>
+            <div className={`rounded-xl px-3.5 py-2.5 flex items-center gap-2.5 ${
+              adaptiveSuggestion.type === "warning" ? "bg-warning/5 border border-warning/15" :
+              adaptiveSuggestion.type === "success" ? "bg-success/5 border border-success/15" :
+              "bg-muted/50 border border-border"
             }`}>
-              {adaptiveSuggestion.type === "warning" ? <TrendingDown className="h-4.5 w-4.5 text-warning shrink-0 mt-0.5" /> :
-               adaptiveSuggestion.type === "success" ? <TrendingUp className="h-4.5 w-4.5 text-success shrink-0 mt-0.5" /> :
-               <Sparkles className="h-4.5 w-4.5 text-muted-foreground shrink-0 mt-0.5" />}
-              <p className="text-xs text-foreground leading-relaxed font-medium">{adaptiveSuggestion.message}</p>
+              {adaptiveSuggestion.type === "warning" ? <TrendingDown className="h-4 w-4 text-warning shrink-0" /> :
+               adaptiveSuggestion.type === "success" ? <TrendingUp className="h-4 w-4 text-success shrink-0" /> :
+               <Sparkles className="h-4 w-4 text-muted-foreground shrink-0" />}
+              <p className="text-xs text-foreground leading-snug">{adaptiveSuggestion.message}</p>
             </div>
           </motion.div>
         )}
 
-        {/* BLOC 2 — Big Today Card */}
-        <motion.div custom={2} variants={fadeUp}>
-          {!hasPlan ? (
-            <Card className="overflow-hidden border-primary/15 card-press" onClick={() => navigate("/plan")}>
-              <CardContent className="p-0">
-                <div className="bg-gradient-to-br from-primary/5 to-primary/15 p-5 flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center shrink-0">
-                    <Sparkles className="h-7 w-7 text-primary-foreground" />
-                  </div>
-                  <div className="flex-1">
-                    <h2 className="text-base font-bold text-foreground">Générer votre plan</h2>
-                    <p className="text-xs text-muted-foreground mt-0.5">Le profil est prêt. Créons un plan adapté.</p>
-                  </div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="overflow-hidden border-primary/15 card-press" onClick={() => navigate(`/day/${resumeDay}?source=plan`)}>
-              <CardContent className="p-0">
-                <div className="bg-gradient-to-br from-primary/5 to-primary/10 p-5">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
-                        {inProgress ? "Reprendre" : "Aujourd'hui"}
-                      </p>
-                      <h2 className="text-xl font-bold text-foreground">Jour {resumeDay}</h2>
-                    </div>
-                    <motion.div
-                      whileTap={{ scale: 0.9 }}
-                      className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center shadow-lg"
-                    >
-                      <Play className="h-7 w-7 text-primary-foreground ml-0.5" />
-                    </motion.div>
-                  </div>
-                  {todayData && (
-                    <p className="text-sm text-muted-foreground line-clamp-1 mb-2">{todayData.title}</p>
-                  )}
-                  {inProgress && (
-                    <div>
-                      <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
-                        <span>En cours</span>
-                        <span>{inProgress.completed_exercises?.length || 0} exercice(s)</span>
+        {/* ══════ HERO: Primary Action Card ══════ */}
+        <motion.div custom={1} variants={fadeUp}>
+          <AnimatePresence mode="wait">
+            {dashState === "no_plan" ? (
+              <motion.div key="no_plan" initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.97 }}>
+                <Card className="overflow-hidden border-primary/20 card-press" onClick={() => navigate("/plan")}>
+                  <CardContent className="p-0">
+                    <div className="bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 p-5 flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shrink-0 shadow-md">
+                        <Sparkles className="h-6 w-6 text-primary-foreground" />
                       </div>
-                      <Progress value={((inProgress.completed_exercises?.length || 0) / 3) * 100} className="h-1.5" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-foreground">Générer votre plan</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Profil prêt — Créons un programme adapté</p>
+                      </div>
+                      <ArrowRight className="h-4.5 w-4.5 text-primary shrink-0" />
                     </div>
-                  )}
-                  {!inProgress && (
-                    <div className="flex items-center gap-1.5 text-xs text-primary font-medium mt-1">
-                      <Play className="h-3 w-3" />
-                      <span>{validated === 0 ? "Commencer aujourd'hui" : "Voir le jour suivant"}</span>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ) : (
+              <motion.div key="today" initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.97 }}>
+                <Card
+                  className="overflow-hidden border-primary/20 card-press"
+                  onClick={() => navigate(`/day/${resumeDay}?source=plan`)}
+                >
+                  <CardContent className="p-0">
+                    <div className="relative bg-gradient-to-br from-primary/5 via-card to-primary/8 p-5">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] text-primary font-bold uppercase tracking-widest">
+                            {dashState === "in_progress" ? "En cours" : dashState === "all_done" ? "Terminé 🎉" : `Jour ${resumeDay}`}
+                          </p>
+                          <h2 className="text-lg font-bold text-foreground mt-0.5 leading-tight">
+                            {dashState === "all_done" ? "Programme terminé !" : todayData?.title || `Jour ${resumeDay}`}
+                          </h2>
+                          {todayData?.objective && dashState !== "all_done" && (
+                            <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{todayData.objective}</p>
+                          )}
+                        </div>
+                        <motion.div
+                          whileTap={{ scale: 0.88 }}
+                          className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shrink-0 ml-3"
+                        >
+                          <Play className="h-6 w-6 text-primary-foreground ml-0.5" />
+                        </motion.div>
+                      </div>
+
+                      {/* In-progress bar */}
+                      {inProgress && (
+                        <div className="mt-1">
+                          <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                            <span>{inProgress.completed_exercises?.length || 0} exercice(s) fait(s)</span>
+                          </div>
+                          <Progress value={Math.min(((inProgress.completed_exercises?.length || 0) / 4) * 100, 100)} className="h-1.5" />
+                        </div>
+                      )}
+
+                      {/* CTA label */}
+                      {!inProgress && dashState !== "all_done" && (
+                        <div className="flex items-center gap-1.5 text-xs text-primary font-semibold mt-2">
+                          <Play className="h-3 w-3" />
+                          <span>{validated === 0 ? "Commencer" : "Continuer"}</span>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
-        {/* BLOC 3 — Progress Strip */}
-        <motion.div custom={3} variants={fadeUp} className="grid grid-cols-3 gap-2">
-          <div className="rounded-2xl bg-card border border-border p-3 text-center">
-            <p className="text-xl font-bold text-primary tabular-nums">{validated}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Jours validés</p>
-          </div>
-          <div className="rounded-2xl bg-card border border-border p-3 text-center">
-            <p className="text-xl font-bold text-foreground tabular-nums">{completionRate}%</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Progression</p>
-          </div>
-          <div className="rounded-2xl bg-card border border-border p-3 text-center">
-            <p className="text-xl font-bold tabular-nums" style={{ color: lastLog?.tension_level && lastLog.tension_level > 3 ? "hsl(var(--destructive))" : "hsl(var(--success))" }}>
-              {lastLog?.tension_level ?? "–"}
-            </p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Tension</p>
-          </div>
+        {/* ── Resume incomplete session banner ── */}
+        {hasIncompleteSession && (
+          <motion.div custom={1.5} variants={fadeUp}>
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => navigate(`/training/${lastSession!.day_id}?source=plan`)}
+              className="w-full flex items-center gap-3 rounded-xl bg-accent/10 border border-accent/20 px-3.5 py-2.5 text-left"
+            >
+              <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center shrink-0">
+                <Play className="h-4 w-4 text-accent-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-foreground">Séance en cours</p>
+                <p className="text-[10px] text-muted-foreground">Reprendre l'exercice — Jour {lastSession!.day_id}</p>
+              </div>
+              <ArrowRight className="h-4 w-4 text-accent shrink-0" />
+            </motion.button>
+          </motion.div>
+        )}
+
+        {/* ── Progress strip ── */}
+        <motion.div custom={2} variants={fadeUp} className="grid grid-cols-3 gap-2">
+          {[
+            { value: validated, label: "Validés", color: "text-primary" },
+            { value: `${completionRate}%`, label: "Progression", color: "text-foreground" },
+            { value: lastLog?.tension_level ?? "–", label: "Tension", color: lastLog?.tension_level && lastLog.tension_level > 3 ? "text-destructive" : "text-success" },
+          ].map((s, i) => (
+            <div key={i} className="rounded-xl bg-card border border-border py-2.5 text-center">
+              <p className={`text-lg font-bold tabular-nums ${s.color}`}>{s.value}</p>
+              <p className="text-[10px] text-muted-foreground">{s.label}</p>
+            </div>
+          ))}
         </motion.div>
 
-        {/* BLOC 5 — Plan Summary */}
+        {/* ── Plan summary (compact) ── */}
         {activePlan && (
-          <motion.div custom={4} variants={fadeUp}>
-            <Card className="card-press" onClick={() => navigate("/plan")}>
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                    <Shield className="h-5 w-5 text-primary" />
+          <motion.div custom={3} variants={fadeUp}>
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={() => navigate("/plan")}
+              className="w-full flex items-center gap-3 rounded-xl bg-card border border-border p-3 text-left"
+            >
+              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <Target className="h-4.5 w-4.5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                {planAxes && planAxes.length > 0 ? (
+                  <div className="flex gap-1 flex-wrap">
+                    {planAxes.slice(0, 2).map((a: any, i: number) => (
+                      <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">{a.label}</span>
+                    ))}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Votre plan</p>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{activePlan.summary}</p>
-                    {planAxes && planAxes.length > 0 && (
-                      <div className="flex gap-1 mt-2 flex-wrap">
-                        {planAxes.slice(0, 3).map((a: any, i: number) => (
-                          <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">{a.label}</span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-
-        {/* BLOC 6 — Last Session / Journal */}
-        {(lastLog || lastJournal) && (
-          <motion.div custom={5} variants={fadeUp}>
-            <Card className="card-press" onClick={() => navigate("/journal")}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Dernière séance</p>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div>
-                    <p className="text-lg font-bold text-foreground tabular-nums">
-                      {lastLog?.tension_level ?? lastJournal?.tension_level ?? "–"}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">Tension</p>
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold text-foreground">
-                      {lastLog?.focus_quality || lastJournal?.focus_quality || "–"}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">Focus</p>
-                  </div>
-                  <div>
-                    <p className="text-lg font-bold text-foreground">
-                      {lastLog?.recovery_after_trigger || lastJournal?.recovery_time || "–"}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">Récupération</p>
-                  </div>
-                </div>
-                {(lastLog?.comments || lastJournal?.notes) && (
-                  <p className="text-xs text-muted-foreground mt-2 line-clamp-1 italic">
-                    "{lastLog?.comments || lastJournal?.notes}"
-                  </p>
+                ) : (
+                  <p className="text-xs font-semibold text-foreground">Votre plan</p>
                 )}
-              </CardContent>
-            </Card>
+                <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">{activePlan.summary}</p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+            </motion.button>
           </motion.div>
         )}
 
-        {/* BLOC 7 — Stats Preview */}
-        <motion.div custom={6} variants={fadeUp} className="grid grid-cols-2 gap-2">
-          <div className="rounded-2xl bg-card border border-border p-3 text-center">
-            <p className="text-xl font-bold text-primary tabular-nums">{sessionCount ?? 0}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Séances terminées</p>
-          </div>
-          <div className="rounded-2xl bg-card border border-border p-3 text-center">
-            <p className="text-xl font-bold text-foreground tabular-nums">
-              {hasPlan ? `${totalDays - validated}` : "–"}
-            </p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Jours restants</p>
-          </div>
-        </motion.div>
+        {/* ── Last activity (compact) ── */}
+        {(lastLog || lastJournal) && (
+          <motion.div custom={4} variants={fadeUp}>
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={() => navigate("/journal")}
+              className="w-full rounded-xl bg-card border border-border p-3 text-left"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Dernière activité</p>
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                {[
+                  { v: lastLog?.tension_level ?? lastJournal?.tension_level ?? "–", l: "Tension" },
+                  { v: lastLog?.focus_quality || lastJournal?.focus_quality || "–", l: "Focus" },
+                  { v: lastLog?.recovery_after_trigger || lastJournal?.recovery_time || "–", l: "Récup." },
+                ].map((s, i) => (
+                  <div key={i}>
+                    <p className="text-sm font-bold text-foreground tabular-nums">{s.v}</p>
+                    <p className="text-[9px] text-muted-foreground">{s.l}</p>
+                  </div>
+                ))}
+              </div>
+            </motion.button>
+          </motion.div>
+        )}
 
-        {/* BLOC 8 — Quick Actions */}
-        <motion.div custom={7} variants={fadeUp}>
-          <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">Accès rapides</p>
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { icon: BookOpen, label: "Mon plan", sub: "Voir le programme", path: "/plan", show: true },
-              { icon: Play, label: "Entraînement", sub: "Lancer une séance", path: `/training/${resumeDay}`, show: hasPlan },
-              { icon: ClipboardList, label: "Journal", sub: "Ajouter une note", path: "/journal", show: true },
-              { icon: BarChart3, label: "Statistiques", sub: "Voir la progression", path: "/stats", show: true },
-              { icon: PawPrint, label: "Profil chien", sub: "Modifier la fiche", path: activeDog ? `/dogs/${activeDog.id}` : "/dogs", show: true },
-              { icon: Activity, label: "Exercices", sub: "Bibliothèque", path: "/exercises", show: true },
-            ].filter(a => a.show).map((action, i) => (
-              <button
+        {/* ── Empty state: no sessions yet ── */}
+        {!lastLog && !lastJournal && hasPlan && (
+          <motion.div custom={4} variants={fadeUp}>
+            <div className="rounded-xl border border-dashed border-border bg-card/50 p-4 text-center">
+              <ClipboardList className="h-5 w-5 text-muted-foreground mx-auto mb-1.5" />
+              <p className="text-xs text-muted-foreground">Aucune séance enregistrée</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Commencez votre premier jour pour voir vos données ici.</p>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── Quick actions grid ── */}
+        <motion.div custom={5} variants={fadeUp}>
+          <div className="grid grid-cols-3 gap-2">
+            {quickActions.slice(0, 6).map((action, i) => (
+              <motion.button
                 key={i}
+                whileTap={{ scale: 0.94 }}
                 onClick={() => navigate(action.path)}
-                className="flex items-center gap-3 rounded-2xl bg-card border border-border p-3.5 text-left active:scale-[0.97] transition-all"
+                className="flex flex-col items-center gap-1.5 rounded-xl bg-card border border-border py-3 px-2 text-center"
               >
-                <div className="w-9 h-9 rounded-xl bg-primary/8 flex items-center justify-center shrink-0">
-                  <action.icon className="h-4.5 w-4.5 text-primary" />
+                <div className="w-8 h-8 rounded-lg bg-primary/8 flex items-center justify-center">
+                  <action.icon className="h-4 w-4 text-primary" />
                 </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-foreground leading-tight">{action.label}</p>
-                  <p className="text-[10px] text-muted-foreground leading-tight">{action.sub}</p>
-                </div>
-              </button>
+                <span className="text-[10px] font-medium text-foreground leading-tight">{action.label}</span>
+              </motion.button>
             ))}
           </div>
         </motion.div>
+
       </motion.div>
     </AppLayout>
   );
