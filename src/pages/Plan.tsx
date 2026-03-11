@@ -38,6 +38,7 @@ export default function PlanPage() {
   const [generating, setGenerating] = useState(false);
   const [showPrecautions, setShowPrecautions] = useState(false);
   const [showPrereqs, setShowPrereqs] = useState(false);
+  const hasAiPlan = useHasFeature("ai_plan");
   const adaptiveSuggestion = useAdaptiveSuggestion();
 
   const { data: savedPlan, refetch: refetchPlan } = useQuery({
