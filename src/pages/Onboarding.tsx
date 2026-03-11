@@ -434,12 +434,8 @@ export default function Onboarding() {
     if (!photoFile || !user) return null;
     setPhotoUploading(true);
     try {
-      const ext = photoFile.name.split(".").pop() || "jpg";
-      const path = `${user.id}/${dogId}.${ext}`;
-      const { error } = await supabase.storage.from("dog-photos").upload(path, photoFile, { upsert: true });
-      if (error) throw error;
-      const { data: urlData } = supabase.storage.from("dog-photos").getPublicUrl(path);
-      return urlData.publicUrl;
+      const { uploadDogPhoto } = await import("@/lib/photoUrl");
+      return await uploadDogPhoto(photoFile, user.id, dogId);
     } catch (err) {
       console.error("Photo upload failed:", err);
       return null;
