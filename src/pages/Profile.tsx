@@ -87,7 +87,9 @@ export default function ProfilePage() {
         <Card>
           <CardHeader className="pb-3"><CardTitle className="text-base">Accès rapide</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            <Button variant="outline" className="w-full justify-start gap-2" onClick={() => navigate("/safety")}>
+            <Button variant="outline" className="w-full justify-start gap-2" onClick={() => navigate("/help")}>
+              <HelpCircle className="h-4 w-4" /> Guide d'utilisation & IA
+            </Button>
               <Shield className="h-4 w-4" /> Sécurité et méthode
             </Button>
             <Button variant="outline" className="w-full justify-start gap-2" onClick={() => navigate("/evaluation")}>

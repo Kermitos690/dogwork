@@ -113,6 +113,7 @@ const App = () => {
                 <Route path="/*" element={<ProtectedRoutes />} />
               </Routes>
             </Suspense>
+            <AIChatBot />
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
