@@ -38,7 +38,7 @@ export default function Training() {
         .limit(1)
         .maybeSingle();
       if (!data?.days) return null;
-      const days = data.days as PlanDay[];
+      const days = data.days as unknown as PlanDay[];
       return days.find(d => d.dayNumber === id) || null;
     },
     enabled: !!activeDog && source === "plan",
