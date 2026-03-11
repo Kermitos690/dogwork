@@ -148,9 +148,23 @@ export default function CoachCourses() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["coach-courses"] });
       setDialogOpen(false);
+      // Send notification to admin for new courses
+      if (!editingId) {
+        supabase.functions.invoke("send-notification-email", {
+          body: {
+            type: "course_created",
+            data: {
+              title: form.title,
+              category: form.category,
+              price_cents: form.price_cents,
+              location: form.location,
+            },
+          },
+        }).catch(console.error);
+      }
       setEditingId(null);
       setForm(emptyForm);
-      toast({ title: editingId ? "Cours modifié" : "Cours créé" });
+      toast({ title: editingId ? "Cours modifié" : "Cours créé — En attente de validation" });
     },
     onError: (e: Error) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
   });
