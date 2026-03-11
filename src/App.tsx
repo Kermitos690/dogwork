@@ -22,6 +22,7 @@ import Stats from "./pages/Stats";
 import Safety from "./pages/Safety";
 import ProfilePage from "./pages/Profile";
 import ExerciseLibrary from "./pages/ExerciseLibrary";
+import ExerciseDetail from "./pages/ExerciseDetail";
 import NotFound from "./pages/NotFound";
 import { useDogs } from "./hooks/useDogs";
 
