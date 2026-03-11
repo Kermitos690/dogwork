@@ -151,7 +151,7 @@ export default function AdminDashboard() {
           {[
             { icon: Users, label: "Utilisateurs", value: stats?.users },
             { icon: GraduationCap, label: "Éducateurs", value: stats?.educators },
-            { icon: BookOpen, label: "Exercices", value: stats?.exercises },
+            { icon: BookOpen, label: "Cours", value: stats?.courses },
           ].map((s, i) => (
             <Card key={i} className="text-center">
               <CardContent className="p-3">
@@ -162,6 +162,80 @@ export default function AdminDashboard() {
             </Card>
           ))}
         </div>
+
+        {/* Revenue stats */}
+        <div className="grid grid-cols-2 gap-2">
+          <Card>
+            <CardContent className="p-3 text-center">
+              <DollarSign className="h-5 w-5 text-primary mx-auto mb-1" />
+              <p className="text-lg font-bold text-foreground">{(totalRevenue / 100).toFixed(0)} CHF</p>
+              <p className="text-[9px] text-muted-foreground">CA total cours</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3 text-center">
+              <DollarSign className="h-5 w-5 text-primary mx-auto mb-1" />
+              <p className="text-lg font-bold text-foreground">{(totalCommission / 100).toFixed(0)} CHF</p>
+              <p className="text-[9px] text-muted-foreground">Commission (30%)</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Pending courses approval */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Eye className="h-4 w-4" /> Cours à valider ({pendingCourses.filter((c: any) => c.approval_status === "pending").length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {pendingCourses.filter((c: any) => c.approval_status === "pending").length === 0 && (
+              <p className="text-xs text-muted-foreground">Aucun cours en attente de validation.</p>
+            )}
+            {pendingCourses.filter((c: any) => c.approval_status === "pending").map((course: any) => (
+              <div key={course.id} className="p-3 rounded-lg bg-secondary/30 space-y-2">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{course.title}</p>
+                    <p className="text-[10px] text-muted-foreground">{(course.price_cents / 100).toFixed(0)} CHF — {course.category} — {course.duration_minutes} min</p>
+                    {course.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{course.description}</p>}
+                    {course.location && <p className="text-xs text-muted-foreground">📍 {course.location}</p>}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" className="flex-1 gap-1" onClick={() => handleApproval(course.id, "approved")}>
+                    <Check className="h-3 w-3" /> Approuver
+                  </Button>
+                  <Button size="sm" variant="destructive" className="flex-1 gap-1" onClick={() => handleApproval(course.id, "rejected")}>
+                    <X className="h-3 w-3" /> Refuser
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* All courses list */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Tous les cours ({pendingCourses.length})</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {pendingCourses.map((course: any) => (
+              <div key={course.id} className="flex items-center justify-between p-2 rounded-lg bg-secondary/30">
+                <div>
+                  <p className="text-sm font-medium text-foreground">{course.title}</p>
+                  <p className="text-[10px] text-muted-foreground">{(course.price_cents / 100).toFixed(0)} CHF</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {course.approval_status === "approved" && <Badge className="text-[9px] bg-green-500/20 text-green-700">Approuvé</Badge>}
+                  {course.approval_status === "pending" && <Badge className="text-[9px] bg-yellow-500/20 text-yellow-700">En attente</Badge>}
+                  {course.approval_status === "rejected" && <Badge variant="destructive" className="text-[9px]">Refusé</Badge>}
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
 
         {/* Create educator */}
         <Card>
