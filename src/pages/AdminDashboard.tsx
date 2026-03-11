@@ -109,12 +109,24 @@ export default function AdminDashboard() {
   };
 
   const handleApproval = async (courseId: string, status: "approved" | "rejected") => {
+    const course = pendingCourses.find((c: any) => c.id === courseId);
     const { error } = await supabase.from("courses").update({ approval_status: status }).eq("id", courseId);
     if (error) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
     } else {
       toast({ title: status === "approved" ? "Cours approuvé ✅" : "Cours refusé ❌" });
       refetchCourses();
+      // Send notification email to educator
+      try {
+        await supabase.functions.invoke("send-notification-email", {
+          body: {
+            type: status === "approved" ? "course_approved" : "course_rejected",
+            data: { title: course?.title || "" },
+          },
+        });
+      } catch (e) {
+        console.error("Email notification error:", e);
+      }
     }
   };
 
