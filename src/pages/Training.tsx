@@ -84,7 +84,7 @@ export default function Training() {
         </div>
 
         <div className="rounded-xl border border-border bg-card p-5">
-          <h3 className="mb-3 text-center text-sm font-medium text-muted-foreground">Chronomètre</h3>
+          <h3 className="mb-3 text-center text-sm font-medium text-muted-foreground">Démarrer le chronomètre</h3>
           <Timer presets={exercise.timerSuggested ? [30, exercise.timerSuggested, 180] : [30, 60, 180]} />
         </div>
 
