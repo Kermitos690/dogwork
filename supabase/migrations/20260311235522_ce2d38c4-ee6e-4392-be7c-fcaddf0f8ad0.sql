@@ -1,0 +1,2 @@
+ALTER TABLE public.dogs DROP CONSTRAINT dogs_environment_check;
+ALTER TABLE public.dogs ADD CONSTRAINT dogs_environment_check CHECK (environment = ANY (ARRAY['appartement'::text, 'maison'::text, 'jardin'::text, 'campagne'::text, 'ville'::text, 'maison_jardin'::text, 'rural'::text, 'urbain'::text]));
