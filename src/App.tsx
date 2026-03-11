@@ -82,6 +82,7 @@ function ProtectedRoutes() {
         <Route path="/exercises" element={<ExerciseLibrary />} />
         <Route path="/exercises/:slug" element={<ExerciseDetail />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/help" element={<HelpPage />} />
         {/* Coach / Educator routes — guarded by role */}
         <Route path="/coach" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachDashboard /></CoachGuard></Suspense>} />
         <Route path="/coach/clients" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachClients /></CoachGuard></Suspense>} />
