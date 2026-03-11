@@ -205,6 +205,6 @@ export default function CoachDashboard() {
           </motion.div>
         )}
       </div>
-    </AppLayout>
+    </CoachLayout>
   );
 }

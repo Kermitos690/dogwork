@@ -389,8 +389,8 @@ export default function CoachCourses() {
                 <div className="grid grid-cols-2 gap-y-1.5 text-sm">
                   <div className="flex items-center gap-1.5 text-muted-foreground">
                     <Euro className="h-3.5 w-3.5" />
-                    <span className="font-medium text-foreground">{(course.price_cents / 100).toFixed(0)} €</span>
-                    <span className="text-xs">(net: {((course.price_cents * 0.7) / 100).toFixed(0)} €)</span>
+                    <span className="font-medium text-foreground">{(course.price_cents / 100).toFixed(0)} CHF</span>
+                    <span className="text-xs">(net: {((course.price_cents * 0.7) / 100).toFixed(0)} CHF)</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-muted-foreground">
                     <Clock className="h-3.5 w-3.5" />
