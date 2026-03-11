@@ -97,6 +97,7 @@ function ProtectedRoutes() {
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
+      <AIChatBot />
     </Suspense>
   );
 }
@@ -114,7 +115,6 @@ const App = () => {
                 <Route path="/*" element={<ProtectedRoutes />} />
               </Routes>
             </Suspense>
-            <AIChatBot />
             <GuidedTour />
           </BrowserRouter>
         </TooltipProvider>
