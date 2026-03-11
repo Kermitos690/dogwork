@@ -135,7 +135,7 @@ export default function Training() {
               </span>
             )}
           </div>
-          <p className="text-sm text-muted-foreground leading-relaxed">{exercise.instructions}</p>
+          <p className="text-sm text-muted-foreground leading-relaxed">{(exercise as any).instructions}</p>
           <div className="flex gap-3 text-xs text-muted-foreground">
             <span>🎯 {exercise.repetitionsTarget} rép.</span>
             {exercise.timerSuggested && <span>⏱ {exercise.timerSuggested}s</span>}

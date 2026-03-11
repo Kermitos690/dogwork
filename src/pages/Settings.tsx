@@ -1,185 +1,139 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Download, Trash2, RotateCcw, Info, Bell, BellOff } from "lucide-react";
+import { ArrowLeft, Download, LogOut, Info, User, Shield, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Layout } from "@/components/Layout";
-import { getSettings, saveSettings, resetAll, exportJSON, exportText } from "@/lib/storage";
-import {
-  getNotificationSettings, saveNotificationSettings,
-  requestNotificationPermission, getPermissionStatus,
-  sendTestNotification, scheduleDaily, stopSchedule,
-} from "@/lib/notifications";
+import { AppLayout } from "@/components/AppLayout";
+import { useAuth } from "@/hooks/useAuth";
+import { useActiveDog } from "@/hooks/useDogs";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 export default function Settings() {
   const navigate = useNavigate();
-  const [settings, setSettings] = useState(getSettings());
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [notifSettings, setNotifSettings] = useState(getNotificationSettings());
-  const [permStatus, setPermStatus] = useState(getPermissionStatus());
+  const { user, signOut } = useAuth();
+  const activeDog = useActiveDog();
 
-  const toggleNotif = async (enabled: boolean) => {
-    if (enabled && permStatus !== "granted") {
-      const p = await requestNotificationPermission();
-      setPermStatus(p);
-      if (p !== "granted") return;
-    }
-    const updated = { ...notifSettings, enabled };
-    setNotifSettings(updated);
-    saveNotificationSettings(updated);
-    if (enabled) scheduleDaily(); else stopSchedule();
-  };
+  const { data: profile } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("*").eq("user_id", user!.id).maybeSingle();
+      return data;
+    },
+    enabled: !!user,
+  });
 
-  const updateNotifTime = (time: string) => {
-    const [h, m] = time.split(":").map(Number);
-    const updated = { ...notifSettings, hour: h, minute: m };
-    setNotifSettings(updated);
-    saveNotificationSettings(updated);
-    if (updated.enabled) scheduleDaily();
-  };
-
-  const updateDogName = (name: string) => {
-    const updated = { ...settings, dogName: name };
-    setSettings(updated);
-    saveSettings(updated);
-  };
-
-  const handleExportJSON = () => {
-    const data = exportJSON();
-    const blob = new Blob([data], { type: "application/json" });
+  const handleExport = async () => {
+    if (!user || !activeDog) return;
+    const [progress, journals, logs] = await Promise.all([
+      supabase.from("day_progress").select("*").eq("dog_id", activeDog.id),
+      supabase.from("journal_entries").select("*").eq("dog_id", activeDog.id),
+      supabase.from("behavior_logs").select("*").eq("dog_id", activeDog.id),
+    ]);
+    const blob = new Blob([JSON.stringify({
+      dog: activeDog,
+      progress: progress.data,
+      journals: journals.data,
+      behaviorLogs: logs.data,
+      exportedAt: new Date().toISOString(),
+    }, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `defi-canin-${new Date().toISOString().split("T")[0]}.json`;
+    a.download = `dogwork-${activeDog.name}-${new Date().toISOString().split("T")[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    toast({ title: "Export réussi", description: "Vos données ont été téléchargées." });
   };
 
-  const handleExportText = () => {
-    const data = exportText();
-    const blob = new Blob([data], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `defi-canin-resume-${new Date().toISOString().split("T")[0]}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleReset = () => {
-    resetAll();
-    setShowConfirm(false);
-    window.location.href = "/";
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
   };
 
   return (
-    <Layout>
-      <div className="animate-fade-in space-y-5 pt-4">
+    <AppLayout>
+      <div className="animate-fade-in space-y-5 pt-14 pb-4">
         <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground">
           <ArrowLeft className="h-4 w-4" /> Retour
         </button>
 
-        <h1 className="text-2xl font-bold">Paramètres</h1>
+        <h1 className="text-2xl font-bold text-foreground">Paramètres</h1>
 
-        {/* Dog name */}
-        <div className="rounded-xl border border-border bg-card p-4 space-y-2">
-          <label className="text-sm font-medium">Nom du chien</label>
-          <input
-            type="text"
-            value={settings.dogName}
-            onChange={(e) => updateDogName(e.target.value)}
-            className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          />
+        {/* Account */}
+        <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <User className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Compte</h3>
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm text-foreground">{profile?.display_name || "Utilisateur"}</p>
+            <p className="text-xs text-muted-foreground">{user?.email}</p>
+          </div>
+          <Button variant="outline" size="sm" className="w-full" onClick={() => navigate("/profile")}>
+            Modifier mon profil
+          </Button>
+        </div>
+
+        {/* Active dog */}
+        {activeDog && (
+          <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-semibold text-foreground">Chien actif</h3>
+            </div>
+            <p className="text-sm text-foreground">{activeDog.name}</p>
+            <Button variant="outline" size="sm" className="w-full" onClick={() => navigate("/dogs")}>
+              Gérer mes chiens
+            </Button>
+          </div>
+        )}
+
+        {/* Subscription */}
+        <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Abonnement</h3>
+          </div>
+          <Button variant="outline" size="sm" className="w-full" onClick={() => navigate("/subscription")}>
+            Gérer mon abonnement
+          </Button>
         </div>
 
         {/* Export */}
-        <div className="rounded-xl border border-border bg-card p-4 space-y-3">
-          <h3 className="text-sm font-semibold">Exporter mes données</h3>
-          <div className="flex flex-col gap-2">
-            <Button variant="outline" className="w-full justify-start" onClick={handleExportJSON}>
-              <Download className="h-4 w-4" /> Exporter
-            </Button>
-            <Button variant="outline" className="w-full justify-start" onClick={handleExportText}>
-              <Download className="h-4 w-4" /> Exporter un résumé texte
-            </Button>
-          </div>
-        </div>
-
-        {/* Notifications */}
-        <div className="rounded-xl border border-border bg-card p-4 space-y-4">
+        <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
           <div className="flex items-center gap-2">
-            {notifSettings.enabled ? <Bell className="h-4 w-4 text-primary" /> : <BellOff className="h-4 w-4 text-muted-foreground" />}
-            <h3 className="text-sm font-semibold">Rappels quotidiens</h3>
+            <Download className="h-4 w-4 text-muted-foreground" />
+            <h3 className="text-sm font-semibold text-foreground">Exporter mes données</h3>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm">Activer les rappels</span>
-            <Switch checked={notifSettings.enabled} onCheckedChange={toggleNotif} />
-          </div>
-          {notifSettings.enabled && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Heure du rappel</span>
-                <input
-                  type="time"
-                  value={`${String(notifSettings.hour).padStart(2, "0")}:${String(notifSettings.minute).padStart(2, "0")}`}
-                  onChange={(e) => updateNotifTime(e.target.value)}
-                  className="rounded-lg border border-border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-              <Button variant="outline" size="sm" className="w-full" onClick={sendTestNotification}>
-                Tester la notification
-              </Button>
-            </div>
-          )}
-          {permStatus === "denied" && (
-            <p className="text-xs text-destructive">Les notifications sont bloquées par votre navigateur. Modifiez les paramètres du site.</p>
-          )}
-          {permStatus === "unsupported" && (
-            <p className="text-xs text-muted-foreground">Les notifications ne sont pas supportées par ce navigateur.</p>
-          )}
+          <p className="text-xs text-muted-foreground">
+            Téléchargez toutes vos données (progrès, journal, logs) au format JSON.
+          </p>
+          <Button variant="outline" size="sm" className="w-full" onClick={handleExport} disabled={!activeDog}>
+            <Download className="h-4 w-4" /> Exporter
+          </Button>
         </div>
 
-        {/* Storage info */}
-        <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+        {/* Info */}
+        <div className="rounded-2xl border border-border bg-card p-4 space-y-2">
           <div className="flex items-center gap-2">
             <Info className="h-4 w-4 text-muted-foreground" />
-            <h3 className="text-sm font-semibold">Sauvegarde locale</h3>
+            <h3 className="text-sm font-semibold text-foreground">À propos</h3>
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Toutes vos données sont sauvegardées localement sur cet appareil (localStorage).
-            Elles ne sont envoyées nulle part. Si vous effacez les données du navigateur,
-            vos progrès seront perdus. Pensez à exporter régulièrement.
+            Vos données sont stockées de manière sécurisée dans le cloud et synchronisées entre vos appareils.
           </p>
         </div>
 
-        {/* Reset */}
-        <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 space-y-3">
-          <h3 className="text-sm font-semibold text-destructive">Réinitialiser</h3>
-          {!showConfirm ? (
-            <Button variant="destructive" className="w-full" onClick={() => setShowConfirm(true)}>
-              <Trash2 className="h-4 w-4" /> Remettre le programme à zéro
-            </Button>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-sm text-destructive">Êtes-vous sûr(e) ? Toutes les données seront effacées.</p>
-              <div className="flex gap-2">
-                <Button variant="destructive" className="flex-1" onClick={handleReset}>
-                  <RotateCcw className="h-4 w-4" /> Réinitialiser les données
-                </Button>
-                <Button variant="outline" className="flex-1" onClick={() => setShowConfirm(false)}>
-                  Annuler
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
+        {/* Sign out */}
+        <Button variant="destructive" className="w-full rounded-xl" onClick={handleSignOut}>
+          <LogOut className="h-4 w-4" /> Se déconnecter
+        </Button>
 
-        {/* Version */}
         <div className="text-center text-xs text-muted-foreground pb-4">
-          <p>Défi Canin 28 Jours — v1.0</p>
-          <p className="mt-1">Application de suivi d'obéissance canine</p>
+          <p>DogWork — v2.0</p>
         </div>
       </div>
-    </Layout>
+    </AppLayout>
   );
 }
