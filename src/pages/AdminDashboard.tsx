@@ -108,6 +108,16 @@ export default function AdminDashboard() {
     setCreating(false);
   };
 
+  const handleApproval = async (courseId: string, status: "approved" | "rejected") => {
+    const { error } = await supabase.from("courses").update({ approval_status: status }).eq("id", courseId);
+    if (error) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: status === "approved" ? "Cours approuvé ✅" : "Cours refusé ❌" });
+      refetchCourses();
+    }
+  };
+
   if (adminLoading) return <AppLayout><div className="pt-12 text-center animate-pulse text-muted-foreground">Chargement...</div></AppLayout>;
 
   if (!isAdmin) {
