@@ -48,10 +48,17 @@ export default function CoachClients() {
       }
 
       const clientUserId = profiles[0].user_id;
+
+      if (clientUserId === user.id) {
+        toast({ title: "Erreur", description: "Vous ne pouvez pas vous ajouter vous-même comme client.", variant: "destructive" });
+        setAdding(false);
+        return;
+      }
+
       const { error } = await supabase.from("client_links").insert({
         coach_user_id: user.id,
         client_user_id: clientUserId,
-        status: "active",
+        status: "pending",
       });
 
       if (error) {
