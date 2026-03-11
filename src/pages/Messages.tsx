@@ -298,5 +298,3 @@ export default function Messages() {
     </AppLayout>
   );
 }
-
-import { MessageSquare } from "lucide-react";
