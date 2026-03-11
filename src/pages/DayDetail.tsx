@@ -117,7 +117,7 @@ export default function DayDetail() {
             <p className="text-xs text-muted-foreground">Jour {day.id} — Semaine {day.week}</p>
             <h1 className="text-xl font-bold">{day.title}</h1>
           </div>
-          <StatusBadge status={status} />
+          <StatusBadge status={status as "todo" | "in_progress" | "done"} />
         </div>
 
         <p className="text-sm text-muted-foreground">{day.objective}</p>
