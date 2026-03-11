@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { useDogs } from "./hooks/useDogs";
+import { AIChatBot } from "@/components/AIChatBot";
 
 // Eagerly loaded (critical path)
 import Auth from "./pages/Auth";
@@ -38,6 +39,7 @@ const CoachStats = lazy(() => import("./pages/CoachStats"));
 const CoachCourses = lazy(() => import("./pages/CoachCourses"));
 const CoachGuard = lazy(() => import("./components/CoachGuard").then(m => ({ default: m.CoachGuard })));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const HelpPage = lazy(() => import("./pages/Help"));
 
 const queryClient = new QueryClient();
 
@@ -81,6 +83,7 @@ function ProtectedRoutes() {
         <Route path="/exercises" element={<ExerciseLibrary />} />
         <Route path="/exercises/:slug" element={<ExerciseDetail />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/help" element={<HelpPage />} />
         {/* Coach / Educator routes — guarded by role */}
         <Route path="/coach" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachDashboard /></CoachGuard></Suspense>} />
         <Route path="/coach/clients" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachClients /></CoachGuard></Suspense>} />
@@ -110,6 +113,7 @@ const App = () => {
                 <Route path="/*" element={<ProtectedRoutes />} />
               </Routes>
             </Suspense>
+            <AIChatBot />
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>

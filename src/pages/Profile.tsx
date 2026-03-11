@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogOut, Save, Shield, Download, Trash2, User, GraduationCap, ShieldCheck } from "lucide-react";
+import { LogOut, Save, Shield, Download, Trash2, User, GraduationCap, ShieldCheck, HelpCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 
@@ -87,6 +87,9 @@ export default function ProfilePage() {
         <Card>
           <CardHeader className="pb-3"><CardTitle className="text-base">Accès rapide</CardTitle></CardHeader>
           <CardContent className="space-y-2">
+            <Button variant="outline" className="w-full justify-start gap-2" onClick={() => navigate("/help")}>
+              <HelpCircle className="h-4 w-4" /> Guide d'utilisation & IA
+            </Button>
             <Button variant="outline" className="w-full justify-start gap-2" onClick={() => navigate("/safety")}>
               <Shield className="h-4 w-4" /> Sécurité et méthode
             </Button>
