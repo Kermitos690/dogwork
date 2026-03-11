@@ -87,6 +87,16 @@ export default function ProfilePage() {
         </Card>
 
         <Card>
+          <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><Crown className="h-4 w-4" /> Abonnement</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-sm text-muted-foreground">Plan actuel : <span className="font-semibold text-foreground">{TIERS[tier].name}</span></p>
+            <Button variant="outline" className="w-full gap-2" onClick={() => navigate("/subscription")}>
+              <Crown className="h-4 w-4" /> Gérer mon abonnement
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
           <CardHeader className="pb-3"><CardTitle className="text-base">Accès rapide</CardTitle></CardHeader>
           <CardContent className="space-y-2">
             <Button variant="outline" className="w-full justify-start gap-2" onClick={() => navigate("/help")}>
