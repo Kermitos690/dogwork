@@ -1,9 +1,10 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, Dog, BookOpen, Play, ClipboardList, BarChart3, User } from "lucide-react";
+import { Home, Dog, BookOpen, Play, BarChart3, ClipboardList, User } from "lucide-react";
 import { useActiveDog } from "@/hooks/useDogs";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
+import { SlideMenu } from "@/components/SlideMenu";
 
 const tabs = [
   { label: "Accueil", icon: Home, path: "/" },
@@ -45,6 +46,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background pb-20">
+      <SlideMenu />
       <div className="mx-auto max-w-lg px-4">
         {children}
       </div>
