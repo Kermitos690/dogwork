@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { useDogs } from "./hooks/useDogs";
 import { AIChatBot } from "@/components/AIChatBot";
+import { GuidedTour } from "@/components/GuidedTour";
 
 // Eagerly loaded (critical path)
 import Auth from "./pages/Auth";
@@ -114,6 +115,7 @@ const App = () => {
               </Routes>
             </Suspense>
             <AIChatBot />
+            <GuidedTour />
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
