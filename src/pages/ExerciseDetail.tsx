@@ -68,12 +68,12 @@ export default function ExerciseDetail() {
     );
   }
 
-  const tutorialSteps = (exercise.tutorial_steps as any[]) || [];
-  const mistakes = (exercise.mistakes as string[]) || [];
-  const precautions = (exercise.precautions as string[]) || [];
-  const contraindications = (exercise.contraindications as string[]) || [];
-  const adaptations = (exercise.adaptations as string[]) || [];
-  const equipment = (exercise.equipment as string[]) || [];
+  const tutorialSteps = Array.isArray(exercise.tutorial_steps) ? exercise.tutorial_steps : [];
+  const mistakes = Array.isArray(exercise.mistakes) ? exercise.mistakes : [];
+  const precautions = Array.isArray(exercise.precautions) ? exercise.precautions : [];
+  const contraindications = Array.isArray(exercise.contraindications) ? exercise.contraindications : [];
+  const adaptations = Array.isArray(exercise.adaptations) ? exercise.adaptations : [];
+  const equipment = Array.isArray(exercise.equipment) ? exercise.equipment : [];
   const tags = (exercise.tags as string[]) || [];
 
   return (
