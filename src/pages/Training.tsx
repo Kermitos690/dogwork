@@ -39,12 +39,15 @@ export default function Training() {
   const standardDay = getDayById(id);
   const isPersonalized = source === "plan" && planDay;
 
-  const exercises = isPersonalized
+  const planExercises = isPersonalized
     ? planDay.exercises.map((e: any, i: number) => ({
         id: e.id || `plan-ex-${i}`, name: e.name, instructions: e.instructions,
         repetitionsTarget: e.repetitions, timerSuggested: e.timerSeconds, dayId: id,
       }))
-    : standardDay?.exercises || [];
+    : [];
+
+  // Fall back to standard exercises when plan day exists but has no exercises
+  const exercises = planExercises.length > 0 ? planExercises : (standardDay?.exercises || []);
 
   const { data: progress, refetch } = useQuery({
     queryKey: ["day_progress_training", activeDog?.id, id],
