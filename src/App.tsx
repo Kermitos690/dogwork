@@ -22,6 +22,7 @@ import Stats from "./pages/Stats";
 import Safety from "./pages/Safety";
 import ProfilePage from "./pages/Profile";
 import ExerciseLibrary from "./pages/ExerciseLibrary";
+import ExerciseDetail from "./pages/ExerciseDetail";
 import NotFound from "./pages/NotFound";
 import { useDogs } from "./hooks/useDogs";
 
@@ -63,6 +64,7 @@ function ProtectedRoutes() {
       <Route path="/stats" element={<Stats />} />
       <Route path="/safety" element={<Safety />} />
       <Route path="/exercises" element={<ExerciseLibrary />} />
+      <Route path="/exercises/:slug" element={<ExerciseDetail />} />
       <Route path="/profile" element={<ProfilePage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
