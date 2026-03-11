@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Send, ArrowLeft, Search, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
@@ -32,7 +31,6 @@ export default function Messages() {
   const { data: conversations = [] } = useQuery({
     queryKey: ["conversations", user?.id],
     queryFn: async () => {
-      // Get all messages involving user
       const { data: msgs } = await supabase
         .from("messages")
         .select("*")
@@ -41,7 +39,6 @@ export default function Messages() {
 
       if (!msgs || msgs.length === 0) return [];
 
-      // Group by other user
       const convMap = new Map<string, { last: typeof msgs[0]; unread: number }>();
       for (const m of msgs) {
         const otherId = m.sender_id === user!.id ? m.recipient_id : m.sender_id;
@@ -53,7 +50,6 @@ export default function Messages() {
         }
       }
 
-      // Get display names
       const otherIds = Array.from(convMap.keys());
       const { data: profiles } = await supabase
         .from("profiles")
@@ -71,7 +67,6 @@ export default function Messages() {
       })) as Conversation[];
     },
     enabled: !!user,
-    refetchInterval: 10_000,
   });
 
   // Fetch thread messages
@@ -86,8 +81,52 @@ export default function Messages() {
       return data || [];
     },
     enabled: !!user && !!selectedUser,
-    refetchInterval: 5_000,
   });
+
+  // Realtime subscription for new messages
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel("messages-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+        },
+        (payload) => {
+          const msg = payload.new as any;
+          // Only react to messages involving this user
+          if (msg.sender_id === user.id || msg.recipient_id === user.id) {
+            queryClient.invalidateQueries({ queryKey: ["conversations"] });
+            queryClient.invalidateQueries({ queryKey: ["thread"] });
+            queryClient.invalidateQueries({ queryKey: ["unread-messages"] });
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+        },
+        (payload) => {
+          const msg = payload.new as any;
+          if (msg.sender_id === user.id || msg.recipient_id === user.id) {
+            queryClient.invalidateQueries({ queryKey: ["conversations"] });
+            queryClient.invalidateQueries({ queryKey: ["unread-messages"] });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
 
   // Mark as read when opening thread
   useEffect(() => {
@@ -121,12 +160,10 @@ export default function Messages() {
     },
     onSuccess: () => {
       setNewMessage("");
-      queryClient.invalidateQueries({ queryKey: ["thread"] });
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
     },
   });
 
-  // Search users to start new conversation
+  // Search users
   const { data: searchResults = [] } = useQuery({
     queryKey: ["search-users", search],
     queryFn: async () => {
@@ -151,7 +188,6 @@ export default function Messages() {
     return (
       <AppLayout>
         <div className="pt-14 pb-4">
-          {/* Thread header */}
           <div className="flex items-center gap-3 mb-4">
             <button onClick={() => setSelectedUser(null)} className="text-muted-foreground hover:text-foreground">
               <ArrowLeft className="h-5 w-5" />
@@ -164,7 +200,6 @@ export default function Messages() {
             <h2 className="font-semibold text-foreground">{selectedName}</h2>
           </div>
 
-          {/* Messages */}
           <div ref={scrollRef} className="h-[calc(100vh-220px)] overflow-y-auto space-y-3 pr-1">
             {threadMessages.map((msg) => {
               const isMine = msg.sender_id === user!.id;
@@ -185,7 +220,6 @@ export default function Messages() {
             })}
           </div>
 
-          {/* Input */}
           <div className="flex gap-2 mt-3">
             <Input
               value={newMessage}
@@ -211,13 +245,12 @@ export default function Messages() {
     );
   }
 
-  // Conversations list view
+  // Conversations list
   return (
     <AppLayout>
       <div className="pt-14 pb-4">
         <h1 className="text-2xl font-bold text-foreground mb-4">Messages</h1>
 
-        {/* Search */}
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -228,7 +261,6 @@ export default function Messages() {
           />
         </div>
 
-        {/* Search results (new conversation) */}
         {search.length >= 2 && searchResults.length > 0 && (
           <div className="mb-4 rounded-xl border border-border/40 overflow-hidden">
             <p className="px-4 py-2 text-xs font-semibold text-muted-foreground bg-muted/50">Nouveau message</p>
@@ -253,7 +285,6 @@ export default function Messages() {
           </div>
         )}
 
-        {/* Conversations */}
         {filteredConversations.length === 0 && search.length < 2 ? (
           <div className="text-center py-12 text-muted-foreground">
             <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-30" />
