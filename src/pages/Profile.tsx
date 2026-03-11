@@ -90,6 +90,11 @@ export default function ProfilePage() {
             <Button variant="outline" className="w-full justify-start gap-2" onClick={() => navigate("/objectives")}>
               Objectifs
             </Button>
+            {isCoach && (
+              <Button className="w-full justify-start gap-2 bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30" onClick={() => navigate("/coach")}>
+                <GraduationCap className="h-4 w-4" /> Espace Éducateur
+              </Button>
+            )}
           </CardContent>
         </Card>
 
