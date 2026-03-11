@@ -64,6 +64,7 @@ function ProtectedRoutes() {
       <Route path="/stats" element={<Stats />} />
       <Route path="/safety" element={<Safety />} />
       <Route path="/exercises" element={<ExerciseLibrary />} />
+      <Route path="/exercises/:slug" element={<ExerciseDetail />} />
       <Route path="/profile" element={<ProfilePage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
