@@ -340,6 +340,7 @@ export default function HelpPage() {
         <p className="text-sm text-muted-foreground">
           Découvrez comment tirer le meilleur parti de DogWork selon votre rôle. Parcourez chaque section pour tout comprendre.
         </p>
+        <RestartTourButton />
 
         <Tabs defaultValue={defaultTab} className="w-full">
           <TabsList className="w-full grid grid-cols-3">
