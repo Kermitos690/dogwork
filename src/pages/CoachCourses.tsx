@@ -262,7 +262,7 @@ export default function CoachCourses() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>Prix (€)</Label>
+                    <Label>Prix (CHF)</Label>
                     <Input
                       type="number"
                       min={0}
