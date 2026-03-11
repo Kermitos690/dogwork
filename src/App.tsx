@@ -46,6 +46,7 @@ const HelpPage = lazy(() => import("./pages/Help"));
 const SubscriptionPage = lazy(() => import("./pages/Subscription"));
 const CoursesPage = lazy(() => import("./pages/Courses"));
 const CoachCalendar = lazy(() => import("./pages/CoachCalendar"));
+const MessagesPage = lazy(() => import("./pages/Messages"));
 
 const queryClient = new QueryClient();
 
