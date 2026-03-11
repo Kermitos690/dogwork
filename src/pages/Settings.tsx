@@ -154,7 +154,7 @@ export default function Settings() {
 
         {/* Reset */}
         <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 space-y-3">
-          <h3 className="text-sm font-semibold text-destructive">Zone de danger</h3>
+          <h3 className="text-sm font-semibold text-destructive">Réinitialiser</h3>
           {!showConfirm ? (
             <Button variant="destructive" className="w-full" onClick={() => setShowConfirm(true)}>
               <Trash2 className="h-4 w-4" /> Remettre le programme à zéro
