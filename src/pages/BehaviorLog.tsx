@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Layout } from "@/components/Layout";
-import { getBehaviorLog, saveBehaviorLog } from "@/lib/storage";
-import type { BehaviorLog as BLog, ResponseLevel, QualityLevel, WalkQuality, RecoverySpeed } from "@/types";
+import { AppLayout } from "@/components/AppLayout";
+import { useActiveDog } from "@/hooks/useDogs";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 function ToggleGroup({ label, value, options, onChange }: {
   label: string; value: string; options: { value: string; label: string }[];
@@ -19,9 +20,7 @@ function ToggleGroup({ label, value, options, onChange }: {
             key={o.value}
             onClick={() => onChange(o.value)}
             className={`flex-1 rounded-lg border px-3 py-2.5 text-sm font-medium transition-all ${
-              value === o.value
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-border bg-card text-foreground"
+              value === o.value ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground"
             }`}
           >
             {o.label}
@@ -43,7 +42,7 @@ function BoolToggle({ label, value, onChange }: { label: string; value: boolean;
             onClick={() => onChange(o.v)}
             className={`rounded-lg border px-4 py-2 text-sm font-medium transition-all ${
               value === o.v
-                ? o.v ? "border-zone-red bg-destructive text-destructive-foreground" : "border-success bg-success text-success-foreground"
+                ? o.v ? "border-destructive bg-destructive text-destructive-foreground" : "border-success bg-success text-success-foreground"
                 : "border-border bg-card"
             }`}
           >
@@ -55,9 +54,8 @@ function BoolToggle({ label, value, onChange }: { label: string; value: boolean;
   );
 }
 
-function SliderInput({ label, value, min, max, onChange, labels }: {
-  label: string; value: number; min: number; max: number;
-  onChange: (v: number) => void; labels?: string[];
+function SliderInput({ label, value, min, max, onChange }: {
+  label: string; value: number; min: number; max: number; onChange: (v: number) => void;
 }) {
   return (
     <div className="space-y-2">
@@ -78,7 +76,7 @@ function SliderInput({ label, value, min, max, onChange, labels }: {
                 : "border-border bg-card text-muted-foreground"
             }`}
           >
-            {labels?.[n - min] || n}
+            {n}
           </button>
         ))}
       </div>
@@ -86,41 +84,81 @@ function SliderInput({ label, value, min, max, onChange, labels }: {
   );
 }
 
-const defaultLog = (dayId: number): BLog => ({
-  dayId, jumpOnHuman: false, barking: false,
-  stopResponse: "moyen", noResponse: "moyen", focusQuality: "moyen",
-  leashWalkQuality: "moyenne", tensionLevel: 3, dogReactionLevel: 3,
-  comfortDistanceMeters: 20, recoveryAfterTrigger: "moyenne",
-  comments: "", createdAt: new Date().toISOString(),
-});
+type LogData = {
+  jump_on_human: boolean;
+  barking: boolean;
+  stop_response: string;
+  no_response: string;
+  focus_quality: string;
+  leash_walk_quality: string;
+  tension_level: number;
+  dog_reaction_level: number;
+  comfort_distance_meters: number;
+  recovery_after_trigger: string;
+  comments: string;
+};
+
+const defaultLog: LogData = {
+  jump_on_human: false, barking: false,
+  stop_response: "moyen", no_response: "moyen", focus_quality: "moyen",
+  leash_walk_quality: "moyenne", tension_level: 3, dog_reaction_level: 3,
+  comfort_distance_meters: 20, recovery_after_trigger: "moyenne", comments: "",
+};
 
 export default function BehaviorLogPage() {
   const { dayId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const activeDog = useActiveDog();
   const id = Number(dayId);
-  const [log, setLog] = useState<BLog>(defaultLog(id));
+  const [log, setLog] = useState<LogData>(defaultLog);
   const [saved, setSaved] = useState(false);
+  const [existingId, setExistingId] = useState<string | null>(null);
 
   useEffect(() => {
-    const existing = getBehaviorLog(id);
-    if (existing) setLog(existing);
-  }, [id]);
+    if (activeDog) {
+      supabase.from("behavior_logs").select("*").eq("dog_id", activeDog.id).eq("day_id", id).single().then(({ data }) => {
+        if (data) {
+          setExistingId(data.id);
+          setLog({
+            jump_on_human: data.jump_on_human || false,
+            barking: data.barking || false,
+            stop_response: data.stop_response || "moyen",
+            no_response: data.no_response || "moyen",
+            focus_quality: data.focus_quality || "moyen",
+            leash_walk_quality: data.leash_walk_quality || "moyenne",
+            tension_level: data.tension_level || 3,
+            dog_reaction_level: data.dog_reaction_level || 3,
+            comfort_distance_meters: data.comfort_distance_meters || 20,
+            recovery_after_trigger: data.recovery_after_trigger || "moyenne",
+            comments: data.comments || "",
+          });
+        }
+      });
+    }
+  }, [activeDog, id]);
 
-  const update = <K extends keyof BLog>(key: K, value: BLog[K]) => {
-    const updated = { ...log, [key]: value };
-    setLog(updated);
-    saveBehaviorLog(updated);
+  const update = (key: keyof LogData, value: any) => {
+    setLog((l) => ({ ...l, [key]: value }));
     setSaved(false);
   };
 
-  const save = () => {
-    saveBehaviorLog(log);
+  const save = async () => {
+    if (!activeDog || !user) return;
+    if (existingId) {
+      await supabase.from("behavior_logs").update(log).eq("id", existingId);
+    } else {
+      const { data } = await supabase.from("behavior_logs").insert({
+        ...log, dog_id: activeDog.id, user_id: user.id, day_id: id,
+      }).select().single();
+      if (data) setExistingId(data.id);
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
   return (
-    <Layout>
+    <AppLayout>
       <div className="animate-fade-in space-y-5 pt-4">
         <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground">
           <ArrowLeft className="h-4 w-4" /> Retour
@@ -128,48 +166,48 @@ export default function BehaviorLogPage() {
 
         <div>
           <h1 className="text-xl font-bold">Suivi comportemental</h1>
-          <p className="text-sm text-muted-foreground">Jour {id}</p>
+          <p className="text-sm text-muted-foreground">Jour {id}{activeDog ? ` — ${activeDog.name}` : ""}</p>
         </div>
 
         <div className="space-y-5">
-          <BoolToggle label="Saut sur humain" value={log.jumpOnHuman} onChange={(v) => update("jumpOnHuman", v)} />
+          <BoolToggle label="Saut sur humain" value={log.jump_on_human} onChange={(v) => update("jump_on_human", v)} />
           <BoolToggle label="Aboiement" value={log.barking} onChange={(v) => update("barking", v)} />
 
-          <ToggleGroup label="Écoute du Stop" value={log.stopResponse}
+          <ToggleGroup label="Écoute du stop" value={log.stop_response}
             options={[{ value: "oui", label: "Oui" }, { value: "moyen", label: "Moyen" }, { value: "non", label: "Non" }]}
-            onChange={(v) => update("stopResponse", v as ResponseLevel)} />
+            onChange={(v) => update("stop_response", v)} />
 
-          <ToggleGroup label="Écoute du Non" value={log.noResponse}
+          <ToggleGroup label="Écoute du non" value={log.no_response}
             options={[{ value: "oui", label: "Oui" }, { value: "moyen", label: "Moyen" }, { value: "non", label: "Non" }]}
-            onChange={(v) => update("noResponse", v as ResponseLevel)} />
+            onChange={(v) => update("no_response", v)} />
 
-          <ToggleGroup label="Focus sur moi" value={log.focusQuality}
+          <ToggleGroup label="Focus sur moi" value={log.focus_quality}
             options={[{ value: "bon", label: "Bon" }, { value: "moyen", label: "Moyen" }, { value: "faible", label: "Faible" }]}
-            onChange={(v) => update("focusQuality", v as QualityLevel)} />
+            onChange={(v) => update("focus_quality", v)} />
 
-          <ToggleGroup label="Marche en laisse" value={log.leashWalkQuality}
+          <ToggleGroup label="Marche en laisse" value={log.leash_walk_quality}
             options={[{ value: "bonne", label: "Bonne" }, { value: "moyenne", label: "Moyenne" }, { value: "difficile", label: "Difficile" }]}
-            onChange={(v) => update("leashWalkQuality", v as WalkQuality)} />
+            onChange={(v) => update("leash_walk_quality", v)} />
 
-          <SliderInput label="Niveau de tension" value={log.tensionLevel} min={1} max={5} onChange={(v) => update("tensionLevel", v)} />
-          <SliderInput label="Réaction aux chiens" value={log.dogReactionLevel} min={1} max={5} onChange={(v) => update("dogReactionLevel", v)} />
+          <SliderInput label="Niveau de tension" value={log.tension_level} min={1} max={5} onChange={(v) => update("tension_level", v)} />
+          <SliderInput label="Réaction aux chiens" value={log.dog_reaction_level} min={1} max={5} onChange={(v) => update("dog_reaction_level", v)} />
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Distance de confort (mètres)</label>
             <div className="flex items-center gap-3">
-              <Button variant="outline" size="icon" onClick={() => update("comfortDistanceMeters", Math.max(1, log.comfortDistanceMeters - 5))}>
+              <Button variant="outline" size="icon" onClick={() => update("comfort_distance_meters", Math.max(1, log.comfort_distance_meters - 5))}>
                 <span className="text-lg">−</span>
               </Button>
-              <span className="text-2xl font-bold tabular-nums w-16 text-center">{log.comfortDistanceMeters}m</span>
-              <Button variant="outline" size="icon" onClick={() => update("comfortDistanceMeters", log.comfortDistanceMeters + 5)}>
+              <span className="text-2xl font-bold tabular-nums w-16 text-center">{log.comfort_distance_meters}m</span>
+              <Button variant="outline" size="icon" onClick={() => update("comfort_distance_meters", log.comfort_distance_meters + 5)}>
                 <span className="text-lg">+</span>
               </Button>
             </div>
           </div>
 
-          <ToggleGroup label="Récupération après déclencheur" value={log.recoveryAfterTrigger}
+          <ToggleGroup label="Récupération" value={log.recovery_after_trigger}
             options={[{ value: "rapide", label: "Rapide" }, { value: "moyenne", label: "Moyenne" }, { value: "lente", label: "Lente" }]}
-            onChange={(v) => update("recoveryAfterTrigger", v as RecoverySpeed)} />
+            onChange={(v) => update("recovery_after_trigger", v)} />
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Commentaires</label>
@@ -182,11 +220,11 @@ export default function BehaviorLogPage() {
           </div>
         </div>
 
-        <Button size="xl" className="w-full" onClick={save}>
+        <Button className="w-full h-12" onClick={save}>
           <Save className="h-5 w-5" />
           {saved ? "✓ Enregistré !" : "Enregistrer"}
         </Button>
       </div>
-    </Layout>
+    </AppLayout>
   );
 }

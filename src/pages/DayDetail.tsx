@@ -2,72 +2,111 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Play, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Layout } from "@/components/Layout";
+import { AppLayout } from "@/components/AppLayout";
 import { StatusBadge } from "@/components/StatusBadge";
 import { getDayById } from "@/data/program";
-import { getDayProgress, saveDayProgress, getSettings, saveSettings } from "@/lib/storage";
-import type { DayProgress } from "@/types";
+import { useActiveDog } from "@/hooks/useDogs";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export default function DayDetail() {
   const { dayId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const activeDog = useActiveDog();
+  const qc = useQueryClient();
   const id = Number(dayId);
   const day = getDayById(id);
-  const [progress, setProgress] = useState<DayProgress | null>(null);
   const [notes, setNotes] = useState("");
 
+  const { data: progress, refetch } = useQuery({
+    queryKey: ["day_progress", activeDog?.id, id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("day_progress")
+        .select("*")
+        .eq("dog_id", activeDog!.id)
+        .eq("day_id", id)
+        .single();
+      return data;
+    },
+    enabled: !!activeDog,
+  });
+
   useEffect(() => {
-    const p = getDayProgress(id);
-    if (p) { setProgress(p); setNotes(p.notes); }
-    else {
-      const init: DayProgress = { dayId: id, status: "todo", completedExercises: [], notes: "", validated: false, lastUpdated: new Date().toISOString() };
-      setProgress(init);
-    }
-  }, [id]);
+    if (progress?.notes) setNotes(progress.notes);
+  }, [progress]);
 
-  if (!day || !progress) return <Layout><p className="pt-10 text-center">Jour non trouvé</p></Layout>;
+  if (!day) return <AppLayout><p className="pt-10 text-center">Jour non trouvé</p></AppLayout>;
+  if (!activeDog) return <AppLayout><p className="pt-10 text-center">Ajoutez d'abord un chien.</p></AppLayout>;
 
-  const toggleExercise = (exId: string) => {
-    const updated = { ...progress };
-    if (updated.completedExercises.includes(exId)) {
-      updated.completedExercises = updated.completedExercises.filter((e) => e !== exId);
+  const completedExercises: string[] = progress?.completed_exercises || [];
+  const status = progress?.status || "todo";
+
+  const toggleExercise = async (exId: string) => {
+    const newCompleted = completedExercises.includes(exId)
+      ? completedExercises.filter((e) => e !== exId)
+      : [...completedExercises, exId];
+    const newStatus = newCompleted.length > 0 ? "in_progress" : "todo";
+
+    if (progress) {
+      await supabase.from("day_progress").update({
+        completed_exercises: newCompleted,
+        status: progress.validated ? "done" : newStatus,
+      }).eq("id", progress.id);
     } else {
-      updated.completedExercises = [...updated.completedExercises, exId];
+      await supabase.from("day_progress").insert({
+        dog_id: activeDog.id,
+        user_id: user!.id,
+        day_id: id,
+        completed_exercises: newCompleted,
+        status: newStatus,
+      });
     }
-    if (updated.status === "todo") updated.status = "in_progress";
-    setProgress(updated);
-    saveDayProgress(updated);
+    refetch();
   };
 
-  const markInProgress = () => {
-    const updated = { ...progress, status: "in_progress" as const };
-    setProgress(updated);
-    saveDayProgress(updated);
-  };
-
-  const validateDay = () => {
-    const updated = { ...progress, status: "done" as const, validated: true, notes };
-    setProgress(updated);
-    saveDayProgress(updated);
-    // Advance current day
-    const settings = getSettings();
-    if (settings.currentDay === id && id < 28) {
-      saveSettings({ ...settings, currentDay: id + 1 });
+  const markInProgress = async () => {
+    if (progress) {
+      await supabase.from("day_progress").update({ status: "in_progress" }).eq("id", progress.id);
+    } else {
+      await supabase.from("day_progress").insert({
+        dog_id: activeDog.id, user_id: user!.id, day_id: id, status: "in_progress",
+      });
     }
+    refetch();
   };
 
-  const saveNotes = () => {
-    const updated = { ...progress, notes };
-    setProgress(updated);
-    saveDayProgress(updated);
+  const validateDay = async () => {
+    if (progress) {
+      await supabase.from("day_progress").update({ status: "done", validated: true, notes }).eq("id", progress.id);
+    } else {
+      await supabase.from("day_progress").insert({
+        dog_id: activeDog.id, user_id: user!.id, day_id: id, status: "done", validated: true, notes,
+      });
+    }
+    refetch();
+    qc.invalidateQueries({ queryKey: ["day_progress"] });
   };
 
-  const completedCount = progress.completedExercises.length;
+  const saveNotes = async () => {
+    if (progress) {
+      await supabase.from("day_progress").update({ notes }).eq("id", progress.id);
+    } else {
+      await supabase.from("day_progress").insert({
+        dog_id: activeDog.id, user_id: user!.id, day_id: id, notes,
+      });
+    }
+    refetch();
+  };
+
+  const completedCount = completedExercises.length;
   const totalExercises = day.exercises.length;
   const exercisePct = Math.round((completedCount / totalExercises) * 100);
 
   return (
-    <Layout>
+    <AppLayout>
       <div className="animate-fade-in space-y-5 pt-4">
         <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground">
           <ArrowLeft className="h-4 w-4" /> Retour
@@ -78,7 +117,7 @@ export default function DayDetail() {
             <p className="text-xs text-muted-foreground">Jour {day.id} — Semaine {day.week}</p>
             <h1 className="text-xl font-bold">{day.title}</h1>
           </div>
-          <StatusBadge status={progress.status} />
+          <StatusBadge status={status as "todo" | "in_progress" | "done"} />
         </div>
 
         <p className="text-sm text-muted-foreground">{day.objective}</p>
@@ -91,7 +130,6 @@ export default function DayDetail() {
           ))}
         </div>
 
-        {/* Progress */}
         <div className="rounded-xl border border-border bg-card p-4">
           <div className="flex items-center justify-between text-sm">
             <span className="font-medium">Exercices</span>
@@ -102,10 +140,9 @@ export default function DayDetail() {
           </div>
         </div>
 
-        {/* Exercises */}
         <div className="space-y-2">
           {day.exercises.map((ex, i) => {
-            const done = progress.completedExercises.includes(ex.id);
+            const done = completedExercises.includes(ex.id);
             return (
               <button
                 key={ex.id}
@@ -113,7 +150,6 @@ export default function DayDetail() {
                 className={`card-press flex w-full items-start gap-3 rounded-xl border p-4 text-left transition-all ${
                   done ? "border-success/30 bg-success/5" : "border-border bg-card"
                 }`}
-                style={{ animationDelay: `${i * 50}ms` }}
               >
                 <div className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 transition-all ${
                   done ? "bg-success border-success animate-bounce-check" : "border-muted-foreground/30"
@@ -133,19 +169,16 @@ export default function DayDetail() {
           })}
         </div>
 
-        {/* Vigilance */}
         <div className="rounded-xl border border-zone-orange/30 bg-warning/5 p-4">
           <p className="text-sm font-medium text-warning">⚠️ Point de vigilance</p>
           <p className="mt-1 text-sm text-foreground">{day.vigilance}</p>
         </div>
 
-        {/* Validation criteria */}
         <div className="rounded-xl border border-success/30 bg-success/5 p-4">
           <p className="text-sm font-medium text-success">✅ Critère de validation</p>
           <p className="mt-1 text-sm text-foreground">{day.validationCriteria}</p>
         </div>
 
-        {/* Notes */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Notes du jour</label>
           <textarea
@@ -154,31 +187,26 @@ export default function DayDetail() {
             placeholder="Vos observations, réussites, difficultés..."
             className="w-full rounded-xl border border-border bg-card p-3 text-sm min-h-[80px] resize-none focus:outline-none focus:ring-2 focus:ring-ring"
           />
-          <Button variant="outline" size="sm" onClick={saveNotes}>
-            Enregistrer mes notes
-          </Button>
+          <Button variant="outline" size="sm" onClick={saveNotes}>Enregistrer mes notes</Button>
         </div>
 
-        {/* Actions */}
         <div className="flex flex-col gap-2 pb-4">
-          <Button size="xl" className="w-full" onClick={() => navigate(`/training/${day.id}`)}>
+          <Button className="w-full h-12" onClick={() => navigate(`/training/${day.id}`)}>
             <Play className="h-5 w-5" /> Mode entraînement
           </Button>
           <Button variant="outline" className="w-full" onClick={() => navigate(`/behavior/${day.id}`)}>
             Suivi comportemental
           </Button>
-          {!progress.validated && progress.status !== "in_progress" && (
-            <Button variant="secondary" className="w-full" onClick={markInProgress}>
-              Marquer en cours
-            </Button>
+          {!progress?.validated && status !== "in_progress" && (
+            <Button variant="secondary" className="w-full" onClick={markInProgress}>Marquer en cours</Button>
           )}
-          {!progress.validated && (
-            <Button variant="success" size="xl" className="w-full" onClick={validateDay}>
+          {!progress?.validated && (
+            <Button className="w-full h-12 bg-success hover:bg-success/90 text-success-foreground" onClick={validateDay}>
               <CheckCircle2 className="h-5 w-5" /> Valider ce jour
             </Button>
           )}
         </div>
       </div>
-    </Layout>
+    </AppLayout>
   );
 }
