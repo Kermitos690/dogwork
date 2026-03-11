@@ -22,8 +22,8 @@
     --accent-foreground: 0 0% 100%;
     --destructive: 0 68% 52%;
     --destructive-foreground: 0 0% 100%;
-    --border: 38 15% 86%;
-    --input: 38 15% 86%;
+    --border: 38 15% 88%;
+    --input: 38 15% 88%;
     --ring: 160 32% 32%;
     --radius: 0.75rem;
     --success: 152 55% 42%;
@@ -74,5 +74,9 @@
   .stagger-item {
     @apply animate-slide-up opacity-0;
     animation-fill-mode: forwards;
+  }
+  .glass {
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
   }
 }
