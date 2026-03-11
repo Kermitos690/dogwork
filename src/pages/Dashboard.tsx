@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Dog, Play, BookOpen, BarChart3, ClipboardList, AlertTriangle, Plus, Shield,
   TrendingUp, TrendingDown, ChevronRight, Sparkles, Heart, Calendar, Activity,
-  PawPrint, Eye, Zap, Settings, FileText, Target, ArrowRight
+  PawPrint, Eye, Zap, Settings, FileText, Target, ArrowRight, LogOut, Timer
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,7 +30,7 @@ function dogAge(birthDate: string | null) {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const activeDog = useActiveDog();
   const { data: dogs } = useDogs();
   const adaptiveSuggestion = useAdaptiveSuggestion();
@@ -140,6 +140,15 @@ export default function Dashboard() {
   const hasPlan = !!activePlan;
   const hasIncompleteSession = !!lastSession;
 
+  // ── Next exercise to do ──
+  const completedExerciseIds = inProgress?.completed_exercises || [];
+  const planDays = (activePlan?.days as any[]) || [];
+  const planDay = planDays.find((d: any) => d.id === resumeDay || d.dayId === resumeDay);
+  const planExercises = planDay?.exercises || [];
+  const dayExercises = planExercises.length > 0 ? planExercises : (getDayById(resumeDay)?.exercises || []);
+  const nextExercise = dayExercises.find((ex: any) => !completedExerciseIds.includes(ex.id));
+  const nextExerciseDayData = getDayById(resumeDay);
+
   // Determine primary state for adaptive dashboard
   type DashState = "no_plan" | "no_progress" | "in_progress" | "day_done" | "all_done";
   const dashState: DashState = !hasPlan ? "no_plan"
@@ -171,25 +180,35 @@ export default function Dashboard() {
         {/* ── Header: greeting + dog pill ── */}
         <motion.div custom={0} variants={fadeUp} className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-foreground">Aujourd'hui</h1>
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={() => navigate(`/dogs/${activeDog?.id}`)}
-            className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-full bg-card border border-border shadow-sm"
-          >
-            {activeDog?.photo_url ? (
-              <img src={activeDog.photo_url} alt="" className="w-7 h-7 rounded-full object-cover" />
-            ) : (
-              <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
-                <Dog className="h-3.5 w-3.5 text-primary" />
-              </div>
-            )}
-            <span className="text-xs font-semibold text-foreground">{activeDog?.name}</span>
-            {dogBadges.length > 0 && (
-              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${dogBadges[0].cls}`}>
-                {dogBadges[0].label}
-              </span>
-            )}
-          </motion.button>
+          <div className="flex items-center gap-2">
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate(`/dogs/${activeDog?.id}`)}
+              className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-full bg-card border border-border shadow-sm"
+            >
+              {activeDog?.photo_url ? (
+                <img src={activeDog.photo_url} alt="" className="w-7 h-7 rounded-full object-cover" />
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Dog className="h-3.5 w-3.5 text-primary" />
+                </div>
+              )}
+              <span className="text-xs font-semibold text-foreground">{activeDog?.name}</span>
+              {dogBadges.length > 0 && (
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${dogBadges[0].cls}`}>
+                  {dogBadges[0].label}
+                </span>
+              )}
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={signOut}
+              className="w-8 h-8 rounded-full bg-card border border-border flex items-center justify-center shadow-sm"
+              title="Se déconnecter"
+            >
+              <LogOut className="h-3.5 w-3.5 text-muted-foreground" />
+            </motion.button>
+          </div>
         </motion.div>
 
         {/* ── Security alert (compact) ── */}
@@ -309,6 +328,37 @@ export default function Dashboard() {
                 <p className="text-[10px] text-muted-foreground">Reprendre l'exercice — Jour {lastSession!.day_id}</p>
               </div>
               <ArrowRight className="h-4 w-4 text-accent shrink-0" />
+            </motion.button>
+          </motion.div>
+        )}
+
+        {/* ── Next exercise card ── */}
+        {nextExercise && hasPlan && dashState !== "all_done" && (
+          <motion.div custom={1.8} variants={fadeUp}>
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => navigate(`/training/${resumeDay}?source=plan`)}
+              className="w-full flex items-center gap-3 rounded-2xl bg-primary/5 border border-primary/15 px-4 py-3.5 text-left"
+            >
+              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shrink-0 shadow-md">
+                <Timer className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] text-primary font-bold uppercase tracking-wider">Prochain exercice</p>
+                <p className="text-sm font-bold text-foreground mt-0.5 line-clamp-1">{nextExercise.name}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  {nextExercise.timerSuggested && (
+                    <span className="text-[10px] text-muted-foreground">{Math.floor(nextExercise.timerSuggested / 60)} min</span>
+                  )}
+                  {nextExercise.repetitionsTarget && (
+                    <span className="text-[10px] text-muted-foreground">× {nextExercise.repetitionsTarget} rép.</span>
+                  )}
+                </div>
+              </div>
+              <div className="flex flex-col items-center gap-0.5 shrink-0">
+                <ArrowRight className="h-4 w-4 text-primary" />
+                <span className="text-[9px] text-primary font-semibold">Go</span>
+              </div>
             </motion.button>
           </motion.div>
         )}
