@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { CoachNav } from "@/components/CoachNav";
+import { CoachLayout } from "@/components/CoachLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -223,9 +223,9 @@ export default function CoachCourses() {
   const getBookingsForCourse = (courseId: string) => bookings.filter((b) => b.course_id === courseId);
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <CoachLayout>
       {/* Header */}
-      <div className="bg-card border-b border-border px-4 pt-12 pb-4">
+      <div className="bg-card border-b border-border px-4 pt-12 pb-4 -mx-4">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold">Mes cours</h1>
@@ -433,15 +433,15 @@ export default function CoachCourses() {
                   <div className="bg-muted/50 rounded-lg p-2.5 text-xs space-y-1">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">CA brut</span>
-                      <span className="font-medium">{(revenue / 100).toFixed(2)} €</span>
+                      <span className="font-medium">{(revenue / 100).toFixed(2)} CHF</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Commission (30%)</span>
-                      <span className="font-medium text-orange-500">-{(commission / 100).toFixed(2)} €</span>
+                      <span className="font-medium text-orange-500">-{(commission / 100).toFixed(2)} CHF</span>
                     </div>
                     <div className="flex justify-between border-t border-border pt-1">
                       <span className="text-muted-foreground">Net</span>
-                      <span className="font-bold text-green-500">{((revenue - commission) / 100).toFixed(2)} €</span>
+                      <span className="font-bold text-green-500">{((revenue - commission) / 100).toFixed(2)} CHF</span>
                     </div>
                   </div>
                 )}
@@ -451,7 +451,6 @@ export default function CoachCourses() {
         })}
       </div>
 
-      <CoachNav />
-    </div>
+    </CoachLayout>
   );
 }
