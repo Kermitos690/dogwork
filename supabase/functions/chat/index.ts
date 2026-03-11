@@ -121,7 +121,7 @@ serve(async (req) => {
         });
 
         // Expert product ID
-        const EXPERT_PRODUCT_ID = "prod_SFUI6fTFsILOOV";
+        const EXPERT_PRODUCT_ID = "prod_U83inCbv8JMMgf";
         for (const sub of subs.data) {
           for (const item of sub.items.data) {
             if (item.price.product === EXPERT_PRODUCT_ID) {
