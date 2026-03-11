@@ -249,6 +249,9 @@ export default function DogProfile() {
                 <SelectTrigger><SelectValue placeholder="Lieu" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="appartement">Appartement</SelectItem>
+                  <SelectItem value="maison_jardin">Maison + Jardin</SelectItem>
+                  <SelectItem value="rural">Rural</SelectItem>
+                  <SelectItem value="urbain">Urbain</SelectItem>
                   <SelectItem value="maison">Maison</SelectItem>
                   <SelectItem value="jardin">Jardin</SelectItem>
                   <SelectItem value="campagne">Campagne</SelectItem>
