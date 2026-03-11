@@ -30,7 +30,7 @@ function dogAge(birthDate: string | null) {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const activeDog = useActiveDog();
   const { data: dogs } = useDogs();
   const adaptiveSuggestion = useAdaptiveSuggestion();
