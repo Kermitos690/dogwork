@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { useDogs } from "./hooks/useDogs";
+import { AIChatBot } from "@/components/AIChatBot";
 
 // Eagerly loaded (critical path)
 import Auth from "./pages/Auth";
