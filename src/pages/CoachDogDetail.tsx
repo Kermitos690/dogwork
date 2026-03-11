@@ -85,7 +85,7 @@ export default function CoachDogDetail() {
   const fadeUp = { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } };
 
   return (
-    <AppLayout title={dog.name}>
+    <AppLayout>
       <div className="space-y-4 pb-24">
         {/* Header */}
         <div className="flex items-center gap-3">

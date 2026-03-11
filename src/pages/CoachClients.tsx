@@ -73,7 +73,7 @@ export default function CoachClients() {
   };
 
   return (
-    <AppLayout title="Mes clients">
+    <AppLayout>
       <div className="space-y-4 pb-24">
         {/* Header */}
         <div className="flex items-center gap-3">

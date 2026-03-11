@@ -75,7 +75,7 @@ export default function CoachNotes() {
   };
 
   return (
-    <AppLayout title="Notes professionnelles">
+    <AppLayout>
       <div className="space-y-4 pb-24">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate("/coach")}>
