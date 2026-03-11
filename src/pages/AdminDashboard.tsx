@@ -118,10 +118,16 @@ export default function AdminDashboard() {
       refetchCourses();
       // Send notification email to educator
       try {
+        // Fetch educator email for notification
+        const { data: eduProfile } = await supabase
+          .from("profiles")
+          .select("display_name")
+          .eq("user_id", course?.educator_user_id)
+          .single();
         await supabase.functions.invoke("send-notification-email", {
           body: {
             type: status === "approved" ? "course_approved" : "course_rejected",
-            data: { title: course?.title || "" },
+            data: { title: course?.title || "", educatorName: eduProfile?.display_name || "" },
           },
         });
       } catch (e) {
