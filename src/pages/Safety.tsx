@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Shield, ChevronDown, ChevronUp, AlertTriangle, BookOpen } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
+import { ReadAloudButton } from "@/components/ReadAloudButton";
 
 interface Section {
   icon: string;
