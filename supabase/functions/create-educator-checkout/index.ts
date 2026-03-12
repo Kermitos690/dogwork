@@ -26,6 +26,7 @@ serve(async (req) => {
     const { data } = await adminClient.auth.getUser(token);
     const user = data.user;
     if (!user?.email) throw new Error("User not authenticated");
+    // Verify user is an educator
     const { data: roles } = await adminClient
       .from("user_roles")
       .select("role")

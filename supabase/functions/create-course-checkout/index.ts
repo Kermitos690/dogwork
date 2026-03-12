@@ -28,7 +28,7 @@ serve(async (req) => {
 
     const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
+    const { data } = await supabaseAdmin.auth.getUser(token);
     const user = data.user;
     if (!user?.email) throw new Error("Non authentifié");
     logStep("User authenticated", { email: user.email });

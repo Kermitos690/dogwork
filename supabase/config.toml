@@ -2,3 +2,39 @@ project_id = "dcwbqsfeouvghcnvhrpj"
 
 [functions.enrich-exercises]
 verify_jwt = false
+
+[functions.check-subscription]
+verify_jwt = false
+
+[functions.create-checkout]
+verify_jwt = false
+
+[functions.create-educator-checkout]
+verify_jwt = false
+
+[functions.create-course-checkout]
+verify_jwt = false
+
+[functions.customer-portal]
+verify_jwt = false
+
+[functions.create-educator]
+verify_jwt = false
+
+[functions.create-shelter]
+verify_jwt = false
+
+[functions.seed-exercises]
+verify_jwt = false
+
+[functions.chat]
+verify_jwt = false
+
+[functions.send-notification-email]
+verify_jwt = false
+
+[functions.send-appointment-reminders]
+verify_jwt = false
+
+[functions.stripe-course-webhook]
+verify_jwt = false

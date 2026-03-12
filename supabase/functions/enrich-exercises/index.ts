@@ -34,7 +34,7 @@ serve(async (req) => {
     console.log("[ENRICH] isAdmin:", isAdmin);
     if (!isAdmin) throw new Error("Accès refusé : admin requis");
 
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const supabase = supabaseAdmin;
 
     // Get optional params
     const body = await req.json().catch(() => ({}));
