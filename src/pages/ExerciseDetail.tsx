@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Play, Heart, Clock, Repeat, AlertTriangle, CheckCircle2, XCircle, Camera, ChevronDown, ChevronUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
+import { ReadAloudButton } from "@/components/ReadAloudButton";
 
 const levelColors: Record<string, string> = {
   "débutant": "bg-success/15 text-success",
