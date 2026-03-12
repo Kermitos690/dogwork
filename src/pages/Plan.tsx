@@ -366,16 +366,27 @@ export default function PlanPage() {
                   const prevProgress = day.id > 1 ? progress?.[day.id - 1] : null;
                   const isLocked = day.id > 1 && !prevProgress?.validated;
                   return (
-                    <Card key={day.id} className="card-press rounded-2xl stagger-item" style={{ animationDelay: `${i * 50}ms` }} onClick={() => navigate(`/day/${day.id}`)}>
+                    <Card
+                      key={day.id}
+                      className={`rounded-2xl stagger-item ${isLocked ? "opacity-50" : "card-press"}`}
+                      style={{ animationDelay: `${i * 50}ms` }}
+                      onClick={() => {
+                        if (isLocked) {
+                          toast({ title: "🔒 Jour verrouillé", description: "Validez le jour précédent pour débloquer celui-ci.", variant: "destructive" });
+                          return;
+                        }
+                        navigate(`/day/${day.id}`);
+                      }}
+                    >
                       <CardContent className="p-3 flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold ${statusColors[status]}`}>
-                          {day.id}
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold ${isLocked ? "bg-muted text-muted-foreground" : statusColors[status]}`}>
+                          {isLocked ? <Lock className="h-3.5 w-3.5" /> : day.id}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{day.title}</p>
+                          <p className="text-sm font-medium text-foreground break-words">{day.title}</p>
                           <p className="text-xs text-muted-foreground">{day.duration} · {day.difficulty}</p>
                         </div>
-                        <Badge variant="secondary" className="text-[10px] shrink-0 rounded-full">{statusLabels[status]}</Badge>
+                        <Badge variant="secondary" className="text-[10px] shrink-0 rounded-full">{isLocked ? "🔒" : statusLabels[status]}</Badge>
                       </CardContent>
                     </Card>
                   );
