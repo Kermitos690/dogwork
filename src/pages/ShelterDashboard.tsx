@@ -46,6 +46,21 @@ export default function ShelterDashboard() {
     enabled: !!user,
   });
 
+  // Find admin user for messaging
+  const { data: adminUserId } = useQuery({
+    queryKey: ["admin-user-for-contact"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin" as any)
+        .limit(1)
+        .maybeSingle();
+      return data?.user_id || null;
+    },
+    enabled: !!user,
+  });
+
   const activeAnimals = animals.filter((a: any) => !["adopté", "décédé", "transféré"].includes(a.status));
   const statusCounts = activeAnimals.reduce((acc: Record<string, number>, a: any) => {
     acc[a.status] = (acc[a.status] || 0) + 1;
