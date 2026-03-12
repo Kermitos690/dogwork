@@ -36,11 +36,12 @@ export function SlideMenu() {
   const { data: roles } = useQuery({
     queryKey: ["user-roles-menu", user?.id],
     queryFn: async () => {
-      const [{ data: admin }, { data: educator }] = await Promise.all([
+      const [{ data: admin }, { data: educator }, { data: shelter }] = await Promise.all([
         supabase.rpc("is_admin"),
         supabase.rpc("is_educator"),
+        supabase.rpc("is_shelter" as any),
       ]);
-      return { isAdmin: admin === true, isEducator: educator === true };
+      return { isAdmin: admin === true, isEducator: educator === true, isShelter: shelter === true };
     },
     enabled: !!user,
     staleTime: 5 * 60_000,
