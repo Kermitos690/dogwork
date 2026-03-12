@@ -234,73 +234,94 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* All courses list */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Tous les cours ({pendingCourses.length})</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {pendingCourses.map((course: any) => (
-              <div key={course.id} className="flex items-center justify-between p-2 rounded-lg bg-secondary/30">
-                <div>
-                  <p className="text-sm font-medium text-foreground">{course.title}</p>
-                  <p className="text-[10px] text-muted-foreground">{(course.price_cents / 100).toFixed(0)} CHF</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {course.approval_status === "approved" && <Badge className="text-[9px] bg-green-500/20 text-green-700">Approuvé</Badge>}
-                  {course.approval_status === "pending" && <Badge className="text-[9px] bg-yellow-500/20 text-yellow-700">En attente</Badge>}
-                  {course.approval_status === "rejected" && <Badge variant="destructive" className="text-[9px]">Refusé</Badge>}
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+        {/* All courses list — collapsible */}
+        <Collapsible>
+          <Card>
+            <CollapsibleTrigger className="w-full">
+              <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                <CardTitle className="text-base">Tous les cours ({pendingCourses.length})</CardTitle>
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="space-y-2 pt-0">
+                {pendingCourses.map((course: any) => (
+                  <div key={course.id} className="flex items-center justify-between p-2 rounded-lg bg-secondary/30">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{course.title}</p>
+                      <p className="text-[10px] text-muted-foreground">{(course.price_cents / 100).toFixed(0)} CHF</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {course.approval_status === "approved" && <Badge className="text-[9px] bg-emerald-500/20 text-emerald-400 border-0">Approuvé</Badge>}
+                      {course.approval_status === "pending" && <Badge className="text-[9px] bg-amber-500/20 text-amber-400 border-0">En attente</Badge>}
+                      {course.approval_status === "rejected" && <Badge variant="destructive" className="text-[9px]">Refusé</Badge>}
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
 
-        {/* Create educator */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Plus className="h-4 w-4" /> Créer un compte éducateur
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-1">
-              <Label className="text-xs">Email</Label>
-              <Input value={newEducatorEmail} onChange={e => setNewEducatorEmail(e.target.value)} placeholder="educateur@email.com" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Nom d'affichage</Label>
-              <Input value={newEducatorName} onChange={e => setNewEducatorName(e.target.value)} placeholder="Nom du professionnel" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Mot de passe</Label>
-              <Input type="password" value={newEducatorPassword} onChange={e => setNewEducatorPassword(e.target.value)} placeholder="Mot de passe temporaire" />
-            </div>
-            <Button onClick={handleCreateEducator} disabled={creating || !newEducatorEmail || !newEducatorPassword} className="w-full gap-2">
-              <GraduationCap className="h-4 w-4" /> {creating ? "Création..." : "Créer l'éducateur"}
-            </Button>
-            <p className="text-[10px] text-muted-foreground">L'éducateur paiera 30% de commission sur chaque cours vendu.</p>
-          </CardContent>
-        </Card>
-
-        {/* Educators list */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Éducateurs ({educators?.length || 0})</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {educators?.length === 0 && <p className="text-xs text-muted-foreground">Aucun éducateur pour le moment.</p>}
-            {educators?.map((ed: any) => (
-              <div key={ed.id} className="flex items-center justify-between p-2 rounded-lg bg-secondary/30">
-                <div>
-                  <p className="text-sm font-medium text-foreground">{ed.display_name || "Sans nom"}</p>
-                  <p className="text-[10px] text-muted-foreground">{ed.user_id}</p>
+        {/* Create educator — collapsible */}
+        <Collapsible>
+          <Card>
+            <CollapsibleTrigger className="w-full">
+              <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Plus className="h-4 w-4" /> Créer un éducateur
+                </CardTitle>
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="space-y-3 pt-0">
+                <div className="space-y-1">
+                  <Label className="text-xs">Email</Label>
+                  <Input value={newEducatorEmail} onChange={e => setNewEducatorEmail(e.target.value)} placeholder="educateur@email.com" />
                 </div>
-                <GraduationCap className="h-4 w-4 text-primary" />
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+                <div className="space-y-1">
+                  <Label className="text-xs">Nom d'affichage</Label>
+                  <Input value={newEducatorName} onChange={e => setNewEducatorName(e.target.value)} placeholder="Nom du professionnel" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Mot de passe</Label>
+                  <Input type="password" value={newEducatorPassword} onChange={e => setNewEducatorPassword(e.target.value)} placeholder="Mot de passe temporaire" />
+                </div>
+                <Button onClick={handleCreateEducator} disabled={creating || !newEducatorEmail || !newEducatorPassword} className="w-full gap-2">
+                  <GraduationCap className="h-4 w-4" /> {creating ? "Création..." : "Créer l'éducateur"}
+                </Button>
+                <p className="text-[10px] text-muted-foreground">L'éducateur paiera 30% de commission sur chaque cours vendu.</p>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+
+        {/* Educators list — collapsible */}
+        <Collapsible>
+          <Card>
+            <CollapsibleTrigger className="w-full">
+              <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                <CardTitle className="text-base">Éducateurs ({educators?.length || 0})</CardTitle>
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="space-y-2 pt-0">
+                {educators?.length === 0 && <p className="text-xs text-muted-foreground">Aucun éducateur pour le moment.</p>}
+                {educators?.map((ed: any) => (
+                  <div key={ed.id} className="flex items-center justify-between p-2 rounded-lg bg-secondary/30">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{ed.display_name || "Sans nom"}</p>
+                      <p className="text-[10px] text-muted-foreground">{ed.user_id}</p>
+                    </div>
+                    <GraduationCap className="h-4 w-4 text-primary" />
+                  </div>
+                ))}
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
 
         {/* Quick links */}
         <div className="grid grid-cols-2 gap-2">
