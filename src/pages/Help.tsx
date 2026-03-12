@@ -315,6 +315,7 @@ function AdminGuide() {
 }
 
 import { RestartTourButton } from "@/components/GuidedTour";
+import { ReadAloudButton } from "@/components/ReadAloudButton";
 
 export default function HelpPage() {
   const { user } = useAuth();
