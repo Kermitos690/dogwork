@@ -96,6 +96,31 @@ export default function DayDetail() {
   if (!standardDay && !planDay) return <AppLayout><p className="pt-10 text-center text-muted-foreground">Jour non trouvé</p></AppLayout>;
   if (!activeDog) return <AppLayout><p className="pt-10 text-center text-muted-foreground">Ajoutez d'abord un chien.</p></AppLayout>;
 
+  // Locked day screen
+  if (isDayLocked) {
+    return (
+      <AppLayout>
+        <div className="pt-16 text-center space-y-6 animate-fade-in">
+          <div className="mx-auto w-20 h-20 rounded-3xl bg-muted flex items-center justify-center">
+            <Lock className="h-10 w-10 text-muted-foreground" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold text-foreground">Jour {id} verrouillé</h1>
+            <p className="text-sm text-muted-foreground">Vous devez valider le Jour {id - 1} avant de pouvoir accéder à celui-ci.</p>
+          </div>
+          <div className="space-y-3 max-w-xs mx-auto">
+            <Button className="w-full h-12 rounded-xl" onClick={() => navigate(source === "plan" ? `/day/${id - 1}?source=plan` : `/day/${id - 1}`)}>
+              <ArrowLeft className="h-5 w-5" /> Aller au Jour {id - 1}
+            </Button>
+            <Button variant="ghost" className="w-full h-12 rounded-xl" onClick={() => navigate("/plan")}>
+              Retour au plan
+            </Button>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
   const completedExercises: string[] = progress?.completed_exercises || [];
   const status = progress?.status || "todo";
   const completedCount = completedExercises.length;
