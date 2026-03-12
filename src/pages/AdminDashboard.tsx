@@ -22,6 +22,10 @@ export default function AdminDashboard() {
   const [newEducatorName, setNewEducatorName] = useState("");
   const [newEducatorPassword, setNewEducatorPassword] = useState("");
   const [creating, setCreating] = useState(false);
+  const [newShelterEmail, setNewShelterEmail] = useState("");
+  const [newShelterName, setNewShelterName] = useState("");
+  const [newShelterPassword, setNewShelterPassword] = useState("");
+  const [creatingShelter, setCreatingShelter] = useState(false);
 
   // Check admin role
   const { data: isAdmin, isLoading: adminLoading } = useQuery({
