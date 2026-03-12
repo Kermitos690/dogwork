@@ -412,23 +412,33 @@ export default function AdminDashboard() {
                 let isDone = false;
 
                 while (!isDone) {
-                  try {
-                    const { data, error } = await supabase.functions.invoke("enrich-exercises", {
-                      body: { offset, batchSize: 10, onlyEmpty: true },
-                    });
-                    if (error) throw error;
+                  let retries = 0;
+                  let batchSuccess = false;
+                  while (retries < 3 && !batchSuccess) {
+                    try {
+                      const { data, error } = await supabase.functions.invoke("enrich-exercises", {
+                        body: { offset, batchSize: 3, onlyEmpty: true },
+                      });
+                      if (error) throw error;
 
-                    totalProcessed += data.processed || 0;
-                    totalSuccess += data.success || 0;
-                    totalFailed += data.failed || 0;
-                    total = data.total || total;
-                    isDone = data.done;
-                    offset = data.nextOffset || offset + 10;
+                      totalProcessed += data.processed || 0;
+                      totalSuccess += data.success || 0;
+                      totalFailed += data.failed || 0;
+                      total = data.total || total;
+                      isDone = data.done;
+                      offset = data.nextOffset || offset + 3;
+                      batchSuccess = true;
 
-                    setEnrichProgress({ processed: totalProcessed, total, success: totalSuccess, failed: totalFailed, done: isDone });
-                  } catch (err: any) {
-                    toast({ title: "Erreur enrichissement", description: err.message, variant: "destructive" });
-                    isDone = true;
+                      setEnrichProgress({ processed: totalProcessed, total, success: totalSuccess, failed: totalFailed, done: isDone });
+                    } catch (err: any) {
+                      retries++;
+                      if (retries >= 3) {
+                        toast({ title: "Erreur enrichissement", description: err.message, variant: "destructive" });
+                        isDone = true;
+                      } else {
+                        await new Promise(r => setTimeout(r, 3000));
+                      }
+                    }
                   }
                 }
 

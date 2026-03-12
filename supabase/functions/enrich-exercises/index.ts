@@ -223,7 +223,7 @@ Retourne un JSON avec EXACTEMENT ces champs (en français) :`;
         results.push({ id: exercise.id, name: exercise.name, success: true });
 
         // Small delay to avoid rate limits
-        await new Promise(r => setTimeout(r, 2000));
+        await new Promise(r => setTimeout(r, 1000));
       } catch (err: any) {
         results.push({ id: exercise.id, name: exercise.name, success: false, error: err.message });
       }
