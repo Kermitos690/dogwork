@@ -114,6 +114,24 @@ export default function AdminDashboard() {
     setCreating(false);
   };
 
+  const handleCreateShelter = async () => {
+    if (!newShelterEmail || !newShelterPassword) return;
+    setCreatingShelter(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-shelter", {
+        body: { email: newShelterEmail, password: newShelterPassword, displayName: newShelterName || newShelterEmail.split("@")[0] },
+      });
+      if (error) throw error;
+      toast({ title: "Refuge créé", description: `${newShelterEmail} a été ajouté comme refuge.` });
+      setNewShelterEmail("");
+      setNewShelterName("");
+      setNewShelterPassword("");
+    } catch (err: any) {
+      toast({ title: "Erreur", description: err.message || "Impossible de créer le refuge", variant: "destructive" });
+    }
+    setCreatingShelter(false);
+  };
+
   const handleApproval = async (courseId: string, status: "approved" | "rejected") => {
     const course = pendingCourses.find((c: any) => c.id === courseId);
     const { error } = await supabase.from("courses").update({ approval_status: status }).eq("id", courseId);
@@ -122,9 +140,7 @@ export default function AdminDashboard() {
     } else {
       toast({ title: status === "approved" ? "Cours approuvé ✅" : "Cours refusé ❌" });
       refetchCourses();
-      // Send notification email to educator
       try {
-        // Fetch educator email for notification
         const { data: eduProfile } = await supabase
           .from("profiles")
           .select("display_name")
