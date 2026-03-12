@@ -1317,7 +1317,7 @@ export type Database = {
       is_educator: { Args: never; Returns: boolean }
     }
     Enums: {
-      app_role: "owner" | "educator" | "admin"
+      app_role: "owner" | "educator" | "admin" | "shelter"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1445,7 +1445,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["owner", "educator", "admin"],
+      app_role: ["owner", "educator", "admin", "shelter"],
     },
   },
 } as const
