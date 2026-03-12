@@ -403,15 +403,11 @@ export default function AdminDashboard() {
             <Button
               onClick={async () => {
                 setEnriching(true);
-                setEnrichProgress(null);
-                let offset = 0;
                 let totalProcessed = 0;
                 let totalSuccess = 0;
                 let totalFailed = 0;
-                let total = 0;
                 let isDone = false;
 
-                // Get fresh session token
                 const { data: { session } } = await supabase.auth.getSession();
                 if (!session?.access_token) {
                   toast({ title: "Erreur", description: "Session expirée, reconnectez-vous.", variant: "destructive" });
@@ -426,24 +422,28 @@ export default function AdminDashboard() {
                   while (retries < 3 && !batchSuccess) {
                     try {
                       const { data, error } = await supabase.functions.invoke("enrich-exercises", {
-                        body: { offset, batchSize: 3, onlyEmpty: true },
+                        body: { batchSize: 1, offset: 0 },
                         headers: { Authorization: `Bearer ${accessToken}` },
                       });
                       if (error) throw error;
 
-                      totalProcessed += data.processed || 0;
+                      totalProcessed += data.success || 0;
                       totalSuccess += data.success || 0;
                       totalFailed += data.failed || 0;
-                      total = data.total || total;
-                      isDone = data.done;
-                      offset = data.nextOffset || offset + 3;
+                      const remaining = data.remaining ?? 0;
+                      isDone = data.done || remaining === 0;
                       batchSuccess = true;
 
-                      setEnrichProgress({ processed: totalProcessed, total, success: totalSuccess, failed: totalFailed, done: isDone });
+                      setEnrichProgress({ 
+                        processed: totalProcessed, 
+                        total: totalProcessed + remaining, 
+                        success: totalSuccess, 
+                        failed: totalFailed, 
+                        done: isDone 
+                      });
                       
-                      // Wait between batches to avoid connection flooding
                       if (!isDone) {
-                        await new Promise(r => setTimeout(r, 1500));
+                        await new Promise(r => setTimeout(r, 500));
                       }
                     } catch (err: any) {
                       retries++;
