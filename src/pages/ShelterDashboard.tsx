@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ShelterLayout } from "@/components/ShelterLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PawPrint, Plus, Clock, Heart, Stethoscope, Home } from "lucide-react";
+import { PawPrint, Plus, Clock, Heart, Stethoscope, Home, MessageSquare } from "lucide-react";
 import { motion } from "framer-motion";
 
 const statusConfig: Record<string, { label: string; icon: React.ElementType; color: string }> = {
