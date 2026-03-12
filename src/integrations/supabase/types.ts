@@ -106,6 +106,75 @@ export type Database = {
         }
         Relationships: []
       }
+      coach_calendar_events: {
+        Row: {
+          client_user_id: string | null
+          coach_user_id: string
+          course_id: string | null
+          created_at: string
+          description: string | null
+          dog_id: string | null
+          end_at: string
+          event_type: string
+          id: string
+          is_available_slot: boolean
+          location: string | null
+          start_at: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          client_user_id?: string | null
+          coach_user_id: string
+          course_id?: string | null
+          created_at?: string
+          description?: string | null
+          dog_id?: string | null
+          end_at: string
+          event_type?: string
+          id?: string
+          is_available_slot?: boolean
+          location?: string | null
+          start_at: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          client_user_id?: string | null
+          coach_user_id?: string
+          course_id?: string | null
+          created_at?: string
+          description?: string | null
+          dog_id?: string | null
+          end_at?: string
+          event_type?: string
+          id?: string
+          is_available_slot?: boolean
+          location?: string | null
+          start_at?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_calendar_events_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coach_calendar_events_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coach_notes: {
         Row: {
           client_user_id: string | null
