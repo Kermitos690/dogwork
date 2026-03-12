@@ -51,6 +51,10 @@ const CoachCalendar = lazy(() => import("./pages/CoachCalendar"));
 const CoachSubscription = lazy(() => import("./pages/CoachSubscription"));
 const MessagesPage = lazy(() => import("./pages/Messages"));
 const SettingsPage = lazy(() => import("./pages/Settings"));
+const ShelterGuard = lazy(() => import("./components/ShelterGuard").then(m => ({ default: m.ShelterGuard })));
+const ShelterDashboard = lazy(() => import("./pages/ShelterDashboard"));
+const ShelterAnimals = lazy(() => import("./pages/ShelterAnimals"));
+const ShelterAnimalDetail = lazy(() => import("./pages/ShelterAnimalDetail"));
 
 const queryClient = new QueryClient();
 
