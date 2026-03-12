@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { SubscriptionProvider } from "@/hooks/useSubscription";
 import { EducatorSubscriptionProvider } from "@/hooks/useEducatorSubscription";
 import { useDogs } from "./hooks/useDogs";
+import { useIsCoach, useIsShelter } from "./hooks/useCoach";
 import { AIChatBot } from "@/components/AIChatBot";
 import { GuidedTour } from "@/components/GuidedTour";
 
