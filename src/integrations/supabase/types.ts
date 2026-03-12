@@ -1449,6 +1449,66 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_unenriched_exercises: {
+        Args: { batch_limit?: number; batch_offset?: number }
+        Returns: {
+          adaptations: Json | null
+          age_recommendation: string | null
+          category_id: string
+          cognitive_load: number | null
+          compatible_muzzle: boolean | null
+          compatible_puppy: boolean | null
+          compatible_reactivity: boolean | null
+          compatible_senior: boolean | null
+          contraindications: Json | null
+          cover_image: string | null
+          created_at: string | null
+          dedication: string | null
+          description: string | null
+          difficulty: number | null
+          duration: string | null
+          environment: string | null
+          equipment: string[] | null
+          exercise_type: string | null
+          frequency: string | null
+          health_precautions: Json | null
+          id: string
+          intensity_level: number | null
+          is_professional: boolean | null
+          level: string | null
+          mistakes: Json | null
+          name: string
+          objective: string | null
+          physical_load: number | null
+          precautions: Json | null
+          prerequisites: string[] | null
+          priority_axis: string[] | null
+          progression_next: string | null
+          regression_simplified: string | null
+          repetitions: string | null
+          secondary_benefits: string[] | null
+          short_instruction: string | null
+          short_title: string | null
+          slug: string
+          sort_order: number | null
+          steps: Json | null
+          stop_criteria: string | null
+          success_criteria: string | null
+          suitable_profiles: Json | null
+          summary: string | null
+          tags: string[] | null
+          target_breeds: string[] | null
+          target_problems: string[] | null
+          tutorial_steps: Json | null
+          vigilance: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "exercises"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
