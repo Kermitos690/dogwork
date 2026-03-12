@@ -411,6 +411,15 @@ export default function AdminDashboard() {
                 let total = 0;
                 let isDone = false;
 
+                // Get fresh session token
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session?.access_token) {
+                  toast({ title: "Erreur", description: "Session expirée, reconnectez-vous.", variant: "destructive" });
+                  setEnriching(false);
+                  return;
+                }
+                const accessToken = session.access_token;
+
                 while (!isDone) {
                   let retries = 0;
                   let batchSuccess = false;
@@ -418,6 +427,7 @@ export default function AdminDashboard() {
                     try {
                       const { data, error } = await supabase.functions.invoke("enrich-exercises", {
                         body: { offset, batchSize: 3, onlyEmpty: true },
+                        headers: { Authorization: `Bearer ${accessToken}` },
                       });
                       if (error) throw error;
 

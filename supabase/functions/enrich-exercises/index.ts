@@ -20,21 +20,21 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) throw new Error("Non authentifié");
 
-    const supabaseUser = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false },
     });
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: authError } = await supabaseUser.auth.getClaims(token);
-    const userId = claimsData?.claims?.sub;
+    const { data: userData, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const userId = userData?.user?.id;
     console.log("[ENRICH] Auth result:", { userId, error: authError?.message });
     if (authError || !userId) throw new Error("Non authentifié");
 
-    const { data: isAdmin } = await supabaseUser.rpc("is_admin");
+    const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: userId, _role: "admin" });
     console.log("[ENRICH] isAdmin:", isAdmin);
     if (!isAdmin) throw new Error("Accès refusé : admin requis");
 
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const supabase = supabaseAdmin;
 
     // Get optional params
     const body = await req.json().catch(() => ({}));
