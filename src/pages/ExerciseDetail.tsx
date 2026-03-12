@@ -115,6 +115,18 @@ export default function ExerciseDetail() {
           {exercise.dedication && <p className="text-xs text-primary/80 italic">"{exercise.dedication}"</p>}
         </div>
 
+        <ReadAloudButton
+          getText={() => {
+            const parts = [exercise.name, exercise.objective];
+            if (exercise.description) parts.push(exercise.description);
+            const steps = Array.isArray(exercise.tutorial_steps) ? exercise.tutorial_steps : [];
+            steps.forEach((s: any, i: number) => parts.push(`Étape ${i + 1}: ${s.title}. ${s.description}`));
+            if (exercise.success_criteria) parts.push(`Critère de réussite: ${exercise.success_criteria}`);
+            return parts.join(". ");
+          }}
+          label="Écouter"
+        />
+
         {tutorialSteps.length > 0 && (
           <Section title="Étapes du tutoriel" icon={<Play className="h-3.5 w-3.5 text-primary" />} defaultOpen={true}>
             {tutorialSteps.map((ts: any, i: number) => (

@@ -213,6 +213,11 @@ export default function Safety() {
           </div>
         </div>
 
+        <ReadAloudButton
+          getText={() => sections.map(s => `${s.title}. ${s.content}`).join("\n\n")}
+          label="Écouter la page"
+        />
+
         {/* Quick alert */}
         <Card className="border-warning/30 bg-warning/5">
           <CardContent className="p-3 flex items-start gap-2">
