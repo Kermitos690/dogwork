@@ -27,7 +27,7 @@ function SliderField({ label, value, onChange, max = 5 }: { label: string; value
         <Label className="text-sm text-muted-foreground">{label}</Label>
         <span className="text-sm font-semibold text-foreground">{value || 0}/{max}</span>
       </div>
-      <Slider value={[value || 0]} onValueChange={([v]) => onChange(v)} min={0} max={max} step={1} />
+      <Slider value={[value || 1]} onValueChange={([v]) => onChange(v)} min={1} max={max} step={1} />
     </div>
   );
 }
