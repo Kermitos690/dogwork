@@ -64,6 +64,7 @@ export function SlideMenu() {
 
   const isAdmin = roles?.isAdmin ?? false;
   const isEducator = roles?.isEducator ?? false;
+  const isShelter = roles?.isShelter ?? false;
 
   const userSections: MenuSection[] = [
     {
