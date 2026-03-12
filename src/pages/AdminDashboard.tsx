@@ -345,13 +345,49 @@ export default function AdminDashboard() {
           </Card>
         </Collapsible>
 
+        {/* Create shelter — collapsible */}
+        <Collapsible>
+          <Card>
+            <CollapsibleTrigger className="w-full">
+              <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Plus className="h-4 w-4" /> Créer un refuge
+                </CardTitle>
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="space-y-3 pt-0">
+                <div className="space-y-1">
+                  <Label className="text-xs">Email</Label>
+                  <Input value={newShelterEmail} onChange={e => setNewShelterEmail(e.target.value)} placeholder="refuge@email.com" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Nom du refuge</Label>
+                  <Input value={newShelterName} onChange={e => setNewShelterName(e.target.value)} placeholder="SPA de Genève" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Mot de passe</Label>
+                  <Input type="password" value={newShelterPassword} onChange={e => setNewShelterPassword(e.target.value)} placeholder="Mot de passe temporaire" />
+                </div>
+                <Button onClick={handleCreateShelter} disabled={creatingShelter || !newShelterEmail || !newShelterPassword} className="w-full gap-2">
+                  <Home className="h-4 w-4" /> {creatingShelter ? "Création..." : "Créer le refuge"}
+                </Button>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+
         {/* Quick links */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <Button variant="outline" className="h-12 gap-2" onClick={() => navigate("/exercises")}>
             <BookOpen className="h-4 w-4" /> Exercices
           </Button>
           <Button variant="outline" className="h-12 gap-2" onClick={() => navigate("/coach")}>
-            <GraduationCap className="h-4 w-4" /> Espace Coach
+            <GraduationCap className="h-4 w-4" /> Coach
+          </Button>
+          <Button variant="outline" className="h-12 gap-2" onClick={() => navigate("/shelter")}>
+            <Home className="h-4 w-4" /> Refuge
           </Button>
         </div>
       </motion.div>
