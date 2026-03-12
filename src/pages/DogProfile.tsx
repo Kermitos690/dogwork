@@ -25,7 +25,7 @@ function SliderField({ label, value, onChange, max = 5 }: { label: string; value
     <div className="space-y-2">
       <div className="flex justify-between">
         <Label className="text-sm text-muted-foreground">{label}</Label>
-        <span className="text-sm font-semibold text-foreground">{value || 0}/{max}</span>
+        <span className="text-sm font-semibold text-foreground">{value || 1}/{max}</span>
       </div>
       <Slider value={[value || 1]} onValueChange={([v]) => onChange(v)} min={1} max={max} step={1} />
     </div>
