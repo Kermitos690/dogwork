@@ -17,13 +17,18 @@ serve(async (req) => {
     console.log("[ENRICH] Keys present:", { url: !!supabaseUrl, service: !!serviceRoleKey, ai: !!lovableApiKey });
     if (!lovableApiKey) throw new Error("LOVABLE_API_KEY not configured");
 
-    const authHeader = req.headers.get("Authorization")!;
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) throw new Error("Non authentifié");
+
     const supabaseUser = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
-    console.log("[ENRICH] Auth result:", { userId: user?.id, error: authError?.message });
-    if (!user) throw new Error("Non authentifié");
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: authError } = await supabaseUser.auth.getClaims(token);
+    const userId = claimsData?.claims?.sub;
+    console.log("[ENRICH] Auth result:", { userId, error: authError?.message });
+    if (authError || !userId) throw new Error("Non authentifié");
 
     const { data: isAdmin } = await supabaseUser.rpc("is_admin");
     console.log("[ENRICH] isAdmin:", isAdmin);
