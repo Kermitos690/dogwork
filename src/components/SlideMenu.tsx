@@ -214,16 +214,21 @@ export function SlideMenu() {
             {allSections.map((section) => {
               const isCoachSection = section.title === "Espace Éducateur";
               const isAdminSection = section.title === "Administration";
+              const isShelterSection = section.title === "Espace Refuge";
               const sectionColor = isCoachSection
                 ? "text-emerald-400"
                 : isAdminSection
                   ? "text-amber-400"
-                  : "text-muted-foreground";
+                  : isShelterSection
+                    ? "text-violet-400"
+                    : "text-muted-foreground";
               const accentHsl = isCoachSection
                 ? "hsl(160 65% 45%)"
                 : isAdminSection
                   ? "hsl(25 95% 55%)"
-                  : undefined;
+                  : isShelterSection
+                    ? "hsl(270 70% 55%)"
+                    : undefined;
 
               return (
                 <div key={section.title} className="mb-1">
