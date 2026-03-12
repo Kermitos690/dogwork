@@ -430,13 +430,18 @@ export default function AdminDashboard() {
                       batchSuccess = true;
 
                       setEnrichProgress({ processed: totalProcessed, total, success: totalSuccess, failed: totalFailed, done: isDone });
+                      
+                      // Wait between batches to avoid connection flooding
+                      if (!isDone) {
+                        await new Promise(r => setTimeout(r, 1500));
+                      }
                     } catch (err: any) {
                       retries++;
                       if (retries >= 3) {
                         toast({ title: "Erreur enrichissement", description: err.message, variant: "destructive" });
                         isDone = true;
                       } else {
-                        await new Promise(r => setTimeout(r, 3000));
+                        await new Promise(r => setTimeout(r, 5000));
                       }
                     }
                   }
