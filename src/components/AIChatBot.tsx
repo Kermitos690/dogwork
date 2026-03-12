@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, Send, X, Lock } from "lucide-react";
+import { MessageCircle, Send, X, Lock, Bot, Sparkles, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useHasFeature } from "@/hooks/useSubscription";
