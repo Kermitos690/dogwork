@@ -153,6 +153,12 @@ export default function ShelterDashboard() {
           </CardContent>
         </Card>
 
+        {adminUserId && (
+          <Button variant="outline" className="w-full gap-2" onClick={() => navigate(`/messages?user=${adminUserId}`)}>
+            <MessageSquare className="h-4 w-4" /> Contacter l'administrateur
+          </Button>
+        )}
+
         <Button className="w-full gap-2" onClick={() => navigate("/shelter/animals?new=1")}>
           <Plus className="h-4 w-4" /> Enregistrer un nouvel animal
         </Button>
