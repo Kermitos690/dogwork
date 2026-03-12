@@ -36,11 +36,12 @@ export function SlideMenu() {
   const { data: roles } = useQuery({
     queryKey: ["user-roles-menu", user?.id],
     queryFn: async () => {
-      const [{ data: admin }, { data: educator }] = await Promise.all([
+      const [{ data: admin }, { data: educator }, { data: shelter }] = await Promise.all([
         supabase.rpc("is_admin"),
         supabase.rpc("is_educator"),
+        supabase.rpc("is_shelter" as any),
       ]);
-      return { isAdmin: admin === true, isEducator: educator === true };
+      return { isAdmin: admin === true, isEducator: educator === true, isShelter: shelter === true };
     },
     enabled: !!user,
     staleTime: 5 * 60_000,
@@ -63,6 +64,7 @@ export function SlideMenu() {
 
   const isAdmin = roles?.isAdmin ?? false;
   const isEducator = roles?.isEducator ?? false;
+  const isShelter = roles?.isShelter ?? false;
 
   const userSections: MenuSection[] = [
     {
@@ -132,9 +134,20 @@ export function SlideMenu() {
     },
   ];
 
+  const shelterSections: MenuSection[] = [
+    {
+      title: "Espace Refuge",
+      items: [
+        { label: "Dashboard Refuge", icon: LayoutDashboard, path: "/shelter" },
+        { label: "Animaux", icon: Dog, path: "/shelter/animals" },
+      ],
+    },
+  ];
+
   const allSections = [
     ...userSections,
     ...(isEducator ? coachSections : []),
+    ...(isShelter ? shelterSections : []),
     ...(isAdmin ? adminSections : []),
   ];
 
@@ -188,7 +201,8 @@ export function SlideMenu() {
               <div className="flex gap-1 mt-0.5">
                 {isAdmin && <Badge className="text-[9px] px-1.5 py-0 bg-amber-600 text-white border-0">Admin</Badge>}
                 {isEducator && <Badge className="text-[9px] px-1.5 py-0 bg-emerald-600 text-white border-0">Éducateur</Badge>}
-                {!isAdmin && !isEducator && <Badge variant="secondary" className="text-[9px] px-1.5 py-0">Utilisateur</Badge>}
+                {isShelter && <Badge className="text-[9px] px-1.5 py-0 bg-violet-600 text-white border-0">Refuge</Badge>}
+                {!isAdmin && !isEducator && !isShelter && <Badge variant="secondary" className="text-[9px] px-1.5 py-0">Utilisateur</Badge>}
               </div>
             </div>
           </div>
@@ -200,16 +214,21 @@ export function SlideMenu() {
             {allSections.map((section) => {
               const isCoachSection = section.title === "Espace Éducateur";
               const isAdminSection = section.title === "Administration";
+              const isShelterSection = section.title === "Espace Refuge";
               const sectionColor = isCoachSection
                 ? "text-emerald-400"
                 : isAdminSection
                   ? "text-amber-400"
-                  : "text-muted-foreground";
+                  : isShelterSection
+                    ? "text-violet-400"
+                    : "text-muted-foreground";
               const accentHsl = isCoachSection
                 ? "hsl(160 65% 45%)"
                 : isAdminSection
                   ? "hsl(25 95% 55%)"
-                  : undefined;
+                  : isShelterSection
+                    ? "hsl(270 70% 55%)"
+                    : undefined;
 
               return (
                 <div key={section.title} className="mb-1">

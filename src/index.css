@@ -77,6 +77,19 @@
   --sidebar-ring: 25 95% 55%;
 }
 
+/* Shelter theme — Purple / Violet */
+.theme-shelter {
+  --primary: 270 70% 55%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 270 70% 55%;
+  --neon-blue: 270 70% 55%;
+  --neon-purple: 290 60% 60%;
+  --neon-cyan: 250 65% 60%;
+  --glow-primary: 0 0 20px hsl(270 70% 55% / 0.25);
+  --sidebar-primary: 270 70% 55%;
+  --sidebar-ring: 270 70% 55%;
+}
+
 @layer base {
   * {
     @apply border-border;

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Users, GraduationCap, BookOpen, DollarSign, Plus, ArrowLeft, Trash2, Check, X, Eye, ChevronDown } from "lucide-react";
+import { Shield, Users, GraduationCap, BookOpen, DollarSign, Plus, ArrowLeft, Trash2, Check, X, Eye, ChevronDown, Home } from "lucide-react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -22,6 +22,10 @@ export default function AdminDashboard() {
   const [newEducatorName, setNewEducatorName] = useState("");
   const [newEducatorPassword, setNewEducatorPassword] = useState("");
   const [creating, setCreating] = useState(false);
+  const [newShelterEmail, setNewShelterEmail] = useState("");
+  const [newShelterName, setNewShelterName] = useState("");
+  const [newShelterPassword, setNewShelterPassword] = useState("");
+  const [creatingShelter, setCreatingShelter] = useState(false);
 
   // Check admin role
   const { data: isAdmin, isLoading: adminLoading } = useQuery({
@@ -37,15 +41,16 @@ export default function AdminDashboard() {
   const { data: stats } = useQuery({
     queryKey: ["admin_stats"],
     queryFn: async () => {
-      const [{ count: usersCount }, { count: dogsCount }, { count: educatorsCount }, { count: exercisesCount }, { count: coursesCount }, { count: pendingCount }] = await Promise.all([
+      const [{ count: usersCount }, { count: dogsCount }, { count: educatorsCount }, { count: exercisesCount }, { count: coursesCount }, { count: pendingCount }, { count: sheltersCount }] = await Promise.all([
         supabase.from("profiles").select("*", { count: "exact", head: true }),
         supabase.from("dogs").select("*", { count: "exact", head: true }),
         supabase.from("user_roles").select("*", { count: "exact", head: true }).eq("role", "educator"),
         supabase.from("exercises").select("*", { count: "exact", head: true }),
         supabase.from("courses").select("*", { count: "exact", head: true }),
         supabase.from("courses").select("*", { count: "exact", head: true }).eq("approval_status", "pending"),
+        supabase.from("user_roles").select("*", { count: "exact", head: true }).eq("role", "shelter" as any),
       ]);
-      return { users: usersCount || 0, dogs: dogsCount || 0, educators: educatorsCount || 0, exercises: exercisesCount || 0, courses: coursesCount || 0, pendingCourses: pendingCount || 0 };
+      return { users: usersCount || 0, dogs: dogsCount || 0, educators: educatorsCount || 0, exercises: exercisesCount || 0, courses: coursesCount || 0, pendingCourses: pendingCount || 0, shelters: sheltersCount || 0 };
     },
     enabled: isAdmin === true,
   });
@@ -109,6 +114,24 @@ export default function AdminDashboard() {
     setCreating(false);
   };
 
+  const handleCreateShelter = async () => {
+    if (!newShelterEmail || !newShelterPassword) return;
+    setCreatingShelter(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-shelter", {
+        body: { email: newShelterEmail, password: newShelterPassword, displayName: newShelterName || newShelterEmail.split("@")[0] },
+      });
+      if (error) throw error;
+      toast({ title: "Refuge créé", description: `${newShelterEmail} a été ajouté comme refuge.` });
+      setNewShelterEmail("");
+      setNewShelterName("");
+      setNewShelterPassword("");
+    } catch (err: any) {
+      toast({ title: "Erreur", description: err.message || "Impossible de créer le refuge", variant: "destructive" });
+    }
+    setCreatingShelter(false);
+  };
+
   const handleApproval = async (courseId: string, status: "approved" | "rejected") => {
     const course = pendingCourses.find((c: any) => c.id === courseId);
     const { error } = await supabase.from("courses").update({ approval_status: status }).eq("id", courseId);
@@ -117,9 +140,7 @@ export default function AdminDashboard() {
     } else {
       toast({ title: status === "approved" ? "Cours approuvé ✅" : "Cours refusé ❌" });
       refetchCourses();
-      // Send notification email to educator
       try {
-        // Fetch educator email for notification
         const { data: eduProfile } = await supabase
           .from("profiles")
           .select("display_name")
@@ -170,6 +191,7 @@ export default function AdminDashboard() {
           {[
             { icon: Users, label: "Utilisateurs", value: stats?.users },
             { icon: GraduationCap, label: "Éducateurs", value: stats?.educators },
+            { icon: Home, label: "Refuges", value: stats?.shelters },
             { icon: BookOpen, label: "Cours", value: stats?.courses },
           ].map((s, i) => (
             <Card key={i} className="text-center">
@@ -323,13 +345,49 @@ export default function AdminDashboard() {
           </Card>
         </Collapsible>
 
+        {/* Create shelter — collapsible */}
+        <Collapsible>
+          <Card>
+            <CollapsibleTrigger className="w-full">
+              <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Plus className="h-4 w-4" /> Créer un refuge
+                </CardTitle>
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="space-y-3 pt-0">
+                <div className="space-y-1">
+                  <Label className="text-xs">Email</Label>
+                  <Input value={newShelterEmail} onChange={e => setNewShelterEmail(e.target.value)} placeholder="refuge@email.com" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Nom du refuge</Label>
+                  <Input value={newShelterName} onChange={e => setNewShelterName(e.target.value)} placeholder="SPA de Genève" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Mot de passe</Label>
+                  <Input type="password" value={newShelterPassword} onChange={e => setNewShelterPassword(e.target.value)} placeholder="Mot de passe temporaire" />
+                </div>
+                <Button onClick={handleCreateShelter} disabled={creatingShelter || !newShelterEmail || !newShelterPassword} className="w-full gap-2">
+                  <Home className="h-4 w-4" /> {creatingShelter ? "Création..." : "Créer le refuge"}
+                </Button>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+
         {/* Quick links */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <Button variant="outline" className="h-12 gap-2" onClick={() => navigate("/exercises")}>
             <BookOpen className="h-4 w-4" /> Exercices
           </Button>
           <Button variant="outline" className="h-12 gap-2" onClick={() => navigate("/coach")}>
-            <GraduationCap className="h-4 w-4" /> Espace Coach
+            <GraduationCap className="h-4 w-4" /> Coach
+          </Button>
+          <Button variant="outline" className="h-12 gap-2" onClick={() => navigate("/shelter")}>
+            <Home className="h-4 w-4" /> Refuge
           </Button>
         </div>
       </motion.div>

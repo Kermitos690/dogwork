@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { SubscriptionProvider } from "@/hooks/useSubscription";
 import { EducatorSubscriptionProvider } from "@/hooks/useEducatorSubscription";
 import { useDogs } from "./hooks/useDogs";
+import { useIsCoach, useIsShelter } from "./hooks/useCoach";
 import { AIChatBot } from "@/components/AIChatBot";
 import { GuidedTour } from "@/components/GuidedTour";
 
@@ -50,6 +51,10 @@ const CoachCalendar = lazy(() => import("./pages/CoachCalendar"));
 const CoachSubscription = lazy(() => import("./pages/CoachSubscription"));
 const MessagesPage = lazy(() => import("./pages/Messages"));
 const SettingsPage = lazy(() => import("./pages/Settings"));
+const ShelterGuard = lazy(() => import("./components/ShelterGuard").then(m => ({ default: m.ShelterGuard })));
+const ShelterDashboard = lazy(() => import("./pages/ShelterDashboard"));
+const ShelterAnimals = lazy(() => import("./pages/ShelterAnimals"));
+const ShelterAnimalDetail = lazy(() => import("./pages/ShelterAnimalDetail"));
 
 const queryClient = new QueryClient();
 
@@ -62,21 +67,28 @@ const PageLoader = () => (
 function ProtectedRoutes() {
   const { user, loading } = useAuth();
   const { data: dogs, isLoading: dogsLoading } = useDogs();
+  const { data: isCoach, isLoading: coachLoading } = useIsCoach();
+  const { data: isShelter, isLoading: shelterLoading } = useIsShelter();
 
-  if (loading || dogsLoading) {
+  if (loading || dogsLoading || coachLoading || shelterLoading) {
     return <PageLoader />;
   }
 
   if (!user) return <Auth />;
 
   const hasDogs = dogs && dogs.length > 0;
-  const onboardingInProgress = !hasDogs;
+  const onboardingInProgress = !hasDogs && !isCoach && !isShelter;
 
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
         <Route path="/onboarding" element={<Onboarding />} />
-        <Route path="/" element={onboardingInProgress ? <Navigate to="/onboarding" replace /> : <Dashboard />} />
+        <Route path="/" element={
+          onboardingInProgress ? <Navigate to="/onboarding" replace /> :
+          (isCoach && !hasDogs) ? <Navigate to="/coach" replace /> :
+          isShelter ? <Navigate to="/shelter" replace /> :
+          <Dashboard />
+        } />
         <Route path="/dogs" element={<Dogs />} />
         <Route path="/dogs/:dogId" element={<DogProfile />} />
         <Route path="/evaluation" element={<Evaluation />} />
@@ -111,6 +123,10 @@ function ProtectedRoutes() {
         <Route path="/coach/calendar" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachCalendar /></CoachGuard></Suspense>} />
         <Route path="/coach/subscription" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachSubscription /></CoachGuard></Suspense>} />
         <Route path="/admin" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminDashboard /></AdminGuard></Suspense>} />
+        {/* Shelter routes */}
+        <Route path="/shelter" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterDashboard /></ShelterGuard></Suspense>} />
+        <Route path="/shelter/animals" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterAnimals /></ShelterGuard></Suspense>} />
+        <Route path="/shelter/animals/:animalId" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterAnimalDetail /></ShelterGuard></Suspense>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <AIChatBot />
