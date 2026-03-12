@@ -64,6 +64,24 @@ export function useActiveDog() {
   return dogs?.find((d) => d.is_active) || dogs?.[0] || null;
 }
 
+const TEXT_CHECK_FIELDS = ["sex", "size", "activity_level", "origin", "environment"] as const;
+const NUMERIC_CHECK_FIELDS = [
+  "obedience_level", "sociability_dogs", "sociability_humans",
+  "excitement_level", "frustration_level", "recovery_capacity",
+  "noise_sensitivity", "separation_sensitivity",
+] as const;
+
+function cleanDogData(dog: Partial<Dog>): Partial<Dog> {
+  const cleaned = { ...dog };
+  for (const key of TEXT_CHECK_FIELDS) {
+    if ((cleaned as any)[key] === "") (cleaned as any)[key] = null;
+  }
+  for (const key of NUMERIC_CHECK_FIELDS) {
+    if ((cleaned as any)[key] === 0) (cleaned as any)[key] = null;
+  }
+  return cleaned;
+}
+
 export function useCreateDog() {
   const qc = useQueryClient();
   const { user } = useAuth();
@@ -71,7 +89,7 @@ export function useCreateDog() {
     mutationFn: async (dog: Partial<Dog>) => {
       const { data, error } = await supabase
         .from("dogs")
-        .insert({ ...dog, user_id: user!.id, name: dog.name || "Mon chien" })
+        .insert({ ...cleanDogData(dog), user_id: user!.id, name: dog.name || "Mon chien" })
         .select()
         .single();
       if (error) throw error;
@@ -85,7 +103,7 @@ export function useUpdateDog() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Dog> & { id: string }) => {
-      const { data, error } = await supabase.from("dogs").update(updates).eq("id", id).select().single();
+      const { data, error } = await supabase.from("dogs").update(cleanDogData(updates)).eq("id", id).select().single();
       if (error) throw error;
       return data as Dog;
     },
