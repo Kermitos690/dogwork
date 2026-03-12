@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { Play, ArrowLeft, CheckCircle2, ChevronRight, Sparkles, AlertTriangle } from "lucide-react";
+import { Play, ArrowLeft, CheckCircle2, ChevronRight, Sparkles, AlertTriangle, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
