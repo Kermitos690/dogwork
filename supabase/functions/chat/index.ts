@@ -70,7 +70,7 @@ serve(async (req) => {
     const userId = userData.user.id;
 
     // Check if user has privileged role (admin or educator get free access)
-    const { data: roles } = await adminCheck
+    const { data: roles } = await supabaseAdmin
       .from("user_roles")
       .select("role")
       .eq("user_id", userId);
