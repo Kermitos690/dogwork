@@ -363,6 +363,8 @@ export default function PlanPage() {
                 {PROGRAM.filter(d => d.week === week).map((day, i) => {
                   const p = progress?.[day.id];
                   const status = p?.status || "todo";
+                  const prevProgress = day.id > 1 ? progress?.[day.id - 1] : null;
+                  const isLocked = day.id > 1 && !prevProgress?.validated;
                   return (
                     <Card key={day.id} className="card-press rounded-2xl stagger-item" style={{ animationDelay: `${i * 50}ms` }} onClick={() => navigate(`/day/${day.id}`)}>
                       <CardContent className="p-3 flex items-center gap-3">
