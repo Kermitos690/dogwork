@@ -42,12 +42,18 @@ serve(async (req) => {
     const offset = body.offset || 0;
     const onlyEmpty = body.onlyEmpty !== false; // default: only enrich poorly described exercises
 
-    // Fetch exercises to enrich
+    // Fetch exercises to enrich - filter unenriched directly in SQL
     let query = supabase
       .from("exercises")
       .select("id, name, slug, description, objective, steps, tutorial_steps, mistakes, precautions, success_criteria, stop_criteria, vigilance, adaptations, level, duration, repetitions, exercise_type, environment, equipment, tags, target_problems, priority_axis, short_instruction, summary, category_id, compatible_puppy, compatible_senior, compatible_reactivity, compatible_muzzle")
       .order("name")
-      .range(offset, offset + batchSize - 1);
+
+    if (onlyEmpty) {
+      // Filter: description <= 200 chars OR tutorial_steps has < 4 items
+      query = query.or("description.is.null,description.lte.200.len,tutorial_steps.is.null,tutorial_steps.eq.[]");
+    }
+
+    query = query.range(offset, offset + batchSize - 1);
 
     const { data: exercises, error: fetchError } = await query;
     if (fetchError) throw fetchError;
