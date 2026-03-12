@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { Bot, X, Send, Loader2, Sparkles, Lock } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { MessageCircle, Send, X, Lock, Bot, Sparkles, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
-import { useHasFeature } from "@/hooks/useSubscription";
+import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useHasFeature } from "@/hooks/useSubscription";
+import { supabase } from "@/integrations/supabase/client";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -21,11 +22,19 @@ async function streamChat({
   onDone: () => void;
   onError: (msg: string) => void;
 }) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) {
+    onError("Vous devez être connecté pour utiliser le chatbot.");
+    return;
+  }
+
   const resp = await fetch(CHAT_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      Authorization: `Bearer ${token}`,
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
     },
     body: JSON.stringify({ messages }),
   });
