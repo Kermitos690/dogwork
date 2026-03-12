@@ -191,6 +191,7 @@ export default function AdminDashboard() {
           {[
             { icon: Users, label: "Utilisateurs", value: stats?.users },
             { icon: GraduationCap, label: "Éducateurs", value: stats?.educators },
+            { icon: Home, label: "Refuges", value: stats?.shelters },
             { icon: BookOpen, label: "Cours", value: stats?.courses },
           ].map((s, i) => (
             <Card key={i} className="text-center">
