@@ -201,7 +201,8 @@ export function SlideMenu() {
               <div className="flex gap-1 mt-0.5">
                 {isAdmin && <Badge className="text-[9px] px-1.5 py-0 bg-amber-600 text-white border-0">Admin</Badge>}
                 {isEducator && <Badge className="text-[9px] px-1.5 py-0 bg-emerald-600 text-white border-0">Éducateur</Badge>}
-                {!isAdmin && !isEducator && <Badge variant="secondary" className="text-[9px] px-1.5 py-0">Utilisateur</Badge>}
+                {isShelter && <Badge className="text-[9px] px-1.5 py-0 bg-violet-600 text-white border-0">Refuge</Badge>}
+                {!isAdmin && !isEducator && !isShelter && <Badge variant="secondary" className="text-[9px] px-1.5 py-0">Utilisateur</Badge>}
               </div>
             </div>
           </div>
