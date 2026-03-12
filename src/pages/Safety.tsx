@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Shield, ChevronDown, ChevronUp, AlertTriangle, BookOpen } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
+import { ReadAloudButton } from "@/components/ReadAloudButton";
 
 interface Section {
   icon: string;
@@ -211,6 +212,11 @@ export default function Safety() {
             <p className="text-xs text-muted-foreground">Les bases indispensables</p>
           </div>
         </div>
+
+        <ReadAloudButton
+          getText={() => sections.map(s => `${s.title}. ${s.content}`).join("\n\n")}
+          label="Écouter la page"
+        />
 
         {/* Quick alert */}
         <Card className="border-warning/30 bg-warning/5">

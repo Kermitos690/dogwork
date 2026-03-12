@@ -315,6 +315,7 @@ function AdminGuide() {
 }
 
 import { RestartTourButton } from "@/components/GuidedTour";
+import { ReadAloudButton } from "@/components/ReadAloudButton";
 
 export default function HelpPage() {
   const { user } = useAuth();
@@ -340,7 +341,16 @@ export default function HelpPage() {
         <p className="text-sm text-muted-foreground">
           Découvrez comment tirer le meilleur parti de DogWork selon votre rôle. Parcourez chaque section pour tout comprendre.
         </p>
-        <RestartTourButton />
+        <div className="flex items-center gap-2 flex-wrap">
+          <RestartTourButton />
+          <ReadAloudButton
+            getText={() => {
+              const el = document.querySelector('[role="tabpanel"]:not([hidden])');
+              return el?.textContent || "Contenu non disponible";
+            }}
+            label="Écouter cette page"
+          />
+        </div>
 
         <Tabs defaultValue={defaultTab} className="w-full">
           <TabsList className="w-full grid grid-cols-3">
