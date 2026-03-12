@@ -83,7 +83,12 @@ function ProtectedRoutes() {
     <Suspense fallback={<PageLoader />}>
       <Routes>
         <Route path="/onboarding" element={<Onboarding />} />
-        <Route path="/" element={onboardingInProgress ? <Navigate to="/onboarding" replace /> : <Dashboard />} />
+        <Route path="/" element={
+          onboardingInProgress ? <Navigate to="/onboarding" replace /> :
+          (isCoach && !hasDogs) ? <Navigate to="/coach" replace /> :
+          isShelter ? <Navigate to="/shelter" replace /> :
+          <Dashboard />
+        } />
         <Route path="/dogs" element={<Dogs />} />
         <Route path="/dogs/:dogId" element={<DogProfile />} />
         <Route path="/evaluation" element={<Evaluation />} />
