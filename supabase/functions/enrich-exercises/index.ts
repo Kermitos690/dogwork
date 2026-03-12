@@ -3,26 +3,30 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
+  console.log("[ENRICH] Function invoked, method:", req.method);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+    console.log("[ENRICH] Keys present:", { url: !!supabaseUrl, service: !!serviceRoleKey, ai: !!lovableApiKey });
     if (!lovableApiKey) throw new Error("LOVABLE_API_KEY not configured");
 
     const authHeader = req.headers.get("Authorization")!;
     const supabaseUser = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: { user } } = await supabaseUser.auth.getUser();
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
+    console.log("[ENRICH] Auth result:", { userId: user?.id, error: authError?.message });
     if (!user) throw new Error("Non authentifié");
 
     const { data: isAdmin } = await supabaseUser.rpc("is_admin");
+    console.log("[ENRICH] isAdmin:", isAdmin);
     if (!isAdmin) throw new Error("Accès refusé : admin requis");
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
