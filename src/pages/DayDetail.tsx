@@ -69,6 +69,19 @@ export default function DayDetail() {
     enabled: !!activeDog,
   });
 
+  // Check if previous day is validated (for locking)
+  const { data: prevDayProgress } = useQuery({
+    queryKey: ["day_progress", activeDog?.id, id - 1],
+    queryFn: async () => {
+      const { data } = await supabase.from("day_progress").select("validated")
+        .eq("dog_id", activeDog!.id).eq("day_id", id - 1).maybeSingle();
+      return data;
+    },
+    enabled: !!activeDog && id > 1,
+  });
+
+  const isDayLocked = id > 1 && !prevDayProgress?.validated;
+
   useEffect(() => { if (progress?.notes) setNotes(progress.notes); }, [progress]);
 
   // Auto mark in progress on first visit
