@@ -20,66 +20,42 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) throw new Error("Non authentifié");
 
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false },
     });
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const { data: userData, error: authError } = await supabase.auth.getUser(token);
     const userId = userData?.user?.id;
-    console.log("[ENRICH] Auth result:", { userId, error: authError?.message });
     if (authError || !userId) throw new Error("Non authentifié");
 
-    const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: userId, _role: "admin" });
-    console.log("[ENRICH] isAdmin:", isAdmin);
+    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
     if (!isAdmin) throw new Error("Accès refusé : admin requis");
 
-    const supabase = supabaseAdmin;
-
-    // Get optional params
     const body = await req.json().catch(() => ({}));
-    const batchSize = body.batchSize || 10;
+    const batchSize = body.batchSize || 2;
     const offset = body.offset || 0;
-    const onlyEmpty = body.onlyEmpty !== false; // default: only enrich poorly described exercises
 
-    // Fetch exercises to enrich - filter unenriched directly in SQL
-    let query = supabase
-      .from("exercises")
-      .select("id, name, slug, description, objective, steps, tutorial_steps, mistakes, precautions, success_criteria, stop_criteria, vigilance, adaptations, level, duration, repetitions, exercise_type, environment, equipment, tags, target_problems, priority_axis, short_instruction, summary, category_id, compatible_puppy, compatible_senior, compatible_reactivity, compatible_muzzle")
-      .order("name")
-
-    if (onlyEmpty) {
-      // Filter: description <= 200 chars OR tutorial_steps has < 4 items
-      query = query.or("description.is.null,description.lte.200.len,tutorial_steps.is.null,tutorial_steps.eq.[]");
-    }
-
-    query = query.range(offset, offset + batchSize - 1);
-
-    const { data: exercises, error: fetchError } = await query;
+    // Use RPC to get only unenriched exercises
+    const { data: exercises, error: fetchError } = await supabase.rpc("get_unenriched_exercises", {
+      batch_limit: batchSize,
+      batch_offset: offset,
+    });
     if (fetchError) throw fetchError;
     if (!exercises || exercises.length === 0) {
-      return new Response(JSON.stringify({ done: true, message: "Aucun exercice à traiter", processed: 0 }), {
+      return new Response(JSON.stringify({ done: true, message: "Tous les exercices sont enrichis !", processed: 0 }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Get total count
-    const { count: totalCount } = await supabase.from("exercises").select("*", { count: "exact", head: true });
+    // Get remaining count
+    const { data: remainingData } = await supabase.rpc("get_unenriched_exercises", { batch_limit: 1000, batch_offset: 0 });
+    const remaining = remainingData?.length || 0;
 
     const results: { id: string; name: string; success: boolean; error?: string }[] = [];
 
     for (const exercise of exercises) {
       try {
-        // Skip already well-described exercises if onlyEmpty
-        if (onlyEmpty) {
-          const steps = Array.isArray(exercise.tutorial_steps) ? exercise.tutorial_steps : [];
-          const desc = exercise.description || "";
-          if (steps.length >= 4 && desc.length > 200) {
-            results.push({ id: exercise.id, name: exercise.name, success: true, error: "skipped - already detailed" });
-            continue;
-          }
-        }
-
         const prompt = `Tu es un éducateur canin professionnel et bienveillant. Tu rédiges des fiches d'exercices pour une application mobile destinée à TOUS les propriétaires de chiens, y compris les débutants complets.
 
 EXERCICE À ENRICHIR :
@@ -130,19 +106,19 @@ Retourne un JSON avec EXACTEMENT ces champs (en français) :`;
                   parameters: {
                     type: "object",
                     properties: {
-                      description: { type: "string", description: "Description claire de l'exercice en 3-4 phrases simples. Expliquer ce qu'on va faire et pourquoi c'est utile au quotidien. Max 300 caractères." },
-                      objective: { type: "string", description: "L'objectif en 1-2 phrases très simples. Ex: 'Apprendre à votre chien à s'asseoir quand vous le lui demandez, même quand il y a des distractions.' Max 200 caractères." },
+                      description: { type: "string", description: "Description claire de l'exercice en 3-4 phrases simples. Max 300 caractères." },
+                      objective: { type: "string", description: "L'objectif en 1-2 phrases très simples. Max 200 caractères." },
                       summary: { type: "string", description: "Résumé en 1 phrase courte et motivante. Max 100 caractères." },
-                      short_instruction: { type: "string", description: "L'instruction principale en 1 phrase. Ex: 'Guidez la friandise au-dessus du nez de votre chien jusqu'à ce qu'il s'assoie.' Max 150 caractères." },
+                      short_instruction: { type: "string", description: "L'instruction principale en 1 phrase. Max 150 caractères." },
                       tutorial_steps: {
                         type: "array",
-                        description: "5-8 étapes détaillées du tutoriel, dans l'ordre",
+                        description: "5-8 étapes détaillées du tutoriel",
                         items: {
                           type: "object",
                           properties: {
-                            title: { type: "string", description: "Titre court de l'étape (ex: 'Préparez vos friandises')" },
-                            description: { type: "string", description: "Explication détaillée et concrète de ce qu'il faut faire. Préciser la position du corps, le ton de la voix, le geste exact. 2-3 phrases." },
-                            tip: { type: "string", description: "Astuce pratique pour cette étape (ex: 'Utilisez des friandises odorantes comme du fromage pour mieux capter l'attention')" },
+                            title: { type: "string" },
+                            description: { type: "string" },
+                            tip: { type: "string" },
                           },
                           required: ["title", "description"],
                         },
@@ -153,9 +129,9 @@ Retourne un JSON avec EXACTEMENT ces champs (en français) :`;
                         items: {
                           type: "object",
                           properties: {
-                            mistake: { type: "string", description: "L'erreur en termes simples" },
-                            consequence: { type: "string", description: "Ce qui se passe si on fait cette erreur" },
-                            correction: { type: "string", description: "Comment corriger" },
+                            mistake: { type: "string" },
+                            consequence: { type: "string" },
+                            correction: { type: "string" },
                           },
                           required: ["mistake", "consequence", "correction"],
                         },
@@ -165,23 +141,21 @@ Retourne un JSON avec EXACTEMENT ces champs (en français) :`;
                         description: "2-4 précautions de sécurité",
                         items: {
                           type: "object",
-                          properties: {
-                            text: { type: "string", description: "La précaution à prendre" },
-                          },
+                          properties: { text: { type: "string" } },
                           required: ["text"],
                         },
                       },
-                      success_criteria: { type: "string", description: "Comment savoir que l'exercice est réussi, en termes concrets et observables. 1-2 phrases." },
-                      stop_criteria: { type: "string", description: "Quand arrêter l'exercice : signes de stress, fatigue ou perte d'intérêt. 1-2 phrases." },
-                      vigilance: { type: "string", description: "Point de vigilance spécifique à cet exercice. 1 phrase." },
+                      success_criteria: { type: "string" },
+                      stop_criteria: { type: "string" },
+                      vigilance: { type: "string" },
                       adaptations: {
                         type: "array",
-                        description: "2-4 adaptations selon le profil du chien",
+                        description: "2-4 adaptations selon le profil",
                         items: {
                           type: "object",
                           properties: {
-                            profile: { type: "string", description: "Le profil concerné (ex: 'Chiot', 'Senior', 'Chien réactif', 'Avec muselière')" },
-                            adaptation: { type: "string", description: "Comment adapter l'exercice pour ce profil" },
+                            profile: { type: "string" },
+                            adaptation: { type: "string" },
                           },
                           required: ["profile", "adaptation"],
                         },
@@ -200,8 +174,7 @@ Retourne un JSON avec EXACTEMENT ces champs (en français) :`;
         if (!response.ok) {
           const errText = await response.text();
           if (response.status === 429) {
-            results.push({ id: exercise.id, name: exercise.name, success: false, error: "Rate limited - retry later" });
-            // Wait 30 seconds before continuing
+            results.push({ id: exercise.id, name: exercise.name, success: false, error: "Rate limited" });
             await new Promise(r => setTimeout(r, 30000));
             continue;
           }
@@ -214,7 +187,6 @@ Retourne un JSON avec EXACTEMENT ces champs (en français) :`;
 
         const enriched = JSON.parse(toolCall.function.arguments);
 
-        // Update exercise in database
         const { error: updateError } = await supabase.from("exercises").update({
           description: enriched.description,
           objective: enriched.objective,
@@ -230,11 +202,12 @@ Retourne un JSON avec EXACTEMENT ces champs (en français) :`;
         }).eq("id", exercise.id);
 
         if (updateError) throw updateError;
-
         results.push({ id: exercise.id, name: exercise.name, success: true });
 
-        // Small delay to avoid rate limits
-        await new Promise(r => setTimeout(r, 1000));
+        // Small delay between AI calls
+        if (exercises.indexOf(exercise) < exercises.length - 1) {
+          await new Promise(r => setTimeout(r, 1000));
+        }
       } catch (err: any) {
         results.push({ id: exercise.id, name: exercise.name, success: false, error: err.message });
       }
@@ -243,12 +216,11 @@ Retourne un JSON avec EXACTEMENT ces champs (en français) :`;
     const successCount = results.filter(r => r.success).length;
 
     return new Response(JSON.stringify({
-      done: offset + batchSize >= (totalCount || 0),
+      done: remaining <= batchSize,
       processed: results.length,
       success: successCount,
       failed: results.length - successCount,
-      nextOffset: offset + batchSize,
-      total: totalCount,
+      remaining: remaining - successCount,
       results,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
