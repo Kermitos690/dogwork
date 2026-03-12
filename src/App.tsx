@@ -67,15 +67,17 @@ const PageLoader = () => (
 function ProtectedRoutes() {
   const { user, loading } = useAuth();
   const { data: dogs, isLoading: dogsLoading } = useDogs();
+  const { data: isCoach, isLoading: coachLoading } = useIsCoach();
+  const { data: isShelter, isLoading: shelterLoading } = useIsShelter();
 
-  if (loading || dogsLoading) {
+  if (loading || dogsLoading || coachLoading || shelterLoading) {
     return <PageLoader />;
   }
 
   if (!user) return <Auth />;
 
   const hasDogs = dogs && dogs.length > 0;
-  const onboardingInProgress = !hasDogs;
+  const onboardingInProgress = !hasDogs && !isCoach && !isShelter;
 
   return (
     <Suspense fallback={<PageLoader />}>
