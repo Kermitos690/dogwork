@@ -21,10 +21,12 @@ serve(async (req) => {
     const supabaseUser = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: { user } } = await supabaseUser.auth.getUser();
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
+    console.log("[ENRICH] Auth result:", { userId: user?.id, error: authError?.message });
     if (!user) throw new Error("Non authentifié");
 
     const { data: isAdmin } = await supabaseUser.rpc("is_admin");
+    console.log("[ENRICH] isAdmin:", isAdmin);
     if (!isAdmin) throw new Error("Accès refusé : admin requis");
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
