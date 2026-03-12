@@ -134,9 +134,20 @@ export function SlideMenu() {
     },
   ];
 
+  const shelterSections: MenuSection[] = [
+    {
+      title: "Espace Refuge",
+      items: [
+        { label: "Dashboard Refuge", icon: LayoutDashboard, path: "/shelter" },
+        { label: "Animaux", icon: Dog, path: "/shelter/animals" },
+      ],
+    },
+  ];
+
   const allSections = [
     ...userSections,
     ...(isEducator ? coachSections : []),
+    ...(isShelter ? shelterSections : []),
     ...(isAdmin ? adminSections : []),
   ];
 

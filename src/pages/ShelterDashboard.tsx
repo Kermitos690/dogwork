@@ -90,7 +90,7 @@ export default function ShelterDashboard() {
             <div className="flex flex-wrap gap-2">
               {Object.entries(speciesCounts).map(([species, count]) => (
                 <div key={species} className="px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
-                  {species} — {count}
+                  {species} — {count as number}
                 </div>
               ))}
               {Object.keys(speciesCounts).length === 0 && (
