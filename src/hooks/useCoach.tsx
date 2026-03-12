@@ -18,6 +18,22 @@ export function useIsCoach() {
   });
 }
 
+export function useIsShelter() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["user-role-shelter", user?.id],
+    queryFn: async () => {
+      if (!user) return false;
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      return data?.some((r) => r.role === ("shelter" as any)) ?? false;
+    },
+    enabled: !!user,
+  });
+}
+
 export function useClientLinks() {
   const { user } = useAuth();
   return useQuery({

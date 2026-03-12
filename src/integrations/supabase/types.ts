@@ -1218,6 +1218,149 @@ export type Database = {
         }
         Relationships: []
       }
+      shelter_animals: {
+        Row: {
+          arrival_date: string
+          behavior_notes: string | null
+          breed: string | null
+          chip_id: string | null
+          created_at: string
+          departure_date: string | null
+          departure_reason: string | null
+          description: string | null
+          estimated_age: string | null
+          health_notes: string | null
+          id: string
+          is_sterilized: boolean | null
+          name: string
+          photo_url: string | null
+          sex: string | null
+          species: string
+          status: string
+          updated_at: string
+          user_id: string
+          weight_kg: number | null
+        }
+        Insert: {
+          arrival_date?: string
+          behavior_notes?: string | null
+          breed?: string | null
+          chip_id?: string | null
+          created_at?: string
+          departure_date?: string | null
+          departure_reason?: string | null
+          description?: string | null
+          estimated_age?: string | null
+          health_notes?: string | null
+          id?: string
+          is_sterilized?: boolean | null
+          name: string
+          photo_url?: string | null
+          sex?: string | null
+          species?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          weight_kg?: number | null
+        }
+        Update: {
+          arrival_date?: string
+          behavior_notes?: string | null
+          breed?: string | null
+          chip_id?: string | null
+          created_at?: string
+          departure_date?: string | null
+          departure_reason?: string | null
+          description?: string | null
+          estimated_age?: string | null
+          health_notes?: string | null
+          id?: string
+          is_sterilized?: boolean | null
+          name?: string
+          photo_url?: string | null
+          sex?: string | null
+          species?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          weight_kg?: number | null
+        }
+        Relationships: []
+      }
+      shelter_observations: {
+        Row: {
+          animal_id: string
+          author_id: string
+          content: string
+          created_at: string
+          id: string
+          observation_date: string
+          observation_type: string
+        }
+        Insert: {
+          animal_id: string
+          author_id: string
+          content?: string
+          created_at?: string
+          id?: string
+          observation_date?: string
+          observation_type?: string
+        }
+        Update: {
+          animal_id?: string
+          author_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          observation_date?: string
+          observation_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shelter_observations_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_animals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shelter_profiles: {
+        Row: {
+          address: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          organization_type: string | null
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          organization_type?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          organization_type?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       training_plans: {
         Row: {
           average_duration: string
@@ -1315,6 +1458,7 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_educator: { Args: never; Returns: boolean }
+      is_shelter: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "owner" | "educator" | "admin" | "shelter"

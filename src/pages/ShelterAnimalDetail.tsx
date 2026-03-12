@@ -1,0 +1,251 @@
+import { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { ShelterLayout } from "@/components/ShelterLayout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, PawPrint, Plus, Stethoscope, Eye, Heart } from "lucide-react";
+import { motion } from "framer-motion";
+
+const statusOptions = ["arrivée", "quarantaine", "soins", "adoptable", "adopté", "décédé", "transféré"];
+const observationTypes = ["médical", "comportement", "général"];
+const speciesEmoji: Record<string, string> = { chien: "🐕", chat: "🐱", reptile: "🦎", oiseau: "🐦", NAC: "🐹", autre: "🐾" };
+
+const statusColors: Record<string, string> = {
+  "arrivée": "bg-blue-500/20 text-blue-400",
+  "quarantaine": "bg-amber-500/20 text-amber-400",
+  "soins": "bg-orange-500/20 text-orange-400",
+  "adoptable": "bg-emerald-500/20 text-emerald-400",
+  "adopté": "bg-primary/20 text-primary",
+  "décédé": "bg-muted text-muted-foreground",
+  "transféré": "bg-secondary text-secondary-foreground",
+};
+
+export default function ShelterAnimalDetail() {
+  const { animalId } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const [newObs, setNewObs] = useState({ type: "général", content: "" });
+  const [showStatusEdit, setShowStatusEdit] = useState(false);
+  const [newStatus, setNewStatus] = useState("");
+
+  const { data: animal, isLoading } = useQuery({
+    queryKey: ["shelter-animal", animalId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("shelter_animals" as any)
+        .select("*")
+        .eq("id", animalId!)
+        .single();
+      return data as any;
+    },
+    enabled: !!animalId,
+  });
+
+  const { data: observations = [] } = useQuery({
+    queryKey: ["shelter-observations", animalId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("shelter_observations" as any)
+        .select("*")
+        .eq("animal_id", animalId!)
+        .order("observation_date", { ascending: false });
+      return (data as any[]) || [];
+    },
+    enabled: !!animalId,
+  });
+
+  const addObservation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("shelter_observations" as any)
+        .insert({
+          animal_id: animalId,
+          author_id: user!.id,
+          observation_type: newObs.type,
+          content: newObs.content,
+        } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Observation ajoutée ✅" });
+      queryClient.invalidateQueries({ queryKey: ["shelter-observations", animalId] });
+      setNewObs({ type: "général", content: "" });
+    },
+    onError: (err: any) => toast({ title: "Erreur", description: err.message, variant: "destructive" }),
+  });
+
+  const updateStatus = useMutation({
+    mutationFn: async (status: string) => {
+      const update: any = { status };
+      if (["adopté", "décédé", "transféré"].includes(status)) {
+        update.departure_date = new Date().toISOString().split("T")[0];
+        update.departure_reason = status;
+      }
+      const { error } = await supabase
+        .from("shelter_animals" as any)
+        .update(update)
+        .eq("id", animalId!);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Statut mis à jour ✅" });
+      queryClient.invalidateQueries({ queryKey: ["shelter-animal", animalId] });
+      queryClient.invalidateQueries({ queryKey: ["shelter-animals"] });
+      setShowStatusEdit(false);
+    },
+    onError: (err: any) => toast({ title: "Erreur", description: err.message, variant: "destructive" }),
+  });
+
+  if (isLoading) return <ShelterLayout><div className="pt-14 text-center animate-pulse text-muted-foreground">Chargement...</div></ShelterLayout>;
+  if (!animal) return <ShelterLayout><div className="pt-14 text-center text-muted-foreground">Animal non trouvé</div></ShelterLayout>;
+
+  const obsTypeIcon: Record<string, React.ElementType> = { "médical": Stethoscope, "comportement": Eye, "général": PawPrint };
+
+  return (
+    <ShelterLayout>
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pt-14 pb-8 space-y-4">
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate("/shelter/animals")} className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center">
+            <ArrowLeft className="h-4 w-4 text-foreground" />
+          </motion.button>
+          <div className="flex-1">
+            <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+              <span className="text-lg">{speciesEmoji[animal.species] || "🐾"}</span>
+              {animal.name}
+            </h1>
+            <p className="text-[10px] text-muted-foreground">{animal.species} — {animal.breed || "Race inconnue"}</p>
+          </div>
+          <Badge className={`${statusColors[animal.status] || ""} border-0`}>{animal.status}</Badge>
+        </div>
+
+        {/* Info card */}
+        <Card>
+          <CardContent className="p-4 space-y-2">
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div><span className="text-muted-foreground">Sexe :</span> <span className="text-foreground font-medium">{animal.sex || "?"}</span></div>
+              <div><span className="text-muted-foreground">Âge :</span> <span className="text-foreground font-medium">{animal.estimated_age || "?"}</span></div>
+              <div><span className="text-muted-foreground">Puce :</span> <span className="text-foreground font-medium">{animal.chip_id || "—"}</span></div>
+              <div><span className="text-muted-foreground">Stérilisé :</span> <span className="text-foreground font-medium">{animal.is_sterilized ? "Oui" : "Non"}</span></div>
+              <div className="col-span-2"><span className="text-muted-foreground">Arrivé le :</span> <span className="text-foreground font-medium">{new Date(animal.arrival_date).toLocaleDateString("fr-FR")}</span></div>
+            </div>
+            {animal.description && <p className="text-xs text-muted-foreground mt-2">{animal.description}</p>}
+          </CardContent>
+        </Card>
+
+        {/* Status change */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-semibold text-foreground">Changer le statut</p>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {statusOptions.map(s => (
+                <Button
+                  key={s}
+                  size="sm"
+                  variant={animal.status === s ? "default" : "outline"}
+                  className="text-xs h-7"
+                  disabled={animal.status === s}
+                  onClick={() => updateStatus.mutate(s)}
+                >
+                  {s}
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Health & behavior notes */}
+        {(animal.health_notes || animal.behavior_notes) && (
+          <div className="grid grid-cols-1 gap-2">
+            {animal.health_notes && (
+              <Card>
+                <CardContent className="p-3">
+                  <p className="text-xs font-semibold text-foreground flex items-center gap-1 mb-1"><Stethoscope className="h-3 w-3" /> Santé</p>
+                  <p className="text-xs text-muted-foreground">{animal.health_notes}</p>
+                </CardContent>
+              </Card>
+            )}
+            {animal.behavior_notes && (
+              <Card>
+                <CardContent className="p-3">
+                  <p className="text-xs font-semibold text-foreground flex items-center gap-1 mb-1"><Eye className="h-3 w-3" /> Comportement</p>
+                  <p className="text-xs text-muted-foreground">{animal.behavior_notes}</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+
+        {/* Observations */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Observations ({observations.length})</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {/* Add observation form */}
+            <div className="p-3 rounded-lg bg-secondary/30 space-y-2">
+              <div className="flex gap-2">
+                <Select value={newObs.type} onValueChange={v => setNewObs(o => ({ ...o, type: v }))}>
+                  <SelectTrigger className="w-32 text-xs h-8"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {observationTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Textarea
+                value={newObs.content}
+                onChange={e => setNewObs(o => ({ ...o, content: e.target.value }))}
+                placeholder="Nouvelle observation..."
+                rows={2}
+                className="text-xs"
+              />
+              <Button
+                size="sm"
+                className="w-full gap-1"
+                disabled={!newObs.content || addObservation.isPending}
+                onClick={() => addObservation.mutate()}
+              >
+                <Plus className="h-3 w-3" /> Ajouter
+              </Button>
+            </div>
+
+            {/* Observation list */}
+            {observations.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-2">Aucune observation</p>
+            ) : (
+              observations.map((obs: any) => {
+                const Icon = obsTypeIcon[obs.observation_type] || PawPrint;
+                return (
+                  <div key={obs.id} className="p-3 rounded-lg bg-card border border-border/40 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Icon className="h-3 w-3 text-primary" />
+                        <span className="text-[10px] font-medium text-primary uppercase">{obs.observation_type}</span>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground">{new Date(obs.observation_date).toLocaleDateString("fr-FR")}</span>
+                    </div>
+                    <p className="text-xs text-foreground">{obs.content}</p>
+                  </div>
+                );
+              })
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+    </ShelterLayout>
+  );
+}
