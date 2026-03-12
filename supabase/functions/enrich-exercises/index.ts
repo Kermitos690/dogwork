@@ -7,12 +7,14 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log("[ENRICH] Function invoked, method:", req.method);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+    console.log("[ENRICH] Keys present:", { url: !!supabaseUrl, service: !!serviceRoleKey, ai: !!lovableApiKey });
     if (!lovableApiKey) throw new Error("LOVABLE_API_KEY not configured");
 
     const authHeader = req.headers.get("Authorization")!;
