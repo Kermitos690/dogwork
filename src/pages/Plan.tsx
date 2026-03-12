@@ -309,20 +309,38 @@ export default function PlanPage() {
                 {[1, 2, 3, 4].map((week) => (
                   <div key={week} className="space-y-2">
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Semaine {week}</h3>
-                    {plan.days.filter((d: any) => d.week === week).map((day: any) => {
+                {plan.days.filter((d: any) => d.week === week).map((day: any) => {
                       const p = progress?.[day.dayNumber];
                       const status = p?.status || "todo";
+                      const prevDayProgress = day.dayNumber > 1 ? progress?.[day.dayNumber - 1] : null;
+                      const isLocked = day.dayNumber > 1 && !prevDayProgress?.validated;
+                      const firstUnlocked = plan.days.findIndex((d: any) => {
+                        const dp = progress?.[d.dayNumber];
+                        return !dp?.validated;
+                      });
+                      const isCurrentDay = plan.days[firstUnlocked]?.dayNumber === day.dayNumber;
                       return (
-                        <Card key={day.dayNumber} className="card-press rounded-2xl" onClick={() => navigate(`/day/${day.dayNumber}?source=plan`)}>
+                        <Card
+                          key={day.dayNumber}
+                          className={`rounded-2xl ${isLocked ? "opacity-50" : "card-press"}`}
+                          onClick={() => {
+                            if (isLocked) {
+                              toast({ title: "🔒 Jour verrouillé", description: "Validez le jour précédent pour débloquer celui-ci.", variant: "destructive" });
+                              return;
+                            }
+                            navigate(`/day/${day.dayNumber}?source=plan`);
+                          }}
+                        >
                           <CardContent className="p-3 flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold ${statusColors[status]}`}>
-                              {day.dayNumber}
+                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold ${isLocked ? "bg-muted text-muted-foreground" : statusColors[status]}`}>
+                              {isLocked ? <Lock className="h-3.5 w-3.5" /> : day.dayNumber}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-foreground truncate">{day.title}</p>
+                              <p className="text-sm font-medium text-foreground break-words">{day.title}</p>
                               <p className="text-xs text-muted-foreground">{day.duration} · {day.difficulty}</p>
                             </div>
-                            <Badge variant="secondary" className="text-[10px] shrink-0 rounded-full">{statusLabels[status]}</Badge>
+                            {isCurrentDay && !isLocked && <Badge className="text-[10px] shrink-0 rounded-full bg-primary/15 text-primary border-0">En cours</Badge>}
+                            {!isCurrentDay && <Badge variant="secondary" className="text-[10px] shrink-0 rounded-full">{isLocked ? "🔒" : statusLabels[status]}</Badge>}
                           </CardContent>
                         </Card>
                       );
@@ -345,17 +363,30 @@ export default function PlanPage() {
                 {PROGRAM.filter(d => d.week === week).map((day, i) => {
                   const p = progress?.[day.id];
                   const status = p?.status || "todo";
+                  const prevProgress = day.id > 1 ? progress?.[day.id - 1] : null;
+                  const isLocked = day.id > 1 && !prevProgress?.validated;
                   return (
-                    <Card key={day.id} className="card-press rounded-2xl stagger-item" style={{ animationDelay: `${i * 50}ms` }} onClick={() => navigate(`/day/${day.id}`)}>
+                    <Card
+                      key={day.id}
+                      className={`rounded-2xl stagger-item ${isLocked ? "opacity-50" : "card-press"}`}
+                      style={{ animationDelay: `${i * 50}ms` }}
+                      onClick={() => {
+                        if (isLocked) {
+                          toast({ title: "🔒 Jour verrouillé", description: "Validez le jour précédent pour débloquer celui-ci.", variant: "destructive" });
+                          return;
+                        }
+                        navigate(`/day/${day.id}`);
+                      }}
+                    >
                       <CardContent className="p-3 flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold ${statusColors[status]}`}>
-                          {day.id}
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold ${isLocked ? "bg-muted text-muted-foreground" : statusColors[status]}`}>
+                          {isLocked ? <Lock className="h-3.5 w-3.5" /> : day.id}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{day.title}</p>
+                          <p className="text-sm font-medium text-foreground break-words">{day.title}</p>
                           <p className="text-xs text-muted-foreground">{day.duration} · {day.difficulty}</p>
                         </div>
-                        <Badge variant="secondary" className="text-[10px] shrink-0 rounded-full">{statusLabels[status]}</Badge>
+                        <Badge variant="secondary" className="text-[10px] shrink-0 rounded-full">{isLocked ? "🔒" : statusLabels[status]}</Badge>
                       </CardContent>
                     </Card>
                   );

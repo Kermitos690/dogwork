@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ShelterLayout } from "@/components/ShelterLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PawPrint, Plus, Clock, Heart, Stethoscope, Home } from "lucide-react";
+import { PawPrint, Plus, Clock, Heart, Stethoscope, Home, MessageSquare } from "lucide-react";
 import { motion } from "framer-motion";
 
 const statusConfig: Record<string, { label: string; icon: React.ElementType; color: string }> = {
@@ -42,6 +42,21 @@ export default function ShelterDashboard() {
         .eq("user_id", user!.id)
         .maybeSingle();
       return data as any;
+    },
+    enabled: !!user,
+  });
+
+  // Find admin user for messaging
+  const { data: adminUserId } = useQuery({
+    queryKey: ["admin-user-for-contact"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin" as any)
+        .limit(1)
+        .maybeSingle();
+      return data?.user_id || null;
     },
     enabled: !!user,
   });
@@ -137,6 +152,12 @@ export default function ShelterDashboard() {
             <p className="text-xs text-muted-foreground">Adoptions réalisées</p>
           </CardContent>
         </Card>
+
+        {adminUserId && (
+          <Button variant="outline" className="w-full gap-2" onClick={() => navigate(`/messages?user=${adminUserId}`)}>
+            <MessageSquare className="h-4 w-4" /> Contacter l'administrateur
+          </Button>
+        )}
 
         <Button className="w-full gap-2" onClick={() => navigate("/shelter/animals?new=1")}>
           <Plus className="h-4 w-4" /> Enregistrer un nouvel animal

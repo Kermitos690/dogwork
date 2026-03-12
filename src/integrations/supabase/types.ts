@@ -829,6 +829,7 @@ export type Database = {
         Row: {
           adaptations: Json | null
           age_recommendation: string | null
+          body_positioning: Json | null
           category_id: string
           cognitive_load: number | null
           compatible_muzzle: boolean | null
@@ -874,12 +875,16 @@ export type Database = {
           tags: string[] | null
           target_breeds: string[] | null
           target_problems: string[] | null
+          troubleshooting: Json | null
           tutorial_steps: Json | null
+          validation_protocol: string | null
           vigilance: string | null
+          voice_commands: Json | null
         }
         Insert: {
           adaptations?: Json | null
           age_recommendation?: string | null
+          body_positioning?: Json | null
           category_id: string
           cognitive_load?: number | null
           compatible_muzzle?: boolean | null
@@ -925,12 +930,16 @@ export type Database = {
           tags?: string[] | null
           target_breeds?: string[] | null
           target_problems?: string[] | null
+          troubleshooting?: Json | null
           tutorial_steps?: Json | null
+          validation_protocol?: string | null
           vigilance?: string | null
+          voice_commands?: Json | null
         }
         Update: {
           adaptations?: Json | null
           age_recommendation?: string | null
+          body_positioning?: Json | null
           category_id?: string
           cognitive_load?: number | null
           compatible_muzzle?: boolean | null
@@ -976,8 +985,11 @@ export type Database = {
           tags?: string[] | null
           target_breeds?: string[] | null
           target_problems?: string[] | null
+          troubleshooting?: Json | null
           tutorial_steps?: Json | null
+          validation_protocol?: string | null
           vigilance?: string | null
+          voice_commands?: Json | null
         }
         Relationships: [
           {
@@ -1454,6 +1466,7 @@ export type Database = {
         Returns: {
           adaptations: Json | null
           age_recommendation: string | null
+          body_positioning: Json | null
           category_id: string
           cognitive_load: number | null
           compatible_muzzle: boolean | null
@@ -1499,8 +1512,11 @@ export type Database = {
           tags: string[] | null
           target_breeds: string[] | null
           target_problems: string[] | null
+          troubleshooting: Json | null
           tutorial_steps: Json | null
+          validation_protocol: string | null
           vigilance: string | null
+          voice_commands: Json | null
         }[]
         SetofOptions: {
           from: "*"

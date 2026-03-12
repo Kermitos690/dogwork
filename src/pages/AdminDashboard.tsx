@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Users, GraduationCap, BookOpen, DollarSign, Plus, ArrowLeft, Trash2, Check, X, Eye, ChevronDown, Home, Sparkles } from "lucide-react";
+import { Shield, Users, GraduationCap, BookOpen, DollarSign, Plus, ArrowLeft, Trash2, Check, X, Eye, ChevronDown, Home, Sparkles, Image } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,8 @@ export default function AdminDashboard() {
   const [creatingShelter, setCreatingShelter] = useState(false);
   const [enriching, setEnriching] = useState(false);
   const [enrichProgress, setEnrichProgress] = useState<{ processed: number; total: number; success: number; failed: number; done: boolean } | null>(null);
+  const [generatingImages, setGeneratingImages] = useState(false);
+  const [imageProgress, setImageProgress] = useState<{ processed: number; total: number; success: number; failed: number; done: boolean } | null>(null);
   // Check admin role
   const { data: isAdmin, isLoading: adminLoading } = useQuery({
     queryKey: ["is_admin", user?.id],
@@ -466,6 +468,84 @@ export default function AdminDashboard() {
               className="w-full gap-2"
             >
               <Sparkles className="h-4 w-4" /> {enriching ? "Enrichissement en cours..." : "Lancer l'enrichissement IA"}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Generate exercise images with AI */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Image className="h-4 w-4 text-primary" /> Générer les illustrations (IA)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Génère automatiquement des illustrations pédagogiques pour les exercices sans image via l'IA.
+            </p>
+            {imageProgress && (
+              <div className="space-y-2">
+                <Progress value={(imageProgress.processed / Math.max(imageProgress.total, 1)) * 100} className="h-2" />
+                <p className="text-xs text-muted-foreground">
+                  {imageProgress.processed}/{imageProgress.total} traités — {imageProgress.success} ✓ — {imageProgress.failed} ✗
+                  {imageProgress.done && " — Terminé !"}
+                </p>
+              </div>
+            )}
+            <Button
+              onClick={async () => {
+                setGeneratingImages(true);
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session?.access_token) {
+                  toast({ title: "Erreur", description: "Session expirée", variant: "destructive" });
+                  setGeneratingImages(false);
+                  return;
+                }
+
+                // Get exercises without cover_image
+                const { data: noImageExercises } = await supabase
+                  .from("exercises")
+                  .select("id, name")
+                  .or("cover_image.is.null,cover_image.eq.")
+                  .limit(500);
+
+                if (!noImageExercises?.length) {
+                  toast({ title: "✨", description: "Tous les exercices ont déjà une illustration." });
+                  setGeneratingImages(false);
+                  return;
+                }
+
+                let processed = 0;
+                let success = 0;
+                let failed = 0;
+                const total = noImageExercises.length;
+
+                for (const ex of noImageExercises) {
+                  try {
+                    const { data, error } = await supabase.functions.invoke("generate-exercise-image", {
+                      body: { exerciseId: ex.id },
+                      headers: { Authorization: `Bearer ${session.access_token}` },
+                    });
+                    if (error) throw error;
+                    if (data?.success) success++;
+                    else if (data?.skipped) success++;
+                    else failed++;
+                  } catch {
+                    failed++;
+                  }
+                  processed++;
+                  setImageProgress({ processed, total, success, failed, done: processed >= total });
+                  // Wait between calls to avoid rate limiting
+                  await new Promise(r => setTimeout(r, 3000));
+                }
+
+                setGeneratingImages(false);
+                toast({ title: "Illustrations terminées 🎨", description: `${success} images générées.` });
+              }}
+              disabled={generatingImages}
+              className="w-full gap-2"
+            >
+              <Image className="h-4 w-4" /> {generatingImages ? "Génération en cours..." : "Générer les illustrations IA"}
             </Button>
           </CardContent>
         </Card>
