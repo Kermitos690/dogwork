@@ -380,6 +380,71 @@ export default function AdminDashboard() {
           </Card>
         </Collapsible>
 
+        {/* Enrich exercises with AI */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" /> Enrichir les exercices (IA)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Enrichit automatiquement les descriptions, étapes et conseils de tous les exercices mal documentés avec l'IA. Traite par lots de 10.
+            </p>
+            {enrichProgress && (
+              <div className="space-y-2">
+                <Progress value={(enrichProgress.processed / Math.max(enrichProgress.total, 1)) * 100} className="h-2" />
+                <p className="text-xs text-muted-foreground">
+                  {enrichProgress.processed}/{enrichProgress.total} traités — {enrichProgress.success} ✓ — {enrichProgress.failed} ✗
+                  {enrichProgress.done && " — Terminé !"}
+                </p>
+              </div>
+            )}
+            <Button
+              onClick={async () => {
+                setEnriching(true);
+                setEnrichProgress(null);
+                let offset = 0;
+                let totalProcessed = 0;
+                let totalSuccess = 0;
+                let totalFailed = 0;
+                let total = 0;
+                let isDone = false;
+
+                while (!isDone) {
+                  try {
+                    const { data, error } = await supabase.functions.invoke("enrich-exercises", {
+                      body: { offset, batchSize: 10, onlyEmpty: true },
+                    });
+                    if (error) throw error;
+
+                    totalProcessed += data.processed || 0;
+                    totalSuccess += data.success || 0;
+                    totalFailed += data.failed || 0;
+                    total = data.total || total;
+                    isDone = data.done;
+                    offset = data.nextOffset || offset + 10;
+
+                    setEnrichProgress({ processed: totalProcessed, total, success: totalSuccess, failed: totalFailed, done: isDone });
+                  } catch (err: any) {
+                    toast({ title: "Erreur enrichissement", description: err.message, variant: "destructive" });
+                    isDone = true;
+                  }
+                }
+
+                setEnriching(false);
+                if (totalSuccess > 0) {
+                  toast({ title: "Enrichissement terminé ✨", description: `${totalSuccess} exercices enrichis avec succès.` });
+                }
+              }}
+              disabled={enriching}
+              className="w-full gap-2"
+            >
+              <Sparkles className="h-4 w-4" /> {enriching ? "Enrichissement en cours..." : "Lancer l'enrichissement IA"}
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* Quick links */}
         <div className="grid grid-cols-3 gap-2">
           <Button variant="outline" className="h-12 gap-2" onClick={() => navigate("/exercises")}>
