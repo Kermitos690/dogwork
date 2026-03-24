@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useHasFeature } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
+import { usePreferences } from "@/hooks/usePreferences";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -87,7 +88,7 @@ async function streamChat({
 }
 
 export function AIChatBot() {
-  const { preferences } = __usePreferences();
+  const { preferences } = usePreferences();
   if (preferences.hide_chatbot) return null;
 
   return <AIChatBotInner />;

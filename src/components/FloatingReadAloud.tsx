@@ -2,8 +2,14 @@ import { useState } from "react";
 import { Volume2, VolumeX, Pause, Play } from "lucide-react";
 import { useTextToSpeech } from "@/hooks/useTextToSpeech";
 import { motion, AnimatePresence } from "framer-motion";
+import { usePreferences } from "@/hooks/usePreferences";
 
 export function FloatingReadAloud() {
+  const { preferences } = usePreferences();
+  const { speak, stop, togglePause, isSpeaking, isPaused, isSupported } = useTextToSpeech();
+  const [expanded, setExpanded] = useState(false);
+
+  if (!isSupported || preferences.hide_read_aloud) return null;
   const { speak, stop, togglePause, isSpeaking, isPaused, isSupported } = useTextToSpeech();
   const [expanded, setExpanded] = useState(false);
 
