@@ -21,8 +21,21 @@ function ExerciseCard({ ex, done, onToggle }: { ex: any; done: boolean; onToggle
 
   return (
     <div
-      className={`rounded-2xl border p-4 transition-all ${done ? "border-success/30 bg-success/5" : "border-border bg-card"}`}
+      className={`rounded-2xl border overflow-hidden transition-all ${done ? "border-success/30 bg-success/5" : "border-border bg-card"}`}
     >
+      {/* Cover image */}
+      {ex.coverImage && (
+        <div className="w-full h-28 overflow-hidden">
+          <img
+            src={ex.coverImage}
+            alt={ex.name}
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+        </div>
+      )}
+
+      <div className="p-4">
       {/* Header — toggles completion */}
       <button onClick={onToggle} className="flex w-full items-start gap-3 text-left">
         <div className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 transition-all ${done ? "bg-success border-success" : "border-muted-foreground/30"}`}>
@@ -84,6 +97,7 @@ function ExerciseCard({ ex, done, onToggle }: { ex: any; done: boolean; onToggle
           </Link>
         </div>
       )}
+      </div>
     </div>
   );
 }
