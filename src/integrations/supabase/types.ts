@@ -1438,6 +1438,42 @@ export type Database = {
           },
         ]
       }
+      user_preferences: {
+        Row: {
+          accent_color: string
+          created_at: string
+          hide_chatbot: boolean
+          hide_guided_tour: boolean
+          hide_read_aloud: boolean
+          id: string
+          updated_at: string
+          user_id: string
+          visible_sections: Json
+        }
+        Insert: {
+          accent_color?: string
+          created_at?: string
+          hide_chatbot?: boolean
+          hide_guided_tour?: boolean
+          hide_read_aloud?: boolean
+          id?: string
+          updated_at?: string
+          user_id: string
+          visible_sections?: Json
+        }
+        Update: {
+          accent_color?: string
+          created_at?: string
+          hide_chatbot?: boolean
+          hide_guided_tour?: boolean
+          hide_read_aloud?: boolean
+          id?: string
+          updated_at?: string
+          user_id?: string
+          visible_sections?: Json
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
