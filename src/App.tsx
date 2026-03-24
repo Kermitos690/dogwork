@@ -9,8 +9,8 @@ import { EducatorSubscriptionProvider } from "@/hooks/useEducatorSubscription";
 import { PreferencesProvider } from "@/hooks/usePreferences";
 import { useDogs } from "./hooks/useDogs";
 import { useIsCoach, useIsShelter } from "./hooks/useCoach";
-import { AIChatBot } from "@/components/AIChatBot";
-import { GuidedTour } from "@/components/GuidedTour";
+const AIChatBot = lazy(() => import("@/components/AIChatBot").then(m => ({ default: m.AIChatBot })));
+const GuidedTour = lazy(() => import("@/components/GuidedTour").then(m => ({ default: m.GuidedTour })));
 
 // Eagerly loaded (critical path)
 import Auth from "./pages/Auth";
@@ -153,7 +153,7 @@ const App = () => {
                 <Route path="/*" element={<ProtectedRoutes />} />
               </Routes>
             </Suspense>
-            <GuidedTour />
+            <Suspense fallback={null}><GuidedTour /></Suspense>
           </BrowserRouter>
         </TooltipProvider>
         </EducatorSubscriptionProvider>
