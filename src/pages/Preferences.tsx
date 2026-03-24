@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Palette, Eye, Settings2, Check } from "lucide-react";
+import { ArrowLeft, Palette, Eye, Settings2, Check, Sun, Moon } from "lucide-react";
 import { motion } from "framer-motion";
 import { Switch } from "@/components/ui/switch";
 import { usePreferences, AccentColor } from "@/hooks/usePreferences";
