@@ -45,7 +45,7 @@ export function FloatingReadAloud() {
             ? "bg-primary text-primary-foreground shadow-[0_0_15px_hsl(var(--primary)/0.4)]"
             : "bg-card border border-border text-muted-foreground hover:text-foreground hover:border-primary/40"
         }`}
-        title="Lire la page à haute voix"
+        aria-label={isSpeaking && !isPaused ? "Mettre en pause la lecture" : isPaused ? "Reprendre la lecture" : "Lire la page à haute voix"}
       >
         {isSpeaking && !isPaused ? (
           <Pause className="h-4.5 w-4.5" />
@@ -65,7 +65,7 @@ export function FloatingReadAloud() {
             whileTap={{ scale: 0.9 }}
             onClick={stop}
             className="w-9 h-9 rounded-full bg-destructive/10 border border-destructive/20 flex items-center justify-center"
-            title="Arrêter la lecture"
+            aria-label="Arrêter la lecture"
           >
             <VolumeX className="h-4 w-4 text-destructive" />
           </motion.button>
