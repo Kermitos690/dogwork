@@ -10,10 +10,8 @@ export function FloatingReadAloud() {
   const [expanded, setExpanded] = useState(false);
 
   if (!isSupported || preferences.hide_read_aloud) return null;
-  const { speak, stop, togglePause, isSpeaking, isPaused, isSupported } = useTextToSpeech();
-  const [expanded, setExpanded] = useState(false);
 
-  if (!isSupported) return null;
+
 
   const handleRead = () => {
     const mainContent = document.querySelector(".mx-auto.max-w-lg");
