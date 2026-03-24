@@ -54,6 +54,21 @@ serve(async (req) => {
     const FROM_EMAIL = "DogWork <onboarding@resend.dev>";
     const ADMIN_EMAIL = "teba.gaetan@gmail.com";
 
+    // --- Role checks for privileged notification types ---
+    const privilegedTypes = ["course_approved", "course_rejected"];
+    if (privilegedTypes.includes(type)) {
+      const { data: isAdmin } = await supabaseAdmin.rpc("has_role", {
+        _user_id: userId,
+        _role: "admin",
+      });
+      if (!isAdmin) {
+        return new Response(
+          JSON.stringify({ error: "Forbidden: admin role required" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     let subject = "";
     let body = "";
     let to = ADMIN_EMAIL;
@@ -72,30 +87,116 @@ serve(async (req) => {
         break;
       }
       case "course_approved": {
-        subject = `[DogWork] Votre cours "${esc(data.title)}" a été approuvé ✅`;
+        // Look up educator email server-side from courseId
+        if (!data.courseId) {
+          return new Response(JSON.stringify({ error: "courseId required" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const { data: course, error: courseErr } = await supabaseAdmin
+          .from("courses")
+          .select("educator_user_id, title")
+          .eq("id", data.courseId)
+          .single();
+        if (courseErr || !course) {
+          return new Response(JSON.stringify({ error: "Course not found" }), {
+            status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const { data: educatorUser } = await supabaseAdmin.auth.admin.getUserById(course.educator_user_id);
+        const educatorEmail = educatorUser?.user?.email;
+        if (!educatorEmail) {
+          return new Response(JSON.stringify({ error: "Educator email not found" }), {
+            status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const courseTitle = esc(course.title);
+        subject = `[DogWork] Votre cours "${courseTitle}" a été approuvé ✅`;
         body = `<h2>Cours approuvé</h2>
-          <p>Votre cours <strong>${esc(data.title)}</strong> a été validé par l'administration.</p>
+          <p>Votre cours <strong>${courseTitle}</strong> a été validé par l'administration.</p>
           <p>Il est maintenant visible par les utilisateurs et peut recevoir des réservations.</p>`;
-        // Only allow sending to the educator's own email - validate via admin check
-        to = data.educatorEmail || ADMIN_EMAIL;
+        to = educatorEmail;
         break;
       }
       case "course_rejected": {
-        subject = `[DogWork] Votre cours "${esc(data.title)}" a été refusé ❌`;
+        // Look up educator email server-side from courseId
+        if (!data.courseId) {
+          return new Response(JSON.stringify({ error: "courseId required" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const { data: rejCourse, error: rejErr } = await supabaseAdmin
+          .from("courses")
+          .select("educator_user_id, title")
+          .eq("id", data.courseId)
+          .single();
+        if (rejErr || !rejCourse) {
+          return new Response(JSON.stringify({ error: "Course not found" }), {
+            status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const { data: rejEducatorUser } = await supabaseAdmin.auth.admin.getUserById(rejCourse.educator_user_id);
+        const rejEducatorEmail = rejEducatorUser?.user?.email;
+        if (!rejEducatorEmail) {
+          return new Response(JSON.stringify({ error: "Educator email not found" }), {
+            status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const rejTitle = esc(rejCourse.title);
+        subject = `[DogWork] Votre cours "${rejTitle}" a été refusé ❌`;
         body = `<h2>Cours refusé</h2>
-          <p>Votre cours <strong>${esc(data.title)}</strong> n'a pas été validé.</p>
+          <p>Votre cours <strong>${rejTitle}</strong> n'a pas été validé.</p>
           <p>Contactez l'administration pour plus de détails.</p>`;
-        to = data.educatorEmail || ADMIN_EMAIL;
+        to = rejEducatorEmail;
         break;
       }
       case "booking_confirmed": {
-        subject = `[DogWork] Réservation confirmée pour "${esc(data.courseTitle)}"`;
+        // Look up user email server-side from bookingId
+        if (!data.bookingId) {
+          return new Response(JSON.stringify({ error: "bookingId required" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const { data: booking, error: bookErr } = await supabaseAdmin
+          .from("course_bookings")
+          .select("user_id, course_id")
+          .eq("id", data.bookingId)
+          .single();
+        if (bookErr || !booking) {
+          return new Response(JSON.stringify({ error: "Booking not found" }), {
+            status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        // Verify the caller is the booking owner or an admin
+        const { data: callerIsAdmin } = await supabaseAdmin.rpc("has_role", {
+          _user_id: userId,
+          _role: "admin",
+        });
+        if (booking.user_id !== userId && !callerIsAdmin) {
+          return new Response(JSON.stringify({ error: "Forbidden" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const { data: bookingUser } = await supabaseAdmin.auth.admin.getUserById(booking.user_id);
+        const bookingEmail = bookingUser?.user?.email;
+        if (!bookingEmail) {
+          return new Response(JSON.stringify({ error: "User email not found" }), {
+            status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const { data: bookingCourse } = await supabaseAdmin
+          .from("courses")
+          .select("title, location, next_session_at")
+          .eq("id", booking.course_id)
+          .single();
+        const bTitle = esc(bookingCourse?.title ?? "Cours");
+        subject = `[DogWork] Réservation confirmée pour "${bTitle}"`;
         body = `<h2>Réservation confirmée 🎉</h2>
-          <p>Votre réservation pour le cours <strong>${esc(data.courseTitle)}</strong> a été confirmée.</p>
-          ${data.sessionDate ? `<p><strong>Date :</strong> ${esc(data.sessionDate)}</p>` : ""}
-          ${data.location ? `<p><strong>Lieu :</strong> ${esc(data.location)}</p>` : ""}
+          <p>Votre réservation pour le cours <strong>${bTitle}</strong> a été confirmée.</p>
+          ${bookingCourse?.next_session_at ? `<p><strong>Date :</strong> ${esc(bookingCourse.next_session_at)}</p>` : ""}
+          ${bookingCourse?.location ? `<p><strong>Lieu :</strong> ${esc(bookingCourse.location)}</p>` : ""}
           <p>Rendez-vous le jour J !</p>`;
-        to = data.userEmail || ADMIN_EMAIL;
+        to = bookingEmail;
         break;
       }
       default:

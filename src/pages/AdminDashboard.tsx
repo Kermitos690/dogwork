@@ -145,15 +145,10 @@ export default function AdminDashboard() {
       toast({ title: status === "approved" ? "Cours approuvé ✅" : "Cours refusé ❌" });
       refetchCourses();
       try {
-        const { data: eduProfile } = await supabase
-          .from("profiles")
-          .select("display_name")
-          .eq("user_id", course?.educator_user_id)
-          .single();
         await supabase.functions.invoke("send-notification-email", {
           body: {
             type: status === "approved" ? "course_approved" : "course_rejected",
-            data: { title: course?.title || "", educatorName: eduProfile?.display_name || "" },
+            data: { courseId },
           },
         });
       } catch (e) {
