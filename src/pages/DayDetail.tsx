@@ -115,23 +115,52 @@ export default function DayDetail() {
   const standardDay = getDayById(id);
   const isPersonalized = source === "plan" && planDay;
 
+  // Collect slugs from plan exercises to fetch enriched data from DB
+  const planSlugs = isPersonalized
+    ? planDay.exercises.map((e: any) => e.slug).filter(Boolean)
+    : [];
+
+  const { data: enrichedExercises } = useQuery({
+    queryKey: ["enriched_exercises", planSlugs],
+    queryFn: async () => {
+      if (planSlugs.length === 0) return {};
+      const { data } = await supabase
+        .from("exercises")
+        .select("slug, name, description, summary, objective, short_instruction, tutorial_steps, steps, success_criteria, stop_criteria, vigilance, voice_commands, body_positioning, troubleshooting, validation_protocol, mistakes, precautions, adaptations, cover_image")
+        .in("slug", planSlugs);
+      const map: Record<string, any> = {};
+      (data || []).forEach((ex: any) => { map[ex.slug] = ex; });
+      return map;
+    },
+    enabled: planSlugs.length > 0,
+    staleTime: 10 * 60_000,
+  });
+
   const dayTitle = isPersonalized ? planDay.title : standardDay?.title || "Jour inconnu";
   const dayObjective = isPersonalized ? planDay.objective : standardDay?.objective || "";
   const dayDuration = isPersonalized ? planDay.duration : standardDay?.duration || "";
   const dayDifficulty = isPersonalized ? planDay.difficulty : standardDay?.difficulty || "";
   const planExercises = isPersonalized
-    ? planDay.exercises.map((e: any, i: number) => ({
-        id: e.id || `plan-ex-${i}`,
-        name: e.name,
-        slug: e.slug || "",
-        description: e.description || "",
-        instructions: e.instructions,
-        repetitionsTarget: e.repetitions,
-        timerSuggested: e.timerSeconds,
-        tutorialSteps: e.tutorialSteps || [],
-        validationProtocol: e.validationProtocol || e.successCriteria || "",
-        dayId: id,
-      }))
+    ? planDay.exercises.map((e: any, i: number) => {
+        const db = enrichedExercises?.[e.slug] || {};
+        const dbTutorial = Array.isArray(db.tutorial_steps) ? db.tutorial_steps : [];
+        const planTutorial = e.tutorialSteps || [];
+        return {
+          id: e.id || `plan-ex-${i}`,
+          name: e.name,
+          slug: e.slug || "",
+          description: db.description || db.summary || db.objective || e.description || "",
+          instructions: db.short_instruction || e.instructions || "",
+          repetitionsTarget: e.repetitions,
+          timerSuggested: e.timerSeconds,
+          tutorialSteps: dbTutorial.length > 0 ? dbTutorial : planTutorial,
+          validationProtocol: db.validation_protocol || db.success_criteria || e.validationProtocol || e.successCriteria || "",
+          stopCriteria: db.stop_criteria || "",
+          vigilance: db.vigilance || "",
+          coverImage: db.cover_image || "",
+          dayId: id,
+        };
+      })
     : [];
   const dayExercises = planExercises.length > 0 ? planExercises : (standardDay?.exercises || []);
   const dayVigilance = isPersonalized ? planDay.vigilance : standardDay?.vigilance || "";
