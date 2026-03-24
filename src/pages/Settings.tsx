@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Download, LogOut, Info, User, Shield, CreditCard } from "lucide-react";
+import { ArrowLeft, Download, LogOut, Info, User, Shield, CreditCard, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppLayout } from "@/components/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
@@ -97,6 +97,20 @@ export default function Settings() {
           </div>
           <Button variant="outline" size="sm" className="w-full" onClick={() => navigate("/subscription")}>
             Gérer mon abonnement
+          </Button>
+        </div>
+
+        {/* Preferences */}
+        <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Palette className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Préférences</h3>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Personnalisez les couleurs, la visibilité des modules et les fonctionnalités.
+          </p>
+          <Button variant="outline" size="sm" className="w-full" onClick={() => navigate("/preferences")}>
+            <Palette className="h-4 w-4" /> Personnaliser
           </Button>
         </div>
 

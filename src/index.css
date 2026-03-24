@@ -90,6 +90,14 @@
   --sidebar-ring: 270 70% 55%;
 }
 
+/* User accent color overrides (only apply when no role theme is active) */
+.accent-purple { --primary: 270 80% 65%; --ring: 270 80% 65%; --neon-blue: 270 80% 65%; --glow-primary: 0 0 20px hsl(270 80% 65% / 0.25); }
+.accent-cyan   { --primary: 185 85% 55%; --ring: 185 85% 55%; --neon-blue: 185 85% 55%; --glow-primary: 0 0 20px hsl(185 85% 55% / 0.25); }
+.accent-pink   { --primary: 330 80% 60%; --ring: 330 80% 60%; --neon-blue: 330 80% 60%; --glow-primary: 0 0 20px hsl(330 80% 60% / 0.25); }
+.accent-emerald { --primary: 160 65% 45%; --ring: 160 65% 45%; --neon-blue: 160 65% 45%; --glow-primary: 0 0 20px hsl(160 65% 45% / 0.25); }
+.accent-amber  { --primary: 38 92% 55%;  --ring: 38 92% 55%;  --neon-blue: 38 92% 55%;  --glow-primary: 0 0 20px hsl(38 92% 55% / 0.25); }
+.accent-red    { --primary: 0 72% 55%;   --ring: 0 72% 55%;   --neon-blue: 0 72% 55%;   --glow-primary: 0 0 20px hsl(0 72% 55% / 0.25); }
+
 @layer base {
   * {
     @apply border-border;

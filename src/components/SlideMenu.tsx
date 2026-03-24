@@ -104,6 +104,7 @@ export function SlideMenu() {
       title: "Compte",
       items: [
         { label: "Profil", icon: User, path: "/profile" },
+        { label: "Préférences", icon: Settings, path: "/preferences" },
         { label: "Abonnement", icon: CreditCard, path: "/subscription" },
         { label: "Aide", icon: HelpCircle, path: "/help" },
       ],

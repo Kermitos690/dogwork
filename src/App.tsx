@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { SubscriptionProvider } from "@/hooks/useSubscription";
 import { EducatorSubscriptionProvider } from "@/hooks/useEducatorSubscription";
+import { PreferencesProvider } from "@/hooks/usePreferences";
 import { useDogs } from "./hooks/useDogs";
 import { useIsCoach, useIsShelter } from "./hooks/useCoach";
 import { AIChatBot } from "@/components/AIChatBot";
@@ -51,6 +52,7 @@ const CoachCalendar = lazy(() => import("./pages/CoachCalendar"));
 const CoachSubscription = lazy(() => import("./pages/CoachSubscription"));
 const MessagesPage = lazy(() => import("./pages/Messages"));
 const SettingsPage = lazy(() => import("./pages/Settings"));
+const PreferencesPage = lazy(() => import("./pages/Preferences"));
 const ShelterGuard = lazy(() => import("./components/ShelterGuard").then(m => ({ default: m.ShelterGuard })));
 const ShelterDashboard = lazy(() => import("./pages/ShelterDashboard"));
 const ShelterAnimals = lazy(() => import("./pages/ShelterAnimals"));
@@ -110,6 +112,7 @@ function ProtectedRoutes() {
         <Route path="/courses" element={<CoursesPage />} />
         <Route path="/messages" element={<MessagesPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/preferences" element={<PreferencesPage />} />
         <Route path="/program" element={<Navigate to="/plan" replace />} />
         {/* Coach / Educator routes — guarded by role */}
         <Route path="/coach" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachDashboard /></CoachGuard></Suspense>} />
@@ -138,6 +141,7 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <PreferencesProvider>
         <SubscriptionProvider>
         <EducatorSubscriptionProvider>
         <TooltipProvider>
@@ -154,6 +158,7 @@ const App = () => {
         </TooltipProvider>
         </EducatorSubscriptionProvider>
         </SubscriptionProvider>
+        </PreferencesProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
