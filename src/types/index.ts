@@ -9,9 +9,13 @@ export interface Exercise {
   id: string;
   dayId: number;
   name: string;
-  instructions: string;
+  instructions?: string;
+  description?: string;
+  slug?: string;
   repetitionsTarget: number;
-  timerSuggested: number | null;
+  timerSuggested?: number | null;
+  tutorialSteps?: { title: string; description: string; tip?: string }[];
+  validationProtocol?: string;
 }
 
 export interface Day {
