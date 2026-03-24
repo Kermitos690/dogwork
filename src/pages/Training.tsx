@@ -67,7 +67,7 @@ export default function Training() {
     enabled: !!activeDog && !!id,
   });
 
-  const exercise = exercises[currentIndex];
+  const exercise = exercises[currentIndex] as any;
   const totalExercises = exercises.length;
   const completedExercises: string[] = progress?.completed_exercises || [];
   const isExDone = exercise ? completedExercises.includes(exercise.id) : false;
