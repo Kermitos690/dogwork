@@ -131,10 +131,17 @@ export default function ExerciseLibrary() {
                 transition={{ delay: Math.min(i * 0.02, 0.3), duration: 0.2 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => navigate(`/exercises/${exercise.slug}`)}
-                className="w-full text-left glass-card rounded-xl p-3 flex items-center gap-3">
-                <div className="w-11 h-11 rounded-lg bg-secondary/60 flex items-center justify-center shrink-0 text-lg">
-                  {exercise.exercise_categories?.icon || "📋"}
-                </div>
+                className="w-full text-left glass-card rounded-xl overflow-hidden flex items-stretch gap-0">
+                {exercise.cover_image ? (
+                  <div className="w-20 h-20 shrink-0">
+                    <img src={exercise.cover_image} alt={exercise.name} className="w-full h-full object-cover" loading="lazy" />
+                  </div>
+                ) : (
+                  <div className="w-14 h-auto shrink-0 bg-secondary/60 flex items-center justify-center text-lg">
+                    {exercise.exercise_categories?.icon || "📋"}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0 p-3 flex items-center gap-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-foreground truncate">{exercise.name}</p>
                   <p className="text-[11px] text-muted-foreground line-clamp-1">{exercise.objective}</p>
