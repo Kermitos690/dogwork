@@ -87,6 +87,13 @@ async function streamChat({
 }
 
 export function AIChatBot() {
+  const { preferences } = __usePreferences();
+  if (preferences.hide_chatbot) return null;
+
+  return <AIChatBotInner />;
+}
+
+function AIChatBotInner() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
