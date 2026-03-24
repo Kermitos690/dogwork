@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { Play, ArrowLeft, CheckCircle2, ChevronRight, Sparkles, AlertTriangle, Lock } from "lucide-react";
+import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
+import { Play, ArrowLeft, CheckCircle2, ChevronRight, ChevronDown, Sparkles, AlertTriangle, Lock, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -13,6 +13,80 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import type { PlanDay } from "@/lib/planGenerator";
+
+function ExerciseCard({ ex, done, onToggle }: { ex: any; done: boolean; onToggle: () => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const hasSteps = ex.tutorialSteps && ex.tutorialSteps.length > 0;
+  const hasDescription = ex.description && ex.description.length > 0;
+
+  return (
+    <div
+      className={`rounded-2xl border p-4 transition-all ${done ? "border-success/30 bg-success/5" : "border-border bg-card"}`}
+    >
+      {/* Header — toggles completion */}
+      <button onClick={onToggle} className="flex w-full items-start gap-3 text-left">
+        <div className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 transition-all ${done ? "bg-success border-success" : "border-muted-foreground/30"}`}>
+          {done && <CheckCircle2 className="h-4 w-4 text-success-foreground" />}
+        </div>
+        <div className="flex-1">
+          <p className={`text-sm font-medium ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>{ex.name}</p>
+          {hasDescription && (
+            <p className="mt-1 text-xs text-muted-foreground leading-relaxed">{ex.description}</p>
+          )}
+          <div className="mt-1 flex gap-2 text-xs text-muted-foreground">
+            <span>×{ex.repetitionsTarget || ex.repetitions}</span>
+            {(ex.timerSuggested || ex.timerSeconds) && <span>⏱ {ex.timerSuggested || ex.timerSeconds}s</span>}
+          </div>
+        </div>
+      </button>
+
+      {/* Expand steps */}
+      {hasSteps && (
+        <div className="mt-2 pl-9">
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="flex items-center gap-1 text-xs font-medium text-primary"
+          >
+            <ChevronDown className={`h-3 w-3 transition-transform ${expanded ? "rotate-180" : ""}`} />
+            {expanded ? "Masquer les étapes" : "Voir les étapes détaillées"}
+          </button>
+
+          {expanded && (
+            <div className="mt-2 space-y-2">
+              {ex.tutorialSteps.map((step: any, i: number) => (
+                <div key={i} className="rounded-xl bg-muted/50 p-3 space-y-1">
+                  <p className="text-xs font-semibold text-foreground">
+                    Étape {i + 1} — {step.title}
+                  </p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{step.description}</p>
+                  {step.tip && (
+                    <p className="text-xs text-primary italic">💡 {step.tip}</p>
+                  )}
+                </div>
+              ))}
+              {ex.validationProtocol && (
+                <div className="rounded-xl bg-success/5 border border-success/20 p-3">
+                  <p className="text-xs font-semibold text-success">✓ Critère de réussite</p>
+                  <p className="text-xs text-foreground mt-0.5">{ex.validationProtocol}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Link to full exercise sheet */}
+      {ex.slug && (
+        <div className="mt-2 pl-9">
+          <Link to={`/exercises/${ex.slug}`} className="flex items-center gap-1 text-xs text-primary hover:underline">
+            <BookOpen className="h-3 w-3" />
+            Voir la fiche complète
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function DayDetail() {
   const { dayId } = useParams();
@@ -47,11 +121,18 @@ export default function DayDetail() {
   const dayDifficulty = isPersonalized ? planDay.difficulty : standardDay?.difficulty || "";
   const planExercises = isPersonalized
     ? planDay.exercises.map((e: any, i: number) => ({
-        id: e.id || `plan-ex-${i}`, name: e.name, instructions: e.instructions,
-        repetitionsTarget: e.repetitions, timerSuggested: e.timerSeconds, dayId: id,
+        id: e.id || `plan-ex-${i}`,
+        name: e.name,
+        slug: e.slug || "",
+        description: e.description || "",
+        instructions: e.instructions,
+        repetitionsTarget: e.repetitions,
+        timerSuggested: e.timerSeconds,
+        tutorialSteps: e.tutorialSteps || [],
+        validationProtocol: e.validationProtocol || e.successCriteria || "",
+        dayId: id,
       }))
     : [];
-  // Fall back to standard exercises when plan day exists but has no exercises
   const dayExercises = planExercises.length > 0 ? planExercises : (standardDay?.exercises || []);
   const dayVigilance = isPersonalized ? planDay.vigilance : standardDay?.vigilance || "";
   const dayValidation = isPersonalized ? planDay.validationCriteria : standardDay?.validationCriteria || "";
@@ -69,7 +150,6 @@ export default function DayDetail() {
     enabled: !!activeDog,
   });
 
-  // Check if previous day is validated (for locking)
   const { data: prevDayProgress } = useQuery({
     queryKey: ["day_progress", activeDog?.id, id - 1],
     queryFn: async () => {
@@ -84,7 +164,6 @@ export default function DayDetail() {
 
   useEffect(() => { if (progress?.notes) setNotes(progress.notes); }, [progress]);
 
-  // Auto mark in progress on first visit
   useEffect(() => {
     if (activeDog && user && !progress) {
       supabase.from("day_progress").insert({
@@ -96,7 +175,6 @@ export default function DayDetail() {
   if (!standardDay && !planDay) return <AppLayout><p className="pt-10 text-center text-muted-foreground">Jour non trouvé</p></AppLayout>;
   if (!activeDog) return <AppLayout><p className="pt-10 text-center text-muted-foreground">Ajoutez d'abord un chien.</p></AppLayout>;
 
-  // Locked day screen
   if (isDayLocked) {
     return (
       <AppLayout>
@@ -164,9 +242,7 @@ export default function DayDetail() {
     if (progress) {
       await supabase.from("day_progress").update({ notes }).eq("id", progress.id);
     } else {
-      await supabase.from("day_progress").insert({
-        dog_id: activeDog.id, user_id: user!.id, day_id: id, notes,
-      });
+      await supabase.from("day_progress").insert({ dog_id: activeDog.id, user_id: user!.id, day_id: id, notes });
     }
     refetch();
     toast({ title: "✓ Notes sauvegardées" });
@@ -175,7 +251,6 @@ export default function DayDetail() {
   const trainingUrl = source === "plan" ? `/training/${id}?source=plan` : `/training/${id}`;
   const nextDayUrl = source === "plan" ? `/day/${id + 1}?source=plan` : `/day/${id + 1}`;
 
-  // Post-validation screen
   if (showValidation) {
     return (
       <AppLayout>
@@ -208,7 +283,6 @@ export default function DayDetail() {
   return (
     <AppLayout>
       <div className="animate-fade-in space-y-4 pt-4">
-        {/* Header */}
         <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground">
           <ArrowLeft className="h-4 w-4" /> Retour
         </button>
@@ -223,7 +297,6 @@ export default function DayDetail() {
 
         <p className="text-sm text-muted-foreground">{dayObjective}</p>
 
-        {/* Tags */}
         <div className="flex flex-wrap gap-1.5">
           <span className="rounded-full bg-muted px-3 py-1 text-xs">⏱ {dayDuration}</span>
           <span className="rounded-full bg-muted px-3 py-1 text-xs">📊 {dayDifficulty}</span>
@@ -232,7 +305,6 @@ export default function DayDetail() {
           ))}
         </div>
 
-        {/* Contextual tips */}
         {contextualTips.length > 0 && (
           <Card className="border-primary/10 bg-primary/5">
             <CardContent className="p-3 space-y-1">
@@ -246,7 +318,6 @@ export default function DayDetail() {
           </Card>
         )}
 
-        {/* Progress bar */}
         <div className="rounded-2xl border border-border bg-card p-4">
           <div className="flex items-center justify-between text-sm mb-2">
             <span className="font-medium text-foreground">Exercices</span>
@@ -255,35 +326,18 @@ export default function DayDetail() {
           <Progress value={exercisePct} className="h-2" />
         </div>
 
-        {/* Exercises */}
+        {/* Exercises — rich cards */}
         <div className="space-y-2">
-          {dayExercises.map((ex: any) => {
-            const done = completedExercises.includes(ex.id);
-            return (
-              <button key={ex.id} onClick={() => toggleExercise(ex.id)}
-                className={`card-press flex w-full items-start gap-3 rounded-2xl border p-4 text-left transition-all ${
-                  done ? "border-success/30 bg-success/5" : "border-border bg-card"
-                }`}
-              >
-                <div className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 transition-all ${
-                  done ? "bg-success border-success" : "border-muted-foreground/30"
-                }`}>
-                  {done && <CheckCircle2 className="h-4 w-4 text-success-foreground" />}
-                </div>
-                <div className="flex-1">
-                  <p className={`text-sm font-medium ${done ? "line-through text-muted-foreground" : "text-foreground"}`}>{ex.name}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">{ex.instructions}</p>
-                  <div className="mt-1 flex gap-2 text-xs text-muted-foreground">
-                    <span>×{ex.repetitionsTarget || ex.repetitions}</span>
-                    {(ex.timerSuggested || ex.timerSeconds) && <span>⏱ {ex.timerSuggested || ex.timerSeconds}s</span>}
-                  </div>
-                </div>
-              </button>
-            );
-          })}
+          {dayExercises.map((ex: any) => (
+            <ExerciseCard
+              key={ex.id}
+              ex={ex}
+              done={completedExercises.includes(ex.id)}
+              onToggle={() => toggleExercise(ex.id)}
+            />
+          ))}
         </div>
 
-        {/* Vigilance */}
         {dayVigilance && (
           <Card className="border-warning/20 bg-warning/5">
             <CardContent className="p-3 flex items-start gap-2">
@@ -296,7 +350,6 @@ export default function DayDetail() {
           </Card>
         )}
 
-        {/* Validation criteria - collapsible */}
         {dayValidation && (
           <Card className="border-success/20 bg-success/5">
             <CardContent className="p-3 flex items-start gap-2">
@@ -309,7 +362,6 @@ export default function DayDetail() {
           </Card>
         )}
 
-        {/* Notes */}
         <div className="space-y-2">
           <label className="text-sm font-medium text-foreground">Notes du jour</label>
           <textarea
@@ -320,7 +372,6 @@ export default function DayDetail() {
           <Button variant="outline" size="sm" className="rounded-xl" onClick={saveNotes}>Enregistrer</Button>
         </div>
 
-        {/* Actions */}
         <div className="flex flex-col gap-2 pb-4">
           <Button className="w-full h-14 rounded-xl text-base" onClick={() => navigate(trainingUrl)}>
             <Play className="h-5 w-5" /> Mode entraînement
