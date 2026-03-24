@@ -90,8 +90,8 @@ serve(async (req) => {
       }
 
       // Get user email
-      const { data: userData } = await adminCheck.auth.admin.getUserById(userId);
-      const email = userData?.user?.email;
+      const { data: userDataById } = await supabaseAdmin.auth.admin.getUserById(userId);
+      const email = userDataById?.user?.email;
 
       if (!email) {
         return new Response(
