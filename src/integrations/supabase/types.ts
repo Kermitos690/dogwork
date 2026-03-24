@@ -1446,6 +1446,7 @@ export type Database = {
           hide_guided_tour: boolean
           hide_read_aloud: boolean
           id: string
+          theme_mode: string
           updated_at: string
           user_id: string
           visible_sections: Json
@@ -1457,6 +1458,7 @@ export type Database = {
           hide_guided_tour?: boolean
           hide_read_aloud?: boolean
           id?: string
+          theme_mode?: string
           updated_at?: string
           user_id: string
           visible_sections?: Json
@@ -1468,6 +1470,7 @@ export type Database = {
           hide_guided_tour?: boolean
           hide_read_aloud?: boolean
           id?: string
+          theme_mode?: string
           updated_at?: string
           user_id?: string
           visible_sections?: Json
