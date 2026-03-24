@@ -4,9 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
 export type AccentColor = "blue" | "purple" | "cyan" | "pink" | "emerald" | "amber" | "red";
+export type ThemeMode = "dark" | "light";
 
 export interface UserPreferences {
   accent_color: AccentColor;
+  theme_mode: ThemeMode;
   hide_chatbot: boolean;
   hide_read_aloud: boolean;
   hide_guided_tour: boolean;
@@ -15,6 +17,7 @@ export interface UserPreferences {
 
 const DEFAULT_PREFERENCES: UserPreferences = {
   accent_color: "blue",
+  theme_mode: "dark",
   hide_chatbot: false,
   hide_read_aloud: false,
   hide_guided_tour: false,
@@ -48,6 +51,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       if (!data) return DEFAULT_PREFERENCES;
       return {
         accent_color: data.accent_color as AccentColor,
+        theme_mode: (data as any).theme_mode as ThemeMode || "dark",
         hide_chatbot: data.hide_chatbot,
         hide_read_aloud: data.hide_read_aloud,
         hide_guided_tour: data.hide_guided_tour,
@@ -70,13 +74,13 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       if (existing) {
         const { error } = await supabase
           .from("user_preferences")
-          .update(updates)
+          .update(updates as any)
           .eq("user_id", user.id);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from("user_preferences")
-          .insert({ user_id: user.id, ...updates });
+          .insert({ user_id: user.id, ...updates } as any);
         if (error) throw error;
       }
     },
@@ -102,15 +106,23 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   // Apply accent color class to body
   useEffect(() => {
     const body = document.body;
-    // Remove all accent classes
     body.classList.forEach((cls) => {
       if (cls.startsWith("accent-")) body.classList.remove(cls);
     });
-    // Only apply if not blue (default) and no role theme is active
     if (current.accent_color !== "blue" && !body.classList.contains("theme-coach") && !body.classList.contains("theme-admin") && !body.classList.contains("theme-shelter")) {
       body.classList.add(`accent-${current.accent_color}`);
     }
   }, [current.accent_color]);
+
+  // Apply theme mode (light/dark)
+  useEffect(() => {
+    const root = document.documentElement;
+    if (current.theme_mode === "light") {
+      root.classList.add("light");
+    } else {
+      root.classList.remove("light");
+    }
+  }, [current.theme_mode]);
 
   const updatePreference = <K extends keyof UserPreferences>(key: K, value: UserPreferences[K]) => {
     mutation.mutate({ [key]: value });

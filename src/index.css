@@ -98,6 +98,54 @@
 .accent-amber  { --primary: 38 92% 55%;  --ring: 38 92% 55%;  --neon-blue: 38 92% 55%;  --glow-primary: 0 0 20px hsl(38 92% 55% / 0.25); }
 .accent-red    { --primary: 0 72% 55%;   --ring: 0 72% 55%;   --neon-blue: 0 72% 55%;   --glow-primary: 0 0 20px hsl(0 72% 55% / 0.25); }
 
+/* Light theme */
+.light {
+  --background: 0 0% 98%;
+  --foreground: 225 25% 12%;
+  --card: 0 0% 100%;
+  --card-foreground: 225 25% 12%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 225 25% 12%;
+  --primary: 210 100% 50%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 14% 92%;
+  --secondary-foreground: 225 15% 30%;
+  --muted: 220 14% 95%;
+  --muted-foreground: 220 10% 45%;
+  --accent: 270 80% 60%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 72% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 13% 88%;
+  --input: 220 13% 88%;
+  --ring: 210 100% 50%;
+  --success: 160 65% 38%;
+  --success-foreground: 0 0% 100%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 0 0% 8%;
+  --neon-blue: 210 100% 50%;
+  --neon-purple: 270 80% 60%;
+  --neon-cyan: 185 85% 45%;
+  --neon-pink: 330 80% 55%;
+  --glow-primary: 0 0 12px hsl(210 100% 50% / 0.15);
+  --glow-accent: 0 0 12px hsl(270 80% 60% / 0.12);
+  --glow-success: 0 0 12px hsl(160 65% 38% / 0.12);
+  --sidebar-background: 0 0% 100%;
+  --sidebar-foreground: 225 15% 30%;
+  --sidebar-primary: 210 100% 50%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 220 14% 95%;
+  --sidebar-accent-foreground: 225 15% 30%;
+  --sidebar-border: 220 13% 88%;
+  --sidebar-ring: 210 100% 50%;
+}
+
+/* Light mode glass overrides */
+.light .glass-card {
+  background: hsl(0 0% 100% / 0.85);
+  border: 1px solid hsl(220 13% 88% / 0.8);
+}
+
 @layer base {
   * {
     @apply border-border;

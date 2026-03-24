@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { usePreferences } from "@/hooks/usePreferences";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +32,7 @@ export function SlideMenu() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { preferences } = usePreferences();
 
   // Fetch roles
   const { data: roles } = useQuery({
@@ -145,8 +147,32 @@ export function SlideMenu() {
     },
   ];
 
+  // Map preference keys to paths for filtering
+  const sectionPathMap: Record<string, string[]> = {
+    journal: ["/journal"],
+    stats: ["/stats"],
+    exercises: ["/exercises"],
+    courses: ["/courses"],
+    safety: ["/safety"],
+    messages: ["/messages"],
+  };
+
+  const hiddenPaths = new Set<string>();
+  Object.entries(sectionPathMap).forEach(([key, paths]) => {
+    if (!preferences.visible_sections.includes(key)) {
+      paths.forEach((p) => hiddenPaths.add(p));
+    }
+  });
+
+  const filteredUserSections = userSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => !hiddenPaths.has(item.path)),
+    }))
+    .filter((section) => section.items.length > 0);
+
   const allSections = [
-    ...userSections,
+    ...filteredUserSections,
     ...(isEducator ? coachSections : []),
     ...(isShelter ? shelterSections : []),
     ...(isAdmin ? adminSections : []),

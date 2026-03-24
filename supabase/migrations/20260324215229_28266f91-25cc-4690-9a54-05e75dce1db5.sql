@@ -1,0 +1,1 @@
+ALTER TABLE public.user_preferences ADD COLUMN theme_mode text NOT NULL DEFAULT 'dark';
