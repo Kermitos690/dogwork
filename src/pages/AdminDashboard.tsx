@@ -497,45 +497,53 @@ export default function AdminDashboard() {
                   return;
                 }
 
-                // Get exercises without cover_image
-                const { data: noImageExercises } = await supabase
+                // Count exercises without cover_image
+                const { count } = await supabase
                   .from("exercises")
-                  .select("id, name")
-                  .or("cover_image.is.null,cover_image.eq.")
-                  .limit(500);
+                  .select("*", { count: "exact", head: true })
+                  .is("cover_image", null);
 
-                if (!noImageExercises?.length) {
+                if (!count || count === 0) {
                   toast({ title: "✨", description: "Tous les exercices ont déjà une illustration." });
                   setGeneratingImages(false);
                   return;
                 }
 
-                let processed = 0;
-                let success = 0;
-                let failed = 0;
-                const total = noImageExercises.length;
+                const total = count;
+                let totalProcessed = 0;
+                let totalSuccess = 0;
+                let totalFailed = 0;
+                const batchSize = 5;
 
-                for (const ex of noImageExercises) {
+                // Process in batches
+                while (totalProcessed < total) {
                   try {
-                    const { data, error } = await supabase.functions.invoke("generate-exercise-image", {
-                      body: { exerciseId: ex.id },
+                    const { data, error } = await supabase.functions.invoke("generate-exercise-images", {
+                      body: { batch_size: batchSize, offset: 0 },
                       headers: { Authorization: `Bearer ${session.access_token}` },
                     });
                     if (error) throw error;
-                    if (data?.success) success++;
-                    else if (data?.skipped) success++;
-                    else failed++;
-                  } catch {
-                    failed++;
+
+                    if (data?.processed === 0) break;
+
+                    totalProcessed += data.processed || 0;
+                    totalSuccess += data.success || 0;
+                    totalFailed += data.failed || 0;
+                    setImageProgress({ processed: totalProcessed, total, success: totalSuccess, failed: totalFailed, done: totalProcessed >= total || data.processed === 0 });
+
+                    if (data.processed === 0) break;
+                  } catch (err) {
+                    console.error("Batch error:", err);
+                    totalFailed += batchSize;
+                    totalProcessed += batchSize;
+                    setImageProgress({ processed: totalProcessed, total, success: totalSuccess, failed: totalFailed, done: false });
+                    // Wait before retrying on error
+                    await new Promise(r => setTimeout(r, 10000));
                   }
-                  processed++;
-                  setImageProgress({ processed, total, success, failed, done: processed >= total });
-                  // Wait between calls to avoid rate limiting
-                  await new Promise(r => setTimeout(r, 3000));
                 }
 
                 setGeneratingImages(false);
-                toast({ title: "Illustrations terminées 🎨", description: `${success} images générées.` });
+                toast({ title: "Illustrations terminées 🎨", description: `${totalSuccess} images générées.` });
               }}
               disabled={generatingImages}
               className="w-full gap-2"
