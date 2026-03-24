@@ -78,7 +78,6 @@
 }
 
 /* Shelter theme — Purple / Violet */
-/* Shelter theme — Purple / Violet */
 .theme-shelter {
   --primary: 270 70% 55%;
   --primary-foreground: 0 0% 100%;
@@ -98,16 +97,6 @@
 .accent-emerald { --primary: 160 65% 45%; --ring: 160 65% 45%; --neon-blue: 160 65% 45%; --glow-primary: 0 0 20px hsl(160 65% 45% / 0.25); }
 .accent-amber  { --primary: 38 92% 55%;  --ring: 38 92% 55%;  --neon-blue: 38 92% 55%;  --glow-primary: 0 0 20px hsl(38 92% 55% / 0.25); }
 .accent-red    { --primary: 0 72% 55%;   --ring: 0 72% 55%;   --neon-blue: 0 72% 55%;   --glow-primary: 0 0 20px hsl(0 72% 55% / 0.25); }
-  --primary: 270 70% 55%;
-  --primary-foreground: 0 0% 100%;
-  --ring: 270 70% 55%;
-  --neon-blue: 270 70% 55%;
-  --neon-purple: 290 60% 60%;
-  --neon-cyan: 250 65% 60%;
-  --glow-primary: 0 0 20px hsl(270 70% 55% / 0.25);
-  --sidebar-primary: 270 70% 55%;
-  --sidebar-ring: 270 70% 55%;
-}
 
 @layer base {
   * {
