@@ -141,8 +141,7 @@ export default function ExerciseLibrary() {
                     {exercise.exercise_categories?.icon || "📋"}
                   </div>
                 )}
-                <div className="flex-1 min-w-0 p-3 flex items-center gap-3">
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 p-3">
                   <p className="text-sm font-semibold text-foreground truncate">{exercise.name}</p>
                   <p className="text-[11px] text-muted-foreground line-clamp-1">{exercise.objective}</p>
                   <div className="flex gap-1 mt-1">
