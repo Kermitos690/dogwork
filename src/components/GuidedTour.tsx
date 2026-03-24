@@ -149,7 +149,7 @@ export function GuidedTour() {
         className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4"
       >
         {/* Overlay */}
-        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={close} />
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={close} role="presentation" />
 
         {/* Modal */}
         <motion.div
@@ -170,8 +170,8 @@ export function GuidedTour() {
           </div>
 
           {/* Close */}
-          <button onClick={close} className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors z-10">
-            <X className="h-4 w-4" />
+          <button onClick={close} aria-label="Fermer la visite guidée" className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors z-10">
+            <X className="h-4 w-4" aria-hidden="true" />
           </button>
 
           {/* Content */}
@@ -235,6 +235,8 @@ export function GuidedTour() {
                   <button
                     key={i}
                     onClick={() => setStep(i)}
+                    aria-label={`Aller à l'étape ${i + 1}`}
+                    aria-current={i === step ? "step" : undefined}
                     className={`h-1.5 rounded-full transition-all duration-200 ${
                       i === step ? "w-4 bg-primary" : "w-1.5 bg-muted-foreground/30"
                     }`}
