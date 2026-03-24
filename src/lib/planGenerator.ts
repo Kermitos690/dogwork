@@ -31,9 +31,14 @@ export interface PlanDay {
 export interface PlanExercise {
   id: string;
   name: string;
+  slug: string;
+  description: string;
   instructions: string;
   repetitions: number;
   timerSeconds: number | null;
+  tutorialSteps?: { title: string; description: string; tip?: string }[];
+  validationProtocol?: string;
+  successCriteria?: string;
   libraryRef?: string;
 }
 
@@ -70,18 +75,105 @@ export interface AdaptiveSignals {
   daysCompleted: number;
 }
 
+// ===== AXIS → REAL EXERCISE SLUGS MAPPING =====
+// Maps each training axis to real exercise slugs from the database
+const AXIS_EXERCISE_SLUGS: Record<string, string[][]> = {
+  // [week1 slugs, week2 slugs, week3 slugs, week4 slugs]
+  securite: [
+    ["stop-urgence", "demi-tour", "regarde-moi"],
+    ["stop-urgence", "u-turn", "regarde-moi", "distance-confort"],
+    ["stop-urgence", "u-turn", "zone-tampon", "pas-bouger"],
+    ["stop-urgence", "u-turn", "zone-tampon", "passage-en-arc"],
+  ],
+  focus: [
+    ["regarde-moi", "reponse-au-nom", "touche-main"],
+    ["regarde-moi", "reponse-au-nom", "touche-main", "capturing-calme"],
+    ["regarde-moi", "focus-pres-stimulus", "touche-main", "engage-disengage"],
+    ["focus-pres-stimulus", "engage-disengage", "regarde-moi", "lat-look-at-that"],
+  ],
+  reactivite_chiens: [
+    ["distance-confort", "regarde-moi", "u-turn"],
+    ["counter-conditioning", "engage-disengage", "u-turn", "zone-tampon"],
+    ["lat-look-at-that", "marche-parallele", "bat-training", "passage-en-arc"],
+    ["bat-training", "marche-parallele", "focus-pres-stimulus", "pattern-games"],
+  ],
+  reactivite_humains: [
+    ["distance-confort", "regarde-moi", "u-turn"],
+    ["counter-conditioning", "engage-disengage", "croisement-pieton"],
+    ["lat-look-at-that", "rencontre-humains", "passage-en-arc"],
+    ["bat-training", "manipulations-douces", "focus-pres-stimulus"],
+  ],
+  marche: [
+    ["marche-sans-tirer", "demi-tour", "arret-spontane"],
+    ["marche-sans-tirer", "changement-rythme", "ignore-nourriture-sol"],
+    ["marche-relaxation", "contournement-obstacles", "attente-au-pied"],
+    ["marche-en-ville", "marche-foret", "marche-relaxation"],
+  ],
+  accueil: [
+    ["assis-base", "assis-automatique", "regarde-moi"],
+    ["assis-automatique", "gerer-visiteurs", "reste-assis"],
+    ["gerer-visiteurs", "joie-moderee", "reste-assis"],
+    ["gerer-visiteurs", "calme-pendant-activites", "assis-automatique"],
+  ],
+  solitude: [
+    ["solitude-10s", "solitude-1min", "tapis-calme"],
+    ["solitude-5min", "porte-fermee", "detachement-piece"],
+    ["solitude-15min", "ritual-depart", "occupation-seul"],
+    ["solitude-30min", "ignorer-depart", "ritual-retour"],
+  ],
+  aboiements: [
+    ["regarde-moi", "capturing-calme", "reponse-au-nom"],
+    ["jeu-interruptible", "renoncement-friandise", "regarde-moi"],
+    ["gerer-bruit-soudain", "gestion-fenetre", "tapis-calme"],
+    ["aboie-sur-commande", "calme-exterieur", "pattern-games"],
+  ],
+  autocontrole: [
+    ["tapis-calme", "zen-game", "attente-recompense"],
+    ["frustration-porte", "renoncement-friandise", "jouet-interdit"],
+    ["frustration-barriere", "jeu-interruptible", "calm-apres-jeu"],
+    ["excitation-controlée", "transition-energie", "calme-pendant-activites"],
+  ],
+  rappel: [
+    ["rappel-base", "reponse-au-nom", "touche-main"],
+    ["rappel-longe", "rappel-jeu", "rappel-entre-2-personnes"],
+    ["rappel-distractions", "rappel-course", "rappel-reward-jackpot"],
+    ["rappel-avec-chiens", "rappel-sifflet", "rappel-sans-friandise"],
+  ],
+  museliere: [
+    ["desens-museliere", "touche-main", "capturing-calme"],
+    ["desens-museliere", "marche-sans-tirer", "regarde-moi"],
+    ["desens-museliere", "marche-relaxation", "tapis-calme"],
+    ["desens-museliere", "marche-en-ville", "calme-exterieur"],
+  ],
+  stop: [
+    ["stop-urgence", "regarde-moi", "pas-bouger"],
+    ["stop-urgence", "stop-en-marche", "reste-assis"],
+    ["stop-urgence", "stop-en-marche", "reste-distractions"],
+    ["stop-urgence", "stop-en-marche", "couche-a-distance"],
+  ],
+  non: [
+    ["laisse-ca", "renoncement-friandise", "regarde-moi"],
+    ["laisse-ca", "jouet-interdit", "pas-toucher-objet"],
+    ["laisse-ca", "ignore-nourriture-sol", "zen-game"],
+    ["laisse-ca", "jouet-interdit", "resilience-echec"],
+  ],
+};
+
+// Helper to find a LibraryExercise by slug
+function findBySlug(slug: string): LibraryExercise | undefined {
+  return EXERCISE_LIBRARY.find(e => e.slug === slug);
+}
+
 // ===== LEVEL 1 — SECURITY =====
 function calculateSecurityLevel(profile: DogProfile): "standard" | "élevé" | "critique" {
   const { dog, problems } = profile;
   const pk = problems.map(p => p.problem_key);
 
-  // Critique: bite history, muzzle required, aggression with intensity >= 3
   if (dog.bite_history) return "critique";
   if (dog.muzzle_required) return "critique";
   if (pk.includes("agressivite") && (problems.find(p => p.problem_key === "agressivite")?.intensity || 0) >= 3) return "critique";
   if (pk.includes("morsure_anterieure")) return "critique";
 
-  // Élevé: high reactivity (>= 4), poor recovery, senior with health issues
   const highReact = problems.some(p =>
     (p.problem_key === "reactivite_chiens" || p.problem_key === "reactivite_humains") && (p.intensity || 0) >= 4
   );
@@ -106,158 +198,76 @@ function getAgeLabel(age: number | null): string {
   return "adulte";
 }
 
-// ===== LEVEL 2 — PRIORITY AXES with proper hierarchy =====
+// ===== LEVEL 2 — PRIORITY AXES =====
 function determineAxes(profile: DogProfile): PlanAxis[] {
   const { dog, problems, evaluation } = profile;
   const axes: PlanAxis[] = [];
   const pk = problems.map(p => p.problem_key);
 
-  // Helper to get problem intensity
   const intensity = (key: string) => problems.find(p => p.problem_key === key)?.intensity || 0;
   const freq = (key: string) => problems.find(p => p.problem_key === key)?.frequency;
 
-  // Scoring system for prioritization
   const problemScores: { key: string; axisKey: string; label: string; score: number; reason: string }[] = [];
 
-  // Tier 1: Security / Aggression / Bite — always first if present
   if (dog.bite_history || dog.muzzle_required || pk.includes("agressivite") || pk.includes("morsure_anterieure")) {
     axes.push({
-      key: "securite",
-      label: "Sécurité et prévention",
-      priority: 1,
+      key: "securite", label: "Sécurité et prévention", priority: 1,
       reason: dog.bite_history
-        ? "Antécédent de morsure. Priorité absolue : focus, stop, demi-tour d'urgence, distance de sécurité. Aucun contact direct."
+        ? "Antécédent de morsure. Priorité absolue : focus, stop, demi-tour d'urgence, distance de sécurité."
         : dog.muzzle_required
-          ? "Port de muselière requis. Plan conservateur axé sécurité, focus et gestion de distance."
-          : "Profil à risque détecté. Cadre de sécurité renforcé avant tout travail exposant.",
+          ? "Port de muselière requis. Plan conservateur axé sécurité."
+          : "Profil à risque détecté. Cadre de sécurité renforcé.",
     });
   }
 
-  // Tier 2: Reactivity (scored by intensity × frequency weight)
   if (pk.includes("reactivite_chiens")) {
     const i = intensity("reactivite_chiens");
     const fWeight = freq("reactivite_chiens") === "toujours" ? 1.5 : freq("reactivite_chiens") === "souvent" ? 1.2 : 1;
-    problemScores.push({
-      key: "reactivite_chiens", axisKey: "reactivite_chiens",
-      label: "Réactivité aux chiens",
-      score: i * fWeight * 10, // high weight for reactivity
-      reason: `Réactivité congénères (intensité ${i}/5). Travail sous seuil, désensibilisation progressive, focus et demi-tour d'urgence.`,
-    });
+    problemScores.push({ key: "reactivite_chiens", axisKey: "reactivite_chiens", label: "Réactivité aux chiens", score: i * fWeight * 10, reason: `Réactivité congénères (intensité ${i}/5). Travail sous seuil, désensibilisation progressive.` });
   }
   if (pk.includes("reactivite_humains") || pk.includes("peur_inconnus")) {
     const i = Math.max(intensity("reactivite_humains"), intensity("peur_inconnus"));
-    problemScores.push({
-      key: "reactivite_humains", axisKey: "reactivite_humains",
-      label: "Réactivité aux humains",
-      score: i * 9,
-      reason: `Réactivité humains détectée (intensité ${i}/5). Distance, désensibilisation, aucun contact forcé.`,
-    });
+    problemScores.push({ key: "reactivite_humains", axisKey: "reactivite_humains", label: "Réactivité aux humains", score: i * 9, reason: `Réactivité humains (intensité ${i}/5). Distance, désensibilisation.` });
   }
-
-  // Tier 3: Leash / Outdoor control
   if (pk.includes("tire_en_laisse")) {
-    problemScores.push({
-      key: "tire_en_laisse", axisKey: "marche",
-      label: "Marche en laisse",
-      score: intensity("tire_en_laisse") * 7,
-      reason: "Traction en laisse. Marche connectée, changements de direction, récompense laisse souple.",
-    });
+    problemScores.push({ key: "tire_en_laisse", axisKey: "marche", label: "Marche en laisse", score: intensity("tire_en_laisse") * 7, reason: "Traction en laisse. Marche connectée, changements de direction." });
   }
-
-  // Tier 4: Jumping / Barking / Frustration
   if (pk.includes("saute_sur_gens")) {
-    problemScores.push({
-      key: "saute_sur_gens", axisKey: "accueil",
-      label: "Accueil sans saut",
-      score: intensity("saute_sur_gens") * 5,
-      reason: "Saut sur humains. 4 pattes au sol, assis avant interaction, retrait de l'attention.",
-    });
+    problemScores.push({ key: "saute_sur_gens", axisKey: "accueil", label: "Accueil sans saut", score: intensity("saute_sur_gens") * 5, reason: "Saut sur humains. 4 pattes au sol, assis avant interaction." });
   }
   if (pk.includes("aboiements")) {
-    problemScores.push({
-      key: "aboiements", axisKey: "aboiements",
-      label: "Gestion des aboiements",
-      score: intensity("aboiements") * 5,
-      reason: "Aboiements fréquents. Identification des déclencheurs, redirection, focus préventif.",
-    });
+    problemScores.push({ key: "aboiements", axisKey: "aboiements", label: "Gestion des aboiements", score: intensity("aboiements") * 5, reason: "Aboiements fréquents. Redirection, focus préventif." });
   }
   if (pk.includes("frustration") || pk.includes("hyperactivite")) {
     const i = Math.max(intensity("frustration"), intensity("hyperactivite"));
-    problemScores.push({
-      key: "frustration", axisKey: "autocontrole",
-      label: "Auto-contrôle et calme",
-      score: i * 5,
-      reason: "Frustration/hyperactivité. Tapis, attente, renoncement, exercices de calme.",
-    });
+    problemScores.push({ key: "frustration", axisKey: "autocontrole", label: "Auto-contrôle et calme", score: i * 5, reason: "Frustration/hyperactivité. Tapis, attente, renoncement." });
   }
-
-  // Tier 5: Recall / Politeness / Secondary
   if (pk.includes("rappel_faible")) {
-    problemScores.push({
-      key: "rappel_faible", axisKey: "rappel",
-      label: "Rappel",
-      score: intensity("rappel_faible") * 4,
-      reason: "Rappel faible. Travail progressif en environnement sécurisé.",
-    });
+    problemScores.push({ key: "rappel_faible", axisKey: "rappel", label: "Rappel", score: intensity("rappel_faible") * 4, reason: "Rappel faible. Travail progressif en environnement sécurisé." });
   }
   if (pk.includes("anxiete_separation")) {
-    problemScores.push({
-      key: "anxiete_separation", axisKey: "solitude",
-      label: "Gestion de la solitude",
-      score: intensity("anxiete_separation") * 6,
-      reason: "Anxiété de séparation. Module spécifique séparé du travail de réactivité.",
-    });
+    problemScores.push({ key: "anxiete_separation", axisKey: "solitude", label: "Gestion de la solitude", score: intensity("anxiete_separation") * 6, reason: "Anxiété de séparation. Module spécifique progressif." });
   }
   if (pk.includes("ignore_stop")) {
-    problemScores.push({
-      key: "ignore_stop", axisKey: "stop",
-      label: "Travail du stop",
-      score: intensity("ignore_stop") * 4,
-      reason: "Le chien n'écoute pas le stop. Travail d'arrêt net progressif.",
-    });
+    problemScores.push({ key: "ignore_stop", axisKey: "stop", label: "Travail du stop", score: intensity("ignore_stop") * 4, reason: "Le chien n'écoute pas le stop. Travail d'arrêt net progressif." });
   }
   if (pk.includes("ignore_non")) {
-    problemScores.push({
-      key: "ignore_non", axisKey: "non",
-      label: "Travail du non",
-      score: intensity("ignore_non") * 4,
-      reason: "Le chien ignore le non. Renoncement progressif.",
-    });
+    problemScores.push({ key: "ignore_non", axisKey: "non", label: "Travail du non", score: intensity("ignore_non") * 4, reason: "Le chien ignore le non. Renoncement progressif." });
   }
   if (pk.includes("difficulte_museliere") || dog.muzzle_required) {
-    problemScores.push({
-      key: "museliere", axisKey: "museliere",
-      label: "Muselière positive",
-      score: dog.muzzle_required ? 30 : 10,
-      reason: "Habituation à la muselière nécessaire. Programme positif progressif.",
-    });
+    problemScores.push({ key: "museliere", axisKey: "museliere", label: "Muselière positive", score: dog.muzzle_required ? 30 : 10, reason: "Habituation à la muselière nécessaire." });
   }
 
-  // Sort by score descending
   problemScores.sort((a, b) => b.score - a.score);
 
-  // Focus always needed as foundation
-  const focusPriority = axes.length + 1;
-  axes.push({
-    key: "focus",
-    label: "Focus et fondations",
-    priority: focusPriority,
-    reason: "Le focus est la base de tout apprentissage. Sans attention, aucun exercice ne peut fonctionner.",
-  });
+  axes.push({ key: "focus", label: "Focus et fondations", priority: axes.length + 1, reason: "Le focus est la base de tout apprentissage." });
 
-  // Add problem-based axes
   problemScores.forEach((ps) => {
     if (!axes.some(a => a.key === ps.axisKey)) {
-      axes.push({
-        key: ps.axisKey,
-        label: ps.label,
-        priority: axes.length + 1,
-        reason: ps.reason,
-      });
+      axes.push({ key: ps.axisKey, label: ps.label, priority: axes.length + 1, reason: ps.reason });
     }
   });
 
-  // Re-sort by priority
   return axes.sort((a, b) => a.priority - b.priority);
 }
 
@@ -273,7 +283,6 @@ function getProfileModifiers(profile: DogProfile) {
   const isHighEnergy = dog.activity_level === "très actif" || dog.activity_level === "actif" || (dog.excitement_level !== null && dog.excitement_level >= 4);
   const isApartment = dog.environment === "appartement";
   const hasPain = dog.joint_pain || !!dog.physical_limitations;
-
   return { age, ageLabel, isSenior, isPuppy, hasHealth, isRecentAdoption, isHighEnergy, isApartment, hasPain };
 }
 
@@ -285,28 +294,21 @@ function checkPrerequisites(profile: DogProfile): string[] {
 
   if (!evaluation) return ["Évaluation initiale non remplie. Les recommandations seront approximatives."];
 
-  // Before reactivity work: need basic focus
   if (pk.includes("reactivite_chiens") || pk.includes("reactivite_humains")) {
     if (evaluation.responds_to_name === "non") {
       missing.push("Prérequis manquant : le chien ne répond pas à son nom. Le focus de base doit être travaillé avant la désensibilisation.");
     }
   }
-
-  // Before advanced recall: need name response
   if (pk.includes("rappel_faible")) {
     if (evaluation.responds_to_name === "non") {
       missing.push("Prérequis manquant : réponse au nom insuffisante. Travailler d'abord le focus avant le rappel avancé.");
     }
   }
-
-  // Before human management: need basic sit
   if (pk.includes("saute_sur_gens")) {
     if (evaluation.holds_sit === "non") {
       missing.push("Prérequis manquant : l'assis n'est pas acquis. Travailler l'assis avant l'accueil sans saut.");
     }
   }
-
-  // Recovery capacity check for reactivity
   if (pk.includes("reactivite_chiens") && evaluation.recovery_time === "très lente") {
     missing.push("Attention : récupération très lente. Le plan commencera avec des fondations renforcées avant toute exposition.");
   }
@@ -320,50 +322,20 @@ function determinePrecautions(profile: DogProfile): PlanPrecaution[] {
   const mods = getProfileModifiers(profile);
   const precautions: PlanPrecaution[] = [];
 
-  // Critical safety
-  if (dog.bite_history) {
-    precautions.push({ type: "safety", severity: "critical", text: "⚠️ Antécédent de morsure : aucune mise en contact direct. Distance minimale 10m. Demi-tour d'urgence maîtrisé obligatoire." });
-  }
-  if (dog.muzzle_required) {
-    precautions.push({ type: "safety", severity: "critical", text: "🔒 Muselière obligatoire en extérieur et en présence d'autres chiens ou humains." });
-  }
+  if (dog.bite_history) precautions.push({ type: "safety", severity: "critical", text: "⚠️ Antécédent de morsure : aucune mise en contact direct. Distance minimale 10m." });
+  if (dog.muzzle_required) precautions.push({ type: "safety", severity: "critical", text: "🔒 Muselière obligatoire en extérieur et en présence d'autres." });
+  if (dog.joint_pain) precautions.push({ type: "health", severity: "warning", text: "Douleurs articulaires : exercices physiques réduits, sessions ≤ 10 min." });
+  if (dog.heart_problems) precautions.push({ type: "health", severity: "warning", text: "Problèmes cardiaques : éviter l'intensité, sessions courtes." });
+  if (dog.epilepsy) precautions.push({ type: "health", severity: "warning", text: "Épilepsie : éviter la surstimulation, environnements calmes." });
+  if (dog.overweight) precautions.push({ type: "health", severity: "info", text: "Surpoids : sessions modérées, friandises allégées." });
+  if (mods.isSenior) precautions.push({ type: "health", severity: "warning", text: "Chien senior : durée et intensité adaptées. Exercices mentaux privilégiés." });
+  if (mods.isPuppy) precautions.push({ type: "health", severity: "info", text: "Chiot : sessions ≤ 5 min. Socialisation positive et fondations uniquement." });
+  if (mods.isRecentAdoption) precautions.push({ type: "method", severity: "info", text: "Adoption récente : attentes réduites, construction progressive de la confiance." });
 
-  // Health
-  if (dog.joint_pain) {
-    precautions.push({ type: "health", severity: "warning", text: "Douleurs articulaires : exercices physiques réduits, sessions ≤ 10 min, exercices statiques privilégiés." });
-  }
-  if (dog.heart_problems) {
-    precautions.push({ type: "health", severity: "warning", text: "Problèmes cardiaques : éviter l'intensité, surveiller l'essoufflement, sessions courtes." });
-  }
-  if (dog.epilepsy) {
-    precautions.push({ type: "health", severity: "warning", text: "Épilepsie : éviter la surstimulation, environnements calmes, horaires de médication respectés." });
-  }
-  if (dog.overweight) {
-    precautions.push({ type: "health", severity: "info", text: "Surpoids : sessions modérées, friandises allégées, activité physique progressive." });
-  }
-  if (mods.isSenior) {
-    precautions.push({ type: "health", severity: "warning", text: "Chien senior : durée et intensité adaptées. Exercices mentaux privilégiés." });
-  }
-  if (mods.isPuppy) {
-    precautions.push({ type: "health", severity: "info", text: "Chiot : sessions ≤ 5 min. Socialisation positive et fondations uniquement." });
-  }
+  const highReact = problems.some(p => (p.problem_key === "reactivite_chiens" || p.problem_key === "reactivite_humains") && (p.intensity || 0) >= 4);
+  if (highReact) precautions.push({ type: "safety", severity: "warning", text: "Réactivité élevée : toujours sous seuil. Augmenter la distance au moindre signe de tension." });
 
-  // Context
-  if (mods.isRecentAdoption) {
-    precautions.push({ type: "method", severity: "info", text: "Adoption récente : phase d'observation, attentes réduites, construction progressive de la confiance." });
-  }
-
-  // High reactivity
-  const highReact = problems.some(p =>
-    (p.problem_key === "reactivite_chiens" || p.problem_key === "reactivite_humains") && (p.intensity || 0) >= 4
-  );
-  if (highReact) {
-    precautions.push({ type: "safety", severity: "warning", text: "Réactivité élevée : toujours sous seuil. Augmenter la distance au moindre signe de tension." });
-  }
-
-  // Always
   precautions.push({ type: "method", severity: "info", text: "Toujours travailler sous seuil. Sessions courtes et fréquentes. Terminer sur une note positive." });
-
   return precautions;
 }
 
@@ -376,35 +348,21 @@ function determineDuration(profile: DogProfile): { frequency: string; avgDuratio
   return { frequency: "1 à 2 sessions par jour", avgDuration: "10 à 20 min" };
 }
 
-// ===== EXERCISE BUILDER with profile adaptation =====
+// ===== EXERCISE BUILDER — uses real slugs =====
 function buildExercisesForAxis(axisKey: string, week: number, mods: ReturnType<typeof getProfileModifiers>): PlanExercise[] {
   const exercises: PlanExercise[] = [];
   const baseDuration = mods.isSenior || mods.hasPain ? 60 : mods.isPuppy ? 45 : 90;
+  const weekIdx = Math.min(week - 1, 3);
 
-  const mappings: Record<string, string[]> = {
-    securite: ["lib-stop-1", "lib-demitour-1", "lib-focus-1"],
-    focus: ["lib-focus-1", "lib-focus-2"],
-    reactivite_chiens: ["lib-desens-chiens-1", "lib-focus-1", "lib-demitour-1"],
-    reactivite_humains: ["lib-desens-humains-1", "lib-focus-1"],
-    marche: ["lib-marche-1", "lib-stop-1"],
-    accueil: ["lib-accueil-1", "lib-assis-1"],
-    solitude: ["lib-solitude-1", "lib-tapis-1"],
-    aboiements: ["lib-aboiement-1", "lib-focus-1"],
-    autocontrole: ["lib-auto-1", "lib-tapis-1", "lib-non-1"],
-    rappel: ["lib-rappel-1", "lib-focus-1"],
-    museliere: ["lib-museliere-1"],
-    stop: ["lib-stop-1", "lib-focus-1"],
-    non: ["lib-non-1", "lib-auto-1"],
-  };
+  const axisExercises = AXIS_EXERCISE_SLUGS[axisKey];
+  if (!axisExercises) return exercises;
 
-  const refs = mappings[axisKey] || ["lib-focus-1"];
+  const slugsForWeek = axisExercises[weekIdx] || axisExercises[0];
+  const maxReps = mods.isPuppy ? 8 : mods.isSenior || mods.hasPain ? 10 : 20;
   const weekMultiplier = Math.min(week, 3);
 
-  // For puppies / seniors / painful dogs: fewer reps
-  const maxReps = mods.isPuppy ? 8 : mods.isSenior || mods.hasPain ? 10 : 20;
-
-  refs.forEach((ref, i) => {
-    const lib = EXERCISE_LIBRARY.find(e => e.id === ref);
+  slugsForWeek.forEach((slug, i) => {
+    const lib = findBySlug(slug);
     if (!lib) return;
 
     // Skip physically demanding exercises for painful dogs
@@ -414,13 +372,29 @@ function buildExercisesForAxis(axisKey: string, week: number, mods: ReturnType<t
 
     const reps = Math.min(8 + weekMultiplier * 3, maxReps);
     const stepsToShow = Math.min(2 + week, lib.steps.length);
+
+    // Build clear step-by-step instructions from the library
+    const instructionSteps = lib.steps.slice(0, stepsToShow).map((s, idx) => `${idx + 1}. ${s}`).join("\n");
+
+    // Build tutorial steps for rich display
+    const tutorialSteps = lib.tutorialSteps.slice(0, stepsToShow).map(ts => ({
+      title: ts.title,
+      description: ts.description,
+      tip: ts.tip,
+    }));
+
     exercises.push({
       id: `plan-${axisKey}-w${week}-${i}`,
       name: lib.name,
-      instructions: lib.steps.slice(0, stepsToShow).join(" "),
+      slug: lib.slug,
+      description: lib.summary || lib.objective || lib.dedication || "",
+      instructions: instructionSteps,
       repetitions: reps,
       timerSeconds: baseDuration,
-      libraryRef: ref,
+      tutorialSteps,
+      validationProtocol: lib.successCriteria || "",
+      successCriteria: lib.successCriteria || "",
+      libraryRef: lib.id,
     });
   });
 
@@ -438,7 +412,7 @@ function generateContextualTips(profile: DogProfile, day: PlanDay): string[] {
   if (profile.dog.bite_history) tips.push("Aucun contact direct. Gardez une grande distance de sécurité.");
 
   if (day.title.toLowerCase().includes("réactivité") || day.title.toLowerCase().includes("désensibilisation")) {
-    tips.push("Aujourd'hui, gardez une grande distance avec les autres chiens.");
+    tips.push("Aujourd'hui, gardez une grande distance avec les déclencheurs.");
     if (profile.dog.recovery_capacity !== null && profile.dog.recovery_capacity <= 2) {
       tips.push("Votre chien récupère lentement : séance courte recommandée.");
     }
@@ -455,8 +429,6 @@ function generateContextualTips(profile: DogProfile, day: PlanDay): string[] {
 function generateDays(axes: PlanAxis[], profile: DogProfile): PlanDay[] {
   const mods = getProfileModifiers(profile);
   const days: PlanDay[] = [];
-
-  // For recent adoptions / very fragile dogs: first week is all foundations
   const foundationWeeks = mods.isRecentAdoption ? 2 : 1;
 
   for (let week = 1; week <= 4; week++) {
@@ -464,10 +436,8 @@ function generateDays(axes: PlanAxis[], profile: DogProfile): PlanDay[] {
       const dayNumber = (week - 1) * 7 + dayInWeek;
       const isReview = dayInWeek === 7;
 
-      // During foundation weeks, focus on basics
       let mainAxis: PlanAxis;
       if (week <= foundationWeeks && !isReview) {
-        // Alternate between security (if present) and focus
         const safeAxes = axes.filter(a => a.key === "securite" || a.key === "focus");
         mainAxis = safeAxes[(dayInWeek - 1) % safeAxes.length] || axes[0];
       } else {
@@ -483,7 +453,6 @@ function generateDays(axes: PlanAxis[], profile: DogProfile): PlanDay[] {
         : mods.isSenior || mods.hasPain ? "8 à 12 min"
         : week <= 2 ? "10 à 15 min" : "15 à 20 min";
 
-      // Difficulty progression is slower for fragile profiles
       let difficulty: string;
       if (mods.isSenior || mods.hasPain || mods.isRecentAdoption) {
         difficulty = week <= 2 ? "facile" : week <= 3 ? "facile à moyenne" : "moyenne";
@@ -492,15 +461,12 @@ function generateDays(axes: PlanAxis[], profile: DogProfile): PlanDay[] {
       }
 
       const day: PlanDay = {
-        dayNumber,
-        week,
+        dayNumber, week,
         title: isReview ? `Bilan semaine ${week}` : mainAxis.label,
         objective: isReview
           ? `Réviser les acquis de la semaine ${week} et consolider les fondations.`
           : `Travailler ${mainAxis.label.toLowerCase()} — ${mainAxis.reason.split(".")[0]}.`,
-        duration,
-        difficulty,
-        exercises,
+        duration, difficulty, exercises,
         vigilance: isReview
           ? "Observer les progrès et noter les points à renforcer."
           : mainAxis.key === "securite"
@@ -516,7 +482,6 @@ function generateDays(axes: PlanAxis[], profile: DogProfile): PlanDay[] {
       days.push(day);
     }
   }
-
   return days;
 }
 
@@ -524,18 +489,10 @@ function generateDays(axes: PlanAxis[], profile: DogProfile): PlanDay[] {
 function buildPriorityExplanation(axes: PlanAxis[], profile: DogProfile): string {
   if (axes.length === 0) return "";
   const parts: string[] = [];
-
-  if (axes[0].key === "securite") {
-    parts.push("La sécurité est prioritaire car le profil présente des risques (morsure, muselière ou agressivité).");
-  }
-
+  if (axes[0].key === "securite") parts.push("La sécurité est prioritaire car le profil présente des risques.");
   const mainAxis = axes.find(a => a.key !== "securite" && a.key !== "focus");
-  if (mainAxis) {
-    parts.push(`L'axe principal est "${mainAxis.label}" car c'est la problématique la plus impactante au quotidien.`);
-  }
-
-  parts.push("Le focus est intégré en permanence car c'est le prérequis de base pour tout apprentissage.");
-
+  if (mainAxis) parts.push(`L'axe principal est "${mainAxis.label}" car c'est la problématique la plus impactante.`);
+  parts.push("Le focus est intégré en permanence car c'est le prérequis de base.");
   return parts.join(" ");
 }
 
@@ -546,68 +503,17 @@ export function getAdaptiveSuggestions(signals: AdaptiveSignals): {
   message: string;
   type: "warning" | "success" | "info";
 } {
-  // Check for difficulty signals
   if (signals.daysCompleted >= 3) {
-    if (signals.avgTension >= 4 || signals.avgDogReaction >= 4) {
-      return {
-        shouldSimplify: true,
-        shouldProgress: false,
-        message: "Le plan semble trop difficile actuellement. Revenir à une étape plus simple ?",
-        type: "warning",
-      };
-    }
-    if (signals.stopScore < 30 && signals.focusScore < 30) {
-      return {
-        shouldSimplify: true,
-        shouldProgress: false,
-        message: "Les fondations (stop, focus) sont encore fragiles. Renforcer les bases avant de progresser.",
-        type: "warning",
-      };
-    }
-    if (signals.incidentCount >= 3) {
-      return {
-        shouldSimplify: true,
-        shouldProgress: false,
-        message: "Plusieurs incidents récents. Augmentez la distance et simplifiez les exercices.",
-        type: "warning",
-      };
-    }
-    if (signals.recoveryRate < 40) {
-      return {
-        shouldSimplify: true,
-        shouldProgress: false,
-        message: "Récupération lente observée. Réduisez la difficulté et les temps d'exposition.",
-        type: "warning",
-      };
-    }
+    if (signals.avgTension >= 4 || signals.avgDogReaction >= 4) return { shouldSimplify: true, shouldProgress: false, message: "Le plan semble trop difficile. Revenir à une étape plus simple ?", type: "warning" };
+    if (signals.stopScore < 30 && signals.focusScore < 30) return { shouldSimplify: true, shouldProgress: false, message: "Les fondations (stop, focus) sont fragiles. Renforcer les bases.", type: "warning" };
+    if (signals.incidentCount >= 3) return { shouldSimplify: true, shouldProgress: false, message: "Plusieurs incidents. Augmentez la distance et simplifiez.", type: "warning" };
+    if (signals.recoveryRate < 40) return { shouldSimplify: true, shouldProgress: false, message: "Récupération lente. Réduisez la difficulté.", type: "warning" };
   }
-
-  // Check for progression signals
   if (signals.daysCompleted >= 5) {
-    if (signals.avgTension <= 2 && signals.stopScore >= 70 && signals.focusScore >= 70) {
-      return {
-        shouldSimplify: false,
-        shouldProgress: true,
-        message: "Progression stable. Prêt pour l'étape suivante ?",
-        type: "success",
-      };
-    }
-    if (signals.avgTension <= 2.5 && signals.avgDogReaction <= 2.5) {
-      return {
-        shouldSimplify: false,
-        shouldProgress: true,
-        message: "Bonne évolution ! La tension et la réactivité diminuent.",
-        type: "success",
-      };
-    }
+    if (signals.avgTension <= 2 && signals.stopScore >= 70 && signals.focusScore >= 70) return { shouldSimplify: false, shouldProgress: true, message: "Progression stable. Prêt pour l'étape suivante ?", type: "success" };
+    if (signals.avgTension <= 2.5 && signals.avgDogReaction <= 2.5) return { shouldSimplify: false, shouldProgress: true, message: "Bonne évolution ! Tension et réactivité diminuent.", type: "success" };
   }
-
-  return {
-    shouldSimplify: false,
-    shouldProgress: false,
-    message: "Continuez le travail en cours. Les données s'accumulent.",
-    type: "info",
-  };
+  return { shouldSimplify: false, shouldProgress: false, message: "Continuez le travail en cours.", type: "info" };
 }
 
 // ===== MAIN GENERATOR =====
@@ -622,22 +528,18 @@ export function generatePersonalizedPlan(profile: DogProfile): PersonalizedPlan 
 
   const topAxes = axes.slice(0, 3).map(a => a.label.toLowerCase()).join(", ");
   const summary = securityLevel === "critique"
-    ? `Plan sécurisé pour ${profile.dog.name}. Priorité absolue à la sécurité, au focus et à la gestion de distance. Aucune exposition hasardeuse. Axes : ${topAxes}.`
+    ? `Plan sécurisé pour ${profile.dog.name}. Priorité absolue à la sécurité. Axes : ${topAxes}.`
     : securityLevel === "élevé"
-      ? `Plan adapté pour ${profile.dog.name} avec précautions renforcées. Progression prudente axée sur ${topAxes}.`
-      : `Plan personnalisé pour ${profile.dog.name} axé sur ${topAxes}. Progression sur 4 semaines avec adaptation au profil.`;
+      ? `Plan adapté pour ${profile.dog.name} avec précautions renforcées. Axes : ${topAxes}.`
+      : `Plan personnalisé pour ${profile.dog.name} axé sur ${topAxes}. Progression sur 4 semaines.`;
 
   return {
     id: `plan-${profile.dog.id}-${Date.now()}`,
     dogName: profile.dog.name,
-    summary,
-    axes,
-    precautions,
-    frequency,
+    summary, axes, precautions, frequency,
     averageDuration: avgDuration,
     totalDays: 28,
-    securityLevel,
-    days,
+    securityLevel, days,
     prerequisitesMissing,
     priorityExplanation,
   };

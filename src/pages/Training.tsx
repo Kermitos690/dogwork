@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ChevronLeft, ChevronRight, Plus, Minus, CheckCircle2, Play, Pause, RotateCcw } from "lucide-react";
+import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
+import { ArrowLeft, ChevronLeft, ChevronRight, ChevronDown, Plus, Minus, CheckCircle2, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { AppLayout } from "@/components/AppLayout";
@@ -23,6 +23,7 @@ export default function Training() {
   const source = searchParams.get("source");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [reps, setReps] = useState(0);
+  const [showSteps, setShowSteps] = useState(false);
 
   const { data: planDay } = useQuery({
     queryKey: ["training_plan_day", activeDog?.id, id],
@@ -41,12 +42,19 @@ export default function Training() {
 
   const planExercises = isPersonalized
     ? planDay.exercises.map((e: any, i: number) => ({
-        id: e.id || `plan-ex-${i}`, name: e.name, instructions: e.instructions,
-        repetitionsTarget: e.repetitions, timerSuggested: e.timerSeconds, dayId: id,
+        id: e.id || `plan-ex-${i}`,
+        name: e.name,
+        slug: e.slug || "",
+        description: e.description || "",
+        instructions: e.instructions,
+        repetitionsTarget: e.repetitions,
+        timerSuggested: e.timerSeconds,
+        tutorialSteps: e.tutorialSteps || [],
+        validationProtocol: e.validationProtocol || e.successCriteria || "",
+        dayId: id,
       }))
     : [];
 
-  // Fall back to standard exercises when plan day exists but has no exercises
   const exercises = planExercises.length > 0 ? planExercises : (standardDay?.exercises || []);
 
   const { data: progress, refetch } = useQuery({
@@ -59,7 +67,7 @@ export default function Training() {
     enabled: !!activeDog && !!id,
   });
 
-  const exercise = exercises[currentIndex];
+  const exercise = exercises[currentIndex] as any;
   const totalExercises = exercises.length;
   const completedExercises: string[] = progress?.completed_exercises || [];
   const isExDone = exercise ? completedExercises.includes(exercise.id) : false;
@@ -91,11 +99,12 @@ export default function Training() {
     if (currentIndex < totalExercises - 1) {
       setCurrentIndex(currentIndex + 1);
       setReps(0);
+      setShowSteps(false);
     }
   }, [isExDone, completedExercises, progress, exercise, id, reps, currentIndex, totalExercises, activeDog, user, refetch]);
 
-  const goNext = () => { if (currentIndex < totalExercises - 1) { setCurrentIndex(currentIndex + 1); setReps(0); } };
-  const goPrev = () => { if (currentIndex > 0) { setCurrentIndex(currentIndex - 1); setReps(0); } };
+  const goNext = () => { if (currentIndex < totalExercises - 1) { setCurrentIndex(currentIndex + 1); setReps(0); setShowSteps(false); } };
+  const goPrev = () => { if (currentIndex > 0) { setCurrentIndex(currentIndex - 1); setReps(0); setShowSteps(false); } };
 
   if ((!standardDay && !planDay) || exercises.length === 0 || !exercise) {
     return (
@@ -110,11 +119,13 @@ export default function Training() {
 
   const backUrl = source === "plan" ? `/day/${id}?source=plan` : `/day/${id}`;
   const allDone = completedCount >= totalExercises;
+  const hasSteps = exercise.tutorialSteps && exercise.tutorialSteps.length > 0;
+  const hasDescription = exercise.description && exercise.description.length > 0;
 
   return (
     <AppLayout>
       <div className="animate-fade-in space-y-4 pt-4">
-        {/* Minimal header */}
+        {/* Header */}
         <div className="flex items-center justify-between">
           <button onClick={() => navigate(backUrl)} className="flex items-center gap-1 text-sm text-muted-foreground">
             <ArrowLeft className="h-4 w-4" /> Jour {id}
@@ -122,10 +133,9 @@ export default function Training() {
           <span className="text-xs font-bold text-primary">{currentIndex + 1}/{totalExercises}</span>
         </div>
 
-        {/* Session progress */}
         <Progress value={sessionPct} className="h-2" />
 
-        {/* Exercise card — large and clear */}
+        {/* Exercise card — enriched */}
         <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-foreground">{exercise.name}</h2>
@@ -135,19 +145,76 @@ export default function Training() {
               </span>
             )}
           </div>
-          <p className="text-sm text-muted-foreground leading-relaxed">{(exercise as any).instructions}</p>
+
+          {/* Description */}
+          {hasDescription && (
+            <p className="text-sm text-muted-foreground leading-relaxed">{exercise.description}</p>
+          )}
+
+          {/* Inline instructions (numbered steps) */}
+          {exercise.instructions && (
+            <div className="text-sm text-foreground leading-relaxed whitespace-pre-line">
+              {exercise.instructions}
+            </div>
+          )}
+
           <div className="flex gap-3 text-xs text-muted-foreground">
             <span>🎯 {exercise.repetitionsTarget} rép.</span>
             {exercise.timerSuggested && <span>⏱ {exercise.timerSuggested}s</span>}
           </div>
+
+          {/* Detailed steps toggle */}
+          {hasSteps && (
+            <div>
+              <button
+                onClick={() => setShowSteps(!showSteps)}
+                className="flex items-center gap-1 text-xs font-medium text-primary"
+              >
+                <ChevronDown className={`h-3 w-3 transition-transform ${showSteps ? "rotate-180" : ""}`} />
+                {showSteps ? "Masquer le guide détaillé" : "Voir le guide détaillé"}
+              </button>
+
+              {showSteps && (
+                <div className="mt-2 space-y-2">
+                  {exercise.tutorialSteps.map((step: any, i: number) => (
+                    <div key={i} className="rounded-xl bg-muted/50 p-3 space-y-1">
+                      <p className="text-xs font-semibold text-foreground">
+                        {i + 1}. {step.title}
+                      </p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{step.description}</p>
+                      {step.tip && (
+                        <p className="text-xs text-primary italic">💡 {step.tip}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Validation protocol */}
+          {exercise.validationProtocol && (
+            <div className="rounded-xl bg-success/5 border border-success/20 p-3">
+              <p className="text-xs font-semibold text-success">✓ Critère de réussite</p>
+              <p className="text-xs text-foreground mt-0.5">{exercise.validationProtocol}</p>
+            </div>
+          )}
+
+          {/* Link to full sheet */}
+          {exercise.slug && (
+            <Link to={`/exercises/${exercise.slug}`} className="flex items-center gap-1 text-xs text-primary hover:underline">
+              <BookOpen className="h-3 w-3" />
+              Voir la fiche complète
+            </Link>
+          )}
         </div>
 
-        {/* Timer — big and centered */}
+        {/* Timer */}
         <div className="rounded-2xl border border-border bg-card p-5">
           <Timer presets={exercise.timerSuggested ? [30, exercise.timerSuggested, 180] : [30, 60, 180]} />
         </div>
 
-        {/* Repetition counter — big buttons */}
+        {/* Repetition counter */}
         <div className="rounded-2xl border border-border bg-card p-5">
           <p className="text-center text-xs text-muted-foreground mb-3">Compteur de répétitions</p>
           <div className="flex items-center justify-center gap-8">
