@@ -122,9 +122,9 @@ function AIChatBotInner() {
         animate={{ scale: 1 }}
         className="fixed bottom-20 right-4 z-50 rounded-full bg-muted p-3.5 shadow-lg"
         onClick={() => navigate("/subscription")}
-        title="Débloquez le chatbot IA avec le plan Expert"
+        aria-label="Débloquez le chatbot IA avec le plan Expert"
       >
-        <Lock className="h-5 w-5 text-muted-foreground" />
+        <Lock className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
       </motion.button>
     );
   }
@@ -177,12 +177,13 @@ function AIChatBotInner() {
             exit={{ scale: 0, opacity: 0 }}
             className="fixed bottom-20 right-4 z-50"
           >
-            <Button
+             <Button
               onClick={() => setOpen(true)}
               size="icon"
               className="h-12 w-12 rounded-full shadow-lg bg-primary hover:bg-primary/90"
+              aria-label="Ouvrir l'assistant IA"
             >
-              <Bot className="h-5 w-5" />
+              <Bot className="h-5 w-5" aria-hidden="true" />
             </Button>
           </motion.div>
         )}
@@ -206,8 +207,8 @@ function AIChatBotInner() {
                 <span className="font-semibold text-sm text-foreground">DogWork AI</span>
                 <span className="text-xs text-muted-foreground">Assistant canin</span>
               </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setOpen(false)}>
-                <X className="h-4 w-4" />
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setOpen(false)} aria-label="Fermer le chat">
+                <X className="h-4 w-4" aria-hidden="true" />
               </Button>
             </div>
 
