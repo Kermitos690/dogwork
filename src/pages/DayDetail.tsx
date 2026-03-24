@@ -97,6 +97,7 @@ function ExerciseCard({ ex, done, onToggle }: { ex: any; done: boolean; onToggle
           </Link>
         </div>
       )}
+      </div>
     </div>
   );
 }
