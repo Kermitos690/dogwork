@@ -192,13 +192,31 @@ export default function ShelterCoaches() {
                           variant="outline"
                           size="sm"
                           className="w-full"
-                          disabled={!inviteEmail}
-                          onClick={() => {
-                            toast.info("Demande d'invitation envoyée à l'administrateur");
-                            setInviteEmail("");
+                          disabled={!inviteEmail || inviting || !adminUserId}
+                          onClick={async () => {
+                            if (!adminUserId || !user) return;
+                            setInviting(true);
+                            try {
+                              const shelterName = shelterProfile?.name || "Un refuge";
+                              const content = `📩 Demande d'invitation éducateur\n\nLe refuge "${shelterName}" souhaite inviter un éducateur externe :\n📧 Email : ${inviteEmail}\n\nMerci de créer le compte éducateur correspondant.`;
+                              const { error } = await supabase
+                                .from("messages")
+                                .insert({
+                                  sender_id: user.id,
+                                  recipient_id: adminUserId,
+                                  content,
+                                });
+                              if (error) throw error;
+                              toast.success("Demande d'invitation envoyée à l'administrateur");
+                              setInviteEmail("");
+                            } catch (e: any) {
+                              toast.error("Erreur lors de l'envoi : " + e.message);
+                            } finally {
+                              setInviting(false);
+                            }
                           }}
                         >
-                          Demander l'invitation
+                          {inviting ? "Envoi..." : "Demander l'invitation"}
                         </Button>
                       </div>
                     </div>
