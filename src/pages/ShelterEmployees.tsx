@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Plus, Pencil, Trash2, Phone, Mail } from "lucide-react";
+import { Users, Plus, Pencil, Trash2, Phone, Mail, Briefcase } from "lucide-react";
 import { motion } from "framer-motion";
 
 const ROLES = [
@@ -25,11 +25,12 @@ const ROLES = [
 interface EmployeeForm {
   name: string;
   role: string;
+  job_title: string;
   email: string;
   phone: string;
 }
 
-const emptyForm: EmployeeForm = { name: "", role: "soigneur", email: "", phone: "" };
+const emptyForm: EmployeeForm = { name: "", role: "soigneur", job_title: "", email: "", phone: "" };
 
 export default function ShelterEmployees() {
   const { user } = useAuth();
@@ -58,12 +59,12 @@ export default function ShelterEmployees() {
       if (!form.name.trim()) throw new Error("Nom requis");
       if (editId) {
         const { error } = await (supabase.from("shelter_employees" as any) as any)
-          .update({ name: form.name, role: form.role, email: form.email, phone: form.phone })
+          .update({ name: form.name, role: form.role, job_title: form.job_title, email: form.email, phone: form.phone })
           .eq("id", editId);
         if (error) throw error;
       } else {
         const { error } = await (supabase.from("shelter_employees" as any) as any)
-          .insert({ shelter_user_id: user!.id, name: form.name, role: form.role, email: form.email, phone: form.phone });
+          .insert({ shelter_user_id: user!.id, name: form.name, role: form.role, job_title: form.job_title, email: form.email, phone: form.phone });
         if (error) throw error;
       }
     },
@@ -92,7 +93,7 @@ export default function ShelterEmployees() {
 
   const openEdit = (emp: any) => {
     setEditId(emp.id);
-    setForm({ name: emp.name, role: emp.role, email: emp.email || "", phone: emp.phone || "" });
+    setForm({ name: emp.name, role: emp.role, job_title: emp.job_title || "", email: emp.email || "", phone: emp.phone || "" });
     setDialogOpen(true);
   };
 
@@ -137,6 +138,10 @@ export default function ShelterEmployees() {
                   </Select>
                 </div>
                 <div className="space-y-2">
+                  <Label>Titre de poste</Label>
+                  <Input value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} placeholder="Ex: Chef soigneur, Stagiaire vétérinaire..." />
+                </div>
+                <div className="space-y-2">
                   <Label>Email</Label>
                   <Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} type="email" />
                 </div>
@@ -176,6 +181,7 @@ export default function ShelterEmployees() {
                     <p className="text-sm font-medium text-foreground truncate">{emp.name}</p>
                     <p className="text-[10px] text-muted-foreground capitalize">
                       {ROLES.find((r) => r.value === emp.role)?.label || emp.role}
+                      {emp.job_title && ` — ${emp.job_title}`}
                     </p>
                     <div className="flex gap-3 mt-0.5">
                       {emp.email && (

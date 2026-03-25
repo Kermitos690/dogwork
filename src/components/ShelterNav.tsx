@@ -1,9 +1,10 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, PawPrint, MessageSquare, Settings } from "lucide-react";
+import { LayoutDashboard, PawPrint, Grid3X3, MessageSquare, Settings } from "lucide-react";
 
 const tabs = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/shelter" },
   { label: "Animaux", icon: PawPrint, path: "/shelter/animals" },
+  { label: "Espaces", icon: Grid3X3, path: "/shelter/spaces" },
   { label: "Messages", icon: MessageSquare, path: "/shelter/messages" },
   { label: "Paramètres", icon: Settings, path: "/shelter/settings" },
 ];

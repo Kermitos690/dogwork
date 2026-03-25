@@ -102,9 +102,11 @@ export default function AdminDashboard() {
     if (!newEducatorEmail || !newEducatorPassword) return;
     setCreating(true);
     try {
-      // Create the user via edge function (service role needed)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Session expirée");
       const { data, error } = await supabase.functions.invoke("create-educator", {
         body: { email: newEducatorEmail, password: newEducatorPassword, displayName: newEducatorName || newEducatorEmail.split("@")[0] },
+        headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (error) throw error;
       toast({ title: "Éducateur créé", description: `${newEducatorEmail} a été ajouté comme éducateur.` });
@@ -122,8 +124,11 @@ export default function AdminDashboard() {
     if (!newShelterEmail || !newShelterPassword) return;
     setCreatingShelter(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Session expirée");
       const { data, error } = await supabase.functions.invoke("create-shelter", {
         body: { email: newShelterEmail, password: newShelterPassword, displayName: newShelterName || newShelterEmail.split("@")[0] },
+        headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (error) throw error;
       toast({ title: "Refuge créé", description: `${newShelterEmail} a été ajouté comme refuge.` });
@@ -553,6 +558,9 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
+        {/* Shelters list — collapsible */}
+        <SheltersList />
+
         {/* Quick links */}
         <div className="grid grid-cols-3 gap-2">
           <Button variant="outline" className="h-12 gap-2" onClick={() => navigate("/exercises")}>
@@ -567,5 +575,52 @@ export default function AdminDashboard() {
         </div>
       </motion.div>
     </AppLayout>
+  );
+}
+
+function SheltersList() {
+  const { data: shelters = [] } = useQuery({
+    queryKey: ["admin_shelters_list"],
+    queryFn: async () => {
+      const { data: profiles } = await supabase.from("shelter_profiles").select("*").order("created_at", { ascending: false });
+      if (!profiles?.length) return [];
+      const shelterUserIds = profiles.map((p: any) => p.user_id);
+      const { data: employees } = await supabase.from("shelter_employees").select("shelter_user_id").eq("is_active", true);
+      const empCounts: Record<string, number> = {};
+      (employees || []).forEach((e: any) => {
+        empCounts[e.shelter_user_id] = (empCounts[e.shelter_user_id] || 0) + 1;
+      });
+      return profiles.map((p: any) => ({ ...p, employeeCount: empCounts[p.user_id] || 0 }));
+    },
+  });
+
+  return (
+    <Collapsible>
+      <Card>
+        <CollapsibleTrigger className="w-full">
+          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Home className="h-4 w-4" /> Refuges ({shelters.length})
+            </CardTitle>
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CardContent className="space-y-2 pt-0">
+            {shelters.length === 0 && <p className="text-xs text-muted-foreground">Aucun refuge enregistré.</p>}
+            {shelters.map((s: any) => (
+              <div key={s.id} className="flex items-center justify-between p-2 rounded-lg bg-secondary/30">
+                <div>
+                  <p className="text-sm font-medium text-foreground">{s.name || "Sans nom"}</p>
+                  <p className="text-[10px] text-muted-foreground">{s.organization_type || "refuge"} — {s.employeeCount} employé(s)</p>
+                  <p className="text-[10px] text-muted-foreground">{new Date(s.created_at).toLocaleDateString("fr-FR")}</p>
+                </div>
+                <Home className="h-4 w-4 text-primary" />
+              </div>
+            ))}
+          </CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
   );
 }
