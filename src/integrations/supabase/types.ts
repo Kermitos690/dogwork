@@ -1322,6 +1322,86 @@ export type Database = {
           },
         ]
       }
+      shelter_animal_evaluations: {
+        Row: {
+          adoption_ready: boolean | null
+          animal_id: string
+          bite_risk: string | null
+          coach_user_id: string
+          created_at: string
+          energy_level: number | null
+          fear_level: number | null
+          general_notes: string | null
+          id: string
+          leash_behavior: string | null
+          obedience_basics: string | null
+          reactivity_level: number | null
+          recommended_profile: string | null
+          resource_guarding: string | null
+          separation_anxiety: string | null
+          shelter_user_id: string
+          sociability_dogs: number | null
+          sociability_humans: number | null
+          special_needs: string | null
+          training_notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          adoption_ready?: boolean | null
+          animal_id: string
+          bite_risk?: string | null
+          coach_user_id: string
+          created_at?: string
+          energy_level?: number | null
+          fear_level?: number | null
+          general_notes?: string | null
+          id?: string
+          leash_behavior?: string | null
+          obedience_basics?: string | null
+          reactivity_level?: number | null
+          recommended_profile?: string | null
+          resource_guarding?: string | null
+          separation_anxiety?: string | null
+          shelter_user_id: string
+          sociability_dogs?: number | null
+          sociability_humans?: number | null
+          special_needs?: string | null
+          training_notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          adoption_ready?: boolean | null
+          animal_id?: string
+          bite_risk?: string | null
+          coach_user_id?: string
+          created_at?: string
+          energy_level?: number | null
+          fear_level?: number | null
+          general_notes?: string | null
+          id?: string
+          leash_behavior?: string | null
+          obedience_basics?: string | null
+          reactivity_level?: number | null
+          recommended_profile?: string | null
+          resource_guarding?: string | null
+          separation_anxiety?: string | null
+          shelter_user_id?: string
+          sociability_dogs?: number | null
+          sociability_humans?: number | null
+          special_needs?: string | null
+          training_notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shelter_animal_evaluations_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_animals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shelter_animals: {
         Row: {
           adopter_email: string | null
