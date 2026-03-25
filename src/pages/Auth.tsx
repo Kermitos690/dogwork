@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { lovable } from "@/integrations/lovable/index";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Dog, Mail, Lock, User, ArrowLeft } from "lucide-react";
+import { Dog, Mail, Lock, User, ArrowLeft, Shield, GraduationCap, Home, UserCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 type Mode = "login" | "signup" | "forgot";
@@ -45,6 +46,38 @@ export default function Auth() {
     }
   };
 
+  const DEV_ROLES = [
+    { role: "owner", label: "Propriétaire", icon: UserCircle, color: "bg-blue-500/10 text-blue-600 border-blue-200 hover:bg-blue-500/20" },
+    { role: "educator", label: "Éducateur", icon: GraduationCap, color: "bg-emerald-500/10 text-emerald-600 border-emerald-200 hover:bg-emerald-500/20" },
+    { role: "shelter", label: "Refuge", icon: Home, color: "bg-amber-500/10 text-amber-600 border-amber-200 hover:bg-amber-500/20" },
+    { role: "admin", label: "Admin", icon: Shield, color: "bg-red-500/10 text-red-600 border-red-200 hover:bg-red-500/20" },
+  ];
+
+  const [devLoading, setDevLoading] = useState<string | null>(null);
+
+  const handleDevLogin = async (role: string) => {
+    setDevLoading(role);
+    try {
+      const { data, error } = await supabase.functions.invoke("dev-login", {
+        body: { role },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const { error: sessionErr } = await supabase.auth.setSession({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+      });
+      if (sessionErr) throw sessionErr;
+
+      toast({ title: "Connexion réussie", description: `Connecté en tant que ${role}` });
+    } catch (err: any) {
+      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    } finally {
+      setDevLoading(null);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-background flex items-center justify-center p-4" aria-label="Authentification">
       <div className="w-full max-w-sm space-y-6">
@@ -55,6 +88,36 @@ export default function Auth() {
           <h1 className="text-2xl font-bold text-foreground">PawPlan</h1>
           <p className="text-sm text-muted-foreground">Journal de bord canin intelligent</p>
         </div>
+
+        {/* Dev Quick Login */}
+        <Card className="border-dashed border-2 border-orange-300 bg-orange-50/50 dark:bg-orange-950/20">
+          <CardHeader className="pb-2 pt-4">
+            <CardTitle className="text-sm font-medium text-orange-700 dark:text-orange-400 flex items-center gap-2">
+              🧪 Accès rapide (dev)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pb-4">
+            <div className="grid grid-cols-2 gap-2">
+              {DEV_ROLES.map(({ role, label, icon: Icon, color }) => (
+                <Button
+                  key={role}
+                  variant="outline"
+                  size="sm"
+                  className={`h-auto py-3 flex flex-col items-center gap-1.5 ${color}`}
+                  disabled={devLoading !== null}
+                  onClick={() => handleDevLogin(role)}
+                >
+                  {devLoading === role ? (
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  ) : (
+                    <Icon className="h-5 w-5" />
+                  )}
+                  <span className="text-xs font-medium">{label}</span>
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader className="pb-4">
