@@ -22,6 +22,36 @@ export default function ShelterCoaches() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [specialty, setSpecialty] = useState("");
   const [notes, setNotes] = useState("");
+  const [inviting, setInviting] = useState(false);
+
+  // Get admin user id for sending invitation requests
+  const { data: adminUserId } = useQuery({
+    queryKey: ["admin-user-for-shelter"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin" as any)
+        .limit(1)
+        .maybeSingle();
+      return data?.user_id || null;
+    },
+    enabled: !!user,
+  });
+
+  // Get shelter profile name
+  const { data: shelterProfile } = useQuery({
+    queryKey: ["shelter-profile-name", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("shelter_profiles" as any)
+        .select("name")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return data as any;
+    },
+    enabled: !!user,
+  });
 
   // Fetch shelter's linked coaches
   const { data: shelterCoaches = [], isLoading } = useQuery({
@@ -162,13 +192,31 @@ export default function ShelterCoaches() {
                           variant="outline"
                           size="sm"
                           className="w-full"
-                          disabled={!inviteEmail}
-                          onClick={() => {
-                            toast.info("Demande d'invitation envoyée à l'administrateur");
-                            setInviteEmail("");
+                          disabled={!inviteEmail || inviting || !adminUserId}
+                          onClick={async () => {
+                            if (!adminUserId || !user) return;
+                            setInviting(true);
+                            try {
+                              const shelterName = shelterProfile?.name || "Un refuge";
+                              const content = `📩 Demande d'invitation éducateur\n\nLe refuge "${shelterName}" souhaite inviter un éducateur externe :\n📧 Email : ${inviteEmail}\n\nMerci de créer le compte éducateur correspondant.`;
+                              const { error } = await supabase
+                                .from("messages")
+                                .insert({
+                                  sender_id: user.id,
+                                  recipient_id: adminUserId,
+                                  content,
+                                });
+                              if (error) throw error;
+                              toast.success("Demande d'invitation envoyée à l'administrateur");
+                              setInviteEmail("");
+                            } catch (e: any) {
+                              toast.error("Erreur lors de l'envoi : " + e.message);
+                            } finally {
+                              setInviting(false);
+                            }
                           }}
                         >
-                          Demander l'invitation
+                          {inviting ? "Envoi..." : "Demander l'invitation"}
                         </Button>
                       </div>
                     </div>
