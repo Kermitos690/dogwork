@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, PawPrint, Plus, Stethoscope, Eye, User } from "lucide-react";
+import { ArrowLeft, PawPrint, Plus, Stethoscope, Eye, User, Camera, Trash2, ImageIcon } from "lucide-react";
 import { motion } from "framer-motion";
 
 const statusOptions = ["arrivée", "quarantaine", "soins", "adoptable", "adopté", "décédé", "transféré"];
@@ -26,14 +26,18 @@ const statusColors: Record<string, string> = {
   "transféré": "bg-secondary text-secondary-foreground",
 };
 
+const BUCKET = "shelter-photos";
+
 export default function ShelterAnimalDetail() {
   const { animalId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [newObs, setNewObs] = useState({ type: "général", content: "", employeeId: "" });
+  const [uploading, setUploading] = useState(false);
 
   const { data: animal, isLoading } = useQuery({
     queryKey: ["shelter-animal", animalId],
@@ -71,6 +75,67 @@ export default function ShelterAnimalDetail() {
     enabled: !!user,
   });
 
+  // Photos gallery
+  const { data: photos = [], refetch: refetchPhotos } = useQuery({
+    queryKey: ["shelter-animal-photos", animalId],
+    queryFn: async () => {
+      const folder = `${user!.id}/${animalId}`;
+      const { data, error } = await supabase.storage.from(BUCKET).list(folder, { sortBy: { column: "created_at", order: "desc" } });
+      if (error || !data) return [];
+      return data
+        .filter(f => f.name !== ".emptyFolderPlaceholder")
+        .map(f => ({
+          name: f.name,
+          url: supabase.storage.from(BUCKET).getPublicUrl(`${folder}/${f.name}`).data.publicUrl,
+        }));
+    },
+    enabled: !!animalId && !!user,
+  });
+
+  const handleUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files?.length || !user || !animalId) return;
+    setUploading(true);
+    try {
+      for (const file of Array.from(files)) {
+        const ext = file.name.split(".").pop();
+        const path = `${user.id}/${animalId}/${Date.now()}.${ext}`;
+        const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true });
+        if (error) throw error;
+      }
+
+      // Set first photo as main if none set
+      if (!animal?.photo_url && photos.length === 0) {
+        const firstPath = `${user.id}/${animalId}/${Date.now()}`;
+        const url = supabase.storage.from(BUCKET).getPublicUrl(`${user.id}/${animalId}/`).data.publicUrl;
+      }
+
+      toast({ title: "Photo(s) ajoutée(s) ✅" });
+      refetchPhotos();
+    } catch (err: any) {
+      toast({ title: "Erreur upload", description: err.message, variant: "destructive" });
+    }
+    setUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleSetMainPhoto = async (url: string) => {
+    const { error } = await supabase.from("shelter_animals" as any).update({ photo_url: url } as any).eq("id", animalId!);
+    if (!error) {
+      toast({ title: "Photo principale définie ✅" });
+      queryClient.invalidateQueries({ queryKey: ["shelter-animal", animalId] });
+    }
+  };
+
+  const handleDeletePhoto = async (name: string) => {
+    const path = `${user!.id}/${animalId}/${name}`;
+    const { error } = await supabase.storage.from(BUCKET).remove([path]);
+    if (!error) {
+      toast({ title: "Photo supprimée" });
+      refetchPhotos();
+    }
+  };
+
   const addObservation = useMutation({
     mutationFn: async () => {
       const selectedEmployee = employees.find((e: any) => e.id === newObs.employeeId);
@@ -83,8 +148,6 @@ export default function ShelterAnimalDetail() {
         employee_name: selectedEmployee?.name || "",
       } as any);
       if (error) throw error;
-
-      // Log activity
       if (selectedEmployee) {
         await supabase.from("shelter_activity_log" as any).insert({
           shelter_user_id: user!.id,
@@ -114,8 +177,6 @@ export default function ShelterAnimalDetail() {
       }
       const { error } = await supabase.from("shelter_animals" as any).update(update).eq("id", animalId!);
       if (error) throw error;
-
-      // Log status change
       await supabase.from("shelter_activity_log" as any).insert({
         shelter_user_id: user!.id,
         animal_id: animalId,
@@ -155,6 +216,45 @@ export default function ShelterAnimalDetail() {
           </div>
           <Badge className={`${statusColors[animal.status] || ""} border-0`}>{animal.status}</Badge>
         </div>
+
+        {/* Main photo */}
+        {animal.photo_url && (
+          <div className="rounded-xl overflow-hidden aspect-video bg-secondary">
+            <img src={animal.photo_url} alt={animal.name} className="w-full h-full object-cover" />
+          </div>
+        )}
+
+        {/* Photo gallery */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <ImageIcon className="h-4 w-4" /> Photos ({photos.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={handleUploadPhoto} />
+            <Button size="sm" variant="outline" className="w-full gap-1" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+              <Camera className="h-3 w-3" /> {uploading ? "Upload en cours..." : "Ajouter des photos"}
+            </Button>
+            {photos.length > 0 && (
+              <div className="grid grid-cols-3 gap-2">
+                {photos.map((photo) => (
+                  <div key={photo.name} className="relative group rounded-lg overflow-hidden aspect-square bg-secondary">
+                    <img src={photo.url} alt="" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                      <Button size="sm" variant="secondary" className="h-6 text-[9px] px-1.5" onClick={() => handleSetMainPhoto(photo.url)}>
+                        Principal
+                      </Button>
+                      <Button size="sm" variant="destructive" className="h-6 px-1.5" onClick={() => handleDeletePhoto(photo.name)}>
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Info card */}
         <Card>
