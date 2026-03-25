@@ -50,6 +50,8 @@ const SubscriptionPage = lazy(() => import("./pages/Subscription"));
 const CoursesPage = lazy(() => import("./pages/Courses"));
 const CoachCalendar = lazy(() => import("./pages/CoachCalendar"));
 const CoachSubscription = lazy(() => import("./pages/CoachSubscription"));
+const CoachShelterAnimals = lazy(() => import("./pages/CoachShelterAnimals"));
+const CoachShelterAnimalEval = lazy(() => import("./pages/CoachShelterAnimalEval"));
 const MessagesPage = lazy(() => import("./pages/Messages"));
 const SettingsPage = lazy(() => import("./pages/Settings"));
 const PreferencesPage = lazy(() => import("./pages/Preferences"));
