@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ShelterLayout } from "@/components/ShelterLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Settings, Building2, Users, LogOut, MessageSquare, ClipboardList } from "lucide-react";
+import { Settings, Building2, Users, LogOut, MessageSquare, ClipboardList, GraduationCap, CreditCard } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function ShelterSettings() {
