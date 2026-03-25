@@ -106,6 +106,7 @@ function ProtectedRoutes() {
           <Route path="/shelter/activity" element={<ShelterGuard><ShelterActivityLog /></ShelterGuard>} />
           <Route path="/shelter/stats" element={<ShelterGuard><ShelterStats /></ShelterGuard>} />
           <Route path="/shelter/subscription" element={<ShelterGuard><ShelterSubscription /></ShelterGuard>} />
+          <Route path="/shelter/coaches" element={<ShelterGuard><ShelterCoaches /></ShelterGuard>} />
           <Route path="*" element={<Navigate to="/shelter" replace />} />
         </Routes>
       </Suspense>
