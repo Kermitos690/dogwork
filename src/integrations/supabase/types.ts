@@ -1397,6 +1397,39 @@ export type Database = {
         }
         Relationships: []
       }
+      shelter_coaches: {
+        Row: {
+          coach_user_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          shelter_user_id: string
+          specialty: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          coach_user_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          shelter_user_id: string
+          specialty?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          coach_user_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          shelter_user_id?: string
+          specialty?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       shelter_employees: {
         Row: {
           created_at: string
