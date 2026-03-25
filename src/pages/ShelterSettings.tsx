@@ -58,6 +58,7 @@ export default function ShelterSettings() {
           </CardContent>
         </Card>
 
+        <Card className="cursor-pointer card-press" onClick={() => navigate("/shelter/messages")}>
           <CardContent className="p-4 flex items-center gap-3">
             <MessageSquare className="h-5 w-5 text-primary" />
             <div>
