@@ -57,6 +57,10 @@ const ShelterGuard = lazy(() => import("./components/ShelterGuard").then(m => ({
 const ShelterDashboard = lazy(() => import("./pages/ShelterDashboard"));
 const ShelterAnimals = lazy(() => import("./pages/ShelterAnimals"));
 const ShelterAnimalDetail = lazy(() => import("./pages/ShelterAnimalDetail"));
+const ShelterProfile = lazy(() => import("./pages/ShelterProfile"));
+const ShelterMessages = lazy(() => import("./pages/ShelterMessages"));
+const ShelterSettings = lazy(() => import("./pages/ShelterSettings"));
+const ShelterEmployees = lazy(() => import("./pages/ShelterEmployees"));
 
 const queryClient = new QueryClient();
 
