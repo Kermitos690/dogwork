@@ -156,6 +156,8 @@ function ProtectedRoutes() {
         <Route path="/coach/courses" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachCourses /></CoachGuard></Suspense>} />
         <Route path="/coach/calendar" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachCalendar /></CoachGuard></Suspense>} />
         <Route path="/coach/subscription" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachSubscription /></CoachGuard></Suspense>} />
+        <Route path="/coach/shelter-animals" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachShelterAnimals /></CoachGuard></Suspense>} />
+        <Route path="/coach/shelter-animal/:animalId" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachShelterAnimalEval /></CoachGuard></Suspense>} />
         <Route path="/admin" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminDashboard /></AdminGuard></Suspense>} />
         {/* Shelter routes accessible to admin too */}
         {/* Shelter routes for admin access */}
