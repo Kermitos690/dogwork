@@ -154,7 +154,7 @@ export default function ShelterDashboard() {
         </Card>
 
         {adminUserId && (
-          <Button variant="outline" className="w-full gap-2" onClick={() => navigate(`/messages?user=${adminUserId}`)}>
+          <Button variant="outline" className="w-full gap-2" onClick={() => navigate(`/shelter/messages?user=${adminUserId}`)}>
             <MessageSquare className="h-4 w-4" /> Contacter l'administrateur
           </Button>
         )}
