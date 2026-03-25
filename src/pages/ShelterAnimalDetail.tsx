@@ -96,6 +96,29 @@ export default function ShelterAnimalDetail() {
     enabled: !!animalId && !!user,
   });
 
+  // Get pre-adoption evaluations from linked coaches
+  const { data: evaluations = [] } = useQuery({
+    queryKey: ["shelter-animal-evaluations", animalId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("shelter_animal_evaluations" as any)
+        .select("*")
+        .eq("animal_id", animalId!)
+        .order("created_at", { ascending: false });
+      if (!data?.length) return [];
+      const coachIds = [...new Set((data as any[]).map((e: any) => e.coach_user_id))];
+      const { data: profiles } = await supabase
+        .from("coach_profiles")
+        .select("user_id, display_name")
+        .in("user_id", coachIds);
+      return (data as any[]).map((e: any) => ({
+        ...e,
+        coachName: (profiles as any[])?.find((p: any) => p.user_id === e.coach_user_id)?.display_name || "Éducateur",
+      }));
+    },
+    enabled: !!animalId,
+  });
+
   const handleUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files?.length || !user || !animalId) return;
