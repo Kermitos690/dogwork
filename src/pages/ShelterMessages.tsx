@@ -30,46 +30,7 @@ export default function ShelterMessages() {
   const [newMessage, setNewMessage] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const { data: conversations = [] } = useQuery({
-    queryKey: ["shelter-conversations", user?.id],
-    queryFn: async () => {
-      const { data: msgs } = await supabase
-        .from("messages")
-        .select("*")
-        .or(`sender_id.eq.${user!.id},recipient_id.eq.${user!.id}`)
-        .order("created_at", { ascending: false });
-
-      if (!msgs || msgs.length === 0) return [];
-
-      const convMap = new Map<string, { last: typeof msgs[0]; unread: number }>();
-      for (const m of msgs) {
-        const otherId = m.sender_id === user!.id ? m.recipient_id : m.sender_id;
-        if (!convMap.has(otherId)) {
-          convMap.set(otherId, { last: m, unread: 0 });
-        }
-        if (!m.read && m.recipient_id === user!.id) {
-          convMap.get(otherId)!.unread++;
-        }
-      }
-
-      const userIds = [...convMap.keys()];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, display_name")
-        .in("user_id", userIds);
-
-      return userIds.map((uid) => ({
-        user_id: uid,
-        display_name: profiles?.find((p) => p.user_id === uid)?.display_name || "Utilisateur",
-        last_message: convMap.get(uid)!.last.content,
-        last_at: convMap.get(uid)!.last.created_at,
-        unread: convMap.get(uid)!.unread,
-      })) as Conversation[];
-    },
-    enabled: !!user,
-  });
-
-  // Auto-open admin conversation
+  // Get admin user id
   const { data: adminUserId } = useQuery({
     queryKey: ["admin-user-for-shelter"],
     queryFn: async () => {
@@ -84,6 +45,87 @@ export default function ShelterMessages() {
     enabled: !!user,
   });
 
+  // Get shelter employees (for filtering conversations)
+  const { data: employeeUserIds = [] } = useQuery({
+    queryKey: ["shelter-employee-emails", user?.id],
+    queryFn: async () => {
+      // Employees are stored by name/email, not user_id — we'll allow admin only for now
+      // since employees don't have user accounts in the system
+      return [] as string[];
+    },
+    enabled: !!user,
+  });
+
+  // Allowed contact IDs = admin only (employees don't have accounts)
+  const allowedContactIds = adminUserId ? [adminUserId] : [];
+
+  const { data: conversations = [] } = useQuery({
+    queryKey: ["shelter-conversations", user?.id],
+    queryFn: async () => {
+      const { data: msgs } = await supabase
+        .from("messages")
+        .select("*")
+        .or(`sender_id.eq.${user!.id},recipient_id.eq.${user!.id}`)
+        .order("created_at", { ascending: false });
+
+      if (!msgs || msgs.length === 0) return [];
+
+      const convMap = new Map<string, { last: typeof msgs[0]; unread: number }>();
+      for (const m of msgs) {
+        const otherId = m.sender_id === user!.id ? m.recipient_id : m.sender_id;
+        // Only show conversations with allowed contacts (admin)
+        if (allowedContactIds.length > 0 && !allowedContactIds.includes(otherId)) continue;
+        if (!convMap.has(otherId)) {
+          convMap.set(otherId, { last: m, unread: 0 });
+        }
+        if (!m.read && m.recipient_id === user!.id) {
+          convMap.get(otherId)!.unread++;
+        }
+      }
+
+      const userIds = [...convMap.keys()];
+      if (userIds.length === 0) return [];
+
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, display_name")
+        .in("user_id", userIds);
+
+      return userIds.map((uid) => ({
+        user_id: uid,
+        display_name: profiles?.find((p) => p.user_id === uid)?.display_name || "Administrateur",
+        last_message: convMap.get(uid)!.last.content,
+        last_at: convMap.get(uid)!.last.created_at,
+        unread: convMap.get(uid)!.unread,
+      })) as Conversation[];
+    },
+    enabled: !!user && allowedContactIds.length > 0,
+  });
+
+  // Realtime subscription
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel("shelter-messages-realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages" },
+        (payload) => {
+          const msg = payload.new as any;
+          if (msg.sender_id === user.id || msg.recipient_id === user.id) {
+            queryClient.invalidateQueries({ queryKey: ["shelter-conversations"] });
+            queryClient.invalidateQueries({ queryKey: ["shelter-chat"] });
+            queryClient.invalidateQueries({ queryKey: ["shelter-unread-count"] });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
+
   const { data: chatMessages = [] } = useQuery({
     queryKey: ["shelter-chat", user?.id, selectedUser],
     queryFn: async () => {
@@ -97,7 +139,6 @@ export default function ShelterMessages() {
       return data || [];
     },
     enabled: !!user && !!selectedUser,
-    refetchInterval: 5000,
   });
 
   useEffect(() => {
@@ -115,7 +156,10 @@ export default function ShelterMessages() {
         .eq("sender_id", selectedUser)
         .eq("recipient_id", user.id)
         .eq("read", false)
-        .then(() => queryClient.invalidateQueries({ queryKey: ["shelter-conversations"] }));
+        .then(() => {
+          queryClient.invalidateQueries({ queryKey: ["shelter-conversations"] });
+          queryClient.invalidateQueries({ queryKey: ["shelter-unread-count"] });
+        });
     }
   }, [selectedUser, chatMessages.length]);
 
@@ -147,10 +191,10 @@ export default function ShelterMessages() {
             </Button>
             <Avatar className="h-8 w-8">
               <AvatarFallback className="text-xs bg-primary/20 text-primary">
-                {selectedName?.[0]?.toUpperCase() || "?"}
+                {selectedName?.[0]?.toUpperCase() || "A"}
               </AvatarFallback>
             </Avatar>
-            <span className="font-medium text-sm text-foreground">{selectedName || "Contact"}</span>
+            <span className="font-medium text-sm text-foreground">{selectedName || "Administrateur"}</span>
           </div>
 
           <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-2 pr-1">
@@ -218,6 +262,7 @@ export default function ShelterMessages() {
             <CardContent className="p-6 text-center">
               <MessageSquare className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">Aucune conversation</p>
+              <p className="text-xs text-muted-foreground mt-1">Contactez l'administrateur pour démarrer.</p>
             </CardContent>
           </Card>
         )}

@@ -5,8 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { ShelterLayout } from "@/components/ShelterLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PawPrint, Plus, Clock, Heart, Stethoscope, Home, MessageSquare } from "lucide-react";
+import { PawPrint, Plus, Clock, Heart, Stethoscope, Home, MessageSquare, Mail } from "lucide-react";
 import { motion } from "framer-motion";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 const statusConfig: Record<string, { label: string; icon: React.ElementType; color: string }> = {
   "arrivée": { label: "Arrivées", icon: Clock, color: "text-blue-400" },
@@ -46,17 +48,31 @@ export default function ShelterDashboard() {
     enabled: !!user,
   });
 
-  // Find admin user for messaging
-  const { data: adminUserId } = useQuery({
-    queryKey: ["admin-user-for-contact"],
+  // Adoption updates
+  const { data: adoptionUpdates = [] } = useQuery({
+    queryKey: ["adoption-updates", user?.id],
     queryFn: async () => {
       const { data } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "admin" as any)
-        .limit(1)
-        .maybeSingle();
-      return data?.user_id || null;
+        .from("adoption_updates" as any)
+        .select("*")
+        .eq("shelter_user_id", user!.id)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      return (data as any[]) || [];
+    },
+    enabled: !!user,
+  });
+
+  // Unread messages count
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: ["shelter-unread-count", user?.id],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("messages")
+        .select("*", { count: "exact", head: true })
+        .eq("recipient_id", user!.id)
+        .eq("read", false);
+      return count || 0;
     },
     enabled: !!user,
   });
@@ -97,6 +113,21 @@ export default function ShelterDashboard() {
             </Card>
           ))}
         </div>
+
+        {/* Messages shortcut */}
+        {unreadCount > 0 && (
+          <Card className="cursor-pointer card-press border-primary/30" onClick={() => navigate("/shelter/messages")}>
+            <CardContent className="p-3 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <MessageSquare className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">{unreadCount} message{unreadCount > 1 ? "s" : ""} non lu{unreadCount > 1 ? "s" : ""}</p>
+                <p className="text-[10px] text-muted-foreground">Cliquez pour voir vos messages</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stats par espèce */}
         <Card>
@@ -153,10 +184,33 @@ export default function ShelterDashboard() {
           </CardContent>
         </Card>
 
-        {adminUserId && (
-          <Button variant="outline" className="w-full gap-2" onClick={() => navigate(`/shelter/messages?user=${adminUserId}`)}>
-            <MessageSquare className="h-4 w-4" /> Contacter l'administrateur
-          </Button>
+        {/* Post-adoption news */}
+        {adoptionUpdates.length > 0 && (
+          <div>
+            <p className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+              <Mail className="h-4 w-4 text-primary" /> Nouvelles post-adoption
+            </p>
+            <div className="space-y-2">
+              {adoptionUpdates.map((update: any) => {
+                const animalData = animals.find((a: any) => a.id === update.animal_id);
+                return (
+                  <Card key={update.id} className="cursor-pointer card-press" onClick={() => animalData && navigate(`/shelter/animals/${update.animal_id}`)}>
+                    <CardContent className="p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs font-medium text-foreground">
+                          {animalData?.name || "Animal"} — {update.adopter_name || "Adoptant"}
+                        </p>
+                        <span className="text-[10px] text-muted-foreground">
+                          {format(new Date(update.created_at), "dd/MM/yyyy", { locale: fr })}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">{update.message}</p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
         )}
 
         <Button className="w-full gap-2" onClick={() => navigate("/shelter/animals?new=1")}>

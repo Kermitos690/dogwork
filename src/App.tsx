@@ -64,6 +64,7 @@ const ShelterEmployees = lazy(() => import("./pages/ShelterEmployees"));
 const ShelterSpaces = lazy(() => import("./pages/ShelterSpaces"));
 const ShelterActivityLog = lazy(() => import("./pages/ShelterActivityLog"));
 const ShelterStats = lazy(() => import("./pages/ShelterStats"));
+const ShelterSubscription = lazy(() => import("./pages/ShelterSubscription"));
 
 const queryClient = new QueryClient();
 
