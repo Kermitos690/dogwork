@@ -38,7 +38,26 @@ export default function ShelterSettings() {
           </CardContent>
         </Card>
 
-        <Card className="cursor-pointer card-press" onClick={() => navigate("/shelter/messages")}>
+        <Card className="cursor-pointer card-press" onClick={() => navigate("/shelter/coaches")}>
+          <CardContent className="p-4 flex items-center gap-3">
+            <GraduationCap className="h-5 w-5 text-primary" />
+            <div>
+              <p className="text-sm font-medium text-foreground">Éducateurs partenaires</p>
+              <p className="text-xs text-muted-foreground">Gérer les éducateurs associés au refuge</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="cursor-pointer card-press" onClick={() => navigate("/shelter/subscription")}>
+          <CardContent className="p-4 flex items-center gap-3">
+            <CreditCard className="h-5 w-5 text-primary" />
+            <div>
+              <p className="text-sm font-medium text-foreground">Abonnement</p>
+              <p className="text-xs text-muted-foreground">Gérer votre plan DogWork Refuge</p>
+            </div>
+          </CardContent>
+        </Card>
+
           <CardContent className="p-4 flex items-center gap-3">
             <MessageSquare className="h-5 w-5 text-primary" />
             <div>
