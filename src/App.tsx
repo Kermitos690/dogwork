@@ -65,6 +65,7 @@ const ShelterSpaces = lazy(() => import("./pages/ShelterSpaces"));
 const ShelterActivityLog = lazy(() => import("./pages/ShelterActivityLog"));
 const ShelterStats = lazy(() => import("./pages/ShelterStats"));
 const ShelterSubscription = lazy(() => import("./pages/ShelterSubscription"));
+const ShelterCoaches = lazy(() => import("./pages/ShelterCoaches"));
 
 const queryClient = new QueryClient();
 
@@ -105,6 +106,7 @@ function ProtectedRoutes() {
           <Route path="/shelter/activity" element={<ShelterGuard><ShelterActivityLog /></ShelterGuard>} />
           <Route path="/shelter/stats" element={<ShelterGuard><ShelterStats /></ShelterGuard>} />
           <Route path="/shelter/subscription" element={<ShelterGuard><ShelterSubscription /></ShelterGuard>} />
+          <Route path="/shelter/coaches" element={<ShelterGuard><ShelterCoaches /></ShelterGuard>} />
           <Route path="*" element={<Navigate to="/shelter" replace />} />
         </Routes>
       </Suspense>

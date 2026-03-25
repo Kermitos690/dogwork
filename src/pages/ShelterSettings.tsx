@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ShelterLayout } from "@/components/ShelterLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Settings, Building2, Users, LogOut, MessageSquare, ClipboardList } from "lucide-react";
+import { Settings, Building2, Users, LogOut, MessageSquare, ClipboardList, GraduationCap, CreditCard } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function ShelterSettings() {
@@ -34,6 +34,26 @@ export default function ShelterSettings() {
             <div>
               <p className="text-sm font-medium text-foreground">Employés</p>
               <p className="text-xs text-muted-foreground">Gérer les profils d'employés du refuge</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="cursor-pointer card-press" onClick={() => navigate("/shelter/coaches")}>
+          <CardContent className="p-4 flex items-center gap-3">
+            <GraduationCap className="h-5 w-5 text-primary" />
+            <div>
+              <p className="text-sm font-medium text-foreground">Éducateurs partenaires</p>
+              <p className="text-xs text-muted-foreground">Gérer les éducateurs associés au refuge</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="cursor-pointer card-press" onClick={() => navigate("/shelter/subscription")}>
+          <CardContent className="p-4 flex items-center gap-3">
+            <CreditCard className="h-5 w-5 text-primary" />
+            <div>
+              <p className="text-sm font-medium text-foreground">Abonnement</p>
+              <p className="text-xs text-muted-foreground">Gérer votre plan DogWork Refuge</p>
             </div>
           </CardContent>
         </Card>
