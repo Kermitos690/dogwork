@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      adoption_updates: {
+        Row: {
+          adopter_email: string | null
+          adopter_name: string | null
+          animal_id: string
+          created_at: string | null
+          id: string
+          message: string | null
+          photo_url: string | null
+          shelter_user_id: string
+        }
+        Insert: {
+          adopter_email?: string | null
+          adopter_name?: string | null
+          animal_id: string
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          photo_url?: string | null
+          shelter_user_id: string
+        }
+        Update: {
+          adopter_email?: string | null
+          adopter_name?: string | null
+          animal_id?: string
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          photo_url?: string | null
+          shelter_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "adoption_updates_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_animals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       behavior_logs: {
         Row: {
           barking: boolean | null
@@ -1283,6 +1324,8 @@ export type Database = {
       }
       shelter_animals: {
         Row: {
+          adopter_email: string | null
+          adopter_name: string | null
           arrival_date: string
           behavior_notes: string | null
           breed: string | null
@@ -1305,6 +1348,8 @@ export type Database = {
           weight_kg: number | null
         }
         Insert: {
+          adopter_email?: string | null
+          adopter_name?: string | null
           arrival_date?: string
           behavior_notes?: string | null
           breed?: string | null
@@ -1327,6 +1372,8 @@ export type Database = {
           weight_kg?: number | null
         }
         Update: {
+          adopter_email?: string | null
+          adopter_name?: string | null
           arrival_date?: string
           behavior_notes?: string | null
           breed?: string | null
