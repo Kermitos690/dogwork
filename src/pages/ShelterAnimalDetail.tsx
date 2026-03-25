@@ -363,6 +363,49 @@ export default function ShelterAnimalDetail() {
           </div>
         )}
 
+        {/* Pre-adoption evaluations from coaches */}
+        {evaluations.length > 0 && (
+          <Card className="border-primary/20">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <ClipboardCheck className="h-4 w-4 text-primary" />
+                Évaluations pré-adoption ({evaluations.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {evaluations.map((ev: any) => (
+                <div key={ev.id} className="p-3 rounded-lg bg-secondary/30 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-foreground">{ev.coachName}</p>
+                    <div className="flex items-center gap-2">
+                      {ev.adoption_ready && (
+                        <Badge className="bg-emerald-500/20 text-emerald-400 text-[10px]">Prêt adoption</Badge>
+                      )}
+                      <span className="text-[10px] text-muted-foreground">
+                        {new Date(ev.created_at).toLocaleDateString("fr-FR")}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1 text-[11px]">
+                    <div><span className="text-muted-foreground">Sociab. chiens :</span> <span className="text-foreground font-medium">{ev.sociability_dogs}/10</span></div>
+                    <div><span className="text-muted-foreground">Sociab. humains :</span> <span className="text-foreground font-medium">{ev.sociability_humans}/10</span></div>
+                    <div><span className="text-muted-foreground">Réactivité :</span> <span className="text-foreground font-medium">{ev.reactivity_level}/10</span></div>
+                    <div><span className="text-muted-foreground">Peur :</span> <span className="text-foreground font-medium">{ev.fear_level}/10</span></div>
+                    <div><span className="text-muted-foreground">Énergie :</span> <span className="text-foreground font-medium">{ev.energy_level}/10</span></div>
+                    <div><span className="text-muted-foreground">Morsure :</span> <span className="text-foreground font-medium">{ev.bite_risk}</span></div>
+                  </div>
+                  {ev.recommended_profile && (
+                    <p className="text-[11px]"><span className="text-muted-foreground">Profil recommandé :</span> <span className="text-foreground">{ev.recommended_profile}</span></p>
+                  )}
+                  {ev.training_notes && (
+                    <p className="text-[11px]"><span className="text-muted-foreground">Notes :</span> <span className="text-foreground">{ev.training_notes}</span></p>
+                  )}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Observations */}
         <Card>
           <CardHeader className="pb-2">
