@@ -1,103 +1,89 @@
 
 
-## Plan : Préférences utilisateur — Personnalisation de l'application
+# Plan : Audit complet et upgrade du système Refuge
 
-### Ce qui sera ajouté
+## Problemes identifiés
 
-Une nouvelle page **Préférences** accessible depuis Settings et le SlideMenu, permettant à chaque utilisateur de personnaliser son expérience DogWork.
+1. **Auth headers manquants** — Les appels `create-educator` et `create-shelter` depuis AdminDashboard n'envoient PAS le header `Authorization`, donc les edge functions rejettent avec "Non autorisé"
+2. **config.toml incomplet** — `generate-exercise-images` n'est pas déclaré (pas de `verify_jwt = false`)
+3. **GuidedTour** — Warning `ref` avec framer-motion (cosmétique mais visible en console)
+4. **Observations sans nom d'auteur** — Les observations refuge affichent une date mais pas le nom de l'employé qui l'a créée
+5. **Admin ne voit pas la liste des refuges** — Pas de section listant les refuges existants
+6. **Shelter n'a pas de hiérarchie admin** — Actuellement un seul niveau : le shelter user gère tout. Pas de distinction admin-refuge vs employé
 
-### 1. Nouvelle table `user_preferences`
+## Plan d'implémentation
+
+### Phase 1 : Corrections urgentes (bugs bloquants)
+
+**A. Fix des appels Edge Functions dans AdminDashboard**
+- `handleCreateEducator` : ajouter `headers: { Authorization: Bearer ${session.access_token} }` à `supabase.functions.invoke("create-educator")`
+- `handleCreateShelter` : idem pour `create-shelter`
+- Récupérer la session avant l'appel avec `supabase.auth.getSession()`
+
+**B. config.toml** — ajouter :
+```toml
+[functions.generate-exercise-images]
+verify_jwt = false
+```
+
+**C. Fix GuidedTour** — Wrapper le composant enfant de `AnimatePresence` avec `forwardRef`
+
+### Phase 2 : Enrichir le dashboard Admin
+
+- Ajouter une section collapsible "Refuges" listant tous les `shelter_profiles` avec nom, type, date de création
+- Afficher le nombre d'employés par refuge
+- Lien vers une vue détaillée (optionnel, phase ultérieure)
+
+### Phase 3 : Hiérarchie Shelter + Horodatage
+
+**A. Migration DB — Nouvelles tables et colonnes**
 
 ```sql
-CREATE TABLE public.user_preferences (
+-- 1. Ajouter shelter_id aux employés pour permettre des comptes employés par refuge
+ALTER TABLE shelter_employees ADD COLUMN IF NOT EXISTS job_title text DEFAULT '';
+
+-- 2. Table de log d'actions horodatées par employé
+CREATE TABLE shelter_activity_log (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL UNIQUE,
-  accent_color text NOT NULL DEFAULT 'blue',
-  hide_chatbot boolean NOT NULL DEFAULT false,
-  hide_read_aloud boolean NOT NULL DEFAULT false,
-  hide_guided_tour boolean NOT NULL DEFAULT false,
-  visible_sections jsonb NOT NULL DEFAULT '["journal","stats","exercises","courses","safety","messages"]'::jsonb,
+  shelter_user_id uuid NOT NULL,
+  employee_id uuid REFERENCES shelter_employees(id),
+  animal_id uuid REFERENCES shelter_animals(id),
+  action_type text NOT NULL DEFAULT 'observation',
+  description text NOT NULL DEFAULT '',
+  employee_name text NOT NULL DEFAULT '',
+  employee_role text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE shelter_activity_log ENABLE ROW LEVEL SECURITY;
+-- RLS: shelter voit ses propres logs, admin voit tout
+
+-- 3. Table des espaces/boxes du refuge
+CREATE TABLE shelter_spaces (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  shelter_user_id uuid NOT NULL,
+  name text NOT NULL DEFAULT '',
+  space_type text NOT NULL DEFAULT 'box',
+  capacity integer DEFAULT 1,
+  current_animal_id uuid REFERENCES shelter_animals(id),
+  position_x integer DEFAULT 0,
+  position_y integer DEFAULT 0,
+  width integer DEFAULT 1,
+  height integer DEFAULT 1,
+  color text DEFAULT '#94a3b8',
+  notes text DEFAULT '',
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
-ALTER TABLE public.user_preferences ENABLE ROW LEVEL SECURITY;
--- RLS: users can read/update/insert their own preferences only
+ALTER TABLE shelter_spaces ENABLE ROW LEVEL SECURITY;
 ```
 
-Les couleurs d'accent disponibles : `blue` (défaut), `purple`, `cyan`, `pink`, `emerald`, `amber`, `red`.
+**B. Mise à jour shelter_observations** — Ajouter `employee_id` et `employee_name` pour tracer qui a créé chaque observation
 
-### 2. Hook `usePreferences`
+**C. Page Espaces du Refuge (`/shelter/spaces`)**
+- Grille 2D interactive (pas 3D car trop lourd/complexe pour un MVP — la 3D sera une évolution future)
+- Drag-and-drop d'animaux dans les boxes
+- Chaque box affiche : nom de l'espace, animal assigné, statut
+- Types d'espaces : box, enclos, infirmerie, quarantaine, promenade
 
-Nouveau fichier `src/hooks/usePreferences.tsx` :
-- Lit les préférences via React Query (clé `["user_preferences", userId]`)
-- Fournit `updatePreference(key, value)` avec mutation optimiste
-- Expose les valeurs par défaut si pas encore de row en base
-- Fournit un `PreferencesProvider` qui applique la couleur d'accent en injectant un CSS class sur `<body>` (ex: `.accent-purple`)
-
-### 3. Application des couleurs d'accent
-
-Dans `src/index.css`, ajouter des classes de thème d'accent :
-
-```css
-.accent-purple { --primary: 270 80% 65%; --ring: 270 80% 65%; --neon-blue: 270 80% 65%; }
-.accent-cyan   { --primary: 185 85% 55%; --ring: 185 85% 55%; --neon-blue: 185 85% 55%; }
-.accent-pink   { --primary: 330 80% 60%; --ring: 330 80% 60%; --neon-blue: 330 80% 60%; }
-.accent-emerald { --primary: 160 65% 45%; --ring: 160 65% 45%; --neon-blue: 160 65% 45%; }
-.accent-amber  { --primary: 38 92% 55%;  --ring: 38 92% 55%;  --neon-blue: 38 92% 55%; }
-.accent-red    { --primary: 0 72% 55%;   --ring: 0 72% 55%;   --neon-blue: 0 72% 55%; }
-```
-
-Ces classes n'interfèrent PAS avec les thèmes de rôle (`.theme-coach`, `.theme-admin`, `.theme-shelter`) car ils ne s'appliquent que quand on est dans l'espace utilisateur standard.
-
-### 4. Application de la visibilité
-
-- `AIChatBot.tsx` : vérifie `preferences.hide_chatbot` avant de rendre
-- `FloatingReadAloud.tsx` : vérifie `preferences.hide_read_aloud`
-- `SlideMenu.tsx` : filtre les sections selon `preferences.visible_sections`
-- `AppLayout.tsx` : ne change pas (la nav bottom reste toujours visible)
-
-### 5. Nouvelle page `src/pages/Preferences.tsx`
-
-Interface avec 3 sections dans des cartes :
-
-**🎨 Couleur d'accent**
-- Grille de 7 cercles colorés cliquables (blue, purple, cyan, pink, emerald, amber, red)
-- Le cercle sélectionné a un anneau + check
-
-**👁️ Visibilité des modules**
-- Liste de toggles (Switch) pour masquer/afficher : Journal, Statistiques, Exercices, Cours IRL, Sécurité, Messages
-- Ces toggles contrôlent l'affichage dans le SlideMenu
-
-**⚙️ Fonctionnalités**
-- Toggle : Chatbot IA
-- Toggle : Lecture à voix haute
-- Toggle : Visite guidée automatique
-
-### 6. Intégration dans le routing et la navigation
-
-| Fichier | Changement |
-|---|---|
-| `src/App.tsx` | Ajouter route `/preferences` |
-| `src/pages/Settings.tsx` | Ajouter carte "Préférences" avec lien vers `/preferences` |
-| `src/components/SlideMenu.tsx` | Ajouter "Préférences" dans la section Compte |
-
-### Fichiers créés/modifiés
-
-| Fichier | Action |
-|---|---|
-| Migration SQL | Créer table `user_preferences` + RLS |
-| `src/hooks/usePreferences.tsx` | **Créer** — hook + provider |
-| `src/pages/Preferences.tsx` | **Créer** — page complète |
-| `src/index.css` | Ajouter classes `.accent-*` |
-| `src/App.tsx` | Ajouter route + wrap PreferencesProvider |
-| `src/pages/Settings.tsx` | Ajouter lien Préférences |
-| `src/components/SlideMenu.tsx` | Ajouter lien + filtrer sections |
-| `src/components/AIChatBot.tsx` | Conditionner rendu sur préférences |
-| `src/components/FloatingReadAloud.tsx` | Conditionner rendu sur préférences |
-
-### Ce qui ne change PAS
-- Les thèmes par rôle (coach, admin, shelter) restent prioritaires
-- La barre de navigation bottom reste toujours visible
-- Aucune modification des tables existantes
-- L'export de données et la déconnexion restent dans Settings
-
+**D. Mise à jour ShelterEmployees**
+- Enrichir le formulaire avec un
