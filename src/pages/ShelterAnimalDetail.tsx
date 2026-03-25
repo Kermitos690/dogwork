@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, PawPrint, Plus, Stethoscope, Eye, User, Camera, Trash2, ImageIcon, Heart } from "lucide-react";
+import { ArrowLeft, PawPrint, Plus, Stethoscope, Eye, User, Camera, Trash2, ImageIcon, Heart, ClipboardCheck } from "lucide-react";
 import { motion } from "framer-motion";
 
 const statusOptions = ["arrivée", "quarantaine", "soins", "adoptable", "adopté", "décédé", "transféré"];
