@@ -22,6 +22,36 @@ export default function ShelterCoaches() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [specialty, setSpecialty] = useState("");
   const [notes, setNotes] = useState("");
+  const [inviting, setInviting] = useState(false);
+
+  // Get admin user id for sending invitation requests
+  const { data: adminUserId } = useQuery({
+    queryKey: ["admin-user-for-shelter"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin" as any)
+        .limit(1)
+        .maybeSingle();
+      return data?.user_id || null;
+    },
+    enabled: !!user,
+  });
+
+  // Get shelter profile name
+  const { data: shelterProfile } = useQuery({
+    queryKey: ["shelter-profile-name", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("shelter_profiles" as any)
+        .select("name")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return data as any;
+    },
+    enabled: !!user,
+  });
 
   // Fetch shelter's linked coaches
   const { data: shelterCoaches = [], isLoading } = useQuery({
