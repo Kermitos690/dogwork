@@ -1,7 +1,4 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, PawPrint, MessageSquare, User } from "lucide-react";
-
-import { useLocation, useNavigate } from "react-router-dom";
 import { LayoutDashboard, PawPrint, MessageSquare, Settings } from "lucide-react";
 
 const tabs = [
