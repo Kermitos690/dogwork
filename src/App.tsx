@@ -153,6 +153,17 @@ function ProtectedRoutes() {
         <Route path="/coach/calendar" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachCalendar /></CoachGuard></Suspense>} />
         <Route path="/coach/subscription" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachSubscription /></CoachGuard></Suspense>} />
         <Route path="/admin" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminDashboard /></AdminGuard></Suspense>} />
+        {/* Shelter routes accessible to admin too */}
+        <Route path="/shelter" element={<ShelterDashboard />} />
+        <Route path="/shelter/animals" element={<ShelterAnimals />} />
+        <Route path="/shelter/animals/:animalId" element={<ShelterAnimalDetail />} />
+        <Route path="/shelter/profile" element={<ShelterProfile />} />
+        <Route path="/shelter/messages" element={<ShelterMessages />} />
+        <Route path="/shelter/settings" element={<ShelterSettings />} />
+        <Route path="/shelter/employees" element={<ShelterEmployees />} />
+        <Route path="/shelter/spaces" element={<ShelterSpaces />} />
+        <Route path="/shelter/activity" element={<ShelterActivityLog />} />
+        <Route path="/shelter/stats" element={<ShelterStats />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <AIChatBot />
