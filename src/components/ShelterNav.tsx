@@ -1,11 +1,11 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, PawPrint, MessageSquare, User } from "lucide-react";
+import { LayoutDashboard, PawPrint, MessageSquare, Settings } from "lucide-react";
 
 const tabs = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/shelter" },
   { label: "Animaux", icon: PawPrint, path: "/shelter/animals" },
-  { label: "Messages", icon: MessageSquare, path: "/messages" },
-  { label: "Profil", icon: User, path: "/shelter/profile" },
+  { label: "Messages", icon: MessageSquare, path: "/shelter/messages" },
+  { label: "Paramètres", icon: Settings, path: "/shelter/settings" },
 ];
 
 export function ShelterNav() {

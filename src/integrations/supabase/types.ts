@@ -1299,6 +1299,42 @@ export type Database = {
         }
         Relationships: []
       }
+      shelter_employees: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          is_active: boolean
+          name: string
+          phone: string | null
+          role: string
+          shelter_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          phone?: string | null
+          role?: string
+          shelter_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          phone?: string | null
+          role?: string
+          shelter_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       shelter_observations: {
         Row: {
           animal_id: string

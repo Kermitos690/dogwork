@@ -1,0 +1,209 @@
+import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { ShelterLayout } from "@/components/ShelterLayout";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { Users, Plus, Pencil, Trash2, Phone, Mail } from "lucide-react";
+import { motion } from "framer-motion";
+
+const ROLES = [
+  { value: "soigneur", label: "Soigneur" },
+  { value: "responsable", label: "Responsable" },
+  { value: "benevole", label: "Bénévole" },
+  { value: "veterinaire", label: "Vétérinaire" },
+  { value: "administratif", label: "Administratif" },
+  { value: "educateur", label: "Éducateur canin" },
+];
+
+interface EmployeeForm {
+  name: string;
+  role: string;
+  email: string;
+  phone: string;
+}
+
+const emptyForm: EmployeeForm = { name: "", role: "soigneur", email: "", phone: "" };
+
+export default function ShelterEmployees() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [form, setForm] = useState<EmployeeForm>(emptyForm);
+
+  const { data: employees = [], isLoading } = useQuery({
+    queryKey: ["shelter-employees", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("shelter_employees" as any)
+        .select("*")
+        .eq("shelter_user_id", user!.id)
+        .eq("is_active", true)
+        .order("name");
+      return (data as any[]) || [];
+    },
+    enabled: !!user,
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (!form.name.trim()) throw new Error("Nom requis");
+      if (editId) {
+        const { error } = await (supabase.from("shelter_employees" as any) as any)
+          .update({ name: form.name, role: form.role, email: form.email, phone: form.phone })
+          .eq("id", editId);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase.from("shelter_employees" as any) as any)
+          .insert({ shelter_user_id: user!.id, name: form.name, role: form.role, email: form.email, phone: form.phone });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shelter-employees"] });
+      setDialogOpen(false);
+      setEditId(null);
+      setForm(emptyForm);
+      toast({ title: editId ? "Employé mis à jour" : "Employé ajouté" });
+    },
+    onError: (e: any) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase.from("shelter_employees" as any) as any)
+        .update({ is_active: false })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shelter-employees"] });
+      toast({ title: "Employé supprimé" });
+    },
+  });
+
+  const openEdit = (emp: any) => {
+    setEditId(emp.id);
+    setForm({ name: emp.name, role: emp.role, email: emp.email || "", phone: emp.phone || "" });
+    setDialogOpen(true);
+  };
+
+  const openNew = () => {
+    setEditId(null);
+    setForm(emptyForm);
+    setDialogOpen(true);
+  };
+
+  return (
+    <ShelterLayout>
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pt-14 pb-8 space-y-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+            <Users className="h-5 w-5 text-primary" />
+            Employés
+          </h1>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="gap-1" onClick={openNew}>
+                <Plus className="h-4 w-4" /> Ajouter
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{editId ? "Modifier l'employé" : "Nouvel employé"}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-2">
+                <div className="space-y-2">
+                  <Label>Nom *</Label>
+                  <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Nom complet" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Rôle</Label>
+                  <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {ROLES.map((r) => (
+                        <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} type="email" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Téléphone</Label>
+                  <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} type="tel" />
+                </div>
+                <Button className="w-full" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+                  {saveMutation.isPending ? "Sauvegarde..." : "Enregistrer"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {isLoading ? (
+          <div className="animate-pulse text-muted-foreground text-center py-8">Chargement...</div>
+        ) : employees.length === 0 ? (
+          <Card>
+            <CardContent className="p-6 text-center">
+              <Users className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">Aucun employé enregistré</p>
+              <Button variant="outline" size="sm" className="mt-3 gap-1" onClick={openNew}>
+                <Plus className="h-4 w-4" /> Ajouter un employé
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-2">
+            {employees.map((emp: any) => (
+              <Card key={emp.id}>
+                <CardContent className="p-3 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
+                    {emp.name?.[0]?.toUpperCase() || "?"}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{emp.name}</p>
+                    <p className="text-[10px] text-muted-foreground capitalize">
+                      {ROLES.find((r) => r.value === emp.role)?.label || emp.role}
+                    </p>
+                    <div className="flex gap-3 mt-0.5">
+                      {emp.email && (
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                          <Mail className="h-3 w-3" /> {emp.email}
+                        </span>
+                      )}
+                      {emp.phone && (
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                          <Phone className="h-3 w-3" /> {emp.phone}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(emp)}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteMutation.mutate(emp.id)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </motion.div>
+    </ShelterLayout>
+  );
+}
