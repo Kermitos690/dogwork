@@ -1230,6 +1230,57 @@ export type Database = {
         }
         Relationships: []
       }
+      shelter_activity_log: {
+        Row: {
+          action_type: string
+          animal_id: string | null
+          created_at: string
+          description: string
+          employee_id: string | null
+          employee_name: string
+          employee_role: string
+          id: string
+          shelter_user_id: string
+        }
+        Insert: {
+          action_type?: string
+          animal_id?: string | null
+          created_at?: string
+          description?: string
+          employee_id?: string | null
+          employee_name?: string
+          employee_role?: string
+          id?: string
+          shelter_user_id: string
+        }
+        Update: {
+          action_type?: string
+          animal_id?: string | null
+          created_at?: string
+          description?: string
+          employee_id?: string | null
+          employee_name?: string
+          employee_role?: string
+          id?: string
+          shelter_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shelter_activity_log_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_animals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shelter_activity_log_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shelter_animals: {
         Row: {
           arrival_date: string
@@ -1305,6 +1356,7 @@ export type Database = {
           email: string | null
           id: string
           is_active: boolean
+          job_title: string | null
           name: string
           phone: string | null
           role: string
@@ -1316,6 +1368,7 @@ export type Database = {
           email?: string | null
           id?: string
           is_active?: boolean
+          job_title?: string | null
           name?: string
           phone?: string | null
           role?: string
@@ -1327,6 +1380,7 @@ export type Database = {
           email?: string | null
           id?: string
           is_active?: boolean
+          job_title?: string | null
           name?: string
           phone?: string | null
           role?: string
@@ -1341,6 +1395,8 @@ export type Database = {
           author_id: string
           content: string
           created_at: string
+          employee_id: string | null
+          employee_name: string | null
           id: string
           observation_date: string
           observation_type: string
@@ -1350,6 +1406,8 @@ export type Database = {
           author_id: string
           content?: string
           created_at?: string
+          employee_id?: string | null
+          employee_name?: string | null
           id?: string
           observation_date?: string
           observation_type?: string
@@ -1359,6 +1417,8 @@ export type Database = {
           author_id?: string
           content?: string
           created_at?: string
+          employee_id?: string | null
+          employee_name?: string | null
           id?: string
           observation_date?: string
           observation_type?: string
@@ -1369,6 +1429,13 @@ export type Database = {
             columns: ["animal_id"]
             isOneToOne: false
             referencedRelation: "shelter_animals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shelter_observations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_employees"
             referencedColumns: ["id"]
           },
         ]
@@ -1408,6 +1475,65 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      shelter_spaces: {
+        Row: {
+          capacity: number | null
+          color: string | null
+          created_at: string
+          current_animal_id: string | null
+          height: number | null
+          id: string
+          name: string
+          notes: string | null
+          position_x: number | null
+          position_y: number | null
+          shelter_user_id: string
+          space_type: string
+          updated_at: string
+          width: number | null
+        }
+        Insert: {
+          capacity?: number | null
+          color?: string | null
+          created_at?: string
+          current_animal_id?: string | null
+          height?: number | null
+          id?: string
+          name?: string
+          notes?: string | null
+          position_x?: number | null
+          position_y?: number | null
+          shelter_user_id: string
+          space_type?: string
+          updated_at?: string
+          width?: number | null
+        }
+        Update: {
+          capacity?: number | null
+          color?: string | null
+          created_at?: string
+          current_animal_id?: string | null
+          height?: number | null
+          id?: string
+          name?: string
+          notes?: string | null
+          position_x?: number | null
+          position_y?: number | null
+          shelter_user_id?: string
+          space_type?: string
+          updated_at?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shelter_spaces_current_animal_id_fkey"
+            columns: ["current_animal_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_animals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       training_plans: {
         Row: {
