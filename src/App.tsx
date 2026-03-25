@@ -85,6 +85,24 @@ function ProtectedRoutes() {
   const hasDogs = dogs && dogs.length > 0;
   const onboardingInProgress = !hasDogs && !isCoach && !isShelter;
 
+  // Shelter users get a completely separate route set
+  if (isShelter) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/shelter" element={<ShelterGuard><ShelterDashboard /></ShelterGuard>} />
+          <Route path="/shelter/animals" element={<ShelterGuard><ShelterAnimals /></ShelterGuard>} />
+          <Route path="/shelter/animals/:animalId" element={<ShelterGuard><ShelterAnimalDetail /></ShelterGuard>} />
+          <Route path="/shelter/profile" element={<ShelterGuard><ShelterProfile /></ShelterGuard>} />
+          <Route path="/shelter/messages" element={<ShelterGuard><ShelterMessages /></ShelterGuard>} />
+          <Route path="/shelter/settings" element={<ShelterGuard><ShelterSettings /></ShelterGuard>} />
+          <Route path="/shelter/employees" element={<ShelterGuard><ShelterEmployees /></ShelterGuard>} />
+          <Route path="*" element={<Navigate to="/shelter" replace />} />
+        </Routes>
+      </Suspense>
+    );
+  }
+
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
@@ -92,7 +110,6 @@ function ProtectedRoutes() {
         <Route path="/" element={
           onboardingInProgress ? <Navigate to="/onboarding" replace /> :
           (isCoach && !hasDogs) ? <Navigate to="/coach" replace /> :
-          isShelter ? <Navigate to="/shelter" replace /> :
           <Dashboard />
         } />
         <Route path="/dogs" element={<Dogs />} />
@@ -118,7 +135,7 @@ function ProtectedRoutes() {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/preferences" element={<PreferencesPage />} />
         <Route path="/program" element={<Navigate to="/plan" replace />} />
-        {/* Coach / Educator routes — guarded by role */}
+        {/* Coach / Educator routes */}
         <Route path="/coach" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachDashboard /></CoachGuard></Suspense>} />
         <Route path="/coach/clients" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachClients /></CoachGuard></Suspense>} />
         <Route path="/coach/clients/:clientId" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachClients /></CoachGuard></Suspense>} />
@@ -130,10 +147,6 @@ function ProtectedRoutes() {
         <Route path="/coach/calendar" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachCalendar /></CoachGuard></Suspense>} />
         <Route path="/coach/subscription" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachSubscription /></CoachGuard></Suspense>} />
         <Route path="/admin" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminDashboard /></AdminGuard></Suspense>} />
-        {/* Shelter routes */}
-        <Route path="/shelter" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterDashboard /></ShelterGuard></Suspense>} />
-        <Route path="/shelter/animals" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterAnimals /></ShelterGuard></Suspense>} />
-        <Route path="/shelter/animals/:animalId" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterAnimalDetail /></ShelterGuard></Suspense>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <AIChatBot />
