@@ -6,19 +6,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { ShelterLayout } from "@/components/ShelterLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, PawPrint, Plus, Stethoscope, Eye, Heart } from "lucide-react";
+import { ArrowLeft, PawPrint, Plus, Stethoscope, Eye, User } from "lucide-react";
 import { motion } from "framer-motion";
 
 const statusOptions = ["arrivée", "quarantaine", "soins", "adoptable", "adopté", "décédé", "transféré"];
 const observationTypes = ["médical", "comportement", "général"];
 const speciesEmoji: Record<string, string> = { chien: "🐕", chat: "🐱", reptile: "🦎", oiseau: "🐦", NAC: "🐹", autre: "🐾" };
-
 const statusColors: Record<string, string> = {
   "arrivée": "bg-blue-500/20 text-blue-400",
   "quarantaine": "bg-amber-500/20 text-amber-400",
@@ -36,18 +33,12 @@ export default function ShelterAnimalDetail() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const [newObs, setNewObs] = useState({ type: "général", content: "" });
-  const [showStatusEdit, setShowStatusEdit] = useState(false);
-  const [newStatus, setNewStatus] = useState("");
+  const [newObs, setNewObs] = useState({ type: "général", content: "", employeeId: "" });
 
   const { data: animal, isLoading } = useQuery({
     queryKey: ["shelter-animal", animalId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("shelter_animals" as any)
-        .select("*")
-        .eq("id", animalId!)
-        .single();
+      const { data } = await supabase.from("shelter_animals" as any).select("*").eq("id", animalId!).single();
       return data as any;
     },
     enabled: !!animalId,
@@ -66,22 +57,50 @@ export default function ShelterAnimalDetail() {
     enabled: !!animalId,
   });
 
+  const { data: employees = [] } = useQuery({
+    queryKey: ["shelter-employees-for-obs", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("shelter_employees" as any)
+        .select("id, name, role")
+        .eq("shelter_user_id", user!.id)
+        .eq("is_active", true)
+        .order("name");
+      return (data as any[]) || [];
+    },
+    enabled: !!user,
+  });
+
   const addObservation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
-        .from("shelter_observations" as any)
-        .insert({
-          animal_id: animalId,
-          author_id: user!.id,
-          observation_type: newObs.type,
-          content: newObs.content,
-        } as any);
+      const selectedEmployee = employees.find((e: any) => e.id === newObs.employeeId);
+      const { error } = await supabase.from("shelter_observations" as any).insert({
+        animal_id: animalId,
+        author_id: user!.id,
+        observation_type: newObs.type,
+        content: newObs.content,
+        employee_id: newObs.employeeId || null,
+        employee_name: selectedEmployee?.name || "",
+      } as any);
       if (error) throw error;
+
+      // Log activity
+      if (selectedEmployee) {
+        await supabase.from("shelter_activity_log" as any).insert({
+          shelter_user_id: user!.id,
+          employee_id: selectedEmployee.id,
+          animal_id: animalId,
+          action_type: "observation",
+          description: `Observation (${newObs.type}) : ${newObs.content.substring(0, 100)}`,
+          employee_name: selectedEmployee.name,
+          employee_role: selectedEmployee.role,
+        } as any);
+      }
     },
     onSuccess: () => {
       toast({ title: "Observation ajoutée ✅" });
       queryClient.invalidateQueries({ queryKey: ["shelter-observations", animalId] });
-      setNewObs({ type: "général", content: "" });
+      setNewObs({ type: "général", content: "", employeeId: newObs.employeeId });
     },
     onError: (err: any) => toast({ title: "Erreur", description: err.message, variant: "destructive" }),
   });
@@ -93,17 +112,23 @@ export default function ShelterAnimalDetail() {
         update.departure_date = new Date().toISOString().split("T")[0];
         update.departure_reason = status;
       }
-      const { error } = await supabase
-        .from("shelter_animals" as any)
-        .update(update)
-        .eq("id", animalId!);
+      const { error } = await supabase.from("shelter_animals" as any).update(update).eq("id", animalId!);
       if (error) throw error;
+
+      // Log status change
+      await supabase.from("shelter_activity_log" as any).insert({
+        shelter_user_id: user!.id,
+        animal_id: animalId,
+        action_type: "status_change",
+        description: `Statut changé vers "${status}" pour ${animal?.name}`,
+        employee_name: "Admin refuge",
+        employee_role: "admin",
+      } as any);
     },
     onSuccess: () => {
       toast({ title: "Statut mis à jour ✅" });
       queryClient.invalidateQueries({ queryKey: ["shelter-animal", animalId] });
       queryClient.invalidateQueries({ queryKey: ["shelter-animals"] });
-      setShowStatusEdit(false);
     },
     onError: (err: any) => toast({ title: "Erreur", description: err.message, variant: "destructive" }),
   });
@@ -148,19 +173,10 @@ export default function ShelterAnimalDetail() {
         {/* Status change */}
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-semibold text-foreground">Changer le statut</p>
-            </div>
+            <p className="text-sm font-semibold text-foreground mb-2">Changer le statut</p>
             <div className="flex flex-wrap gap-1.5">
               {statusOptions.map(s => (
-                <Button
-                  key={s}
-                  size="sm"
-                  variant={animal.status === s ? "default" : "outline"}
-                  className="text-xs h-7"
-                  disabled={animal.status === s}
-                  onClick={() => updateStatus.mutate(s)}
-                >
+                <Button key={s} size="sm" variant={animal.status === s ? "default" : "outline"} className="text-xs h-7" disabled={animal.status === s} onClick={() => updateStatus.mutate(s)}>
                   {s}
                 </Button>
               ))}
@@ -172,20 +188,16 @@ export default function ShelterAnimalDetail() {
         {(animal.health_notes || animal.behavior_notes) && (
           <div className="grid grid-cols-1 gap-2">
             {animal.health_notes && (
-              <Card>
-                <CardContent className="p-3">
-                  <p className="text-xs font-semibold text-foreground flex items-center gap-1 mb-1"><Stethoscope className="h-3 w-3" /> Santé</p>
-                  <p className="text-xs text-muted-foreground">{animal.health_notes}</p>
-                </CardContent>
-              </Card>
+              <Card><CardContent className="p-3">
+                <p className="text-xs font-semibold text-foreground flex items-center gap-1 mb-1"><Stethoscope className="h-3 w-3" /> Santé</p>
+                <p className="text-xs text-muted-foreground">{animal.health_notes}</p>
+              </CardContent></Card>
             )}
             {animal.behavior_notes && (
-              <Card>
-                <CardContent className="p-3">
-                  <p className="text-xs font-semibold text-foreground flex items-center gap-1 mb-1"><Eye className="h-3 w-3" /> Comportement</p>
-                  <p className="text-xs text-muted-foreground">{animal.behavior_notes}</p>
-                </CardContent>
-              </Card>
+              <Card><CardContent className="p-3">
+                <p className="text-xs font-semibold text-foreground flex items-center gap-1 mb-1"><Eye className="h-3 w-3" /> Comportement</p>
+                <p className="text-xs text-muted-foreground">{animal.behavior_notes}</p>
+              </CardContent></Card>
             )}
           </div>
         )}
@@ -196,34 +208,31 @@ export default function ShelterAnimalDetail() {
             <CardTitle className="text-base">Observations ({observations.length})</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {/* Add observation form */}
             <div className="p-3 rounded-lg bg-secondary/30 space-y-2">
               <div className="flex gap-2">
                 <Select value={newObs.type} onValueChange={v => setNewObs(o => ({ ...o, type: v }))}>
-                  <SelectTrigger className="w-32 text-xs h-8"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-28 text-xs h-8"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {observationTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                   </SelectContent>
                 </Select>
+                {employees.length > 0 && (
+                  <Select value={newObs.employeeId} onValueChange={v => setNewObs(o => ({ ...o, employeeId: v }))}>
+                    <SelectTrigger className="flex-1 text-xs h-8">
+                      <SelectValue placeholder="Qui observe ?" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {employees.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
-              <Textarea
-                value={newObs.content}
-                onChange={e => setNewObs(o => ({ ...o, content: e.target.value }))}
-                placeholder="Nouvelle observation..."
-                rows={2}
-                className="text-xs"
-              />
-              <Button
-                size="sm"
-                className="w-full gap-1"
-                disabled={!newObs.content || addObservation.isPending}
-                onClick={() => addObservation.mutate()}
-              >
+              <Textarea value={newObs.content} onChange={e => setNewObs(o => ({ ...o, content: e.target.value }))} placeholder="Nouvelle observation..." rows={2} className="text-xs" />
+              <Button size="sm" className="w-full gap-1" disabled={!newObs.content || addObservation.isPending} onClick={() => addObservation.mutate()}>
                 <Plus className="h-3 w-3" /> Ajouter
               </Button>
             </div>
 
-            {/* Observation list */}
             {observations.length === 0 ? (
               <p className="text-xs text-muted-foreground text-center py-2">Aucune observation</p>
             ) : (
@@ -235,6 +244,11 @@ export default function ShelterAnimalDetail() {
                       <div className="flex items-center gap-1.5">
                         <Icon className="h-3 w-3 text-primary" />
                         <span className="text-[10px] font-medium text-primary uppercase">{obs.observation_type}</span>
+                        {obs.employee_name && (
+                          <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                            <User className="h-2.5 w-2.5" /> {obs.employee_name}
+                          </span>
+                        )}
                       </div>
                       <span className="text-[10px] text-muted-foreground">{new Date(obs.observation_date).toLocaleDateString("fr-FR")}</span>
                     </div>

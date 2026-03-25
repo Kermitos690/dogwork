@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ShelterLayout } from "@/components/ShelterLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Settings, Building2, Users, LogOut, MessageSquare } from "lucide-react";
+import { Settings, Building2, Users, LogOut, MessageSquare, ClipboardList } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function ShelterSettings() {
@@ -44,6 +44,16 @@ export default function ShelterSettings() {
             <div>
               <p className="text-sm font-medium text-foreground">Messages</p>
               <p className="text-xs text-muted-foreground">Contacter l'administrateur</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="cursor-pointer card-press" onClick={() => navigate("/shelter/activity")}>
+          <CardContent className="p-4 flex items-center gap-3">
+            <ClipboardList className="h-5 w-5 text-primary" />
+            <div>
+              <p className="text-sm font-medium text-foreground">Journal d'activité</p>
+              <p className="text-xs text-muted-foreground">Historique horodaté des actions</p>
             </div>
           </CardContent>
         </Card>
