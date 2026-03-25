@@ -9,8 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, PawPrint, Plus, Stethoscope, Eye, User, Camera, Trash2, ImageIcon } from "lucide-react";
+import { ArrowLeft, PawPrint, Plus, Stethoscope, Eye, User, Camera, Trash2, ImageIcon, Heart } from "lucide-react";
 import { motion } from "framer-motion";
 
 const statusOptions = ["arrivée", "quarantaine", "soins", "adoptable", "adopté", "décédé", "transféré"];
@@ -38,6 +41,8 @@ export default function ShelterAnimalDetail() {
 
   const [newObs, setNewObs] = useState({ type: "général", content: "", employeeId: "" });
   const [uploading, setUploading] = useState(false);
+  const [adoptionDialog, setAdoptionDialog] = useState(false);
+  const [adopterInfo, setAdopterInfo] = useState({ name: "", email: "" });
 
   const { data: animal, isLoading } = useQuery({
     queryKey: ["shelter-animal", animalId],
@@ -75,7 +80,6 @@ export default function ShelterAnimalDetail() {
     enabled: !!user,
   });
 
-  // Photos gallery
   const { data: photos = [], refetch: refetchPhotos } = useQuery({
     queryKey: ["shelter-animal-photos", animalId],
     queryFn: async () => {
@@ -103,13 +107,6 @@ export default function ShelterAnimalDetail() {
         const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true });
         if (error) throw error;
       }
-
-      // Set first photo as main if none set
-      if (!animal?.photo_url && photos.length === 0) {
-        const firstPath = `${user.id}/${animalId}/${Date.now()}`;
-        const url = supabase.storage.from(BUCKET).getPublicUrl(`${user.id}/${animalId}/`).data.publicUrl;
-      }
-
       toast({ title: "Photo(s) ajoutée(s) ✅" });
       refetchPhotos();
     } catch (err: any) {
@@ -168,20 +165,44 @@ export default function ShelterAnimalDetail() {
     onError: (err: any) => toast({ title: "Erreur", description: err.message, variant: "destructive" }),
   });
 
+  const handleStatusChange = (status: string) => {
+    if (status === "adopté") {
+      setAdoptionDialog(true);
+      return;
+    }
+    updateStatus.mutate({ status, adopterName: "", adopterEmail: "" });
+  };
+
   const updateStatus = useMutation({
-    mutationFn: async (status: string) => {
+    mutationFn: async ({ status, adopterName, adopterEmail }: { status: string; adopterName: string; adopterEmail: string }) => {
       const update: any = { status };
       if (["adopté", "décédé", "transféré"].includes(status)) {
         update.departure_date = new Date().toISOString().split("T")[0];
         update.departure_reason = status;
       }
+      if (status === "adopté") {
+        update.adopter_name = adopterName;
+        update.adopter_email = adopterEmail;
+      }
       const { error } = await supabase.from("shelter_animals" as any).update(update).eq("id", animalId!);
       if (error) throw error;
+
+      // Create initial adoption update record
+      if (status === "adopté") {
+        await supabase.from("adoption_updates" as any).insert({
+          animal_id: animalId,
+          shelter_user_id: user!.id,
+          adopter_name: adopterName,
+          adopter_email: adopterEmail,
+          message: `${animal?.name} a été adopté par ${adopterName || "un adoptant"}.`,
+        } as any);
+      }
+
       await supabase.from("shelter_activity_log" as any).insert({
         shelter_user_id: user!.id,
         animal_id: animalId,
         action_type: "status_change",
-        description: `Statut changé vers "${status}" pour ${animal?.name}`,
+        description: `Statut changé vers "${status}" pour ${animal?.name}${status === "adopté" && adopterName ? ` — Adoptant : ${adopterName}` : ""}`,
         employee_name: "Admin refuge",
         employee_role: "admin",
       } as any);
@@ -190,6 +211,8 @@ export default function ShelterAnimalDetail() {
       toast({ title: "Statut mis à jour ✅" });
       queryClient.invalidateQueries({ queryKey: ["shelter-animal", animalId] });
       queryClient.invalidateQueries({ queryKey: ["shelter-animals"] });
+      setAdoptionDialog(false);
+      setAdopterInfo({ name: "", email: "" });
     },
     onError: (err: any) => toast({ title: "Erreur", description: err.message, variant: "destructive" }),
   });
@@ -270,13 +293,28 @@ export default function ShelterAnimalDetail() {
           </CardContent>
         </Card>
 
+        {/* Adopter info (if adopted) */}
+        {animal.status === "adopté" && (animal.adopter_name || animal.adopter_email) && (
+          <Card className="border-primary/30">
+            <CardContent className="p-4">
+              <p className="text-sm font-semibold text-foreground flex items-center gap-2 mb-2">
+                <Heart className="h-4 w-4 text-primary" /> Adoptant
+              </p>
+              <div className="text-xs space-y-1">
+                {animal.adopter_name && <p><span className="text-muted-foreground">Nom :</span> <span className="text-foreground font-medium">{animal.adopter_name}</span></p>}
+                {animal.adopter_email && <p><span className="text-muted-foreground">Email :</span> <span className="text-foreground font-medium">{animal.adopter_email}</span></p>}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Status change */}
         <Card>
           <CardContent className="p-4">
             <p className="text-sm font-semibold text-foreground mb-2">Changer le statut</p>
             <div className="flex flex-wrap gap-1.5">
               {statusOptions.map(s => (
-                <Button key={s} size="sm" variant={animal.status === s ? "default" : "outline"} className="text-xs h-7" disabled={animal.status === s} onClick={() => updateStatus.mutate(s)}>
+                <Button key={s} size="sm" variant={animal.status === s ? "default" : "outline"} className="text-xs h-7" disabled={animal.status === s} onClick={() => handleStatusChange(s)}>
                   {s}
                 </Button>
               ))}
@@ -360,6 +398,40 @@ export default function ShelterAnimalDetail() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Adoption dialog */}
+      <Dialog open={adoptionDialog} onOpenChange={setAdoptionDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Heart className="h-5 w-5 text-primary" /> Confirmer l'adoption
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Enregistrez les informations de l'adoptant pour pouvoir recevoir des nouvelles de {animal?.name}.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="adopter-name" className="text-xs">Nom de l'adoptant</Label>
+              <Input id="adopter-name" value={adopterInfo.name} onChange={e => setAdopterInfo(p => ({ ...p, name: e.target.value }))} placeholder="Nom complet" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="adopter-email" className="text-xs">Email de l'adoptant</Label>
+              <Input id="adopter-email" type="email" value={adopterInfo.email} onChange={e => setAdopterInfo(p => ({ ...p, email: e.target.value }))} placeholder="email@exemple.com" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAdoptionDialog(false)}>Annuler</Button>
+            <Button
+              onClick={() => updateStatus.mutate({ status: "adopté", adopterName: adopterInfo.name, adopterEmail: adopterInfo.email })}
+              disabled={updateStatus.isPending}
+              className="gap-1"
+            >
+              <Heart className="h-4 w-4" /> Confirmer l'adoption
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </ShelterLayout>
   );
 }
