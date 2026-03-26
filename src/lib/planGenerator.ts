@@ -75,157 +75,197 @@ export interface AdaptiveSignals {
   daysCompleted: number;
 }
 
-// ===== AXIS → REAL EXERCISE SLUGS MAPPING =====
-// Maps each training axis to real exercise slugs from the database
-// Each week has a LARGE pool to ensure variety across days
-const AXIS_EXERCISE_SLUGS: Record<string, string[][]> = {
-  securite: [
-    ["stop-urgence", "demi-tour", "regarde-moi", "distance-confort", "u-turn", "arret-spontane"],
-    ["stop-urgence", "u-turn", "regarde-moi", "distance-confort", "zone-tampon", "demi-tour", "passage-en-arc"],
-    ["stop-urgence", "u-turn", "zone-tampon", "pas-bouger", "passage-en-arc", "distance-confort", "gestion-peur"],
-    ["stop-urgence", "u-turn", "zone-tampon", "passage-en-arc", "pas-bouger", "gerer-bruit-soudain", "calme-exterieur"],
-  ],
-  focus: [
-    ["regarde-moi", "reponse-au-nom", "touche-main", "capturing-calme", "assis-base", "zen-game"],
-    ["regarde-moi", "reponse-au-nom", "touche-main", "capturing-calme", "tapis-calme", "attente-recompense", "zen-bowl"],
-    ["regarde-moi", "focus-pres-stimulus", "touche-main", "engage-disengage", "assis-automatique", "attente-passive", "calme-pendant-activites"],
-    ["focus-pres-stimulus", "engage-disengage", "regarde-moi", "lat-look-at-that", "pattern-games", "calme-exterieur", "assis-longue-duree"],
-  ],
-  reactivite_chiens: [
-    ["distance-confort", "regarde-moi", "u-turn", "station-observation", "marche-sniffari", "auto-apaisement"],
-    ["counter-conditioning", "engage-disengage", "u-turn", "zone-tampon", "choix-direction", "compteur-comportemental", "desens-sons-enregistres"],
-    ["lat-look-at-that", "marche-parallele", "bat-training", "passage-en-arc", "pattern-games", "desens-sac-poubelle"],
-    ["bat-training", "marche-parallele", "focus-pres-stimulus", "pattern-games", "calme-exterieur", "gestion-fenetre", "desens-cage-transport"],
-  ],
-  reactivite_humains: [
-    ["distance-confort", "regarde-moi", "u-turn", "station-observation", "auto-apaisement", "desens-chapeau"],
-    ["counter-conditioning", "engage-disengage", "croisement-pieton", "zone-tampon", "desens-parapluie", "choix-direction"],
-    ["lat-look-at-that", "rencontre-humains", "passage-en-arc", "pattern-games", "desens-manipulations-pattes", "personnes-agees"],
-    ["bat-training", "manipulations-douces", "focus-pres-stimulus", "gerer-visiteurs", "calme-exterieur", "noms-personnes"],
-  ],
-  marche: [
-    ["marche-sans-tirer", "demi-tour", "arret-spontane", "mettre-harnais", "premiere-laisse", "passer-une-porte"],
-    ["marche-sans-tirer", "changement-rythme", "ignore-nourriture-sol", "marche-laisse-longue", "marche-sniffari", "contournement-obstacles"],
-    ["marche-relaxation", "contournement-obstacles", "attente-au-pied", "marche-foret", "marche-laisse-longue", "monter-descendre-escaliers"],
-    ["marche-en-ville", "marche-foret", "marche-relaxation", "calme-exterieur", "marche-laisse-longue", "attendre-en-voiture"],
-  ],
-  accueil: [
-    ["assis-base", "assis-automatique", "regarde-moi", "couche-base", "touche-main", "calme-chiot"],
-    ["assis-automatique", "gerer-visiteurs", "reste-assis", "renoncement-friandise", "calme-pendant-activites", "frustration-porte"],
-    ["gerer-visiteurs", "joie-moderee", "reste-assis", "calm-apres-jeu", "excitation-controlée", "assis-longue-duree"],
-    ["gerer-visiteurs", "calme-pendant-activites", "assis-automatique", "reste-couche", "enchainement-positions", "gestion-peur"],
-  ],
-  solitude: [
-    ["solitude-10s", "solitude-1min", "tapis-calme", "detachement-piece", "kong-occupe", "barriere-bebe"],
-    ["solitude-5min", "porte-fermee", "detachement-piece", "occupation-seul", "camera-monitoring", "tapis-lickimat"],
-    ["solitude-15min", "ritual-depart", "occupation-seul", "ignorer-depart", "solitude-jardin", "calme-fin-journee"],
-    ["solitude-30min", "ignorer-depart", "ritual-retour", "solitude-1h", "solitude-jardin", "camera-monitoring"],
-  ],
-  aboiements: [
-    ["regarde-moi", "capturing-calme", "reponse-au-nom", "zen-game", "tapis-calme", "calme-chiot"],
-    ["jeu-interruptible", "renoncement-friandise", "regarde-moi", "frustration-porte", "attente-recompense", "calme-sur-couverture"],
-    ["gerer-bruit-soudain", "gestion-fenetre", "tapis-calme", "habituation-bruits", "bruits-menagers", "desens-sons-enregistres"],
-    ["aboie-sur-commande", "calme-exterieur", "pattern-games", "protocole-relaxation", "calme-pendant-activites", "resilience-bruits-chiot"],
-  ],
-  autocontrole: [
-    ["tapis-calme", "zen-game", "attente-recompense", "capturing-calme", "zen-bowl", "calme-sur-couverture"],
-    ["frustration-porte", "renoncement-friandise", "jouet-interdit", "attend-gamelle", "attente-passive", "calme-pendant-activites"],
-    ["frustration-barriere", "jeu-interruptible", "calm-apres-jeu", "excitation-controlée", "protocole-relaxation", "donne-objet"],
-    ["excitation-controlée", "transition-energie", "calme-pendant-activites", "gerer-bruit-soudain", "enchainement-positions", "assis-longue-duree"],
-  ],
-  rappel: [
-    ["rappel-base", "reponse-au-nom", "touche-main", "premier-rappel", "rappel-entre-2-personnes", "rappel-progressif-distance"],
-    ["rappel-longe", "rappel-jeu", "rappel-entre-2-personnes", "rappel-position", "rappel-vocal-varie", "rappel-reward-jackpot"],
-    ["rappel-distractions", "rappel-course", "rappel-reward-jackpot", "rappel-cache", "rappel-terrain-varie", "rappel-nuit"],
-    ["rappel-avec-chiens", "rappel-sifflet", "rappel-sans-friandise", "rappel-libre", "rappel-urgence", "rappel-gibier"],
-  ],
-  museliere: [
-    ["desens-museliere", "touche-main", "capturing-calme", "chin-rest", "handling-chiot", "brossage"],
-    ["desens-museliere", "marche-sans-tirer", "regarde-moi", "palpation-corporelle", "nettoyage-yeux", "desens-manipulations-pattes"],
-    ["desens-museliere", "marche-relaxation", "tapis-calme", "desens-oreilles", "desens-dents", "desens-clippers"],
-    ["desens-museliere", "marche-en-ville", "calme-exterieur", "desens-tondeuse", "desens-seche-cheveux", "desens-collier-elisabethain"],
-  ],
-  stop: [
-    ["stop-urgence", "regarde-moi", "pas-bouger", "assis-base", "couche-base", "arret-spontane"],
-    ["stop-urgence", "stop-en-marche", "reste-assis", "reste-couche", "attente-passive", "demi-tour"],
-    ["stop-urgence", "stop-en-marche", "reste-distractions", "assis-longue-duree", "couche-longue-duree", "enchainement-positions"],
-    ["stop-urgence", "stop-en-marche", "couche-a-distance", "pas-bouger", "debout-base", "rappel-urgence"],
-  ],
-  non: [
-    ["laisse-ca", "renoncement-friandise", "regarde-moi", "zen-game", "attente-recompense", "zen-bowl"],
-    ["laisse-ca", "jouet-interdit", "pas-toucher-objet", "frustration-porte", "attend-gamelle", "donne-objet"],
-    ["laisse-ca", "ignore-nourriture-sol", "zen-game", "frustration-barriere", "jeu-interruptible", "calme-pendant-activites"],
-    ["laisse-ca", "jouet-interdit", "resilience-echec", "excitation-controlée", "gestion-peur", "enchainement-positions"],
-  ],
+// ===== AXIS → KEYWORD MAPPING for dynamic DB pool building =====
+// Maps each axis to keywords used to match exercises from DB via priority_axis, tags, target_problems
+const AXIS_KEYWORDS: Record<string, { priority_axis: string[]; tags: string[]; target_problems: string[]; fallback_slugs: string[] }> = {
+  securite: {
+    priority_axis: ["sécurité", "securite", "urgence", "prévention"],
+    tags: ["stop", "urgence", "demi-tour", "distance", "sécurité"],
+    target_problems: ["agressivite", "morsure", "reactivite"],
+    fallback_slugs: ["stop-urgence", "demi-tour", "regarde-moi", "distance-confort", "u-turn", "arret-spontane", "zone-tampon", "passage-en-arc"],
+  },
+  focus: {
+    priority_axis: ["focus", "attention", "fondation", "concentration"],
+    tags: ["focus", "attention", "nom", "calme", "fondation"],
+    target_problems: ["manque_attention", "distraction"],
+    fallback_slugs: ["regarde-moi", "reponse-au-nom", "touche-main", "capturing-calme", "assis-base", "zen-game", "tapis-calme", "attente-recompense"],
+  },
+  reactivite_chiens: {
+    priority_axis: ["réactivité", "reactivite", "désensibilisation", "chiens"],
+    tags: ["réactivité", "chiens", "congénères", "désensibilisation", "counter-conditioning"],
+    target_problems: ["reactivite_chiens", "peur_chiens"],
+    fallback_slugs: ["distance-confort", "regarde-moi", "u-turn", "counter-conditioning", "engage-disengage", "lat-look-at-that", "bat-training", "marche-parallele"],
+  },
+  reactivite_humains: {
+    priority_axis: ["réactivité", "reactivite", "humains", "désensibilisation"],
+    tags: ["réactivité", "humains", "personnes", "désensibilisation"],
+    target_problems: ["reactivite_humains", "peur_inconnus", "peur_humains"],
+    fallback_slugs: ["distance-confort", "regarde-moi", "u-turn", "counter-conditioning", "engage-disengage", "croisement-pieton", "rencontre-humains", "bat-training"],
+  },
+  marche: {
+    priority_axis: ["marche", "laisse", "promenade"],
+    tags: ["marche", "laisse", "traction", "promenade"],
+    target_problems: ["tire_en_laisse", "marche_difficile"],
+    fallback_slugs: ["marche-sans-tirer", "demi-tour", "arret-spontane", "changement-rythme", "marche-relaxation", "marche-en-ville", "contournement-obstacles", "marche-laisse-longue"],
+  },
+  accueil: {
+    priority_axis: ["accueil", "visiteurs", "saut"],
+    tags: ["accueil", "saut", "visiteurs", "assis"],
+    target_problems: ["saute_sur_gens", "excitation_accueil"],
+    fallback_slugs: ["assis-base", "assis-automatique", "gerer-visiteurs", "reste-assis", "joie-moderee", "calm-apres-jeu", "frustration-porte"],
+  },
+  solitude: {
+    priority_axis: ["solitude", "séparation", "autonomie"],
+    tags: ["solitude", "séparation", "détachement", "autonomie"],
+    target_problems: ["anxiete_separation", "destruction_seul"],
+    fallback_slugs: ["solitude-10s", "solitude-1min", "solitude-5min", "tapis-calme", "detachement-piece", "porte-fermee", "ritual-depart", "occupation-seul"],
+  },
+  aboiements: {
+    priority_axis: ["aboiements", "vocalises"],
+    tags: ["aboiements", "calme", "bruit", "vocalises"],
+    target_problems: ["aboiements", "aboiements_excessifs"],
+    fallback_slugs: ["regarde-moi", "capturing-calme", "reponse-au-nom", "zen-game", "tapis-calme", "gerer-bruit-soudain", "gestion-fenetre", "aboie-sur-commande"],
+  },
+  autocontrole: {
+    priority_axis: ["autocontrôle", "auto-controle", "calme", "frustration"],
+    tags: ["autocontrôle", "frustration", "calme", "zen", "patience"],
+    target_problems: ["frustration", "hyperactivite", "excitation"],
+    fallback_slugs: ["tapis-calme", "zen-game", "attente-recompense", "capturing-calme", "frustration-porte", "renoncement-friandise", "jeu-interruptible", "excitation-controlée"],
+  },
+  rappel: {
+    priority_axis: ["rappel", "retour"],
+    tags: ["rappel", "retour", "reviens"],
+    target_problems: ["rappel_faible", "fugue"],
+    fallback_slugs: ["rappel-base", "reponse-au-nom", "touche-main", "rappel-longe", "rappel-jeu", "rappel-distractions", "rappel-course", "rappel-sifflet"],
+  },
+  museliere: {
+    priority_axis: ["muselière", "museliere"],
+    tags: ["muselière", "désensibilisation", "handling"],
+    target_problems: ["difficulte_museliere"],
+    fallback_slugs: ["desens-museliere", "touche-main", "capturing-calme", "chin-rest", "marche-sans-tirer", "marche-relaxation", "tapis-calme"],
+  },
+  stop: {
+    priority_axis: ["stop", "arrêt", "immobilité"],
+    tags: ["stop", "arrêt", "pas-bouger", "immobilité"],
+    target_problems: ["ignore_stop"],
+    fallback_slugs: ["stop-urgence", "regarde-moi", "pas-bouger", "assis-base", "stop-en-marche", "reste-assis", "reste-couche", "couche-a-distance"],
+  },
+  non: {
+    priority_axis: ["non", "renoncement", "laisse"],
+    tags: ["non", "renoncement", "laisse-ça", "interdit"],
+    target_problems: ["ignore_non", "vol_nourriture"],
+    fallback_slugs: ["laisse-ca", "renoncement-friandise", "regarde-moi", "zen-game", "jouet-interdit", "pas-toucher-objet", "ignore-nourriture-sol"],
+  },
 };
 
-// Exercises lookup: DB exercises take priority, fallback to local library
+// ===== DB Exercises cache =====
 let _dbExercises: Record<string, any> = {};
+let _dbExercisesList: any[] = [];
 
-export function setDbExercises(exercises: { slug: string; name: string; description?: string | null; objective?: string | null; summary?: string | null; steps?: any; tutorial_steps?: any; success_criteria?: string | null; contraindications?: any; id: string; dedication?: string | null; short_instruction?: string | null }[]) {
+export function setDbExercises(exercises: { slug: string; name: string; description?: string | null; objective?: string | null; summary?: string | null; steps?: any; tutorial_steps?: any; success_criteria?: string | null; contraindications?: any; id: string; dedication?: string | null; short_instruction?: string | null; priority_axis?: string[] | null; tags?: string[] | null; target_problems?: string[] | null; level?: string | null; difficulty?: number | null; compatible_reactivity?: boolean | null; compatible_senior?: boolean | null; compatible_puppy?: boolean | null; compatible_muzzle?: boolean | null; exercise_type?: string | null }[]) {
   _dbExercises = {};
+  _dbExercisesList = exercises;
   exercises.forEach(e => { _dbExercises[e.slug] = e; });
 }
 
 function findBySlug(slug: string): LibraryExercise | undefined {
-  // Try DB exercises first
   const dbEx = _dbExercises[slug];
   if (dbEx) {
-    // Convert DB exercise to LibraryExercise-compatible shape
     const steps = Array.isArray(dbEx.steps) ? dbEx.steps.map((s: any) => typeof s === 'string' ? s : s.description || s.text || String(s)) : [];
     const tutorialSteps = Array.isArray(dbEx.tutorial_steps) ? dbEx.tutorial_steps.map((ts: any) => ({
-      title: ts.title || '',
-      description: ts.description || '',
-      tip: ts.tip || '',
+      title: ts.title || '', description: ts.description || '', tip: ts.tip || '',
     })) : [];
     const contraindications = Array.isArray(dbEx.contraindications) ? dbEx.contraindications.map((c: any) => typeof c === 'string' ? c : c.text || String(c)) : [];
 
     return {
-      id: dbEx.id,
-      slug: dbEx.slug,
-      name: dbEx.name,
-      shortTitle: dbEx.name,
-      category: '',
-      categoryIcon: '',
-      objective: dbEx.objective || '',
-      dedication: dbEx.dedication || '',
-      targetProblems: [],
-      secondaryBenefits: [],
-      prerequisites: [],
-      level: 'débutant',
-      exerciseType: 'fondation',
-      duration: '5 min',
-      repetitions: '3-5 fois',
-      frequency: '1x/jour',
-      material: [],
-      environment: 'tous',
-      intensityLevel: 1,
-      cognitiveLoad: 1,
-      physicalLoad: 1,
+      id: dbEx.id, slug: dbEx.slug, name: dbEx.name, shortTitle: dbEx.name,
+      category: '', categoryIcon: '', objective: dbEx.objective || '',
+      dedication: dbEx.dedication || '', targetProblems: dbEx.target_problems || [],
+      secondaryBenefits: [], prerequisites: [], level: dbEx.level || 'débutant',
+      exerciseType: dbEx.exercise_type || 'fondation', duration: '5 min',
+      repetitions: '3-5 fois', frequency: '1x/jour', material: [],
+      environment: 'tous', intensityLevel: 1, cognitiveLoad: 1, physicalLoad: 1,
       summary: dbEx.summary || dbEx.description || dbEx.objective || '',
-      shortInstruction: dbEx.short_instruction || '',
-      steps,
-      tutorialSteps,
-      mistakes: [],
-      vigilance: '',
-      successCriteria: dbEx.success_criteria || '',
-      stopCriteria: '',
-      adaptations: [],
-      progressionNext: '',
-      regressionSimplified: '',
-      ageRecommendation: 'tous',
-      suitableProfiles: [],
-      contraindications,
-      precautions: [],
-      healthPrecautions: [],
-      compatibleReactivity: false,
-      compatibleSenior: false,
-      compatiblePuppy: false,
-      compatibleMuzzle: false,
+      shortInstruction: dbEx.short_instruction || '', steps, tutorialSteps,
+      mistakes: [], vigilance: '', successCriteria: dbEx.success_criteria || '',
+      stopCriteria: '', adaptations: [], progressionNext: '',
+      regressionSimplified: '', ageRecommendation: 'tous', suitableProfiles: [],
+      contraindications, precautions: [], healthPrecautions: [],
+      compatibleReactivity: dbEx.compatible_reactivity || false,
+      compatibleSenior: dbEx.compatible_senior || false,
+      compatiblePuppy: dbEx.compatible_puppy || false,
+      compatibleMuzzle: dbEx.compatible_muzzle || false,
     } as LibraryExercise;
   }
-  // Fallback to local library
   return EXERCISE_LIBRARY.find(e => e.slug === slug);
+}
+
+// ===== Dynamic pool builder =====
+// Builds a pool of exercise slugs from DB for a given axis, sorted by relevance
+function buildDynamicPool(axisKey: string, week: number, mods: ReturnType<typeof getProfileModifiers>): string[] {
+  const config = AXIS_KEYWORDS[axisKey];
+  if (!config) return [];
+
+  // If no DB exercises loaded, return fallbacks
+  if (_dbExercisesList.length === 0) return config.fallback_slugs;
+
+  // Score each DB exercise for this axis
+  const scored: { slug: string; score: number }[] = [];
+
+  for (const ex of _dbExercisesList) {
+    let score = 0;
+    const pAxis = ex.priority_axis || [];
+    const tags = ex.tags || [];
+    const tProblems = ex.target_problems || [];
+
+    // Match priority_axis (strongest signal)
+    for (const kw of config.priority_axis) {
+      if (pAxis.some((a: string) => a.toLowerCase().includes(kw))) score += 10;
+    }
+
+    // Match tags
+    for (const kw of config.tags) {
+      if (tags.some((t: string) => t.toLowerCase().includes(kw))) score += 3;
+    }
+
+    // Match target_problems
+    for (const kw of config.target_problems) {
+      if (tProblems.some((p: string) => p.toLowerCase().includes(kw))) score += 5;
+    }
+
+    // Fallback slug bonus (known good exercises)
+    if (config.fallback_slugs.includes(ex.slug)) score += 2;
+
+    // Difficulty progression by week
+    const diff = ex.difficulty || 1;
+    if (week <= 1 && diff <= 2) score += 2;
+    else if (week === 2 && diff <= 3) score += 1;
+    else if (week >= 3 && diff >= 2) score += 1;
+
+    // Profile compatibility bonuses
+    if (mods.isPuppy && ex.compatible_puppy) score += 3;
+    if (mods.isSenior && ex.compatible_senior) score += 3;
+    if (mods.hasPain && ex.compatible_senior) score += 2;
+
+    // Professional exercises penalty for regular users
+    if (ex.is_professional) score -= 5;
+
+    if (score > 0) scored.push({ slug: ex.slug, score });
+  }
+
+  // Sort by score descending, take top 20 for variety
+  scored.sort((a, b) => b.score - a.score);
+  const pool = scored.slice(0, 20).map(s => s.slug);
+
+  // If pool too small, pad with fallbacks
+  if (pool.length < 6) {
+    for (const slug of config.fallback_slugs) {
+      if (!pool.includes(slug) && _dbExercises[slug]) pool.push(slug);
+      if (pool.length >= 10) break;
+    }
+  }
+
+  return pool;
 }
 
 // ===== LEVEL 1 — SECURITY =====
@@ -412,11 +452,16 @@ function determineDuration(profile: DogProfile): { frequency: string; avgDuratio
   return { frequency: "1 à 2 sessions par jour", avgDuration: "10 à 20 min" };
 }
 
-// ===== EXERCISE BUILDER — uses real slugs =====
-function rotateArray<T>(items: T[], offset: number): T[] {
-  if (!items.length) return items;
-  const normalized = ((offset % items.length) + items.length) % items.length;
-  return [...items.slice(normalized), ...items.slice(0, normalized)];
+// ===== EXERCISE BUILDER — dynamic pools with anti-repetition =====
+function seededShuffle<T>(arr: T[], seed: number): T[] {
+  const result = [...arr];
+  let s = seed;
+  for (let i = result.length - 1; i > 0; i--) {
+    s = (s * 1103515245 + 12345) & 0x7fffffff;
+    const j = s % (i + 1);
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
 }
 
 function buildExercisesForAxis(
@@ -425,37 +470,26 @@ function buildExercisesForAxis(
   mods: ReturnType<typeof getProfileModifiers>,
   variationSeed = 0,
   avoidSlugs: Set<string> = new Set(),
+  cooldownSlugs: Set<string> = new Set(),
 ): PlanExercise[] {
   const exercises: PlanExercise[] = [];
   const baseDuration = mods.isSenior || mods.hasPain ? 60 : mods.isPuppy ? 45 : 90;
-  const weekIdx = Math.min(week - 1, 3);
 
-  const axisExercises = AXIS_EXERCISE_SLUGS[axisKey];
-  if (!axisExercises) return exercises;
+  // Build dynamic pool from DB exercises
+  const pool = buildDynamicPool(axisKey, week, mods);
+  if (!pool.length) return exercises;
 
-  const slugsForWeek = axisExercises[weekIdx] || axisExercises[0];
-  const uniqueSlugs = Array.from(new Set(slugsForWeek));
-  if (!uniqueSlugs.length) return exercises;
+  // Shuffle with seed for deterministic variety
+  const shuffled = seededShuffle(pool, variationSeed);
 
-  // Use a seeded shuffle for true variety across days
-  const shuffled = [...uniqueSlugs];
-  let seed = variationSeed;
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-    const j = seed % (i + 1);
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
+  // Priority: fresh (not in cooldown) > cooldown but not yesterday > yesterday's exercises
+  const fresh = shuffled.filter(s => !avoidSlugs.has(s) && !cooldownSlugs.has(s));
+  const cooled = shuffled.filter(s => !avoidSlugs.has(s) && cooldownSlugs.has(s));
+  const stale = shuffled.filter(s => avoidSlugs.has(s));
+  const prioritized = [...fresh, ...cooled, ...stale];
 
-  // Strongly prioritize exercises NOT used on the previous day
-  const fresh = shuffled.filter((slug) => !avoidSlugs.has(slug));
-  const stale = shuffled.filter((slug) => avoidSlugs.has(slug));
-  const prioritizedSlugs = [...fresh, ...stale];
-
-  const targetCount = Math.min(
-    prioritizedSlugs.length,
-    Math.min(3, Math.max(2, uniqueSlugs.length)),
-  );
-  const selectedSlugs = prioritizedSlugs.slice(0, targetCount);
+  const targetCount = Math.min(prioritized.length, 3);
+  const selectedSlugs = prioritized.slice(0, targetCount);
 
   const maxReps = mods.isPuppy ? 8 : mods.isSenior || mods.hasPain ? 10 : 20;
   const weekMultiplier = Math.min(week, 3);
@@ -464,7 +498,6 @@ function buildExercisesForAxis(
     const lib = findBySlug(slug);
     if (!lib) return;
 
-    // Skip physically demanding exercises for painful dogs
     if (mods.hasPain && lib.contraindications.some(c => c.toLowerCase().includes("douleur") || c.toLowerCase().includes("articulaire"))) {
       return;
     }
@@ -472,24 +505,17 @@ function buildExercisesForAxis(
     const reps = Math.min(8 + weekMultiplier * 3 + (variationSeed % 2), maxReps);
     const stepsToShow = Math.min(2 + week, lib.steps.length);
 
-    // Build clear step-by-step instructions from the library
     const instructionSteps = lib.steps.slice(0, stepsToShow).map((s, idx) => `${idx + 1}. ${s}`).join("\n");
-
-    // Build tutorial steps for rich display
     const tutorialSteps = lib.tutorialSteps.slice(0, stepsToShow).map(ts => ({
-      title: ts.title,
-      description: ts.description,
-      tip: ts.tip,
+      title: ts.title, description: ts.description, tip: ts.tip,
     }));
 
     exercises.push({
       id: `plan-${axisKey}-w${week}-v${variationSeed}-${i}`,
-      name: lib.name,
-      slug: lib.slug,
+      name: lib.name, slug: lib.slug,
       description: lib.summary || lib.objective || lib.dedication || "",
       instructions: instructionSteps,
-      repetitions: reps,
-      timerSeconds: baseDuration,
+      repetitions: reps, timerSeconds: baseDuration,
       tutorialSteps,
       validationProtocol: lib.successCriteria || "",
       successCriteria: lib.successCriteria || "",
@@ -524,20 +550,31 @@ function generateContextualTips(profile: DogProfile, day: PlanDay): string[] {
   return tips.slice(0, 3);
 }
 
-// ===== DAY GENERATION =====
+// ===== DAY GENERATION with sliding cooldown =====
 function generateDays(axes: PlanAxis[], profile: DogProfile): PlanDay[] {
   const mods = getProfileModifiers(profile);
   const days: PlanDay[] = [];
   const foundationWeeks = mods.isRecentAdoption ? 2 : 1;
-  const axisUsageByWeek: Record<number, Record<string, number>> = {};
-  let previousDaySlugs = new Set<string>();
+
+  // Sliding window cooldown: tracks slugs used in the last N days
+  const COOLDOWN_WINDOW = 3;
+  const recentSlugsByDay: string[][] = [];
 
   for (let week = 1; week <= 4; week++) {
-    axisUsageByWeek[week] = {};
-
     for (let dayInWeek = 1; dayInWeek <= 7; dayInWeek++) {
       const dayNumber = (week - 1) * 7 + dayInWeek;
       const isReview = dayInWeek === 7;
+
+      // Build cooldown set from recent days
+      const previousDaySlugs = recentSlugsByDay.length > 0
+        ? new Set(recentSlugsByDay[recentSlugsByDay.length - 1])
+        : new Set<string>();
+
+      const cooldownSlugs = new Set<string>();
+      const windowStart = Math.max(0, recentSlugsByDay.length - COOLDOWN_WINDOW);
+      for (let d = windowStart; d < recentSlugsByDay.length; d++) {
+        recentSlugsByDay[d].forEach(s => cooldownSlugs.add(s));
+      }
 
       let mainAxis: PlanAxis;
       if (week <= foundationWeeks && !isReview) {
@@ -549,14 +586,14 @@ function generateDays(axes: PlanAxis[], profile: DogProfile): PlanDay[] {
         mainAxis = axes[axisIndex];
       }
 
-      const axisUsage = axisUsageByWeek[week][mainAxis.key] ?? 0;
-      axisUsageByWeek[week][mainAxis.key] = axisUsage + 1;
-
       const exercises = isReview
         ? axes.slice(0, 3).flatMap((a, idx) =>
-            buildExercisesForAxis(a.key, week, mods, dayNumber + idx, previousDaySlugs).slice(0, 1),
+            buildExercisesForAxis(a.key, week, mods, dayNumber * 31 + idx, previousDaySlugs, cooldownSlugs).slice(0, 1),
           )
-        : buildExercisesForAxis(mainAxis.key, week, mods, dayNumber + axisUsage, previousDaySlugs);
+        : buildExercisesForAxis(mainAxis.key, week, mods, dayNumber * 31, previousDaySlugs, cooldownSlugs);
+
+      // Record used slugs for cooldown
+      recentSlugsByDay.push(exercises.map(e => e.slug));
 
       const duration = mods.isPuppy ? "5 à 8 min"
         : mods.isSenior || mods.hasPain ? "8 à 12 min"
@@ -589,7 +626,6 @@ function generateDays(axes: PlanAxis[], profile: DogProfile): PlanDay[] {
 
       day.contextualTips = generateContextualTips(profile, day);
       days.push(day);
-      previousDaySlugs = new Set(exercises.map((exercise) => exercise.slug));
     }
   }
   return days;
