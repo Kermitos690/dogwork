@@ -224,7 +224,7 @@ export default function ShelterAnimalDetail() {
         if (adopterEmail) {
           try {
             const { data: matchingProfiles } = await supabase
-              .from("profiles")
+              .from("profiles" as any)
               .select("user_id")
               .eq("email", adopterEmail.toLowerCase().trim());
             
