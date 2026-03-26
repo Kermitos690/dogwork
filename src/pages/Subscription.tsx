@@ -75,7 +75,7 @@ export default function Subscription() {
 
       if (error) throw error;
       if (data?.url) {
-        window.location.assign(data.url);
+        window.open(data.url, "_blank");
       }
     } catch (e: any) {
       toast({ title: "Erreur", description: e.message || "Impossible de lancer le paiement.", variant: "destructive" });
