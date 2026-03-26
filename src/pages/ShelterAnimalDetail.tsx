@@ -47,7 +47,7 @@ export default function ShelterAnimalDetail() {
   const { data: animal, isLoading } = useQuery({
     queryKey: ["shelter-animal", animalId],
     queryFn: async () => {
-      const { data } = await supabase.from("shelter_animals" as any).select("*").eq("id", animalId!).single();
+      const { data } = await supabase.from("shelter_animals" as any).select("*").eq("id", animalId!).maybeSingle();
       return data as any;
     },
     enabled: !!animalId,

@@ -33,7 +33,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (user) {
-      supabase.from("profiles").select("display_name").eq("user_id", user.id).single().then(({ data }) => {
+      supabase.from("profiles").select("display_name").eq("user_id", user.id).maybeSingle().then(({ data }) => {
         if (data?.display_name) setDisplayName(data.display_name);
       });
     }

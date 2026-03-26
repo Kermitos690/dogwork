@@ -120,7 +120,7 @@ export default function BehaviorLogPage() {
 
   useEffect(() => {
     if (activeDog) {
-      supabase.from("behavior_logs").select("*").eq("dog_id", activeDog.id).eq("day_id", id).single().then(({ data }) => {
+      supabase.from("behavior_logs").select("*").eq("dog_id", activeDog.id).eq("day_id", id).maybeSingle().then(({ data }) => {
         if (data) {
           setExistingId(data.id);
           setLog({

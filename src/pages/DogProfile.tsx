@@ -78,7 +78,7 @@ export default function DogProfile() {
 
   useEffect(() => {
     if (!isNew && dogId) {
-      supabase.from("dogs").select("*").eq("id", dogId).single().then(({ data }) => {
+      supabase.from("dogs").select("*").eq("id", dogId).maybeSingle().then(({ data }) => {
         if (data) {
           setForm(data);
           if (data.photo_url) setPhotoPreview(data.photo_url);
