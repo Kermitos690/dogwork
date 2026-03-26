@@ -92,6 +92,10 @@ export default function Subscription() {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (error) throw error;
+      if (data?.error === "no_customer") {
+        toast({ title: "Aucun abonnement", description: "Veuillez d'abord souscrire à un plan pour accéder au portail de gestion.", variant: "destructive" });
+        return;
+      }
       if (data?.url) window.open(data.url, "_blank");
     } catch (e: any) {
       toast({ title: "Erreur", description: e.message || "Impossible d'ouvrir le portail.", variant: "destructive" });
