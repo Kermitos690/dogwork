@@ -1,76 +1,135 @@
 
 
-# Plan: Reset PIN employé + Audit complet
+# Plan : Adoptants liés au refuge + Audit production complet
 
-## 1. Reset PIN employé refuge
+## Contexte
 
-**Objectif**: Ajouter un bouton "Réinitialiser PIN" sur chaque carte employé dans `ShelterEmployees.tsx`.
-
-**Implémentation**:
-
-- **Edge function `create-shelter-employee/index.ts`**: Ajouter un mode `action: "reset-pin"` qui accepte `{ action: "reset-pin", employee_id, email }`. Le mode génère un nouveau PIN à 6 chiffres, met à jour le mot de passe Auth via `admin.updateUser`, met à jour `pin_code` dans `shelter_employees`, et renvoie le PIN par email.
-
-- **Frontend `ShelterEmployees.tsx`**: Ajouter un bouton `KeyRound` (icone clé) sur chaque carte employé qui a un `auth_user_id`. Au clic, appel de la edge function avec `action: "reset-pin"`. Toast de confirmation avec le nouveau PIN.
-
-**Fichiers modifiés**: 
-- `supabase/functions/create-shelter-employee/index.ts`
-- `src/pages/ShelterEmployees.tsx`
+L'adoptant est un propriétaire classique (rôle `owner`) mais lié à un refuge après adoption. Aujourd'hui, ce lien n'existe pas en base : l'adoptant ne voit pas le refuge dans ses contacts, et le refuge ne voit pas ses adoptants. La messagerie ne montre que la recherche, sans liste de contacts préexistants.
 
 ---
 
-## 2. Audit complet — Constats et plan d'action
+## Lot 1 — Système adoptant-refuge
 
-### A. Problèmes identifiés
-
-| # | Problème | Sévérité | Statut actuel |
-|---|----------|----------|---------------|
-| 1 | **503 sandbox error** | Bloquant | Infrastructure transitoire, pas un bug code |
-| 2 | **Plans Pro/Expert non branchés** | Majeur | 15 templates Free, 0 Pro, frontend non filtré par tier |
-| 3 | **Messagerie inter-comptes cassée** | Majeur | Task `more_work_needed` |
-| 4 | **Stripe Connect dashboard admin** | Moyen | Task `todo` |
-| 5 | **Employees edge function: role dupliqué** | Mineur | Si employé re-créé, double insert `user_roles` possible (unique constraint) |
-| 6 | **`listUsers()` sans pagination** | Perf | Charge TOUS les users pour trouver un email — ne scale pas |
-| 7 | **`pin_code` stocké en clair** | Sécurité | PIN visible dans `shelter_employees` table |
-| 8 | **Shelter employee ne peut pas UPDATE animals** | Fonctionnel | RLS manque UPDATE/DELETE pour employés sur `shelter_animals` |
-| 9 | **Shelter employee observations INSERT author_id** | Fonctionnel | Policy exige `auth.uid() = author_id` mais `author_id` pourrait être le shelter_user_id |
-| 10 | **coach_profiles expose encore `stripe_account_id`** | Sécurité | Policy SELECT corrigée mais la colonne reste accessible aux clients liés |
-
-### B. Plan d'action par priorité
-
-**Lot 1 — Immédiat (cette session)**
-- Reset PIN employé (décrit ci-dessus)
-
-**Lot 2 — Fonctionnel critique**
-- Fixer la messagerie inter-comptes (déjà tracké)
-- Ajouter RLS UPDATE sur `shelter_animals` pour les employés refuge
-- Corriger `create-shelter-employee` : utiliser `upsert` sur `user_roles` au lieu d'`insert` pour éviter les doublons
-- Remplacer `listUsers()` par `listUsers({ filter: email })` ou lookup par email
-
-**Lot 3 — Templates et abonnements**
-- Générer les 50 templates Pro en base (task existante `60a0fdac`)
-- Brancher le frontend Plan.tsx sur `template_tier` + subscription tier
-- Implémenter le plan Expert IA (task `516e168f`)
-
-**Lot 4 — Sécurité**
-- Hasher le `pin_code` en base (ou ne pas le stocker)
-- Créer une vue restreinte `coach_profiles` sans `stripe_account_id` pour les clients
-- Stripe Connect dashboard admin (task `7efdedc3`)
-
-**Lot 5 — UX/Polish**
-- Confirmation dialog avant suppression employé
-- Page de connexion employé dédiée avec champ PIN
-- Logs d'activité quand un employé fait une action
-
-### C. Fichiers concernés par l'ensemble
+### 1.1 Nouvelle table `adopter_links`
 
 ```text
-supabase/functions/create-shelter-employee/index.ts  — reset PIN + fix upsert role
-src/pages/ShelterEmployees.tsx                       — bouton reset PIN
-src/pages/Plan.tsx                                   — filtrage par tier
-src/pages/Messages.tsx                               — fix messagerie
-src/pages/ShelterMessages.tsx                        — fix messagerie
-+ migrations SQL pour RLS employés UPDATE animals
+adopter_links
+├── id (uuid, PK)
+├── adopter_user_id (uuid, NOT NULL)  ← le owner
+├── shelter_user_id (uuid, NOT NULL)  ← le refuge
+├── animal_id (uuid, NOT NULL)        ← l'animal adopté
+├── animal_name (text)                ← dénormalisé pour affichage
+├── created_at (timestamptz)
 ```
 
-Souhaitez-vous que je commence par le reset PIN, puis que j'enchaîne sur les lots suivants dans l'ordre ?
+**RLS** :
+- Adoptant voit ses propres liens
+- Shelter voit ses adoptants
+- Admin voit tout
+- Personne ne peut INSERT/DELETE sauf admin et shelter
+
+### 1.2 Liaison automatique à l'adoption
+
+Dans `ShelterAnimalDetail.tsx`, quand le statut passe à "adopté" :
+1. On cherche un compte `profiles` dont le `display_name` ou un champ email correspond à `adopter_email`
+2. Si trouvé, on insère un enregistrement `adopter_links`
+3. Si pas trouvé, on stocke quand même l'info dans `adoption_updates` (déjà fait) — le lien sera créé quand l'adoptant s'inscrira
+
+Alternative plus fiable : créer une edge function qui, à l'inscription d'un nouvel owner, vérifie si son email figure dans `shelter_animals.adopter_email` et crée automatiquement le lien.
+
+### 1.3 Messagerie enrichie — Messages.tsx (owners)
+
+Remplacer le simple champ de recherche par une section **"Vos contacts"** affichée en permanence :
+- **Éducateur lié** : via `client_links` (déjà existant)
+- **Refuge d'origine** : via `adopter_links` → affiche le nom du refuge
+- **Admin** : toujours visible (support)
+
+La recherche reste disponible en dessous pour trouver d'autres utilisateurs.
+
+### 1.4 Messagerie enrichie — ShelterMessages.tsx
+
+Ajouter une section **"Contacts"** visible sans recherche :
+- **Admin** : bouton déjà existant → le transformer en carte contact permanente
+- **Coaches liés** : via `shelter_coaches` → liste complète
+- **Adoptants** : via `adopter_links` → liste des adoptants avec nom de l'animal
+
+### 1.5 Tutoriel adoptant (Help.tsx)
+
+Enrichir l'onglet "Adoptant" existant avec :
+- Comment contacter le refuge d'origine
+- Comment envoyer des nouvelles post-adoption
+- Comment accéder au suivi via messagerie
+
+---
+
+## Lot 2 — Audit et finalisation production
+
+### 2.1 Messagerie complète pour tous les rôles
+
+Chaque rôle aura une section "Contacts" visible sans recherche :
+
+| Rôle | Contacts visibles |
+|------|------------------|
+| Owner | Son éducateur, son refuge d'adoption, admin |
+| Coach | Ses clients, ses refuges liés, admin |
+| Shelter | Admin, coaches liés, adoptants |
+| Employee | Limité à son espace (pas de messagerie directe) |
+| Admin | Tous (via recherche) |
+
+### 2.2 Stripe Connect dashboard admin
+
+Finaliser l'edge function `connect-dashboard` (déjà en place) avec :
+- Vue des comptes éducateurs + solde
+- Création de login links
+- Listing des transferts récents
+
+### 2.3 Plan Expert IA
+
+Améliorer la génération pour le tier Expert :
+- Analyse plus fine du profil comportemental
+- Intégration du modèle avancé (Gemini Pro)
+- Sessions adaptatifs basées sur les données du journal
+
+### 2.4 UI admin gestion de données
+
+Ajouter au dashboard admin une section de recherche/suppression :
+- Rechercher un utilisateur, chien, plan par nom/email
+- Boutons supprimer avec confirmation
+- Basé sur les RLS admin déjà en place
+
+### 2.5 Test end-to-end tous les rôles
+
+Parcourir chaque flux :
+- Owner : onboarding → plan → training → journal → messages
+- Adoptant : inscription → lien refuge → messages refuge
+- Coach : dashboard → clients → notes → cours → Stripe Connect
+- Shelter : animaux → adoption → adoptant lié → messages
+- Admin : dashboard → création comptes → trésorerie → suppression
+
+---
+
+## Fichiers impactés
+
+```text
+Migration SQL                         — adopter_links + RLS
+src/pages/ShelterAnimalDetail.tsx     — lien auto adoption
+src/pages/Messages.tsx                — contacts permanents (coach, refuge, admin)
+src/pages/ShelterMessages.tsx         — contacts permanents (admin, coaches, adoptants)
+src/pages/Help.tsx                    — enrichir onglet adoptant
+src/pages/AdminDashboard.tsx          — UI gestion données
+supabase/functions/connect-dashboard  — finaliser Stripe Connect
+src/lib/planGenerator.ts              — plan Expert IA
+```
+
+## Ordre d'exécution
+
+1. Migration `adopter_links` + RLS
+2. Liaison auto dans `ShelterAnimalDetail.tsx`
+3. Enrichir `Messages.tsx` (contacts owner)
+4. Enrichir `ShelterMessages.tsx` (contacts shelter)
+5. Enrichir `Help.tsx` (adoptant)
+6. Stripe Connect dashboard
+7. Plan Expert IA
+8. UI admin gestion données
+9. Test complet
 
