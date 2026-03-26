@@ -1,11 +1,11 @@
-import { useAuth } from "@/hooks/useAuth";
 import { useShelterEmployeeInfo } from "@/hooks/useCoach";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { EmployeeLayout } from "@/components/EmployeeLayout";
 import { Card, CardContent } from "@/components/ui/card";
-import { PawPrint } from "lucide-react";
+import { PawPrint, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 export default function EmployeeAnimals() {
   const { data: empInfo } = useShelterEmployeeInfo();
