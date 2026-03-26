@@ -85,7 +85,7 @@ function ProtectedRoutes() {
   const { data: isCoach, isLoading: coachLoading } = useIsCoach();
   const { data: isShelter, isLoading: shelterLoading } = useIsShelter();
   const { data: isAdmin, isLoading: adminLoading } = useQuery({
-    queryKey: ["is_admin_routing", user?.id],
+    queryKey: ["is_admin", user?.id],
     queryFn: async () => {
       const { data } = await supabase.rpc("is_admin");
       return data === true;
