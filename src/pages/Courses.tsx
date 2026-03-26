@@ -201,14 +201,26 @@ export default function Courses() {
   const handleBook = async (courseId: string, dogId: string) => {
     setBookingLoading(courseId);
     setBookingDogDialog({ open: false, courseId: "" });
+    // Pre-open window synchronously to avoid popup blocker on mobile
+    const newWindow = window.open("about:blank", "_blank");
     try {
       const { data, error } = await supabase.functions.invoke("create-course-checkout", {
         body: { courseId, dogId },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      if (data?.url) window.open(data.url, "_blank");
+      if (data?.url) {
+        if (newWindow) {
+          newWindow.location.href = data.url;
+        } else {
+          // Fallback: redirect current page if popup was still blocked
+          window.location.href = data.url;
+        }
+      } else {
+        newWindow?.close();
+      }
     } catch (err: any) {
+      newWindow?.close();
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
     }
     setBookingLoading(null);
