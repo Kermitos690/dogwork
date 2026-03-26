@@ -220,20 +220,23 @@ export default function ShelterAnimalDetail() {
           message: `${animal?.name} a été adopté par ${adopterName || "un adoptant"}.`,
         } as any);
 
-        // Try to link adopter account if email matches an auth user
+        // Try to link adopter account if email matches a profile
         if (adopterEmail) {
           try {
-            const { data: fnData } = await supabase.functions.invoke("find-user-by-email", {
-              body: { email: adopterEmail },
-            });
-            const matchedUsers = fnData?.users || [];
-            for (const mu of matchedUsers) {
-              await supabase.from("adopter_links" as any).upsert({
-                adopter_user_id: mu.user_id,
-                shelter_user_id: user!.id,
-                animal_id: animalId,
-                animal_name: animal?.name || "",
-              } as any, { onConflict: "adopter_user_id,animal_id" });
+            const { data: matchingProfiles } = await supabase
+              .from("profiles")
+              .select("user_id")
+              .eq("email", adopterEmail.toLowerCase().trim());
+            
+            if (matchingProfiles && matchingProfiles.length > 0) {
+              for (const mp of matchingProfiles) {
+                await supabase.from("adopter_links" as any).upsert({
+                  adopter_user_id: mp.user_id,
+                  shelter_user_id: user!.id,
+                  animal_id: animalId,
+                  animal_name: animal?.name || "",
+                } as any, { onConflict: "adopter_user_id,animal_id" });
+              }
             }
           } catch (linkErr) {
             console.warn("Could not auto-link adopter:", linkErr);
