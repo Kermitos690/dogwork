@@ -130,6 +130,7 @@ function ProtectedRoutes() {
       <Routes>
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/" element={
+          isAdmin ? <Navigate to="/admin" replace /> :
           onboardingInProgress ? <Navigate to="/onboarding" replace /> :
           (isCoach && !hasDogs) ? <Navigate to="/coach" replace /> :
           <Dashboard />
