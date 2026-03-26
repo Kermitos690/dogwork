@@ -14,6 +14,36 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import type { PlanDay } from "@/lib/planGenerator";
 
+/** Upsert day_progress: handles the unique constraint (dog_id, day_id) safely */
+async function upsertDayProgress(
+  dogId: string, userId: string, dayId: number,
+  updates: { completed_exercises?: string[]; status?: string; validated?: boolean; notes?: string }
+) {
+  const { data: existing } = await supabase
+    .from("day_progress").select("id")
+    .eq("dog_id", dogId).eq("day_id", dayId).maybeSingle();
+
+  if (existing) {
+    const { error } = await supabase.from("day_progress").update(updates).eq("id", existing.id);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase.from("day_progress").insert({
+      dog_id: dogId, user_id: userId, day_id: dayId, ...updates,
+    });
+    if (error && error.code === "23505") {
+      const { data: retry } = await supabase
+        .from("day_progress").select("id")
+        .eq("dog_id", dogId).eq("day_id", dayId).maybeSingle();
+      if (retry) {
+        const { error: retryErr } = await supabase.from("day_progress").update(updates).eq("id", retry.id);
+        if (retryErr) throw retryErr;
+      }
+    } else if (error) {
+      throw error;
+    }
+  }
+}
+
 function ExerciseCard({ ex, done, onToggle }: { ex: any; done: boolean; onToggle: () => void }) {
   const [expanded, setExpanded] = useState(false);
   const hasSteps = ex.tutorialSteps && ex.tutorialSteps.length > 0;
@@ -23,20 +53,13 @@ function ExerciseCard({ ex, done, onToggle }: { ex: any; done: boolean; onToggle
     <div
       className={`rounded-2xl border overflow-hidden transition-all ${done ? "border-success/30 bg-success/5" : "border-border bg-card"}`}
     >
-      {/* Cover image */}
       {ex.coverImage && (
         <div className="w-full h-28 overflow-hidden">
-          <img
-            src={ex.coverImage}
-            alt={ex.name}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
+          <img src={ex.coverImage} alt={ex.name} className="w-full h-full object-cover" loading="lazy" />
         </div>
       )}
 
       <div className="p-4">
-      {/* Header — toggles completion */}
       <button onClick={onToggle} className="flex w-full items-start gap-3 text-left">
         <div className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 transition-all ${done ? "bg-success border-success" : "border-muted-foreground/30"}`}>
           {done && <CheckCircle2 className="h-4 w-4 text-success-foreground" />}
@@ -53,7 +76,6 @@ function ExerciseCard({ ex, done, onToggle }: { ex: any; done: boolean; onToggle
         </div>
       </button>
 
-      {/* Expand steps */}
       {hasSteps && (
         <div className="mt-2 pl-9">
           <button
@@ -88,7 +110,6 @@ function ExerciseCard({ ex, done, onToggle }: { ex: any; done: boolean; onToggle
         </div>
       )}
 
-      {/* Link to full exercise sheet */}
       {ex.slug && (
         <div className="mt-2 pl-9">
           <Link to={`/exercises/${ex.slug}`} className="flex items-center gap-1 text-xs text-primary hover:underline">
@@ -113,6 +134,7 @@ export default function DayDetail() {
   const source = searchParams.get("source");
   const [notes, setNotes] = useState("");
   const [showValidation, setShowValidation] = useState(false);
+  const [initDone, setInitDone] = useState(false);
 
   const { data: planDay } = useQuery({
     queryKey: ["plan_day", activeDog?.id, id],
@@ -129,7 +151,6 @@ export default function DayDetail() {
   const standardDay = getDayById(id);
   const isPersonalized = source === "plan" && planDay;
 
-  // Collect slugs from plan exercises to fetch enriched data from DB
   const planSlugs = isPersonalized
     ? planDay.exercises.map((e: any) => e.slug).filter(Boolean)
     : [];
@@ -207,13 +228,15 @@ export default function DayDetail() {
 
   useEffect(() => { if (progress?.notes) setNotes(progress.notes); }, [progress]);
 
+  // Auto-create progress row on first visit — but only once, using upsert
   useEffect(() => {
-    if (activeDog && user && !progress) {
-      supabase.from("day_progress").insert({
-        dog_id: activeDog.id, user_id: user.id, day_id: id, status: "in_progress",
-      }).then(() => refetch());
+    if (activeDog && user && !progress && !initDone) {
+      setInitDone(true);
+      upsertDayProgress(activeDog.id, user.id, id, { status: "in_progress" })
+        .then(() => refetch())
+        .catch(() => {}); // silently ignore if already exists
     }
-  }, [activeDog, user, progress, id]);
+  }, [activeDog, user, progress, id, initDone]);
 
   if (!standardDay && !planDay) return <AppLayout><p className="pt-10 text-center text-muted-foreground">Jour non trouvé</p></AppLayout>;
   if (!activeDog) return <AppLayout><p className="pt-10 text-center text-muted-foreground">Ajoutez d'abord un chien.</p></AppLayout>;
@@ -249,46 +272,49 @@ export default function DayDetail() {
   const exercisePct = totalExercises > 0 ? Math.round((completedCount / totalExercises) * 100) : 0;
 
   const toggleExercise = async (exId: string) => {
-    const newCompleted = completedExercises.includes(exId)
-      ? completedExercises.filter(e => e !== exId)
-      : [...completedExercises, exId];
-    const newStatus = newCompleted.length > 0 ? "in_progress" : "todo";
+    if (!activeDog || !user) return;
+    try {
+      const newCompleted = completedExercises.includes(exId)
+        ? completedExercises.filter(e => e !== exId)
+        : [...completedExercises, exId];
+      const newStatus = newCompleted.length > 0 ? "in_progress" : "todo";
 
-    if (progress) {
-      await supabase.from("day_progress").update({
-        completed_exercises: newCompleted, status: progress.validated ? "done" : newStatus,
-      }).eq("id", progress.id);
-    } else {
-      await supabase.from("day_progress").insert({
-        dog_id: activeDog.id, user_id: user!.id, day_id: id,
-        completed_exercises: newCompleted, status: newStatus,
+      await upsertDayProgress(activeDog.id, user.id, id, {
+        completed_exercises: newCompleted,
+        status: progress?.validated ? "done" : newStatus,
       });
+      refetch();
+    } catch (err: any) {
+      console.error("Toggle exercise error:", err);
+      toast({ title: "Erreur", description: "Impossible de mettre à jour l'exercice.", variant: "destructive" });
     }
-    refetch();
   };
 
   const validateDay = async () => {
-    if (progress) {
-      await supabase.from("day_progress").update({ status: "done", validated: true, notes }).eq("id", progress.id);
-    } else {
-      await supabase.from("day_progress").insert({
-        dog_id: activeDog.id, user_id: user!.id, day_id: id, status: "done", validated: true, notes,
+    if (!activeDog || !user) return;
+    try {
+      await upsertDayProgress(activeDog.id, user.id, id, {
+        status: "done", validated: true, notes,
       });
+      refetch();
+      qc.invalidateQueries({ queryKey: ["day_progress"] });
+      setShowValidation(true);
+      toast({ title: "✓ Jour validé", description: "Prochaine étape prête." });
+    } catch (err: any) {
+      console.error("Validate day error:", err);
+      toast({ title: "Erreur", description: "Impossible de valider le jour.", variant: "destructive" });
     }
-    refetch();
-    qc.invalidateQueries({ queryKey: ["day_progress"] });
-    setShowValidation(true);
-    toast({ title: "✓ Jour validé", description: "Prochaine étape prête." });
   };
 
   const saveNotes = async () => {
-    if (progress) {
-      await supabase.from("day_progress").update({ notes }).eq("id", progress.id);
-    } else {
-      await supabase.from("day_progress").insert({ dog_id: activeDog.id, user_id: user!.id, day_id: id, notes });
+    if (!activeDog || !user) return;
+    try {
+      await upsertDayProgress(activeDog.id, user.id, id, { notes });
+      refetch();
+      toast({ title: "✓ Notes sauvegardées" });
+    } catch (err: any) {
+      toast({ title: "Erreur", description: "Impossible de sauvegarder les notes.", variant: "destructive" });
     }
-    refetch();
-    toast({ title: "✓ Notes sauvegardées" });
   };
 
   const trainingUrl = source === "plan" ? `/training/${id}?source=plan` : `/training/${id}`;
@@ -369,7 +395,6 @@ export default function DayDetail() {
           <Progress value={exercisePct} className="h-2" />
         </div>
 
-        {/* Exercises — rich cards */}
         <div className="space-y-2">
           {dayExercises.map((ex: any) => (
             <ExerciseCard

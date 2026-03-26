@@ -13,6 +13,38 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import type { PlanDay } from "@/lib/planGenerator";
 
+/** Upsert day_progress: handles the unique constraint (dog_id, day_id) safely */
+async function upsertDayProgress(
+  dogId: string, userId: string, dayId: number,
+  updates: { completed_exercises?: string[]; status?: string; validated?: boolean; notes?: string }
+) {
+  // Try to fetch existing row first
+  const { data: existing } = await supabase
+    .from("day_progress").select("id")
+    .eq("dog_id", dogId).eq("day_id", dayId).maybeSingle();
+
+  if (existing) {
+    const { error } = await supabase.from("day_progress").update(updates).eq("id", existing.id);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase.from("day_progress").insert({
+      dog_id: dogId, user_id: userId, day_id: dayId, ...updates,
+    });
+    // If duplicate key race condition, retry as update
+    if (error && error.code === "23505") {
+      const { data: retry } = await supabase
+        .from("day_progress").select("id")
+        .eq("dog_id", dogId).eq("day_id", dayId).maybeSingle();
+      if (retry) {
+        const { error: retryErr } = await supabase.from("day_progress").update(updates).eq("id", retry.id);
+        if (retryErr) throw retryErr;
+      }
+    } else if (error) {
+      throw error;
+    }
+  }
+}
+
 export default function Training() {
   const { dayId } = useParams();
   const [searchParams] = useSearchParams();
@@ -79,19 +111,10 @@ export default function Training() {
     try {
       if (!isExDone) {
         const newCompleted = [...completedExercises, exercise.id];
-        if (progress) {
-          const { error } = await supabase.from("day_progress").update({
-            completed_exercises: newCompleted,
-            status: newCompleted.length >= totalExercises ? "done" : "in_progress",
-          }).eq("id", progress.id);
-          if (error) throw error;
-        } else {
-          const { error } = await supabase.from("day_progress").insert({
-            dog_id: activeDog.id, user_id: user.id, day_id: id,
-            completed_exercises: newCompleted, status: "in_progress",
-          });
-          if (error) throw error;
-        }
+        await upsertDayProgress(activeDog.id, user.id, id, {
+          completed_exercises: newCompleted,
+          status: newCompleted.length >= totalExercises ? "done" : "in_progress",
+        });
       }
       await supabase.from("exercise_sessions").insert({
         dog_id: activeDog.id, user_id: user.id, day_id: id,
@@ -108,7 +131,7 @@ export default function Training() {
       console.error("Exercise completion error:", err);
       toast({ title: "Erreur", description: "Impossible de valider l'exercice. Réessayez.", variant: "destructive" });
     }
-  }, [isExDone, completedExercises, progress, exercise, id, reps, currentIndex, totalExercises, activeDog, user, refetch]);
+  }, [isExDone, completedExercises, exercise, id, reps, currentIndex, totalExercises, activeDog, user, refetch]);
 
   const goNext = () => { if (currentIndex < totalExercises - 1) { setCurrentIndex(currentIndex + 1); setReps(0); setShowSteps(false); } };
   const goPrev = () => { if (currentIndex > 0) { setCurrentIndex(currentIndex - 1); setReps(0); setShowSteps(false); } };
@@ -153,12 +176,10 @@ export default function Training() {
             )}
           </div>
 
-          {/* Description */}
           {hasDescription && (
             <p className="text-sm text-muted-foreground leading-relaxed">{exercise.description}</p>
           )}
 
-          {/* Inline instructions (numbered steps) */}
           {exercise.instructions && (
             <div className="text-sm text-foreground leading-relaxed whitespace-pre-line">
               {exercise.instructions}
@@ -170,7 +191,6 @@ export default function Training() {
             {exercise.timerSuggested && <span>⏱ {exercise.timerSuggested}s</span>}
           </div>
 
-          {/* Detailed steps toggle */}
           {hasSteps && (
             <div>
               <button
@@ -199,7 +219,6 @@ export default function Training() {
             </div>
           )}
 
-          {/* Validation protocol */}
           {exercise.validationProtocol && (
             <div className="rounded-xl bg-success/5 border border-success/20 p-3">
               <p className="text-xs font-semibold text-success">✓ Critère de réussite</p>
@@ -207,7 +226,6 @@ export default function Training() {
             </div>
           )}
 
-          {/* Link to full sheet */}
           {exercise.slug && (
             <Link to={`/exercises/${exercise.slug}`} className="flex items-center gap-1 text-xs text-primary hover:underline">
               <BookOpen className="h-3 w-3" />
