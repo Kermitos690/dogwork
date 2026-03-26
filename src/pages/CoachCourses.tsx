@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import {
   Plus, MapPin, Clock, Users, Euro, Calendar,
-  Pencil, ToggleLeft, ToggleRight, BookOpen
+  Pencil, ToggleLeft, ToggleRight, BookOpen, Dog, CheckCircle, XCircle, AlertTriangle
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -396,6 +396,88 @@ export default function CoachCourses() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Pending Bookings Review */}
+      {pendingBookings.length > 0 && (
+        <div className="px-4 pt-4 space-y-3">
+          <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-amber-500" />
+            Inscriptions en attente ({pendingBookings.length})
+          </h2>
+          {pendingBookings.map((booking) => {
+            const course = courses.find((c) => c.id === booking.course_id);
+            const dog = bookingDogs.find((d: any) => d.id === booking.dog_id);
+            const profile = bookingProfiles.find((p: any) => p.user_id === booking.user_id);
+            return (
+              <Card key={booking.id} className="border-amber-500/30 bg-amber-500/5">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm font-semibold">{course?.title || "Cours"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        par {(profile as any)?.display_name || "Utilisateur"} · {booking.created_at ? format(new Date(booking.created_at), "d MMM yyyy", { locale: fr }) : ""}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="text-amber-600 border-amber-300 text-[10px]">En attente</Badge>
+                  </div>
+
+                  {dog ? (
+                    <div className="bg-card rounded-lg p-3 border border-border/50 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Dog className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-medium">{(dog as any).name}</span>
+                        {(dog as any).breed && <Badge variant="secondary" className="text-[10px]">{(dog as any).breed}</Badge>}
+                      </div>
+                      <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
+                        {(dog as any).sex && <span>Sexe : {(dog as any).sex === "male" ? "Mâle" : "Femelle"}</span>}
+                        {(dog as any).weight_kg && <span>Poids : {(dog as any).weight_kg} kg</span>}
+                        {(dog as any).size && <span>Taille : {(dog as any).size}</span>}
+                        {(dog as any).birth_date && <span>Né : {format(new Date((dog as any).birth_date), "MMM yyyy", { locale: fr })}</span>}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(dog as any).bite_history && (
+                          <Badge variant="destructive" className="text-[10px]">⚠️ Historique morsure</Badge>
+                        )}
+                        {(dog as any).muzzle_required && (
+                          <Badge variant="destructive" className="text-[10px]">Muselière requise</Badge>
+                        )}
+                        {(dog as any).obedience_level != null && (
+                          <Badge variant="outline" className="text-[10px]">Obéissance : {(dog as any).obedience_level}/10</Badge>
+                        )}
+                        {(dog as any).sociability_dogs != null && (
+                          <Badge variant="outline" className="text-[10px]">Soc. chiens : {(dog as any).sociability_dogs}/10</Badge>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">Aucun profil de chien fourni</p>
+                  )}
+
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      className="flex-1 gap-1"
+                      onClick={() => reviewBooking.mutate({ bookingId: booking.id, status: "confirmed" })}
+                      disabled={reviewBooking.isPending}
+                    >
+                      <CheckCircle className="h-3.5 w-3.5" /> Accepter
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="flex-1 gap-1"
+                      onClick={() => reviewBooking.mutate({ bookingId: booking.id, status: "rejected", note: "Profil incompatible" })}
+                      disabled={reviewBooking.isPending}
+                    >
+                      <XCircle className="h-3.5 w-3.5" /> Refuser
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       {/* Course list */}
       <div className="px-4 pt-4 space-y-3">
