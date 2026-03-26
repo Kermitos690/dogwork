@@ -1537,6 +1537,7 @@ export type Database = {
           auth_user_id: string | null
           created_at: string
           email: string | null
+          hashed_pin: string | null
           id: string
           is_active: boolean
           job_title: string | null
@@ -1551,6 +1552,7 @@ export type Database = {
           auth_user_id?: string | null
           created_at?: string
           email?: string | null
+          hashed_pin?: string | null
           id?: string
           is_active?: boolean
           job_title?: string | null
@@ -1565,6 +1567,7 @@ export type Database = {
           auth_user_id?: string | null
           created_at?: string
           email?: string | null
+          hashed_pin?: string | null
           id?: string
           is_active?: boolean
           job_title?: string | null
@@ -1862,6 +1865,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_coach_profile_safe: {
+        Args: { target_user_id: string }
+        Returns: {
+          bio: string
+          created_at: string
+          display_name: string
+          id: string
+          specialty: string
+          stripe_onboarding_complete: boolean
+          updated_at: string
+          user_id: string
+        }[]
+      }
       get_employee_shelter_id: { Args: { _user_id: string }; Returns: string }
       get_unenriched_exercises: {
         Args: { batch_limit?: number; batch_offset?: number }
