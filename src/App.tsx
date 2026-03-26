@@ -82,18 +82,26 @@ function ProtectedRoutes() {
   const { data: dogs, isLoading: dogsLoading } = useDogs();
   const { data: isCoach, isLoading: coachLoading } = useIsCoach();
   const { data: isShelter, isLoading: shelterLoading } = useIsShelter();
+  const { data: isAdmin, isLoading: adminLoading } = useQuery({
+    queryKey: ["is_admin_routing", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("is_admin");
+      return data === true;
+    },
+    enabled: !!user,
+  });
 
-  if (loading || dogsLoading || coachLoading || shelterLoading) {
+  if (loading || dogsLoading || coachLoading || shelterLoading || adminLoading) {
     return <PageLoader />;
   }
 
   if (!user) return <Auth />;
 
   const hasDogs = dogs && dogs.length > 0;
-  const onboardingInProgress = !hasDogs && !isCoach && !isShelter;
+  const onboardingInProgress = !hasDogs && !isCoach && !isShelter && !isAdmin;
 
-  // Shelter users get a completely separate route set
-  if (isShelter) {
+  // Shelter users (but NOT admin) get a completely separate route set
+  if (isShelter && !isAdmin) {
     return (
       <Suspense fallback={<PageLoader />}>
         <Routes>
