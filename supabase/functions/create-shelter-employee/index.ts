@@ -7,6 +7,11 @@ async function hashPin(pin: string): Promise<string> {
   return new TextDecoder().decode(hexEncode(new Uint8Array(hash)));
 }
 
+// Build a strong password from a 6-digit PIN to satisfy Supabase password policy
+function pinToPassword(pin: string): string {
+  return `DogWork!${pin}#Secure`;
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -46,7 +51,7 @@ Deno.serve(async (req) => {
       const pin = String(Math.floor(100000 + Math.random() * 900000));
 
       // Update Auth password
-      const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(auth_user_id, { password: pin });
+      const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(auth_user_id, { password: pinToPassword(pin) });
       if (updateErr) throw new Error(`Erreur reset mot de passe: ${updateErr.message}`);
 
       // Update pin_code hash in shelter_employees (clear pin removed)
