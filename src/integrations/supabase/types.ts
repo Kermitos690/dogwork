@@ -1534,6 +1534,7 @@ export type Database = {
       }
       shelter_employees: {
         Row: {
+          auth_user_id: string | null
           created_at: string
           email: string | null
           id: string
@@ -1541,11 +1542,13 @@ export type Database = {
           job_title: string | null
           name: string
           phone: string | null
+          pin_code: string | null
           role: string
           shelter_user_id: string
           updated_at: string
         }
         Insert: {
+          auth_user_id?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -1553,11 +1556,13 @@ export type Database = {
           job_title?: string | null
           name?: string
           phone?: string | null
+          pin_code?: string | null
           role?: string
           shelter_user_id: string
           updated_at?: string
         }
         Update: {
+          auth_user_id?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -1565,6 +1570,7 @@ export type Database = {
           job_title?: string | null
           name?: string
           phone?: string | null
+          pin_code?: string | null
           role?: string
           shelter_user_id?: string
           updated_at?: string
@@ -1932,7 +1938,7 @@ export type Database = {
       is_shelter: { Args: never; Returns: boolean }
     }
     Enums: {
-      app_role: "owner" | "educator" | "admin" | "shelter"
+      app_role: "owner" | "educator" | "admin" | "shelter" | "shelter_employee"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2060,7 +2066,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["owner", "educator", "admin", "shelter"],
+      app_role: ["owner", "educator", "admin", "shelter", "shelter_employee"],
     },
   },
 } as const
