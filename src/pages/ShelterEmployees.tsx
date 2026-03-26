@@ -120,6 +120,22 @@ export default function ShelterEmployees() {
     },
   });
 
+  const resetPinMutation = useMutation({
+    mutationFn: async (emp: any) => {
+      const { data, error } = await supabase.functions.invoke("create-shelter-employee", {
+        body: { action: "reset-pin", auth_user_id: emp.auth_user_id, employee_id: emp.id },
+      });
+      if (error) throw new Error(error.message || "Erreur reset PIN");
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["shelter-employees"] });
+      toast({ title: "PIN réinitialisé ✅", description: `Nouveau PIN : ${data?.pin}. Envoyé par email.` });
+    },
+    onError: (e: any) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
+  });
+
   const openEdit = (emp: any) => {
     setEditId(emp.id);
     setForm({ name: emp.name, role: emp.role, job_title: emp.job_title || "", email: emp.email || "", phone: emp.phone || "" });
@@ -247,6 +263,18 @@ export default function ShelterEmployees() {
                     )}
                   </div>
                   <div className="flex gap-1">
+                    {emp.auth_user_id && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        disabled={resetPinMutation.isPending}
+                        onClick={() => resetPinMutation.mutate(emp)}
+                        title="Réinitialiser le PIN"
+                      >
+                        <KeyRound className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(emp)}>
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
