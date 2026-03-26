@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Users, GraduationCap, BookOpen, DollarSign, Plus, ArrowLeft, Trash2, Check, X, Eye, ChevronDown, Home, Sparkles, Image } from "lucide-react";
+import { Shield, Users, GraduationCap, BookOpen, DollarSign, Plus, ArrowLeft, Trash2, Check, X, Eye, ChevronDown, Home, Sparkles, Image, Wallet } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
@@ -562,7 +562,10 @@ export default function AdminDashboard() {
         <SheltersList />
 
         {/* Quick links */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
+          <Button variant="outline" className="h-12 gap-2" onClick={() => navigate("/admin/treasury")}>
+            <Wallet className="h-4 w-4" /> Trésorerie
+          </Button>
           <Button variant="outline" className="h-12 gap-2" onClick={() => navigate("/exercises")}>
             <BookOpen className="h-4 w-4" /> Exercices
           </Button>

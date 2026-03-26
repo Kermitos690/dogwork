@@ -46,6 +46,7 @@ const CoachCourses = lazy(() => import("./pages/CoachCourses"));
 const CoachGuard = lazy(() => import("./components/CoachGuard").then(m => ({ default: m.CoachGuard })));
 const AdminGuard = lazy(() => import("./components/AdminGuard").then(m => ({ default: m.AdminGuard })));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const AdminTreasury = lazy(() => import("./pages/AdminTreasury"));
 const HelpPage = lazy(() => import("./pages/Help"));
 const SubscriptionPage = lazy(() => import("./pages/Subscription"));
 const CoursesPage = lazy(() => import("./pages/Courses"));
@@ -170,6 +171,7 @@ function ProtectedRoutes() {
         <Route path="/coach/shelter-animals" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachShelterAnimals /></CoachGuard></Suspense>} />
         <Route path="/coach/shelter-animal/:animalId" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachShelterAnimalEval /></CoachGuard></Suspense>} />
         <Route path="/admin" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminDashboard /></AdminGuard></Suspense>} />
+        <Route path="/admin/treasury" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminTreasury /></AdminGuard></Suspense>} />
         {/* Shelter routes for admin access (ShelterGuard allows admin) */}
         <Route path="/shelter" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterDashboard /></ShelterGuard></Suspense>} />
         <Route path="/shelter/animals" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterAnimals /></ShelterGuard></Suspense>} />
