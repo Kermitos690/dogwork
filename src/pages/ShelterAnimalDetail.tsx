@@ -222,23 +222,24 @@ export default function ShelterAnimalDetail() {
 
         // Try to link adopter account if email matches a profile
         if (adopterEmail) {
-          const { data: matchingUsers } = await supabase
-            .from("profiles")
-            .select("user_id")
-            .or(`display_name.ilike.%${adopterEmail}%`);
-
-          // Also search by auth email via user_roles (owners only)
-          // We use a simple approach: look for profiles where display_name contains the email
-          // A more robust approach would use an edge function with admin.listUsers
-          if (matchingUsers && matchingUsers.length > 0) {
-            for (const mu of matchingUsers) {
-              await supabase.from("adopter_links" as any).upsert({
-                adopter_user_id: mu.user_id,
-                shelter_user_id: user!.id,
-                animal_id: animalId,
-                animal_name: animal?.name || "",
-              } as any, { onConflict: "adopter_user_id,animal_id" });
+          try {
+            const { data: matchingProfiles } = await (supabase as any)
+              .from("profiles")
+              .select("user_id")
+              .eq("email", adopterEmail.toLowerCase().trim());
+            
+            if (matchingProfiles && matchingProfiles.length > 0) {
+              for (const mp of matchingProfiles as any[]) {
+                await supabase.from("adopter_links" as any).upsert({
+                  adopter_user_id: mp.user_id,
+                  shelter_user_id: user!.id,
+                  animal_id: animalId,
+                  animal_name: animal?.name || "",
+                } as any, { onConflict: "adopter_user_id,animal_id" });
+              }
             }
+          } catch (linkErr) {
+            console.warn("Could not auto-link adopter:", linkErr);
           }
         }
       }
