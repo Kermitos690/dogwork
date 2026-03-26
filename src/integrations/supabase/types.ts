@@ -309,8 +309,11 @@ export type Database = {
           commission_cents: number | null
           course_id: string
           created_at: string | null
+          dog_id: string | null
+          educator_note: string | null
           id: string
           payment_status: string | null
+          reviewed_at: string | null
           status: string | null
           updated_at: string | null
           user_id: string
@@ -320,8 +323,11 @@ export type Database = {
           commission_cents?: number | null
           course_id: string
           created_at?: string | null
+          dog_id?: string | null
+          educator_note?: string | null
           id?: string
           payment_status?: string | null
+          reviewed_at?: string | null
           status?: string | null
           updated_at?: string | null
           user_id: string
@@ -331,8 +337,11 @@ export type Database = {
           commission_cents?: number | null
           course_id?: string
           created_at?: string | null
+          dog_id?: string | null
+          educator_note?: string | null
           id?: string
           payment_status?: string | null
+          reviewed_at?: string | null
           status?: string | null
           updated_at?: string | null
           user_id?: string
@@ -343,6 +352,13 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_bookings_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
             referencedColumns: ["id"]
           },
         ]

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDogs } from "@/hooks/useDogs";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { MapPin, Clock, Users, Calendar, GraduationCap, CheckCircle, Loader2, Star } from "lucide-react";
+import { MapPin, Clock, Users, Calendar, GraduationCap, CheckCircle, Loader2, Star, Dog } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { motion } from "framer-motion";
@@ -43,9 +44,14 @@ export default function Courses() {
   const [searchParams] = useSearchParams();
   const [category, setCategory] = useState("all");
   const [bookingLoading, setBookingLoading] = useState<string | null>(null);
+  const [bookingDogDialog, setBookingDogDialog] = useState<{ open: boolean; courseId: string }>({ open: false, courseId: "" });
+  const [selectedDogId, setSelectedDogId] = useState("");
   const [reviewDialog, setReviewDialog] = useState<{ open: boolean; courseId: string; educatorId: string }>({ open: false, courseId: "", educatorId: "" });
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
+
+  // Fetch user's dogs
+  const { data: myDogs = [] } = useDogs();
 
   // Handle return from Stripe (confirmation is done server-side via webhook)
   useEffect(() => {
@@ -178,11 +184,26 @@ export default function Courses() {
   const getCourseReviewCount = (courseId: string) =>
     reviews.filter((r: any) => r.course_id === courseId).length;
 
-  const handleBook = async (courseId: string) => {
+  const handleBookClick = (courseId: string) => {
+    if (myDogs.length === 0) {
+      toast({ title: "Ajoutez d'abord un chien", description: "Vous devez avoir un profil de chien pour réserver un cours.", variant: "destructive" });
+      return;
+    }
+    if (myDogs.length === 1) {
+      setSelectedDogId(myDogs[0].id);
+      handleBook(courseId, myDogs[0].id);
+    } else {
+      setSelectedDogId("");
+      setBookingDogDialog({ open: true, courseId });
+    }
+  };
+
+  const handleBook = async (courseId: string, dogId: string) => {
     setBookingLoading(courseId);
+    setBookingDogDialog({ open: false, courseId: "" });
     try {
       const { data, error } = await supabase.functions.invoke("create-course-checkout", {
-        body: { courseId },
+        body: { courseId, dogId },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -309,7 +330,7 @@ export default function Courses() {
                 ) : (
                   <Button
                     className="w-full gap-2"
-                    onClick={() => handleBook(course.id)}
+                    onClick={() => handleBookClick(course.id)}
                     disabled={bookingLoading === course.id}
                   >
                     {bookingLoading === course.id ? (
@@ -324,6 +345,43 @@ export default function Courses() {
           );
         })}
       </motion.div>
+
+      {/* Dog Selection Dialog */}
+      <Dialog open={bookingDogDialog.open} onOpenChange={(o) => setBookingDogDialog(prev => ({ ...prev, open: o }))}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Dog className="h-5 w-5 text-primary" /> Quel chien inscrivez-vous ?
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 pt-2">
+            <p className="text-sm text-muted-foreground">
+              L'éducateur validera le profil de votre chien avant de confirmer l'inscription.
+            </p>
+            <Select value={selectedDogId} onValueChange={setSelectedDogId}>
+              <SelectTrigger><SelectValue placeholder="Sélectionner un chien" /></SelectTrigger>
+              <SelectContent>
+                {myDogs.map((d) => (
+                  <SelectItem key={d.id} value={d.id}>
+                    🐕 {d.name} {d.breed ? `— ${d.breed}` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              className="w-full"
+              disabled={!selectedDogId || bookingLoading === bookingDogDialog.courseId}
+              onClick={() => handleBook(bookingDogDialog.courseId, selectedDogId)}
+            >
+              {bookingLoading === bookingDogDialog.courseId ? (
+                <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Réservation...</>
+              ) : (
+                "Confirmer et réserver"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Review Dialog */}
       <Dialog open={reviewDialog.open} onOpenChange={(o) => setReviewDialog(prev => ({ ...prev, open: o }))}>

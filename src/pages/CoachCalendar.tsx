@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useCoachClients } from "@/hooks/useCoach";
+import { useCoachClients, useCoachDogs } from "@/hooks/useCoach";
 import { CoachLayout } from "@/components/CoachLayout";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent } from "@/components/ui/card";
@@ -53,6 +53,7 @@ export default function CoachCalendar() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: clients = [] } = useCoachClients();
+  const { data: allDogs = [] } = useCoachDogs();
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [createOpen, setCreateOpen] = useState(false);
@@ -64,6 +65,7 @@ export default function CoachCalendar() {
     title: "",
     description: "",
     client_user_id: "",
+    dog_id: "",
     start_time: "09:00",
     end_time: "10:00",
     location: "",
@@ -119,6 +121,7 @@ export default function CoachCalendar() {
         title: form.is_available_slot ? "Disponible" : form.title,
         description: form.description || null,
         client_user_id: form.client_user_id || null,
+        dog_id: form.dog_id || null,
         start_at: startAt.toISOString(),
         end_at: endAt.toISOString(),
         location: form.location || null,
@@ -151,8 +154,16 @@ export default function CoachCalendar() {
   });
 
   const resetForm = () => {
-    setForm({ event_type: "appointment", title: "", description: "", client_user_id: "", start_time: "09:00", end_time: "10:00", location: "", is_available_slot: false });
+    setForm({ event_type: "appointment", title: "", description: "", client_user_id: "", dog_id: "", start_time: "09:00", end_time: "10:00", location: "", is_available_slot: false });
   };
+
+  // Dogs filtered by selected client
+  const filteredDogs = useMemo(() => {
+    if (form.client_user_id) {
+      return allDogs.filter((d: any) => d.user_id === form.client_user_id);
+    }
+    return allDogs;
+  }, [allDogs, form.client_user_id]);
 
   // Dates with events for calendar markers
   const eventDates = useMemo(() => {
@@ -265,6 +276,19 @@ export default function CoachCalendar() {
                           <SelectContent>
                             {clients.map((c: any) => (
                               <SelectItem key={c.userId} value={c.userId}>{c.displayName}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    {filteredDogs.length > 0 && (
+                      <div>
+                        <Label className="text-xs">Chien (optionnel)</Label>
+                        <Select value={form.dog_id} onValueChange={(v) => setForm({ ...form, dog_id: v })}>
+                          <SelectTrigger><SelectValue placeholder="Sélectionner un chien" /></SelectTrigger>
+                          <SelectContent>
+                            {filteredDogs.map((d: any) => (
+                              <SelectItem key={d.id} value={d.id}>🐕 {d.name} — {d.clientName}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
