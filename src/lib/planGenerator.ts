@@ -413,7 +413,19 @@ function determineDuration(profile: DogProfile): { frequency: string; avgDuratio
 }
 
 // ===== EXERCISE BUILDER — uses real slugs =====
-function buildExercisesForAxis(axisKey: string, week: number, mods: ReturnType<typeof getProfileModifiers>): PlanExercise[] {
+function rotateArray<T>(items: T[], offset: number): T[] {
+  if (!items.length) return items;
+  const normalized = ((offset % items.length) + items.length) % items.length;
+  return [...items.slice(normalized), ...items.slice(0, normalized)];
+}
+
+function buildExercisesForAxis(
+  axisKey: string,
+  week: number,
+  mods: ReturnType<typeof getProfileModifiers>,
+  variationSeed = 0,
+  avoidSlugs: Set<string> = new Set(),
+): PlanExercise[] {
   const exercises: PlanExercise[] = [];
   const baseDuration = mods.isSenior || mods.hasPain ? 60 : mods.isPuppy ? 45 : 90;
   const weekIdx = Math.min(week - 1, 3);
@@ -422,10 +434,25 @@ function buildExercisesForAxis(axisKey: string, week: number, mods: ReturnType<t
   if (!axisExercises) return exercises;
 
   const slugsForWeek = axisExercises[weekIdx] || axisExercises[0];
+  const uniqueSlugs = Array.from(new Set(slugsForWeek));
+  if (!uniqueSlugs.length) return exercises;
+
+  const rotatedSlugs = rotateArray(uniqueSlugs, variationSeed);
+  const prioritizedSlugs = [
+    ...rotatedSlugs.filter((slug) => !avoidSlugs.has(slug)),
+    ...rotatedSlugs.filter((slug) => avoidSlugs.has(slug)),
+  ];
+
+  const targetCount = Math.min(
+    prioritizedSlugs.length,
+    Math.min(3, Math.max(2, uniqueSlugs.length)),
+  );
+  const selectedSlugs = prioritizedSlugs.slice(0, targetCount);
+
   const maxReps = mods.isPuppy ? 8 : mods.isSenior || mods.hasPain ? 10 : 20;
   const weekMultiplier = Math.min(week, 3);
 
-  slugsForWeek.forEach((slug, i) => {
+  selectedSlugs.forEach((slug, i) => {
     const lib = findBySlug(slug);
     if (!lib) return;
 
@@ -434,7 +461,7 @@ function buildExercisesForAxis(axisKey: string, week: number, mods: ReturnType<t
       return;
     }
 
-    const reps = Math.min(8 + weekMultiplier * 3, maxReps);
+    const reps = Math.min(8 + weekMultiplier * 3 + (variationSeed % 2), maxReps);
     const stepsToShow = Math.min(2 + week, lib.steps.length);
 
     // Build clear step-by-step instructions from the library
@@ -448,7 +475,7 @@ function buildExercisesForAxis(axisKey: string, week: number, mods: ReturnType<t
     }));
 
     exercises.push({
-      id: `plan-${axisKey}-w${week}-${i}`,
+      id: `plan-${axisKey}-w${week}-v${variationSeed}-${i}`,
       name: lib.name,
       slug: lib.slug,
       description: lib.summary || lib.objective || lib.dedication || "",
@@ -494,8 +521,12 @@ function generateDays(axes: PlanAxis[], profile: DogProfile): PlanDay[] {
   const mods = getProfileModifiers(profile);
   const days: PlanDay[] = [];
   const foundationWeeks = mods.isRecentAdoption ? 2 : 1;
+  const axisUsageByWeek: Record<number, Record<string, number>> = {};
+  let previousDaySlugs = new Set<string>();
 
   for (let week = 1; week <= 4; week++) {
+    axisUsageByWeek[week] = {};
+
     for (let dayInWeek = 1; dayInWeek <= 7; dayInWeek++) {
       const dayNumber = (week - 1) * 7 + dayInWeek;
       const isReview = dayInWeek === 7;
@@ -503,15 +534,21 @@ function generateDays(axes: PlanAxis[], profile: DogProfile): PlanDay[] {
       let mainAxis: PlanAxis;
       if (week <= foundationWeeks && !isReview) {
         const safeAxes = axes.filter(a => a.key === "securite" || a.key === "focus");
-        mainAxis = safeAxes[(dayInWeek - 1) % safeAxes.length] || axes[0];
+        const safeIndex = safeAxes.length ? (dayInWeek - 1 + (week - 1)) % safeAxes.length : 0;
+        mainAxis = safeAxes[safeIndex] || axes[0];
       } else {
-        const axisIndex = (dayInWeek - 1) % axes.length;
+        const axisIndex = (dayInWeek - 1 + (week - 1)) % axes.length;
         mainAxis = axes[axisIndex];
       }
 
+      const axisUsage = axisUsageByWeek[week][mainAxis.key] ?? 0;
+      axisUsageByWeek[week][mainAxis.key] = axisUsage + 1;
+
       const exercises = isReview
-        ? axes.slice(0, 3).flatMap(a => buildExercisesForAxis(a.key, week, mods).slice(0, 1))
-        : buildExercisesForAxis(mainAxis.key, week, mods);
+        ? axes.slice(0, 3).flatMap((a, idx) =>
+            buildExercisesForAxis(a.key, week, mods, dayNumber + idx, previousDaySlugs).slice(0, 1),
+          )
+        : buildExercisesForAxis(mainAxis.key, week, mods, dayNumber + axisUsage, previousDaySlugs);
 
       const duration = mods.isPuppy ? "5 à 8 min"
         : mods.isSenior || mods.hasPain ? "8 à 12 min"
@@ -544,6 +581,7 @@ function generateDays(axes: PlanAxis[], profile: DogProfile): PlanDay[] {
 
       day.contextualTips = generateContextualTips(profile, day);
       days.push(day);
+      previousDaySlugs = new Set(exercises.map((exercise) => exercise.slug));
     }
   }
   return days;
