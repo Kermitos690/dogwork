@@ -44,7 +44,7 @@ export default function ShelterSubscription() {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (error) throw error;
-      if (data?.url) window.location.assign(data.url);
+      if (data?.url) window.open(data.url, "_blank");
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
     }
