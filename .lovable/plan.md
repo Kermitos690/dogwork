@@ -1,100 +1,76 @@
 
-Objectif: faire un audit complet (logique, routes, rôles, génération de plans, sécurité) puis corriger sans casse, par lots sûrs et testables.
 
-1) Constats critiques déjà vérifiés
-- Blocage “Impossible de valider l’exercice” confirmé par logs:
-  - erreur SQL `23505 duplicate key` sur `day_progress_dog_id_day_id_key`.
-- Répétition des exercices:
-  - générateur encore basé sur des listes de slugs hardcodées (pool limité), donc répétitions rapides malgré 480 fiches enrichies.
-- Implémentation abonnements incomplète:
-  - 15 templates Free présents, 0 template Pro en base, frontend non branché sur `is_template/template_tier`.
-- Conflits rôles/routes:
-  - `useDogs()` charge tous les chiens visibles (admin voit tout), puis les écrans owner écrivent sur ces chiens -> collisions de progression.
-- Audit sécurité:
-  - `coach_profiles` expose des données sensibles (exposition de `stripe_account_id` via SELECT large).
-  - éducateurs ne peuvent pas mettre à jour les bookings (gap fonctionnel/politiques).
+# Plan: Reset PIN employé + Audit complet
 
-2) Lot A — Stabilisation immédiate (bloquant utilisateur)
-- `Training.tsx` + `DayDetail.tsx`
-  - remplacer logique insert/update fragile par `upsert` sur `day_progress` (clé `dog_id, day_id`) avec mise à jour atomique.
-  - gérer explicitement les erreurs DB (toast précis), et éviter doubles insert concurents.
-- `useDogs.tsx`
-  - scoper la query au propriétaire (`eq("user_id", user.id)`) pour les parcours owner.
-- `App.tsx` (routing racine)
-  - corriger redirection admin par défaut vers `/admin` pour éviter qu’un compte admin “tombe” dans le flux owner avec des données globales.
-- Vérification post-correctif:
-  - valider un exercice + valider un jour + reprise séance incomplète sans erreur SQL.
+## 1. Reset PIN employé refuge
 
-3) Lot B — Variété réelle des plans (fin des répétitions)
-- `planGenerator.ts`
-  - abandonner la dépendance principale aux tableaux de slugs statiques.
-  - construire des pools dynamiques depuis la base (tags, `priority_axis`, `target_problems`, niveau, compatibilités profil).
-  - introduire un anti-répétition multi-jours:
-    - mémoire glissante (N derniers jours),
-    - cooldown par slug,
-    - couverture minimale avant réutilisation.
-  - fallback intelligent si pool faible (sans dupliquer dans la même journée).
-- `Plan.tsx`
-  - régénération: invalider proprement l’ancien plan actif et recréer avec nouvelle logique.
-- Migration de données:
-  - script de régénération des plans actifs impactés par répétition (option ciblée par chien).
+**Objectif**: Ajouter un bouton "Réinitialiser PIN" sur chaque carte employé dans `ShelterEmployees.tsx`.
 
-4) Lot C — Brancher correctement les tiers (Free/Pro/Expert)
-- Backend data:
-  - compléter les templates Pro manquants (50 attendus), vérifier cohérence `template_tier`, `template_category`, `total_days`.
-- Frontend:
-  - `Plan.tsx` + hooks subscription:
-    - Free: accès catalogue 15 templates.
-    - Pro/Intermédiaire: accès 50 templates.
-    - Expert: génération IA améliorée (personnalisation avancée + adaptation continue).
-- UX:
-  - séparation claire “Plan préconstruit” vs “Plan IA Expert”.
-  - garde-fous quand un tier n’a pas accès à une action.
+**Implémentation**:
 
-5) Lot D — Routes, guards et permissions inter-comptes
-- Audit et correction des guards (`AdminGuard`, `CoachGuard`, `ShelterGuard`) pour éviter routes ambiguës.
-- Vérifier toutes les pages qui utilisent des données “globales” sans filtre utilisateur.
-- Normaliser les query keys React Query pour éviter collisions cache entre rôles/contexte (owner/coach/shelter/admin).
+- **Edge function `create-shelter-employee/index.ts`**: Ajouter un mode `action: "reset-pin"` qui accepte `{ action: "reset-pin", employee_id, email }`. Le mode génère un nouveau PIN à 6 chiffres, met à jour le mot de passe Auth via `admin.updateUser`, met à jour `pin_code` dans `shelter_employees`, et renvoie le PIN par email.
 
-6) Lot E — Sécurité/RLS sans régression produit
-- `coach_profiles`
-  - retirer l’exposition sensible:
-    - soit policy SELECT restreinte,
-    - soit split des colonnes sensibles vers table privée.
-- `course_bookings`
-  - ajouter policy UPDATE éducateur limitée à ses propres cours (pas globale).
-- Repasser linter + scan sécurité après correctifs.
+- **Frontend `ShelterEmployees.tsx`**: Ajouter un bouton `KeyRound` (icone clé) sur chaque carte employé qui a un `auth_user_id`. Au clic, appel de la edge function avec `action: "reset-pin"`. Toast de confirmation avec le nouveau PIN.
 
-7) QA non-régression (obligatoire avant clôture)
-- Parcours E2E à rejouer:
-  - Owner: onboarding -> plan -> training -> validation jour -> stats.
-  - Admin: dashboard admin + aucune écriture involontaire dans flux owner.
-  - Coach: gestion bookings + notes.
-  - Shelter: ajout éducateur + employés.
-- Tests spécifiques bug actuel:
-  - plus aucune erreur `duplicate key day_progress` au clic “Terminer”.
-  - variation visible des exercices sur plusieurs jours.
-- Contrôles data:
-  - intégrité `day_progress` (1 ligne par `dog_id/day_id`),
-  - cohérence plans actifs/templates par tier.
+**Fichiers modifiés**: 
+- `supabase/functions/create-shelter-employee/index.ts`
+- `src/pages/ShelterEmployees.tsx`
 
-Détails techniques (implémentation)
-- Fichiers principaux:
-  - `src/pages/Training.tsx`
-  - `src/pages/DayDetail.tsx`
-  - `src/hooks/useDogs.tsx`
-  - `src/App.tsx`
-  - `src/lib/planGenerator.ts`
-  - `src/pages/Plan.tsx`
-  - migrations SQL RLS (coach_profiles, course_bookings)
-- Stratégie anti-casse:
-  - livrer par lots A->E,
-  - vérifier chaque lot en preview avant suivant,
-  - ne pas modifier les fichiers auto-générés d’intégration backend.
+---
 
-Résultat attendu
-- Validation d’exercice fiable (plus d’erreur rouge).
-- Plans réellement variés, exploitant les 480 exercices enrichis.
-- Tiers Free/Pro/Expert appliqués correctement.
-- Routes/rôles sécurisés et cohérents.
-- Aucun conflit RLS bloquant sur les flux métier.
+## 2. Audit complet — Constats et plan d'action
+
+### A. Problèmes identifiés
+
+| # | Problème | Sévérité | Statut actuel |
+|---|----------|----------|---------------|
+| 1 | **503 sandbox error** | Bloquant | Infrastructure transitoire, pas un bug code |
+| 2 | **Plans Pro/Expert non branchés** | Majeur | 15 templates Free, 0 Pro, frontend non filtré par tier |
+| 3 | **Messagerie inter-comptes cassée** | Majeur | Task `more_work_needed` |
+| 4 | **Stripe Connect dashboard admin** | Moyen | Task `todo` |
+| 5 | **Employees edge function: role dupliqué** | Mineur | Si employé re-créé, double insert `user_roles` possible (unique constraint) |
+| 6 | **`listUsers()` sans pagination** | Perf | Charge TOUS les users pour trouver un email — ne scale pas |
+| 7 | **`pin_code` stocké en clair** | Sécurité | PIN visible dans `shelter_employees` table |
+| 8 | **Shelter employee ne peut pas UPDATE animals** | Fonctionnel | RLS manque UPDATE/DELETE pour employés sur `shelter_animals` |
+| 9 | **Shelter employee observations INSERT author_id** | Fonctionnel | Policy exige `auth.uid() = author_id` mais `author_id` pourrait être le shelter_user_id |
+| 10 | **coach_profiles expose encore `stripe_account_id`** | Sécurité | Policy SELECT corrigée mais la colonne reste accessible aux clients liés |
+
+### B. Plan d'action par priorité
+
+**Lot 1 — Immédiat (cette session)**
+- Reset PIN employé (décrit ci-dessus)
+
+**Lot 2 — Fonctionnel critique**
+- Fixer la messagerie inter-comptes (déjà tracké)
+- Ajouter RLS UPDATE sur `shelter_animals` pour les employés refuge
+- Corriger `create-shelter-employee` : utiliser `upsert` sur `user_roles` au lieu d'`insert` pour éviter les doublons
+- Remplacer `listUsers()` par `listUsers({ filter: email })` ou lookup par email
+
+**Lot 3 — Templates et abonnements**
+- Générer les 50 templates Pro en base (task existante `60a0fdac`)
+- Brancher le frontend Plan.tsx sur `template_tier` + subscription tier
+- Implémenter le plan Expert IA (task `516e168f`)
+
+**Lot 4 — Sécurité**
+- Hasher le `pin_code` en base (ou ne pas le stocker)
+- Créer une vue restreinte `coach_profiles` sans `stripe_account_id` pour les clients
+- Stripe Connect dashboard admin (task `7efdedc3`)
+
+**Lot 5 — UX/Polish**
+- Confirmation dialog avant suppression employé
+- Page de connexion employé dédiée avec champ PIN
+- Logs d'activité quand un employé fait une action
+
+### C. Fichiers concernés par l'ensemble
+
+```text
+supabase/functions/create-shelter-employee/index.ts  — reset PIN + fix upsert role
+src/pages/ShelterEmployees.tsx                       — bouton reset PIN
+src/pages/Plan.tsx                                   — filtrage par tier
+src/pages/Messages.tsx                               — fix messagerie
+src/pages/ShelterMessages.tsx                        — fix messagerie
++ migrations SQL pour RLS employés UPDATE animals
+```
+
+Souhaitez-vous que je commence par le reset PIN, puis que j'enchaîne sur les lots suivants dans l'ordre ?
+
