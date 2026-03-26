@@ -78,7 +78,7 @@ export default function CoachSubscription() {
     try {
       const { data, error } = await supabase.functions.invoke("create-educator-checkout");
       if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
+      if (data?.url) window.location.assign(data.url);
     } catch (e: any) {
       toast({ title: "Erreur", description: e.message, variant: "destructive" });
     } finally {

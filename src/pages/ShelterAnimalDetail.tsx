@@ -220,18 +220,17 @@ export default function ShelterAnimalDetail() {
           message: `${animal?.name} a été adopté par ${adopterName || "un adoptant"}.`,
         } as any);
 
-        // Try to link adopter account if email matches a profile
+        // Try to link adopter account by email through secure RPC
         if (adopterEmail) {
           try {
-            const { data: matchingProfiles } = await (supabase as any)
-              .from("profiles")
-              .select("user_id")
-              .eq("email", adopterEmail.toLowerCase().trim());
-            
-            if (matchingProfiles && matchingProfiles.length > 0) {
-              for (const mp of matchingProfiles as any[]) {
+            const { data: matchingUsers } = await (supabase as any).rpc("search_linkable_users", {
+              _query: adopterEmail.toLowerCase().trim(),
+            });
+
+            if (matchingUsers && matchingUsers.length > 0) {
+              for (const mu of matchingUsers as any[]) {
                 await supabase.from("adopter_links" as any).upsert({
-                  adopter_user_id: mp.user_id,
+                  adopter_user_id: mu.user_id,
                   shelter_user_id: user!.id,
                   animal_id: animalId,
                   animal_name: animal?.name || "",

@@ -1989,6 +1989,13 @@ export type Database = {
       is_educator: { Args: never; Returns: boolean }
       is_shelter: { Args: never; Returns: boolean }
       is_shelter_employee: { Args: never; Returns: boolean }
+      search_linkable_users: {
+        Args: { _query: string }
+        Returns: {
+          display_name: string
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       app_role: "owner" | "educator" | "admin" | "shelter" | "shelter_employee"
