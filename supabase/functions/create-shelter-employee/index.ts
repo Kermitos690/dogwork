@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
       const pin = String(Math.floor(100000 + Math.random() * 900000));
 
       // Update Auth password
-      const { error: updateErr } = await supabaseAdmin.auth.admin.updateUser(auth_user_id, { password: pin });
+      const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(auth_user_id, { password: pin });
       if (updateErr) throw new Error(`Erreur reset mot de passe: ${updateErr.message}`);
 
       // Update pin_code hash in shelter_employees (clear pin removed)
@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
 
     if (existingUser) {
       userId = existingUser.id;
-      await supabaseAdmin.auth.admin.updateUser(userId, { password: pin });
+      await supabaseAdmin.auth.admin.updateUserById(userId, { password: pin });
     } else {
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email,
