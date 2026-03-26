@@ -8,7 +8,7 @@ import { SubscriptionProvider } from "@/hooks/useSubscription";
 import { EducatorSubscriptionProvider } from "@/hooks/useEducatorSubscription";
 import { PreferencesProvider } from "@/hooks/usePreferences";
 import { useDogs } from "./hooks/useDogs";
-import { useIsCoach, useIsShelter } from "./hooks/useCoach";
+import { useIsCoach, useIsShelter, useIsShelterEmployee } from "./hooks/useCoach";
 import { supabase } from "@/integrations/supabase/client";
 const AIChatBot = lazy(() => import("@/components/AIChatBot").then(m => ({ default: m.AIChatBot })));
 const GuidedTour = lazy(() => import("@/components/GuidedTour").then(m => ({ default: m.GuidedTour })));
@@ -70,6 +70,11 @@ const ShelterActivityLog = lazy(() => import("./pages/ShelterActivityLog"));
 const ShelterStats = lazy(() => import("./pages/ShelterStats"));
 const ShelterSubscription = lazy(() => import("./pages/ShelterSubscription"));
 const ShelterCoaches = lazy(() => import("./pages/ShelterCoaches"));
+const EmployeeGuard = lazy(() => import("./components/EmployeeGuard").then(m => ({ default: m.EmployeeGuard })));
+const EmployeeDashboard = lazy(() => import("./pages/EmployeeDashboard"));
+const EmployeeAnimals = lazy(() => import("./pages/EmployeeAnimals"));
+const EmployeeActivity = lazy(() => import("./pages/EmployeeActivity"));
+const EmployeeProfile = lazy(() => import("./pages/EmployeeProfile"));
 
 const queryClient = new QueryClient();
 
@@ -84,6 +89,7 @@ function ProtectedRoutes() {
   const { data: dogs, isLoading: dogsLoading } = useDogs();
   const { data: isCoach, isLoading: coachLoading } = useIsCoach();
   const { data: isShelter, isLoading: shelterLoading } = useIsShelter();
+  const { data: isShelterEmployee, isLoading: shelterEmpLoading } = useIsShelterEmployee();
   const { data: isAdmin, isLoading: adminLoading } = useQuery({
     queryKey: ["is_admin", user?.id],
     queryFn: async () => {
@@ -93,14 +99,29 @@ function ProtectedRoutes() {
     enabled: !!user,
   });
 
-  if (loading || dogsLoading || coachLoading || shelterLoading || adminLoading) {
+  if (loading || dogsLoading || coachLoading || shelterLoading || shelterEmpLoading || adminLoading) {
     return <PageLoader />;
   }
 
   if (!user) return <Auth />;
 
   const hasDogs = dogs && dogs.length > 0;
-  const onboardingInProgress = !hasDogs && !isCoach && !isShelter && !isAdmin;
+  const onboardingInProgress = !hasDogs && !isCoach && !isShelter && !isShelterEmployee && !isAdmin;
+
+  // Shelter employees get their own simplified route set
+  if (isShelterEmployee && !isAdmin && !isShelter) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/employee" element={<EmployeeGuard><EmployeeDashboard /></EmployeeGuard>} />
+          <Route path="/employee/animals" element={<EmployeeGuard><EmployeeAnimals /></EmployeeGuard>} />
+          <Route path="/employee/activity" element={<EmployeeGuard><EmployeeActivity /></EmployeeGuard>} />
+          <Route path="/employee/profile" element={<EmployeeGuard><EmployeeProfile /></EmployeeGuard>} />
+          <Route path="*" element={<Navigate to="/employee" replace />} />
+        </Routes>
+      </Suspense>
+    );
+  }
 
   // Shelter users (but NOT admin) get a completely separate route set
   if (isShelter && !isAdmin) {

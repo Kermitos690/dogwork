@@ -34,6 +34,40 @@ export function useIsShelter() {
   });
 }
 
+export function useIsShelterEmployee() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["user-role-shelter-employee", user?.id],
+    queryFn: async () => {
+      if (!user) return false;
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      return data?.some((r) => r.role === ("shelter_employee" as any)) ?? false;
+    },
+    enabled: !!user,
+  });
+}
+
+export function useShelterEmployeeInfo() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["shelter-employee-info", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase
+        .from("shelter_employees" as any)
+        .select("*")
+        .eq("auth_user_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle();
+      return data as any;
+    },
+    enabled: !!user,
+  });
+}
+
 export function useClientLinks() {
   const { user } = useAuth();
   return useQuery({
