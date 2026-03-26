@@ -408,7 +408,7 @@ export default function PlanPage() {
           </TabsContent>
 
           <TabsContent value="templates" className="space-y-4 mt-4">
-            <TemplatesList />
+            <TemplatesList onActivated={() => { refetchPlan(); setActiveTab("personalized"); }} />
           </TabsContent>
 
           <TabsContent value="standard" className="space-y-4 mt-4">
