@@ -186,8 +186,9 @@ export default function PlanPage() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full rounded-xl">
-            <TabsTrigger value="personalized" className="flex-1 text-xs rounded-lg">Plan personnalisé</TabsTrigger>
-            <TabsTrigger value="standard" className="flex-1 text-xs rounded-lg">Programme 28 jours</TabsTrigger>
+            <TabsTrigger value="personalized" className="flex-1 text-xs rounded-lg">Mon plan</TabsTrigger>
+            <TabsTrigger value="templates" className="flex-1 text-xs rounded-lg">Programmes</TabsTrigger>
+            <TabsTrigger value="standard" className="flex-1 text-xs rounded-lg">28 jours</TabsTrigger>
           </TabsList>
 
           <TabsContent value="personalized" className="space-y-4 mt-4">
