@@ -100,7 +100,7 @@ export default function Evaluation() {
   useEffect(() => {
     if (activeDog) {
       supabase.from("dog_evaluations").select("*").eq("dog_id", activeDog.id)
-        .order("created_at", { ascending: false }).limit(1).single()
+        .order("created_at", { ascending: false }).limit(1).maybeSingle()
         .then(({ data }) => {
           if (data) { setForm(data); setExisting(true); }
         });

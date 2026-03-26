@@ -42,7 +42,7 @@ export default function CoachShelterAnimalEval() {
         .from("shelter_animals" as any)
         .select("*")
         .eq("id", animalId!)
-        .single();
+        .maybeSingle();
       return data as any;
     },
     enabled: !!animalId,
