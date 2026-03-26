@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 import { encode as hexEncode } from "https://deno.land/std@0.208.0/encoding/hex.ts";
 
 async function hashPin(pin: string): Promise<string> {
