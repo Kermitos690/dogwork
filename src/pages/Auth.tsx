@@ -47,10 +47,10 @@ export default function Auth() {
   };
 
   const DEV_ROLES = [
-    { role: "owner", label: "Propriétaire", icon: UserCircle, color: "bg-blue-500/10 text-blue-600 border-blue-200 hover:bg-blue-500/20" },
-    { role: "educator", label: "Éducateur", icon: GraduationCap, color: "bg-emerald-500/10 text-emerald-600 border-emerald-200 hover:bg-emerald-500/20" },
-    { role: "shelter", label: "Refuge", icon: Home, color: "bg-amber-500/10 text-amber-600 border-amber-200 hover:bg-amber-500/20" },
-    { role: "admin", label: "Admin", icon: Shield, color: "bg-red-500/10 text-red-600 border-red-200 hover:bg-red-500/20" },
+    { role: "owner", label: "🐕 Propriétaire", desc: "Gérer mes chiens, suivre le plan d'entraînement", emoji: "🐕" },
+    { role: "educator", label: "🎓 Éducateur", desc: "Suivre mes clients, évaluer les animaux en refuge", emoji: "🎓" },
+    { role: "shelter", label: "🏠 Refuge", desc: "Gérer les animaux, employés et espaces", emoji: "🏠" },
+    { role: "admin", label: "🛡️ Admin", desc: "Superviser la plateforme, gérer les cours", emoji: "🛡️" },
   ];
 
   const [devLoading, setDevLoading] = useState<string | null>(null);
@@ -77,47 +77,6 @@ export default function Auth() {
       setDevLoading(null);
     }
   };
-
-  return (
-    <main className="min-h-screen bg-background flex items-center justify-center p-4" aria-label="Authentification">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="text-center space-y-2">
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-primary flex items-center justify-center" aria-hidden="true">
-            <Dog className="h-8 w-8 text-primary-foreground" />
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">PawPlan</h1>
-          <p className="text-sm text-muted-foreground">Journal de bord canin intelligent</p>
-        </div>
-
-        {/* Dev Quick Login */}
-        <Card className="border-dashed border-2 border-orange-300 bg-orange-50/50 dark:bg-orange-950/20">
-          <CardHeader className="pb-2 pt-4">
-            <CardTitle className="text-sm font-medium text-orange-700 dark:text-orange-400 flex items-center gap-2">
-              🧪 Accès rapide (dev)
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pb-4">
-            <div className="grid grid-cols-2 gap-2">
-              {DEV_ROLES.map(({ role, label, icon: Icon, color }) => (
-                <Button
-                  key={role}
-                  variant="outline"
-                  size="sm"
-                  className={`h-auto py-3 flex flex-col items-center gap-1.5 ${color}`}
-                  disabled={devLoading !== null}
-                  onClick={() => handleDevLogin(role)}
-                >
-                  {devLoading === role ? (
-                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  ) : (
-                    <Icon className="h-5 w-5" />
-                  )}
-                  <span className="text-xs font-medium">{label}</span>
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
 
         <Card>
           <CardHeader className="pb-4">
