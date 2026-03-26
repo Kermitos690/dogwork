@@ -6,10 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Dog, Mail, Lock, User, ArrowLeft, Shield, GraduationCap, Home, UserCircle } from "lucide-react";
+import { Dog, Mail, Lock, User, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 type Mode = "login" | "signup" | "forgot";
+
+const DEV_ROLES = [
+  { role: "owner", emoji: "🐕", label: "Propriétaire", desc: "Gérer mes chiens et suivre leur plan d'entraînement", gradient: "from-sky-500 to-blue-600" },
+  { role: "educator", emoji: "🎓", label: "Éducateur", desc: "Suivre mes clients et évaluer les animaux en refuge", gradient: "from-emerald-500 to-teal-600" },
+  { role: "shelter", emoji: "🏠", label: "Refuge", desc: "Gérer les animaux, employés et espaces du refuge", gradient: "from-amber-500 to-orange-600" },
+  { role: "admin", emoji: "🛡️", label: "Administrateur", desc: "Superviser la plateforme et gérer les contenus", gradient: "from-rose-500 to-red-600" },
+];
 
 export default function Auth() {
   const [mode, setMode] = useState<Mode>("login");
@@ -17,13 +24,13 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [devLoading, setDevLoading] = useState<string | null>(null);
   const { signIn, signUp, resetPassword } = useAuth();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       if (mode === "login") {
         const { error } = await signIn(email, password);
@@ -46,30 +53,17 @@ export default function Auth() {
     }
   };
 
-  const DEV_ROLES = [
-    { role: "owner", label: "🐕 Propriétaire", desc: "Gérer mes chiens, suivre le plan d'entraînement", emoji: "🐕" },
-    { role: "educator", label: "🎓 Éducateur", desc: "Suivre mes clients, évaluer les animaux en refuge", emoji: "🎓" },
-    { role: "shelter", label: "🏠 Refuge", desc: "Gérer les animaux, employés et espaces", emoji: "🏠" },
-    { role: "admin", label: "🛡️ Admin", desc: "Superviser la plateforme, gérer les cours", emoji: "🛡️" },
-  ];
-
-  const [devLoading, setDevLoading] = useState<string | null>(null);
-
   const handleDevLogin = async (role: string) => {
     setDevLoading(role);
     try {
-      const { data, error } = await supabase.functions.invoke("dev-login", {
-        body: { role },
-      });
+      const { data, error } = await supabase.functions.invoke("dev-login", { body: { role } });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-
       const { error: sessionErr } = await supabase.auth.setSession({
         access_token: data.access_token,
         refresh_token: data.refresh_token,
       });
       if (sessionErr) throw sessionErr;
-
       toast({ title: "Connexion réussie", description: `Connecté en tant que ${role}` });
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
@@ -78,6 +72,64 @@ export default function Auth() {
     }
   };
 
+  return (
+    <main className="min-h-screen bg-background flex items-center justify-center p-4" aria-label="Authentification">
+      <div className="w-full max-w-md space-y-6">
+        {/* Logo */}
+        <div className="text-center space-y-2">
+          <div className="mx-auto w-16 h-16 rounded-2xl bg-primary flex items-center justify-center">
+            <Dog className="h-8 w-8 text-primary-foreground" />
+          </div>
+          <h1 className="text-2xl font-bold text-foreground">PawPlan</h1>
+          <p className="text-sm text-muted-foreground">Journal de bord canin intelligent</p>
+        </div>
+
+        {/* Dev Quick Access — prominent */}
+        <div className="space-y-3">
+          <div className="text-center">
+            <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary">
+              🧪 Mode test — Choisissez un profil
+            </span>
+          </div>
+          <div className="grid grid-cols-1 gap-2.5">
+            {DEV_ROLES.map(({ role, emoji, label, desc, gradient }) => (
+              <button
+                key={role}
+                onClick={() => handleDevLogin(role)}
+                disabled={devLoading !== null}
+                className={`relative overflow-hidden rounded-xl p-4 text-left transition-all active:scale-[0.98] disabled:opacity-60
+                  bg-gradient-to-r ${gradient} text-white shadow-lg hover:shadow-xl hover:scale-[1.01]`}
+              >
+                <div className="flex items-center gap-3.5">
+                  <span className="text-3xl">{emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-[15px] leading-tight">{label}</div>
+                    <div className="text-xs text-white/80 mt-0.5 leading-snug">{desc}</div>
+                  </div>
+                  {devLoading === role ? (
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white shrink-0" />
+                  ) : (
+                    <svg className="h-5 w-5 text-white/60 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Separator */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-border" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-3 text-muted-foreground">ou connectez-vous</span>
+          </div>
+        </div>
+
+        {/* Standard Auth */}
         <Card>
           <CardHeader className="pb-4">
             <CardTitle className="text-lg">
@@ -98,52 +150,26 @@ export default function Auth() {
                   <Label htmlFor="name">Nom</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="name"
-                      placeholder="Votre nom"
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      className="pl-9"
-                    />
+                    <Input id="name" placeholder="Votre nom" value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="pl-9" />
                   </div>
                 </div>
               )}
-
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="votre@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="pl-9"
-                  />
+                  <Input id="email" type="email" placeholder="votre@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="pl-9" />
                 </div>
               </div>
-
               {mode !== "forgot" && (
                 <div className="space-y-2">
                   <Label htmlFor="password">Mot de passe</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      minLength={6}
-                      className="pl-9"
-                    />
+                    <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="pl-9" />
                   </div>
                 </div>
               )}
-
               <Button type="submit" className="w-full h-12 text-base" disabled={loading}>
                 {loading ? "Chargement..." : mode === "login" ? "Se connecter" : mode === "signup" ? "Créer mon compte" : "Envoyer le lien"}
               </Button>
@@ -159,18 +185,13 @@ export default function Auth() {
                     <span className="bg-card px-2 text-muted-foreground">ou</span>
                   </div>
                 </div>
-
                 <Button
                   type="button"
                   variant="outline"
                   className="w-full h-12 text-base gap-2"
                   onClick={async () => {
-                    const { error } = await lovable.auth.signInWithOAuth("apple", {
-                      redirect_uri: window.location.origin,
-                    });
-                    if (error) {
-                      toast({ title: "Erreur", description: error.message, variant: "destructive" });
-                    }
+                    const { error } = await lovable.auth.signInWithOAuth("apple", { redirect_uri: window.location.origin });
+                    if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
                   }}
                 >
                   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -184,14 +205,10 @@ export default function Auth() {
             <div className="mt-4 space-y-2 text-center text-sm">
               {mode === "login" && (
                 <>
-                  <button onClick={() => setMode("forgot")} className="text-primary hover:underline block w-full">
-                    Mot de passe oublié ?
-                  </button>
+                  <button onClick={() => setMode("forgot")} className="text-primary hover:underline block w-full">Mot de passe oublié ?</button>
                   <p className="text-muted-foreground">
                     Pas de compte ?{" "}
-                    <button onClick={() => setMode("signup")} className="text-primary hover:underline">
-                      S'inscrire
-                    </button>
+                    <button onClick={() => setMode("signup")} className="text-primary hover:underline">S'inscrire</button>
                   </p>
                 </>
               )}
