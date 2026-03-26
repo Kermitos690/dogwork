@@ -323,7 +323,7 @@ export default function HelpPage() {
   const { data: isAdmin } = useQuery({
     queryKey: ["is_admin", user?.id],
     queryFn: async () => {
-      const { data } = await supabase.rpc("has_role", { _user_id: user!.id, _role: "admin" });
+      const { data } = await supabase.rpc("is_admin");
       return data === true;
     },
     enabled: !!user,
