@@ -562,7 +562,10 @@ export default function AdminDashboard() {
         <SheltersList />
 
         {/* Quick links */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
+          <Button variant="outline" className="h-12 gap-2" onClick={() => navigate("/admin/treasury")}>
+            <Wallet className="h-4 w-4" /> Trésorerie
+          </Button>
           <Button variant="outline" className="h-12 gap-2" onClick={() => navigate("/exercises")}>
             <BookOpen className="h-4 w-4" /> Exercices
           </Button>
