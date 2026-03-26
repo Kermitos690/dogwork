@@ -124,11 +124,11 @@ Deno.serve(async (req) => {
 
     if (existingUser) {
       userId = existingUser.id;
-      await supabaseAdmin.auth.admin.updateUserById(userId, { password: pin });
+      await supabaseAdmin.auth.admin.updateUserById(userId, { password: pinToPassword(pin) });
     } else {
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email,
-        password: pin,
+        password: pinToPassword(pin),
         email_confirm: true,
         user_metadata: { display_name: name },
       });
