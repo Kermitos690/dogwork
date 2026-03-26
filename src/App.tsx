@@ -89,6 +89,7 @@ function ProtectedRoutes() {
   const { data: dogs, isLoading: dogsLoading } = useDogs();
   const { data: isCoach, isLoading: coachLoading } = useIsCoach();
   const { data: isShelter, isLoading: shelterLoading } = useIsShelter();
+  const { data: isShelterEmployee, isLoading: shelterEmpLoading } = useIsShelterEmployee();
   const { data: isAdmin, isLoading: adminLoading } = useQuery({
     queryKey: ["is_admin", user?.id],
     queryFn: async () => {
@@ -98,14 +99,29 @@ function ProtectedRoutes() {
     enabled: !!user,
   });
 
-  if (loading || dogsLoading || coachLoading || shelterLoading || adminLoading) {
+  if (loading || dogsLoading || coachLoading || shelterLoading || shelterEmpLoading || adminLoading) {
     return <PageLoader />;
   }
 
   if (!user) return <Auth />;
 
   const hasDogs = dogs && dogs.length > 0;
-  const onboardingInProgress = !hasDogs && !isCoach && !isShelter && !isAdmin;
+  const onboardingInProgress = !hasDogs && !isCoach && !isShelter && !isShelterEmployee && !isAdmin;
+
+  // Shelter employees get their own simplified route set
+  if (isShelterEmployee && !isAdmin && !isShelter) {
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/employee" element={<EmployeeGuard><EmployeeDashboard /></EmployeeGuard>} />
+          <Route path="/employee/animals" element={<EmployeeGuard><EmployeeAnimals /></EmployeeGuard>} />
+          <Route path="/employee/activity" element={<EmployeeGuard><EmployeeActivity /></EmployeeGuard>} />
+          <Route path="/employee/profile" element={<EmployeeGuard><EmployeeProfile /></EmployeeGuard>} />
+          <Route path="*" element={<Navigate to="/employee" replace />} />
+        </Routes>
+      </Suspense>
+    );
+  }
 
   // Shelter users (but NOT admin) get a completely separate route set
   if (isShelter && !isAdmin) {
