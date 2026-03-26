@@ -61,16 +61,31 @@ serve(async (req) => {
       throw new Error("Ce cours est complet");
     }
 
-    // Check if user already booked
+    // Check if user already booked (ignore stale unpaid pending bookings)
     const { data: existingBooking } = await supabaseAdmin
       .from("course_bookings")
-      .select("id")
+      .select("id, status, payment_status")
       .eq("course_id", courseId)
       .eq("user_id", user.id)
       .in("status", ["confirmed", "pending"])
       .maybeSingle();
 
-    if (existingBooking) throw new Error("Vous êtes déjà inscrit à ce cours");
+    if (existingBooking) {
+      // If there's an existing confirmed booking, block
+      if (existingBooking.status === "confirmed") {
+        throw new Error("Vous êtes déjà inscrit à ce cours");
+      }
+      // If pending but unpaid, delete the stale booking and allow re-creation
+      if (existingBooking.status === "pending" && existingBooking.payment_status === "unpaid") {
+        await supabaseAdmin
+          .from("course_bookings")
+          .delete()
+          .eq("id", existingBooking.id);
+        logStep("Deleted stale unpaid booking", { id: existingBooking.id });
+      } else {
+        throw new Error("Vous êtes déjà inscrit à ce cours");
+      }
+    }
 
     const commissionCents = Math.round(course.price_cents * PLATFORM_COMMISSION_RATE);
 
