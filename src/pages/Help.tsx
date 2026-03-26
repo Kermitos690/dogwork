@@ -185,13 +185,15 @@ function AdopterGuide() {
     <div className="space-y-3">
       <Section icon={Heart} title="🏡 Bienvenue, adoptant !" index={0}>
         <p className="font-medium text-foreground">Vous venez d'adopter un chien via un refuge partenaire ? DogWork vous accompagne dans cette nouvelle aventure.</p>
+        <p>Votre compte est un compte propriétaire classique, mais lié au refuge d'adoption pour un suivi complet.</p>
       </Section>
 
       <Section icon={PawPrint} title="🚀 Premiers pas après adoption" index={1}>
-        <Step n={1} text="Créez votre compte DogWork avec votre email." />
-        <Step n={2} text="Ajoutez votre chien adopté via l'onboarding complet (12 étapes)." />
-        <Step n={3} text="Renseignez son origine comme « Refuge / SPA » pour un plan adapté." />
-        <Step n={4} text="Consultez la fiche d'évaluation pré-adoption réalisée par l'éducateur du refuge." />
+        <Step n={1} text="Créez votre compte DogWork avec le même email communiqué au refuge." />
+        <Step n={2} text="Si votre email correspond, le lien avec le refuge sera créé automatiquement." />
+        <Step n={3} text="Ajoutez votre chien adopté via l'onboarding complet (12 étapes)." />
+        <Step n={4} text="Renseignez son origine comme « Refuge / SPA » pour un plan adapté." />
+        <Step n={5} text="Consultez la fiche d'évaluation pré-adoption réalisée par l'éducateur du refuge." />
       </Section>
 
       <Section icon={AlertTriangle} title="⚠️ Spécificités chien de refuge" index={2}>
@@ -201,7 +203,23 @@ function AdopterGuide() {
         <FeatureRow icon={Heart} label="Patience" desc="Un chien de refuge peut mettre 3 mois à montrer sa vraie personnalité." />
       </Section>
 
-      <Section icon={Sparkles} title="✨ Plan personnalisé refuge" index={3}>
+      <Section icon={Users} title="👥 Vos contacts refuge" index={3}>
+        <p>Dans la messagerie, vous trouverez automatiquement :</p>
+        <FeatureRow icon={Building2} label="Votre refuge d'adoption" desc="Le refuge apparaît dans vos contacts avec le nom de l'animal adopté." />
+        <FeatureRow icon={GraduationCap} label="Éducateur partenaire" desc="Si le refuge a un éducateur partenaire, il peut suivre votre progression." />
+        <FeatureRow icon={ShieldCheck} label="Support DogWork" desc="L'administrateur est toujours disponible dans vos contacts." />
+        <p className="text-xs italic">Pas besoin de chercher : tous vos contacts liés sont affichés en haut de la messagerie.</p>
+      </Section>
+
+      <Section icon={MessageSquare} title="💬 Suivi post-adoption" index={4}>
+        <Step n={1} text="Ouvrez la messagerie depuis le menu « Messages »." />
+        <Step n={2} text="Cliquez sur le nom du refuge dans la section « Vos contacts »." />
+        <Step n={3} text="Envoyez des nouvelles, posez des questions, partagez les progrès." />
+        <Step n={4} text="Le refuge peut aussi vous contacter pour le suivi." />
+        <FeatureRow icon={Bot} label="Assistant IA" desc="Posez toutes vos questions d'adaptation post-adoption à l'IA." />
+      </Section>
+
+      <Section icon={Sparkles} title="✨ Plan personnalisé refuge" index={5}>
         <p>L'IA génère un plan spécialement adapté aux chiens adoptés, tenant compte de :</p>
         <div className="space-y-1 text-xs">
           <span>• L'historique comportemental (si évaluation disponible)</span>
@@ -211,18 +229,13 @@ function AdopterGuide() {
         </div>
       </Section>
 
-      <Section icon={MessageSquare} title="💬 Suivi post-adoption" index={4}>
-        <FeatureRow icon={Users} label="Contact refuge" desc="Certains refuges envoient des nouvelles de suivi. Restez connecté." />
-        <FeatureRow icon={GraduationCap} label="Éducateur partenaire" desc="Si le refuge a un éducateur partenaire, il peut suivre votre progression." />
-        <FeatureRow icon={Bot} label="Assistant IA" desc="Posez toutes vos questions d'adaptation post-adoption à l'IA." />
-      </Section>
-
-      <Section icon={Star} title="💡 Conseils pour réussir" index={5}>
+      <Section icon={Star} title="💡 Conseils pour réussir" index={6}>
         <Step n={1} text="Installez une routine quotidienne stable (repas, promenades, repos)." />
         <Step n={2} text="Commencez par les exercices de confiance (regard, rappel doux)." />
         <Step n={3} text="Remplissez le journal chaque jour pour suivre l'évolution." />
-        <Step n={4} text="N'hésitez pas à consulter un éducateur pour les cas sensibles." />
-        <Step n={5} text="Célébrez chaque petit progrès !" />
+        <Step n={4} text="Contactez le refuge via la messagerie si vous avez des doutes." />
+        <Step n={5} text="N'hésitez pas à consulter un éducateur pour les cas sensibles." />
+        <Step n={6} text="Célébrez chaque petit progrès !" />
       </Section>
     </div>
   );
