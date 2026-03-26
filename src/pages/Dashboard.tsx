@@ -11,6 +11,7 @@ import {
   TrendingUp, TrendingDown, ChevronRight, Sparkles, Heart, Calendar, Activity,
   PawPrint, Eye, Zap, Settings, FileText, Target, ArrowRight, LogOut, Timer
 } from "lucide-react";
+import { DogSwitcher } from "@/components/DogSwitcher";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getDayById } from "@/data/program";
