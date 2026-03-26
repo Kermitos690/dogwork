@@ -120,6 +120,55 @@ export default function CoachCourses() {
     enabled: courseIds.length > 0,
   });
 
+  // Fetch dog profiles for bookings that have a dog_id
+  const bookingDogIds = [...new Set(bookings.filter((b) => b.dog_id).map((b) => b.dog_id!))];
+  const { data: bookingDogs = [] } = useQuery({
+    queryKey: ["booking-dogs", bookingDogIds],
+    queryFn: async () => {
+      if (bookingDogIds.length === 0) return [];
+      const { data } = await supabase
+        .from("dogs")
+        .select("id, name, breed, sex, birth_date, weight_kg, size, bite_history, muzzle_required, obedience_level, sociability_dogs, sociability_humans")
+        .in("id", bookingDogIds);
+      return data ?? [];
+    },
+    enabled: bookingDogIds.length > 0,
+  });
+
+  // Fetch user profiles for bookings
+  const bookingUserIds = [...new Set(bookings.map((b) => b.user_id))];
+  const { data: bookingProfiles = [] } = useQuery({
+    queryKey: ["booking-profiles", bookingUserIds],
+    queryFn: async () => {
+      if (bookingUserIds.length === 0) return [];
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, display_name")
+        .in("user_id", bookingUserIds);
+      return data ?? [];
+    },
+    enabled: bookingUserIds.length > 0,
+  });
+
+  // Pending bookings that need review
+  const pendingBookings = bookings.filter((b) => b.status === "pending");
+
+  // Approve/reject booking
+  const reviewBooking = useMutation({
+    mutationFn: async ({ bookingId, status, note }: { bookingId: string; status: string; note?: string }) => {
+      const { error } = await supabase
+        .from("course_bookings")
+        .update({ status, educator_note: note || "", reviewed_at: new Date().toISOString() })
+        .eq("id", bookingId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["coach-bookings"] });
+      toast({ title: "Inscription mise à jour" });
+    },
+    onError: (e: Error) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
+  });
+
   // Create / update mutation
   const saveCourse = useMutation({
     mutationFn: async (payload: typeof form & { id?: string }) => {
