@@ -281,6 +281,19 @@ export default function CoachCalendar() {
                         </Select>
                       </div>
                     )}
+                    {filteredDogs.length > 0 && (
+                      <div>
+                        <Label className="text-xs">Chien (optionnel)</Label>
+                        <Select value={form.dog_id} onValueChange={(v) => setForm({ ...form, dog_id: v })}>
+                          <SelectTrigger><SelectValue placeholder="Sélectionner un chien" /></SelectTrigger>
+                          <SelectContent>
+                            {filteredDogs.map((d: any) => (
+                              <SelectItem key={d.id} value={d.id}>🐕 {d.name} — {d.clientName}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                   </>
                 )}
 
