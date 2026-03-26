@@ -1,89 +1,100 @@
 
+Objectif: faire un audit complet (logique, routes, rôles, génération de plans, sécurité) puis corriger sans casse, par lots sûrs et testables.
 
-# Plan : Messagerie temps réel, suivi post-adoption, nettoyage routes et Stripe refuge
+1) Constats critiques déjà vérifiés
+- Blocage “Impossible de valider l’exercice” confirmé par logs:
+  - erreur SQL `23505 duplicate key` sur `day_progress_dog_id_day_id_key`.
+- Répétition des exercices:
+  - générateur encore basé sur des listes de slugs hardcodées (pool limité), donc répétitions rapides malgré 480 fiches enrichies.
+- Implémentation abonnements incomplète:
+  - 15 templates Free présents, 0 template Pro en base, frontend non branché sur `is_template/template_tier`.
+- Conflits rôles/routes:
+  - `useDogs()` charge tous les chiens visibles (admin voit tout), puis les écrans owner écrivent sur ces chiens -> collisions de progression.
+- Audit sécurité:
+  - `coach_profiles` expose des données sensibles (exposition de `stripe_account_id` via SELECT large).
+  - éducateurs ne peuvent pas mettre à jour les bookings (gap fonctionnel/politiques).
 
-## 1. Messagerie dans la nav refuge + temps réel
+2) Lot A — Stabilisation immédiate (bloquant utilisateur)
+- `Training.tsx` + `DayDetail.tsx`
+  - remplacer logique insert/update fragile par `upsert` sur `day_progress` (clé `dog_id, day_id`) avec mise à jour atomique.
+  - gérer explicitement les erreurs DB (toast précis), et éviter doubles insert concurents.
+- `useDogs.tsx`
+  - scoper la query au propriétaire (`eq("user_id", user.id)`) pour les parcours owner.
+- `App.tsx` (routing racine)
+  - corriger redirection admin par défaut vers `/admin` pour éviter qu’un compte admin “tombe” dans le flux owner avec des données globales.
+- Vérification post-correctif:
+  - valider un exercice + valider un jour + reprise séance incomplète sans erreur SQL.
 
-**Problème actuel** : La messagerie n'apparaît pas dans la barre de navigation en bas (ShelterNav). Elle n'est accessible que via Paramètres. De plus, ShelterMessages utilise un polling toutes les 5s au lieu du Realtime Supabase.
+3) Lot B — Variété réelle des plans (fin des répétitions)
+- `planGenerator.ts`
+  - abandonner la dépendance principale aux tableaux de slugs statiques.
+  - construire des pools dynamiques depuis la base (tags, `priority_axis`, `target_problems`, niveau, compatibilités profil).
+  - introduire un anti-répétition multi-jours:
+    - mémoire glissante (N derniers jours),
+    - cooldown par slug,
+    - couverture minimale avant réutilisation.
+  - fallback intelligent si pool faible (sans dupliquer dans la même journée).
+- `Plan.tsx`
+  - régénération: invalider proprement l’ancien plan actif et recréer avec nouvelle logique.
+- Migration de données:
+  - script de régénération des plans actifs impactés par répétition (option ciblée par chien).
 
-**Actions :**
+4) Lot C — Brancher correctement les tiers (Free/Pro/Expert)
+- Backend data:
+  - compléter les templates Pro manquants (50 attendus), vérifier cohérence `template_tier`, `template_category`, `total_days`.
+- Frontend:
+  - `Plan.tsx` + hooks subscription:
+    - Free: accès catalogue 15 templates.
+    - Pro/Intermédiaire: accès 50 templates.
+    - Expert: génération IA améliorée (personnalisation avancée + adaptation continue).
+- UX:
+  - séparation claire “Plan préconstruit” vs “Plan IA Expert”.
+  - garde-fous quand un tier n’a pas accès à une action.
 
-- **ShelterNav** : Remplacer l'onglet "Espaces" par "Messages" (icône MessageSquare) avec badge de messages non-lus
-- **ShelterMessages** : Ajouter un abonnement Supabase Realtime sur la table `messages` (comme dans `Messages.tsx` pour les utilisateurs normaux) au lieu du `refetchInterval: 5000`
-- **Filtrage** : Restreindre les conversations visibles aux employés du refuge (via `shelter_employees`) et à l'admin uniquement — pas de messagerie avec des utilisateurs lambda
-- **Migration SQL** : `ALTER PUBLICATION supabase_realtime ADD TABLE messages;` (si pas déjà fait)
+5) Lot D — Routes, guards et permissions inter-comptes
+- Audit et correction des guards (`AdminGuard`, `CoachGuard`, `ShelterGuard`) pour éviter routes ambiguës.
+- Vérifier toutes les pages qui utilisent des données “globales” sans filtre utilisateur.
+- Normaliser les query keys React Query pour éviter collisions cache entre rôles/contexte (owner/coach/shelter/admin).
 
-## 2. Suivi post-adoption
+6) Lot E — Sécurité/RLS sans régression produit
+- `coach_profiles`
+  - retirer l’exposition sensible:
+    - soit policy SELECT restreinte,
+    - soit split des colonnes sensibles vers table privée.
+- `course_bookings`
+  - ajouter policy UPDATE éducateur limitée à ses propres cours (pas globale).
+- Repasser linter + scan sécurité après correctifs.
 
-**Problème** : Quand un animal passe au statut "adopté", il n'y a aucun mécanisme pour que l'adoptant envoie des nouvelles au refuge.
+7) QA non-régression (obligatoire avant clôture)
+- Parcours E2E à rejouer:
+  - Owner: onboarding -> plan -> training -> validation jour -> stats.
+  - Admin: dashboard admin + aucune écriture involontaire dans flux owner.
+  - Coach: gestion bookings + notes.
+  - Shelter: ajout éducateur + employés.
+- Tests spécifiques bug actuel:
+  - plus aucune erreur `duplicate key day_progress` au clic “Terminer”.
+  - variation visible des exercices sur plusieurs jours.
+- Contrôles data:
+  - intégrité `day_progress` (1 ligne par `dog_id/day_id`),
+  - cohérence plans actifs/templates par tier.
 
-**Actions :**
+Détails techniques (implémentation)
+- Fichiers principaux:
+  - `src/pages/Training.tsx`
+  - `src/pages/DayDetail.tsx`
+  - `src/hooks/useDogs.tsx`
+  - `src/App.tsx`
+  - `src/lib/planGenerator.ts`
+  - `src/pages/Plan.tsx`
+  - migrations SQL RLS (coach_profiles, course_bookings)
+- Stratégie anti-casse:
+  - livrer par lots A->E,
+  - vérifier chaque lot en preview avant suivant,
+  - ne pas modifier les fichiers auto-générés d’intégration backend.
 
-- **Nouvelle table `adoption_updates`** :
-  ```sql
-  CREATE TABLE adoption_updates (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    animal_id uuid NOT NULL,
-    shelter_user_id uuid NOT NULL,
-    adopter_user_id uuid,
-    adopter_name text DEFAULT '',
-    adopter_email text DEFAULT '',
-    message text DEFAULT '',
-    photo_url text,
-    created_at timestamptz DEFAULT now()
-  );
-  ```
-  Avec RLS : le refuge voit ses propres updates, l'adoptant peut en insérer
-
-- **Enregistrer l'adoptant** : Quand le statut change vers "adopté" dans ShelterAnimalDetail, demander le nom/email de l'adoptant (champs dans le formulaire de changement de statut)
-
-- **Inbox post-adoption** : Section sur le dashboard refuge montrant les dernières nouvelles reçues des adoptants, avec photo et message
-
-## 3. Nettoyage des routes dupliquées
-
-**Problème** : Les routes `/shelter/*` sont déclarées 2 fois dans App.tsx — une fois dans le bloc `isShelter` (lignes 92-109) et une fois dans le bloc principal (lignes 157-166) pour l'accès admin. Le bloc principal n'a PAS de ShelterGuard.
-
-**Action** : Supprimer les routes shelter dupliquées du bloc principal (lignes 157-166) et les remplacer par des routes wrappées avec un guard admin/shelter combiné pour éviter l'accès non autorisé.
-
-## 4. Stratégie Stripe pour les refuges
-
-**Contexte** : Les refuges sont créés sur devis par l'admin. Il n'existe pas encore de produit Stripe pour les refuges. Les produits existants sont :
-- Pro : 7.90 CHF/mois
-- Expert : 12.90 CHF/mois  
-- Éducateur : 200 CHF/an
-
-**Actions :**
-
-- **Créer un produit Stripe** "DogWork Refuge" avec un prix annuel (sur devis, mais un tarif de base à définir). Je proposerai un tarif de 500 CHF/an comme point de départ.
-- **Intégrer check-subscription** dans le flux shelter pour vérifier l'abonnement actif
-- **Page /shelter/subscription** : Interface simple pour voir le statut de l'abonnement et gérer via le portail Stripe
-
-## Fichiers impactés
-
-| Fichier | Action |
-|---------|--------|
-| `src/components/ShelterNav.tsx` | Ajouter onglet Messages avec badge |
-| `src/pages/ShelterMessages.tsx` | Realtime + filtrage employés/admin |
-| `src/pages/ShelterAnimalDetail.tsx` | Champs adoptant lors du changement "adopté" |
-| `src/pages/ShelterDashboard.tsx` | Section nouvelles post-adoption |
-| `src/App.tsx` | Nettoyer routes dupliquées, ajouter /shelter/subscription |
-| **NOUVEAU** `src/pages/ShelterSubscription.tsx` | Page abonnement refuge |
-| **MIGRATION** | Table `adoption_updates` + realtime publication |
-
-## Section technique
-
-```text
-ShelterNav tabs (5):
-  Dashboard | Animaux | Messages(badge) | Stats | Paramètres
-
-Realtime flow:
-  supabase.channel('shelter-messages')
-    → postgres_changes INSERT on messages
-    → invalidateQueries(['shelter-conversations'])
-
-Adoption flow:
-  Status → "adopté" → Modal demande nom/email adoptant
-    → INSERT adoption_updates (shelter_user_id, animal_id, adopter_*)
-    → Adoptant peut poster des nouvelles via lien/email
-```
-
+Résultat attendu
+- Validation d’exercice fiable (plus d’erreur rouge).
+- Plans réellement variés, exploitant les 480 exercices enrichis.
+- Tiers Free/Pro/Expert appliqués correctement.
+- Routes/rôles sécurisés et cohérents.
+- Aucun conflit RLS bloquant sur les flux métier.
