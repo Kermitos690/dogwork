@@ -1723,54 +1723,66 @@ export type Database = {
           axes: Json
           created_at: string
           days: Json
-          dog_id: string
+          dog_id: string | null
           frequency: string
           id: string
           is_active: boolean
+          is_template: boolean
           plan_type: string
           precautions: Json
           security_level: string
           summary: string
+          template_category: string | null
+          template_description: string | null
+          template_tier: string | null
           title: string
           total_days: number
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           average_duration?: string
           axes?: Json
           created_at?: string
           days?: Json
-          dog_id: string
+          dog_id?: string | null
           frequency?: string
           id?: string
           is_active?: boolean
+          is_template?: boolean
           plan_type?: string
           precautions?: Json
           security_level?: string
           summary?: string
+          template_category?: string | null
+          template_description?: string | null
+          template_tier?: string | null
           title?: string
           total_days?: number
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           average_duration?: string
           axes?: Json
           created_at?: string
           days?: Json
-          dog_id?: string
+          dog_id?: string | null
           frequency?: string
           id?: string
           is_active?: boolean
+          is_template?: boolean
           plan_type?: string
           precautions?: Json
           security_level?: string
           summary?: string
+          template_category?: string | null
+          template_description?: string | null
+          template_tier?: string | null
           title?: string
           total_days?: number
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
