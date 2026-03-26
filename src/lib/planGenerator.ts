@@ -437,11 +437,19 @@ function buildExercisesForAxis(
   const uniqueSlugs = Array.from(new Set(slugsForWeek));
   if (!uniqueSlugs.length) return exercises;
 
-  const rotatedSlugs = rotateArray(uniqueSlugs, variationSeed);
-  const prioritizedSlugs = [
-    ...rotatedSlugs.filter((slug) => !avoidSlugs.has(slug)),
-    ...rotatedSlugs.filter((slug) => avoidSlugs.has(slug)),
-  ];
+  // Use a seeded shuffle for true variety across days
+  const shuffled = [...uniqueSlugs];
+  let seed = variationSeed;
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    const j = seed % (i + 1);
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  // Strongly prioritize exercises NOT used on the previous day
+  const fresh = shuffled.filter((slug) => !avoidSlugs.has(slug));
+  const stale = shuffled.filter((slug) => avoidSlugs.has(slug));
+  const prioritizedSlugs = [...fresh, ...stale];
 
   const targetCount = Math.min(
     prioritizedSlugs.length,
