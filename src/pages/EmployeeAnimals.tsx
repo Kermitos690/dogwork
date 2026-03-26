@@ -1,13 +1,14 @@
-import { useAuth } from "@/hooks/useAuth";
 import { useShelterEmployeeInfo } from "@/hooks/useCoach";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { EmployeeLayout } from "@/components/EmployeeLayout";
 import { Card, CardContent } from "@/components/ui/card";
-import { PawPrint } from "lucide-react";
+import { PawPrint, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 export default function EmployeeAnimals() {
+  const navigate = useNavigate();
   const { data: empInfo } = useShelterEmployeeInfo();
   const shelterId = empInfo?.shelter_user_id;
 
@@ -43,7 +44,7 @@ export default function EmployeeAnimals() {
         ) : (
           <div className="space-y-2">
             {animals.map((animal: any) => (
-              <Card key={animal.id}>
+              <Card key={animal.id} className="cursor-pointer hover:bg-secondary/50 transition-colors" onClick={() => navigate(`/employee/animals/${animal.id}`)}>
                 <CardContent className="p-3 flex items-center gap-3">
                   {animal.photo_url ? (
                     <img src={animal.photo_url} alt={animal.name} className="w-12 h-12 rounded-lg object-cover" />
@@ -59,6 +60,7 @@ export default function EmployeeAnimals() {
                     </p>
                     <p className="text-[10px] text-muted-foreground capitalize">{animal.status}</p>
                   </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                 </CardContent>
               </Card>
             ))}

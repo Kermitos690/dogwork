@@ -75,6 +75,7 @@ const EmployeeDashboard = lazy(() => import("./pages/EmployeeDashboard"));
 const EmployeeAnimals = lazy(() => import("./pages/EmployeeAnimals"));
 const EmployeeActivity = lazy(() => import("./pages/EmployeeActivity"));
 const EmployeeProfile = lazy(() => import("./pages/EmployeeProfile"));
+const EmployeeAnimalDetail = lazy(() => import("./pages/EmployeeAnimalDetail"));
 
 const queryClient = new QueryClient();
 
@@ -115,6 +116,7 @@ function ProtectedRoutes() {
         <Routes>
           <Route path="/employee" element={<EmployeeGuard><EmployeeDashboard /></EmployeeGuard>} />
           <Route path="/employee/animals" element={<EmployeeGuard><EmployeeAnimals /></EmployeeGuard>} />
+          <Route path="/employee/animals/:animalId" element={<EmployeeGuard><EmployeeAnimalDetail /></EmployeeGuard>} />
           <Route path="/employee/activity" element={<EmployeeGuard><EmployeeActivity /></EmployeeGuard>} />
           <Route path="/employee/profile" element={<EmployeeGuard><EmployeeProfile /></EmployeeGuard>} />
           <Route path="*" element={<Navigate to="/employee" replace />} />
