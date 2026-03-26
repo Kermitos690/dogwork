@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Shield, CreditCard, Check, Sparkles, MessageSquare,
   Brain, BookOpen, ArrowLeft, Loader2, ExternalLink,
-  AlertTriangle, Percent,
+  AlertTriangle, Percent, Link2, CheckCircle2, XCircle,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -22,32 +22,63 @@ const features = [
   { icon: Shield, label: "Espace professionnel complet", desc: "Suivi clients, notes, alertes, statistiques avancées" },
 ];
 
+interface ConnectStatus {
+  connected: boolean;
+  onboarding_complete: boolean;
+  charges_enabled: boolean;
+  payouts_enabled: boolean;
+}
+
 export default function CoachSubscription() {
   const navigate = useNavigate();
   const { session } = useAuth();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
+  const [connectLoading, setConnectLoading] = useState(false);
+  const [connectStatus, setConnectStatus] = useState<ConnectStatus | null>(null);
   const { subscribed, subscriptionEnd, loading: checking, checkSubscription } = useEducatorSubscription();
+
+  const checkConnectStatus = useCallback(async () => {
+    if (!session?.access_token) return;
+    try {
+      const { data, error } = await supabase.functions.invoke("connect-status", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: {},
+      });
+      if (!error && data) setConnectStatus(data);
+    } catch (e) {
+      console.error("Connect status check failed:", e);
+    }
+  }, [session?.access_token]);
 
   useEffect(() => {
     if (searchParams.get("subscription") === "success") {
-      toast({ title: "🎉 Bienvenue !", description: "Votre cotisation est active. Vous avez accès à toutes les fonctionnalités." });
+      toast({ title: "🎉 Bienvenue !", description: "Votre cotisation est active." });
       checkSubscription();
     }
     if (searchParams.get("canceled") === "true") {
       toast({ title: "Paiement annulé", description: "Vous pouvez réessayer quand vous voulez." });
     }
-  }, [searchParams, toast, checkSubscription]);
+    if (searchParams.get("connect") === "complete") {
+      toast({ title: "✅ Stripe Connect", description: "Votre compte de paiement est en cours de vérification." });
+      checkConnectStatus();
+    }
+    if (searchParams.get("connect") === "refresh") {
+      toast({ title: "Lien expiré", description: "Veuillez relancer l'inscription Stripe Connect." });
+    }
+  }, [searchParams, toast, checkSubscription, checkConnectStatus]);
+
+  useEffect(() => {
+    checkConnectStatus();
+  }, [checkConnectStatus]);
 
   const handleCheckout = async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-educator-checkout");
       if (error) throw error;
-      if (data?.url) {
-        window.open(data.url, "_blank");
-      }
+      if (data?.url) window.open(data.url, "_blank");
     } catch (e: any) {
       toast({ title: "Erreur", description: e.message, variant: "destructive" });
     } finally {
@@ -60,13 +91,26 @@ export default function CoachSubscription() {
     try {
       const { data, error } = await supabase.functions.invoke("customer-portal");
       if (error) throw error;
-      if (data?.url) {
-        window.open(data.url, "_blank");
-      }
+      if (data?.url) window.open(data.url, "_blank");
     } catch (e: any) {
       toast({ title: "Erreur", description: e.message, variant: "destructive" });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleConnectOnboard = async () => {
+    setConnectLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("connect-onboard", {
+        headers: { Authorization: `Bearer ${session?.access_token}` },
+      });
+      if (error) throw error;
+      if (data?.url) window.open(data.url, "_blank");
+    } catch (e: any) {
+      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    } finally {
+      setConnectLoading(false);
     }
   };
 
@@ -83,7 +127,7 @@ export default function CoachSubscription() {
           <div>
             <h1 className="text-lg font-bold text-foreground">Cotisation Éducateur</h1>
             <p className="text-xs text-muted-foreground">
-              {subscribed ? "Gérez votre abonnement professionnel" : "Activez votre espace professionnel"}
+              {subscribed ? "Gérez votre abonnement et vos paiements" : "Activez votre espace professionnel"}
             </p>
           </div>
         </div>
@@ -162,11 +206,7 @@ export default function CoachSubscription() {
                     onClick={handleCheckout}
                     disabled={loading}
                   >
-                    {loading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <CreditCard className="h-4 w-4" />
-                    )}
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
                     Souscrire — 200 CHF / an
                   </Button>
                 </div>
@@ -174,6 +214,84 @@ export default function CoachSubscription() {
             </CardContent>
           </Card>
         </motion.div>
+
+        {/* Stripe Connect Section - only shown when subscribed */}
+        {subscribed && (
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
+            <Card className={`border-2 ${connectStatus?.onboarding_complete ? "border-green-500/30 bg-green-500/5" : "border-blue-500/20 bg-blue-500/5"}`}>
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Link2 className="h-4 w-4 text-blue-600" />
+                  <h3 className="text-sm font-semibold text-foreground">Compte de paiement</h3>
+                </div>
+
+                {connectStatus?.onboarding_complete ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      <span className="text-sm text-foreground">Compte vérifié et actif</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="flex items-center gap-1.5">
+                        {connectStatus.charges_enabled ? (
+                          <CheckCircle2 className="h-3 w-3 text-green-500" />
+                        ) : (
+                          <XCircle className="h-3 w-3 text-destructive" />
+                        )}
+                        <span className="text-muted-foreground">Paiements</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {connectStatus.payouts_enabled ? (
+                          <CheckCircle2 className="h-3 w-3 text-green-500" />
+                        ) : (
+                          <XCircle className="h-3 w-3 text-destructive" />
+                        )}
+                        <span className="text-muted-foreground">Virements</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Vos revenus de cours seront automatiquement versés sur votre compte bancaire après déduction de la commission plateforme.
+                    </p>
+                  </div>
+                ) : connectStatus?.connected ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 text-amber-500 animate-spin" />
+                      <span className="text-sm text-foreground">Inscription en cours</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Votre compte est en cours de vérification. Cliquez ci-dessous pour compléter votre inscription.
+                    </p>
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2"
+                      onClick={handleConnectOnboard}
+                      disabled={connectLoading}
+                    >
+                      {connectLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+                      Compléter mon inscription
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Connectez votre compte bancaire pour recevoir automatiquement les paiements de vos cours,
+                      après déduction de la <strong className="text-foreground">commission de 15.8%</strong>.
+                    </p>
+                    <Button
+                      className="w-full gap-2"
+                      onClick={handleConnectOnboard}
+                      disabled={connectLoading}
+                    >
+                      {connectLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
+                      Configurer mes paiements
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Features included */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
@@ -195,7 +313,7 @@ export default function CoachSubscription() {
           </div>
         </motion.div>
 
-        {/* Commission info - very clear */}
+        {/* Commission info - updated to 15.8% */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
           <Card className="border-amber-500/20 bg-amber-500/5">
             <CardContent className="p-4 space-y-3">
@@ -205,7 +323,7 @@ export default function CoachSubscription() {
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
                 Toute transaction effectuée via la plateforme DogWork pour les cours en présentiel
-                est soumise à une <strong className="text-foreground">commission de 30%</strong> prélevée
+                est soumise à une <strong className="text-foreground">commission de 15.8%</strong> prélevée
                 automatiquement pour couvrir les frais liés à l'application (hébergement, paiement sécurisé,
                 support technique, développement).
               </p>
@@ -216,12 +334,12 @@ export default function CoachSubscription() {
                   <span className="font-semibold text-foreground">100 CHF</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Commission plateforme (30%)</span>
-                  <span className="font-medium text-destructive">– 30 CHF</span>
+                  <span className="text-muted-foreground">Commission plateforme (15.8%)</span>
+                  <span className="font-medium text-destructive">– 15.80 CHF</span>
                 </div>
                 <div className="border-t border-border pt-1.5 flex items-center justify-between text-xs">
                   <span className="font-medium text-foreground">Vous recevez</span>
-                  <span className="font-bold text-primary">70 CHF</span>
+                  <span className="font-bold text-primary">84.20 CHF</span>
                 </div>
               </div>
             </CardContent>
@@ -233,7 +351,7 @@ export default function CoachSubscription() {
           variant="ghost"
           size="sm"
           className="w-full text-xs text-muted-foreground"
-          onClick={checkSubscription}
+          onClick={() => { checkSubscription(); checkConnectStatus(); }}
         >
           Actualiser le statut
         </Button>
