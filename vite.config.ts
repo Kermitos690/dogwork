@@ -28,7 +28,7 @@ export default defineConfig(({ mode }) => ({
           'vendor-query': ['@tanstack/react-query'],
           'vendor-ui': ['framer-motion', 'sonner', 'cmdk'],
           'vendor-supabase': ['@supabase/supabase-js'],
-          'vendor-recharts': ['recharts'],
+          
         },
       },
     },
