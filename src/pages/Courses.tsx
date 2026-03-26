@@ -346,6 +346,43 @@ export default function Courses() {
         })}
       </motion.div>
 
+      {/* Dog Selection Dialog */}
+      <Dialog open={bookingDogDialog.open} onOpenChange={(o) => setBookingDogDialog(prev => ({ ...prev, open: o }))}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Dog className="h-5 w-5 text-primary" /> Quel chien inscrivez-vous ?
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 pt-2">
+            <p className="text-sm text-muted-foreground">
+              L'éducateur validera le profil de votre chien avant de confirmer l'inscription.
+            </p>
+            <Select value={selectedDogId} onValueChange={setSelectedDogId}>
+              <SelectTrigger><SelectValue placeholder="Sélectionner un chien" /></SelectTrigger>
+              <SelectContent>
+                {myDogs.map((d) => (
+                  <SelectItem key={d.id} value={d.id}>
+                    🐕 {d.name} {d.breed ? `— ${d.breed}` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              className="w-full"
+              disabled={!selectedDogId || bookingLoading === bookingDogDialog.courseId}
+              onClick={() => handleBook(bookingDogDialog.courseId, selectedDogId)}
+            >
+              {bookingLoading === bookingDogDialog.courseId ? (
+                <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Réservation...</>
+              ) : (
+                "Confirmer et réserver"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Review Dialog */}
       <Dialog open={reviewDialog.open} onOpenChange={(o) => setReviewDialog(prev => ({ ...prev, open: o }))}>
         <DialogContent>
