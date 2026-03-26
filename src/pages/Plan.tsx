@@ -14,7 +14,7 @@ import { useHasFeature } from "@/hooks/useSubscription";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PROGRAM } from "@/data/program";
-import { generatePersonalizedPlan, type PersonalizedPlan } from "@/lib/planGenerator";
+import { generatePersonalizedPlan, setDbExercises, type PersonalizedPlan } from "@/lib/planGenerator";
 import { toast } from "@/hooks/use-toast";
 
 const statusColors: Record<string, string> = {
@@ -105,6 +105,12 @@ export default function PlanPage() {
     if (!activeDog || !problems || !user) return;
     setGenerating(true);
     try {
+      // Load all exercises from DB to feed the plan generator
+      const { data: dbExercises } = await supabase.from("exercises").select("id, slug, name, description, objective, summary, dedication, short_instruction, steps, tutorial_steps, success_criteria, contraindications");
+      if (dbExercises && dbExercises.length > 0) {
+        setDbExercises(dbExercises);
+      }
+
       const plan = generatePersonalizedPlan({
         dog: activeDog,
         problems: problems.map(p => ({ problem_key: p.problem_key, intensity: p.intensity, frequency: p.frequency })),
