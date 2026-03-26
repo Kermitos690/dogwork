@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Dog, Mail, Lock, User, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-type Mode = "login" | "signup" | "forgot";
+type Mode = "login" | "employee" | "signup" | "forgot";
 
 const DEV_ROLES = [
   { role: "owner", emoji: "🐕", label: "Propriétaire", desc: "Gérer mes chiens et suivre leur plan d'entraînement", gradient: "from-sky-500 to-blue-600" },
@@ -17,6 +17,8 @@ const DEV_ROLES = [
   { role: "shelter", emoji: "🏠", label: "Refuge", desc: "Gérer les animaux, employés et espaces du refuge", gradient: "from-amber-500 to-orange-600" },
   { role: "admin", emoji: "🛡️", label: "Administrateur", desc: "Superviser la plateforme et gérer les contenus", gradient: "from-rose-500 to-red-600" },
 ];
+
+const toEmployeePassword = (pin: string) => `DogWork!${pin}#Secure`;
 
 export default function Auth() {
   const [mode, setMode] = useState<Mode>("login");
@@ -32,20 +34,28 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
     try {
+      const normalizedEmail = email.trim().toLowerCase();
+
       if (mode === "login") {
-        // Try normal login first; if it fails and password looks like a 6-digit PIN, retry with transformed password
-        let result = await signIn(email, password);
-        if (result.error && /^\d{6}$/.test(password)) {
-          result = await signIn(email, `DogWork!${password}#Secure`);
+        const { error } = await signIn(normalizedEmail, password);
+        if (error) throw error;
+      } else if (mode === "employee") {
+        const pin = password.trim();
+        if (!/^\d{6}$/.test(pin)) {
+          throw new Error("Le code PIN employé doit contenir exactement 6 chiffres.");
         }
-        if (result.error) throw result.error;
+
+        const { error } = await signIn(normalizedEmail, toEmployeePassword(pin));
+        if (error) {
+          throw new Error("Identifiants employé invalides. Vérifiez email + PIN ou demandez une réinitialisation au refuge.");
+        }
       } else if (mode === "signup") {
-        const { error } = await signUp(email, password, displayName);
+        const { error } = await signUp(normalizedEmail, password, displayName);
         if (error) throw error;
         toast({ title: "Inscription réussie", description: "Vérifiez votre email pour confirmer votre compte." });
         setMode("login");
       } else {
-        const { error } = await resetPassword(email);
+        const { error } = await resetPassword(normalizedEmail);
         if (error) throw error;
         toast({ title: "Email envoyé", description: "Consultez votre boîte mail pour réinitialiser votre mot de passe." });
         setMode("login");
@@ -79,7 +89,6 @@ export default function Auth() {
   return (
     <main className="min-h-screen bg-background flex items-center justify-center p-4" aria-label="Authentification">
       <div className="w-full max-w-md space-y-6">
-        {/* Logo */}
         <div className="text-center space-y-2">
           <div className="mx-auto w-16 h-16 rounded-2xl bg-primary flex items-center justify-center">
             <Dog className="h-8 w-8 text-primary-foreground" />
@@ -88,7 +97,6 @@ export default function Auth() {
           <p className="text-sm text-muted-foreground">Journal de bord canin intelligent</p>
         </div>
 
-        {/* Dev Quick Access — prominent */}
         <div className="space-y-3">
           <div className="text-center">
             <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary">
@@ -123,7 +131,6 @@ export default function Auth() {
           </div>
         </div>
 
-        {/* Separator */}
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t border-border" />
@@ -133,16 +140,17 @@ export default function Auth() {
           </div>
         </div>
 
-        {/* Standard Auth */}
         <Card>
           <CardHeader className="pb-4">
             <CardTitle className="text-lg">
               {mode === "login" && "Connexion"}
+              {mode === "employee" && "Connexion employé refuge"}
               {mode === "signup" && "Inscription"}
               {mode === "forgot" && "Mot de passe oublié"}
             </CardTitle>
             <CardDescription>
               {mode === "login" && "Connectez-vous à votre compte"}
+              {mode === "employee" && "Employés refuge : utilisez votre email + code PIN à 6 chiffres"}
               {mode === "signup" && "Créez votre compte en quelques secondes"}
               {mode === "forgot" && "Entrez votre email pour recevoir un lien de réinitialisation"}
             </CardDescription>
@@ -167,19 +175,29 @@ export default function Auth() {
               </div>
               {mode !== "forgot" && (
                 <div className="space-y-2">
-                  <Label htmlFor="password">Mot de passe</Label>
+                  <Label htmlFor="password">{mode === "employee" ? "Code PIN" : "Mot de passe"}</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="pl-9" />
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder={mode === "employee" ? "123456" : "••••••••"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      minLength={mode === "employee" ? 6 : 6}
+                      maxLength={mode === "employee" ? 6 : undefined}
+                      className="pl-9"
+                    />
                   </div>
                 </div>
               )}
               <Button type="submit" className="w-full h-12 text-base" disabled={loading}>
-                {loading ? "Chargement..." : mode === "login" ? "Se connecter" : mode === "signup" ? "Créer mon compte" : "Envoyer le lien"}
+                {loading ? "Chargement..." : mode === "login" ? "Se connecter" : mode === "employee" ? "Se connecter (Employé)" : mode === "signup" ? "Créer mon compte" : "Envoyer le lien"}
               </Button>
             </form>
 
-            {mode !== "forgot" && (
+            {mode === "login" && (
               <div className="mt-4">
                 <div className="relative my-4">
                   <div className="absolute inset-0 flex items-center">
@@ -209,6 +227,7 @@ export default function Auth() {
             <div className="mt-4 space-y-2 text-center text-sm">
               {mode === "login" && (
                 <>
+                  <button onClick={() => setMode("employee")} className="text-primary hover:underline block w-full">Connexion employé refuge (PIN)</button>
                   <button onClick={() => setMode("forgot")} className="text-primary hover:underline block w-full">Mot de passe oublié ?</button>
                   <p className="text-muted-foreground">
                     Pas de compte ?{" "}
@@ -216,10 +235,13 @@ export default function Auth() {
                   </p>
                 </>
               )}
-              {(mode === "signup" || mode === "forgot") && (
+              {(mode === "signup" || mode === "forgot" || mode === "employee") && (
                 <button onClick={() => setMode("login")} className="text-primary hover:underline flex items-center justify-center gap-1 w-full">
                   <ArrowLeft className="h-3 w-3" /> Retour à la connexion
                 </button>
+              )}
+              {mode === "employee" && (
+                <p className="text-xs text-muted-foreground">Le PIN est envoyé/réinitialisé par l'administrateur du refuge.</p>
               )}
             </div>
           </CardContent>
