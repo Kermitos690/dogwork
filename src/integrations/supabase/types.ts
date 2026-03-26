@@ -1862,6 +1862,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_employee_shelter_id: { Args: { _user_id: string }; Returns: string }
       get_unenriched_exercises: {
         Args: { batch_limit?: number; batch_offset?: number }
         Returns: {
@@ -1936,6 +1937,7 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_educator: { Args: never; Returns: boolean }
       is_shelter: { Args: never; Returns: boolean }
+      is_shelter_employee: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "owner" | "educator" | "admin" | "shelter" | "shelter_employee"
