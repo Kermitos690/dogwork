@@ -105,7 +105,9 @@ export function GuidedTour() {
   useEffect(() => {
     const completed = localStorage.getItem(TOUR_KEY);
     if (!completed) {
-      const timer = setTimeout(() => setIsOpen(true), 1500);
+      // Delay beyond the LCP observation window (~4s) so the tour modal
+      // does not become the Largest Contentful Paint element.
+      const timer = setTimeout(() => setIsOpen(true), 4000);
       return () => clearTimeout(timer);
     }
   }, []);
