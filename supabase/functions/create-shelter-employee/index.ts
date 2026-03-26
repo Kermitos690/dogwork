@@ -1,4 +1,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { encode as hexEncode } from "https://deno.land/std@0.208.0/encoding/hex.ts";
+
+async function hashPin(pin: string): Promise<string> {
+  const data = new TextEncoder().encode(pin);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return new TextDecoder().decode(hexEncode(new Uint8Array(hash)));
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -42,8 +49,9 @@ Deno.serve(async (req) => {
       const { error: updateErr } = await supabaseAdmin.auth.admin.updateUser(auth_user_id, { password: pin });
       if (updateErr) throw new Error(`Erreur reset mot de passe: ${updateErr.message}`);
 
-      // Update pin_code in shelter_employees
-      await supabaseAdmin.from("shelter_employees").update({ pin_code: pin }).eq("id", employee_id);
+      // Update pin_code hash in shelter_employees (clear pin removed)
+      const hashedPin = await hashPin(pin);
+      await supabaseAdmin.from("shelter_employees").update({ pin_code: "******", hashed_pin: hashedPin }).eq("id", employee_id);
 
       // Get employee info for email
       const { data: emp } = await supabaseAdmin.from("shelter_employees").select("name, email").eq("id", employee_id).single();
@@ -132,7 +140,8 @@ Deno.serve(async (req) => {
       throw new Error(`Erreur attribution rôle: ${roleError.message}`);
     }
 
-    // Create employee record
+    // Create employee record with hashed PIN
+    const hashedPin = await hashPin(pin);
     const { error: empError } = await supabaseAdmin.from("shelter_employees").insert({
       shelter_user_id: effectiveShelterId,
       name,
@@ -141,7 +150,8 @@ Deno.serve(async (req) => {
       email,
       phone: phone || "",
       auth_user_id: userId,
-      pin_code: pin,
+      pin_code: "******",
+      hashed_pin: hashedPin,
     });
     if (empError) {
       await supabaseAdmin.auth.admin.deleteUser(userId);

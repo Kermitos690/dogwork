@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Users, Plus, Pencil, Trash2, Phone, Mail, KeyRound } from "lucide-react";
 import { motion } from "framer-motion";
@@ -39,6 +40,7 @@ export default function ShelterEmployees() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<EmployeeForm>(emptyForm);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const { data: employees = [], isLoading } = useQuery({
     queryKey: ["shelter-employees", user?.id],
@@ -58,9 +60,6 @@ export default function ShelterEmployees() {
     mutationFn: async () => {
       if (!form.name.trim()) throw new Error("Nom requis");
       if (!form.email.trim()) throw new Error("Email requis");
-
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
 
       const { data, error } = await supabase.functions.invoke("create-shelter-employee", {
         body: {
@@ -116,6 +115,7 @@ export default function ShelterEmployees() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shelter-employees"] });
+      setDeleteTarget(null);
       toast({ title: "Employé désactivé" });
     },
   });
@@ -257,7 +257,7 @@ export default function ShelterEmployees() {
                       )}
                     </div>
                     {emp.auth_user_id && (
-                      <span className="text-[10px] text-green-600 flex items-center gap-0.5 mt-0.5">
+                      <span className="text-[10px] text-success flex items-center gap-0.5 mt-0.5">
                         <KeyRound className="h-3 w-3" /> Compte actif
                       </span>
                     )}
@@ -278,7 +278,12 @@ export default function ShelterEmployees() {
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(emp)}>
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteMutation.mutate(emp.id)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive"
+                      onClick={() => setDeleteTarget({ id: emp.id, name: emp.name })}
+                    >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
@@ -287,6 +292,27 @@ export default function ShelterEmployees() {
             ))}
           </div>
         )}
+
+        {/* Confirmation dialog for deletion */}
+        <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Désactiver cet employé ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {deleteTarget?.name} sera désactivé et ne pourra plus se connecter. Cette action est réversible.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+              >
+                Désactiver
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </motion.div>
     </ShelterLayout>
   );
