@@ -39,6 +39,29 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { email: user.email });
 
+    // Dev test accounts get full access automatically
+    const TEST_EMAILS = [
+      "test-owner@pawplan.dev",
+      "test-educator@pawplan.dev",
+      "test-admin@pawplan.dev",
+      "test-shelter@pawplan.dev",
+    ];
+
+    if (TEST_EMAILS.includes(user.email)) {
+      logStep("Dev test account detected, granting full access", { email: user.email });
+      // Return the best tier (expert for owners, educator product for educators)
+      const isEducator = user.email === "test-educator@pawplan.dev";
+      return new Response(JSON.stringify({
+        subscribed: true,
+        product_id: isEducator ? "prod_U8CxlV7PMpHAgA" : "prod_U83inCbv8JMMgf",
+        price_id: isEducator ? "price_1T9wXlPshPrEibTgEM0BNrSm" : "price_1T9nbAPshPrEibTgo3JA1m5S",
+        subscription_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
 
