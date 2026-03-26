@@ -561,6 +561,9 @@ export default function AdminDashboard() {
         {/* Shelters list — collapsible */}
         <SheltersList />
 
+        {/* Admin data management */}
+        <AdminDataManager />
+
         {/* Quick links */}
         <div className="grid grid-cols-2 gap-2">
           <Button variant="outline" className="h-12 gap-2" onClick={() => navigate("/admin/treasury")}>
