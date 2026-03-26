@@ -263,6 +263,18 @@ export default function ShelterEmployees() {
                     )}
                   </div>
                   <div className="flex gap-1">
+                    {emp.auth_user_id && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        disabled={resetPinMutation.isPending}
+                        onClick={() => resetPinMutation.mutate(emp)}
+                        title="Réinitialiser le PIN"
+                      >
+                        <KeyRound className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(emp)}>
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
