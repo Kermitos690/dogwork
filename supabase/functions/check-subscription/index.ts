@@ -39,22 +39,52 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { email: user.email });
 
-    // Dev test accounts get full access automatically
+    // Dev/test accounts get full access automatically
+    // Check if user has admin, educator, or shelter role for appropriate bypass
+    const { data: userRoles } = await supabaseClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id);
+    
+    const roles = (userRoles || []).map((r: any) => r.role);
+    const isAdmin = roles.includes("admin");
+    const isEducator = roles.includes("educator");
+    const isShelter = roles.includes("shelter");
+
     const TEST_EMAILS = [
       "test-owner@pawplan.dev",
       "test-educator@pawplan.dev",
       "test-admin@pawplan.dev",
       "test-shelter@pawplan.dev",
     ];
+    const isTestAccount = TEST_EMAILS.includes(user.email!);
+    const isAdminEmail = user.email!.toLowerCase() === "teba.gaetan@gmail.com";
 
-    if (TEST_EMAILS.includes(user.email)) {
-      logStep("Dev test account detected, granting full access", { email: user.email });
-      // Return the best tier (expert for owners, educator product for educators)
-      const isEducator = user.email === "test-educator@pawplan.dev";
+    if (isTestAccount || isAdminEmail) {
+      logStep("Privileged account detected, granting full access", { email: user.email, roles });
+
+      // Determine best product_id based on role
+      let productId: string;
+      let priceId: string;
+
+      if (isEducator || user.email === "test-educator@pawplan.dev") {
+        // Educator subscription product
+        productId = "prod_U8CxlV7PMpHAgA";
+        priceId = "price_1T9wXlPshPrEibTgEM0BNrSm";
+      } else if (isShelter || user.email === "test-shelter@pawplan.dev") {
+        // Shelter subscription product
+        productId = "prod_UDKcjmnJnM7pBo";
+        priceId = "price_1TEtxAPshPrEibTgsDFHr8Nw";
+      } else {
+        // Owner/Admin → Expert tier (highest)
+        productId = "prod_U83inCbv8JMMgf";
+        priceId = "price_1T9nbAPshPrEibTgo3JA1m5S";
+      }
+
       return new Response(JSON.stringify({
         subscribed: true,
-        product_id: isEducator ? "prod_U8CxlV7PMpHAgA" : "prod_U83inCbv8JMMgf",
-        price_id: isEducator ? "price_1T9wXlPshPrEibTgEM0BNrSm" : "price_1T9nbAPshPrEibTgo3JA1m5S",
+        product_id: productId,
+        price_id: priceId,
         subscription_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
