@@ -42,10 +42,13 @@ type Booking = {
   id: string;
   course_id: string;
   user_id: string;
+  dog_id: string | null;
   status: string | null;
   payment_status: string | null;
   amount_cents: number | null;
   commission_cents: number | null;
+  educator_note: string | null;
+  reviewed_at: string | null;
   created_at: string | null;
 };
 
