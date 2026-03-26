@@ -39,6 +39,7 @@ export default function PlanPage() {
   const [showPrecautions, setShowPrecautions] = useState(false);
   const [showPrereqs, setShowPrereqs] = useState(false);
   const hasAiPlan = useHasFeature("ai_plan");
+  const { tier } = useSubscription();
   const adaptiveSuggestion = useAdaptiveSuggestion();
 
   const { data: savedPlan, refetch: refetchPlan } = useQuery({
@@ -155,15 +156,55 @@ export default function PlanPage() {
         setDbExercises(dbExercises);
       }
 
+      // For Expert tier, gather behavior data for adaptive generation
+      let behaviorData = undefined;
+      if (tier === "expert") {
+        const { data: logs } = await supabase
+          .from("behavior_logs")
+          .select("*")
+          .eq("dog_id", activeDog.id)
+          .order("created_at", { ascending: false })
+          .limit(10);
+        const { data: progress } = await supabase
+          .from("day_progress")
+          .select("*")
+          .eq("dog_id", activeDog.id);
+        const { data: journalEntries } = await supabase
+          .from("journal_entries")
+          .select("incidents")
+          .eq("dog_id", activeDog.id)
+          .order("created_at", { ascending: false })
+          .limit(10);
+
+        if (logs && logs.length >= 3) {
+          const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+          const score = (field: string, goodValue: string) => {
+            const vals = logs.slice(0, 7).map((l: any) => l[field]).filter(Boolean);
+            if (!vals.length) return 50;
+            return Math.round((vals.filter((v: string) => v === goodValue).length / vals.length) * 100);
+          };
+          behaviorData = {
+            avgTension: avg(logs.map(l => l.tension_level || 0).filter(Boolean)),
+            avgDogReaction: avg(logs.map(l => l.dog_reaction_level || 0).filter(Boolean)),
+            avgHumanReaction: avg(logs.map((l: any) => l.human_reaction_level || 0).filter(Boolean)),
+            stopScore: score("stop_response", "oui"),
+            focusScore: score("focus_quality", "bon"),
+            recoveryRate: score("recovery_after_trigger", "rapide"),
+            incidentCount: (journalEntries || []).filter(e => e.incidents && e.incidents.length > 0).length,
+            daysCompleted: (progress || []).filter(p => p.validated).length,
+          };
+        }
+      }
+
       const plan = generatePersonalizedPlan({
         dog: activeDog,
         problems: problems.map(p => ({ problem_key: p.problem_key, intensity: p.intensity, frequency: p.frequency })),
         objectives: (objectives || []).map(o => ({ objective_key: o.objective_key, is_priority: o.is_priority || false })),
         evaluation: evaluation || null,
-      });
+      }, { tier, behaviorData });
       await supabase.from("training_plans").update({ is_active: false }).eq("dog_id", activeDog.id).eq("user_id", user.id);
       await supabase.from("training_plans").insert({
-        dog_id: activeDog.id, user_id: user.id, plan_type: "personalized",
+        dog_id: activeDog.id, user_id: user.id, plan_type: tier === "expert" ? "expert" : "personalized",
         title: plan.dogName, summary: plan.summary,
         axes: plan.axes as any, precautions: plan.precautions as any,
         frequency: plan.frequency, average_duration: plan.averageDuration,
@@ -171,7 +212,7 @@ export default function PlanPage() {
         days: plan.days as any,
       });
       refetchPlan();
-      toast({ title: "✓ Plan généré", description: `Plan pour ${activeDog.name} enregistré.` });
+      toast({ title: tier === "expert" ? "✨ Plan Expert généré" : "✓ Plan généré", description: `Plan pour ${activeDog.name} enregistré.` });
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
     } finally {
