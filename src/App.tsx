@@ -170,19 +170,19 @@ function ProtectedRoutes() {
         <Route path="/coach/shelter-animals" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachShelterAnimals /></CoachGuard></Suspense>} />
         <Route path="/coach/shelter-animal/:animalId" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachShelterAnimalEval /></CoachGuard></Suspense>} />
         <Route path="/admin" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminDashboard /></AdminGuard></Suspense>} />
-        {/* Shelter routes accessible to admin too */}
-        {/* Shelter routes for admin access */}
-        <Route path="/shelter" element={<Suspense fallback={<PageLoader />}><AdminGuard><ShelterDashboard /></AdminGuard></Suspense>} />
-        <Route path="/shelter/animals" element={<Suspense fallback={<PageLoader />}><AdminGuard><ShelterAnimals /></AdminGuard></Suspense>} />
-        <Route path="/shelter/animals/:animalId" element={<Suspense fallback={<PageLoader />}><AdminGuard><ShelterAnimalDetail /></AdminGuard></Suspense>} />
-        <Route path="/shelter/profile" element={<Suspense fallback={<PageLoader />}><AdminGuard><ShelterProfile /></AdminGuard></Suspense>} />
-        <Route path="/shelter/messages" element={<Suspense fallback={<PageLoader />}><AdminGuard><ShelterMessages /></AdminGuard></Suspense>} />
-        <Route path="/shelter/settings" element={<Suspense fallback={<PageLoader />}><AdminGuard><ShelterSettings /></AdminGuard></Suspense>} />
-        <Route path="/shelter/employees" element={<Suspense fallback={<PageLoader />}><AdminGuard><ShelterEmployees /></AdminGuard></Suspense>} />
-        <Route path="/shelter/spaces" element={<Suspense fallback={<PageLoader />}><AdminGuard><ShelterSpaces /></AdminGuard></Suspense>} />
-        <Route path="/shelter/activity" element={<Suspense fallback={<PageLoader />}><AdminGuard><ShelterActivityLog /></AdminGuard></Suspense>} />
-        <Route path="/shelter/stats" element={<Suspense fallback={<PageLoader />}><AdminGuard><ShelterStats /></AdminGuard></Suspense>} />
-        <Route path="/shelter/subscription" element={<Suspense fallback={<PageLoader />}><AdminGuard><ShelterSubscription /></AdminGuard></Suspense>} />
+        {/* Shelter routes for admin access (ShelterGuard allows admin) */}
+        <Route path="/shelter" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterDashboard /></ShelterGuard></Suspense>} />
+        <Route path="/shelter/animals" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterAnimals /></ShelterGuard></Suspense>} />
+        <Route path="/shelter/animals/:animalId" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterAnimalDetail /></ShelterGuard></Suspense>} />
+        <Route path="/shelter/profile" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterProfile /></ShelterGuard></Suspense>} />
+        <Route path="/shelter/messages" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterMessages /></ShelterGuard></Suspense>} />
+        <Route path="/shelter/settings" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterSettings /></ShelterGuard></Suspense>} />
+        <Route path="/shelter/employees" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterEmployees /></ShelterGuard></Suspense>} />
+        <Route path="/shelter/spaces" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterSpaces /></ShelterGuard></Suspense>} />
+        <Route path="/shelter/activity" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterActivityLog /></ShelterGuard></Suspense>} />
+        <Route path="/shelter/stats" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterStats /></ShelterGuard></Suspense>} />
+        <Route path="/shelter/subscription" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterSubscription /></ShelterGuard></Suspense>} />
+        <Route path="/shelter/coaches" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterCoaches /></ShelterGuard></Suspense>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <AIChatBot />
