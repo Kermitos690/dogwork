@@ -159,8 +159,72 @@ const AXIS_EXERCISE_SLUGS: Record<string, string[][]> = {
   ],
 };
 
-// Helper to find a LibraryExercise by slug
+// Exercises lookup: DB exercises take priority, fallback to local library
+let _dbExercises: Record<string, any> = {};
+
+export function setDbExercises(exercises: { slug: string; name: string; description?: string | null; objective?: string | null; summary?: string | null; steps?: any; tutorial_steps?: any; success_criteria?: string | null; contraindications?: any; id: string; dedication?: string | null; short_instruction?: string | null }[]) {
+  _dbExercises = {};
+  exercises.forEach(e => { _dbExercises[e.slug] = e; });
+}
+
 function findBySlug(slug: string): LibraryExercise | undefined {
+  // Try DB exercises first
+  const dbEx = _dbExercises[slug];
+  if (dbEx) {
+    // Convert DB exercise to LibraryExercise-compatible shape
+    const steps = Array.isArray(dbEx.steps) ? dbEx.steps.map((s: any) => typeof s === 'string' ? s : s.description || s.text || String(s)) : [];
+    const tutorialSteps = Array.isArray(dbEx.tutorial_steps) ? dbEx.tutorial_steps.map((ts: any) => ({
+      title: ts.title || '',
+      description: ts.description || '',
+      tip: ts.tip || '',
+    })) : [];
+    const contraindications = Array.isArray(dbEx.contraindications) ? dbEx.contraindications.map((c: any) => typeof c === 'string' ? c : c.text || String(c)) : [];
+
+    return {
+      id: dbEx.id,
+      slug: dbEx.slug,
+      name: dbEx.name,
+      shortTitle: dbEx.name,
+      category: '',
+      categoryIcon: '',
+      objective: dbEx.objective || '',
+      dedication: dbEx.dedication || '',
+      targetProblems: [],
+      secondaryBenefits: [],
+      prerequisites: [],
+      level: 'débutant',
+      exerciseType: 'fondation',
+      duration: '5 min',
+      repetitions: '3-5 fois',
+      frequency: '1x/jour',
+      material: [],
+      environment: 'tous',
+      intensityLevel: 1,
+      cognitiveLoad: 1,
+      physicalLoad: 1,
+      summary: dbEx.summary || dbEx.description || dbEx.objective || '',
+      shortInstruction: dbEx.short_instruction || '',
+      steps,
+      tutorialSteps,
+      mistakes: [],
+      vigilance: '',
+      successCriteria: dbEx.success_criteria || '',
+      stopCriteria: '',
+      adaptations: [],
+      progressionNext: '',
+      regressionSimplified: '',
+      ageRecommendation: 'tous',
+      suitableProfiles: [],
+      contraindications,
+      precautions: [],
+      healthPrecautions: [],
+      compatibleReactivity: false,
+      compatibleSenior: false,
+      compatiblePuppy: false,
+      compatibleMuzzle: false,
+    } as LibraryExercise;
+  }
+  // Fallback to local library
   return EXERCISE_LIBRARY.find(e => e.slug === slug);
 }
 
