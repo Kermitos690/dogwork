@@ -122,7 +122,7 @@ export default function EmployeeActivity() {
                   <Select value={animalId} onValueChange={setAnimalId}>
                     <SelectTrigger><SelectValue placeholder="Aucun animal spécifique" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Aucun</SelectItem>
+                      <SelectItem value="none">Aucun</SelectItem>
                       {animals.map((a: any) => (
                         <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                       ))}
