@@ -1,13 +1,11 @@
-// Find user by email - edge function
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -36,8 +34,8 @@ serve(async (req) => {
 
     // Return only user IDs matching exact email
     const matched = (users || [])
-      .filter(u => u.email?.toLowerCase() === email.toLowerCase())
-      .map(u => ({ user_id: u.id, email: u.email }));
+      .filter((u: any) => u.email?.toLowerCase() === email.toLowerCase())
+      .map((u: any) => ({ user_id: u.id, email: u.email }));
 
     return new Response(JSON.stringify({ users: matched }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
