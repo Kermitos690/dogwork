@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      adopter_links: {
+        Row: {
+          adopter_user_id: string
+          animal_id: string
+          animal_name: string | null
+          created_at: string
+          id: string
+          shelter_user_id: string
+        }
+        Insert: {
+          adopter_user_id: string
+          animal_id: string
+          animal_name?: string | null
+          created_at?: string
+          id?: string
+          shelter_user_id: string
+        }
+        Update: {
+          adopter_user_id?: string
+          animal_id?: string
+          animal_name?: string | null
+          created_at?: string
+          id?: string
+          shelter_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "adopter_links_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_animals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       adoption_updates: {
         Row: {
           adopter_email: string | null

@@ -6,7 +6,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, ArrowLeft, Search, MessageSquare } from "lucide-react";
+import { Send, ArrowLeft, Search, MessageSquare, Users, GraduationCap, Building2, ShieldCheck } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -18,6 +18,13 @@ interface Conversation {
   unread: number;
 }
 
+interface Contact {
+  user_id: string;
+  display_name: string;
+  role_label: string;
+  detail?: string;
+}
+
 export default function Messages() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -26,6 +33,84 @@ export default function Messages() {
   const [newMessage, setNewMessage] = useState("");
   const [search, setSearch] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Fetch contacts: linked coach, shelter (if adopter), admin
+  const { data: contacts = [] } = useQuery({
+    queryKey: ["owner-contacts", user?.id],
+    queryFn: async () => {
+      const result: Contact[] = [];
+
+      // 1. Admin
+      const { data: adminRole } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin" as any)
+        .limit(1)
+        .maybeSingle();
+      if (adminRole) {
+        const { data: adminProfile } = await supabase
+          .from("profiles")
+          .select("display_name")
+          .eq("user_id", adminRole.user_id)
+          .maybeSingle();
+        result.push({
+          user_id: adminRole.user_id,
+          display_name: adminProfile?.display_name || "Administrateur",
+          role_label: "Support",
+        });
+      }
+
+      // 2. Linked coach(es)
+      const { data: links } = await supabase
+        .from("client_links")
+        .select("coach_user_id")
+        .eq("client_user_id", user!.id)
+        .eq("status", "active");
+      if (links && links.length > 0) {
+        const coachIds = links.map(l => l.coach_user_id);
+        const { data: coachProfiles } = await supabase
+          .from("coach_profiles")
+          .select("user_id, display_name")
+          .in("user_id", coachIds);
+        for (const cp of coachProfiles || []) {
+          result.push({
+            user_id: cp.user_id,
+            display_name: cp.display_name || "Éducateur",
+            role_label: "Éducateur",
+          });
+        }
+      }
+
+      // 3. Shelter (if adopter) via adopter_links
+      const { data: adopterLinks } = await supabase
+        .from("adopter_links" as any)
+        .select("shelter_user_id, animal_name")
+        .eq("adopter_user_id", user!.id);
+      if (adopterLinks && adopterLinks.length > 0) {
+        const shelterIds = [...new Set((adopterLinks as any[]).map((l: any) => l.shelter_user_id))];
+        const { data: shelterProfiles } = await supabase
+          .from("shelter_profiles")
+          .select("user_id, name")
+          .in("user_id", shelterIds);
+        for (const sp of shelterProfiles || []) {
+          const animals = (adopterLinks as any[])
+            .filter((l: any) => l.shelter_user_id === sp.user_id)
+            .map((l: any) => l.animal_name)
+            .filter(Boolean)
+            .join(", ");
+          result.push({
+            user_id: sp.user_id,
+            display_name: sp.name || "Refuge",
+            role_label: "Refuge",
+            detail: animals ? `Adopté : ${animals}` : undefined,
+          });
+        }
+      }
+
+      return result;
+    },
+    enabled: !!user,
+  });
 
   // Fetch all conversations
   const { data: conversations = [] } = useQuery({
@@ -83,52 +168,31 @@ export default function Messages() {
     enabled: !!user && !!selectedUser,
   });
 
-  // Realtime subscription for new messages
+  // Realtime subscription
   useEffect(() => {
     if (!user) return;
-
     const channel = supabase
       .channel("messages-realtime")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-        },
-        (payload) => {
-          const msg = payload.new as any;
-          // Only react to messages involving this user
-          if (msg.sender_id === user.id || msg.recipient_id === user.id) {
-            queryClient.invalidateQueries({ queryKey: ["conversations"] });
-            queryClient.invalidateQueries({ queryKey: ["thread"] });
-            queryClient.invalidateQueries({ queryKey: ["unread-messages"] });
-          }
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
+        const msg = payload.new as any;
+        if (msg.sender_id === user.id || msg.recipient_id === user.id) {
+          queryClient.invalidateQueries({ queryKey: ["conversations"] });
+          queryClient.invalidateQueries({ queryKey: ["thread"] });
+          queryClient.invalidateQueries({ queryKey: ["unread-messages"] });
         }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "messages",
-        },
-        (payload) => {
-          const msg = payload.new as any;
-          if (msg.sender_id === user.id || msg.recipient_id === user.id) {
-            queryClient.invalidateQueries({ queryKey: ["conversations"] });
-            queryClient.invalidateQueries({ queryKey: ["unread-messages"] });
-          }
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, (payload) => {
+        const msg = payload.new as any;
+        if (msg.sender_id === user.id || msg.recipient_id === user.id) {
+          queryClient.invalidateQueries({ queryKey: ["conversations"] });
+          queryClient.invalidateQueries({ queryKey: ["unread-messages"] });
         }
-      )
+      })
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [user, queryClient]);
 
-  // Mark as read when opening thread
+  // Mark as read
   useEffect(() => {
     if (!selectedUser || !user) return;
     supabase
@@ -148,7 +212,6 @@ export default function Messages() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [threadMessages]);
 
-  // Send message
   const sendMutation = useMutation({
     mutationFn: async (content: string) => {
       const { error } = await supabase.from("messages").insert({
@@ -158,9 +221,7 @@ export default function Messages() {
       });
       if (error) throw error;
     },
-    onSuccess: () => {
-      setNewMessage("");
-    },
+    onSuccess: () => setNewMessage(""),
   });
 
   // Search users
@@ -182,6 +243,12 @@ export default function Messages() {
   const filteredConversations = conversations.filter(c =>
     c.display_name.toLowerCase().includes(search.toLowerCase())
   );
+
+  const roleIcon = (label: string) => {
+    if (label === "Éducateur") return <GraduationCap className="h-3.5 w-3.5" />;
+    if (label === "Refuge") return <Building2 className="h-3.5 w-3.5" />;
+    return <ShieldCheck className="h-3.5 w-3.5" />;
+  };
 
   // Thread view
   if (selectedUser) {
@@ -245,11 +312,55 @@ export default function Messages() {
     );
   }
 
-  // Conversations list
+  // Conversations list with contacts
   return (
     <AppLayout>
       <div className="pt-14 pb-4">
         <h1 className="text-2xl font-bold text-foreground mb-4">Messages</h1>
+
+        {/* Contacts section */}
+        {contacts.length > 0 && (
+          <div className="mb-4">
+            <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
+              <Users className="h-3.5 w-3.5" /> Vos contacts
+            </p>
+            <div className="space-y-1">
+              {contacts.map((c) => {
+                const existing = conversations.find(conv => conv.user_id === c.user_id);
+                return (
+                  <button
+                    key={c.user_id}
+                    onClick={() => {
+                      setSelectedUser(c.user_id);
+                      setSelectedName(c.display_name);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/50 transition-colors border border-border/30"
+                  >
+                    <Avatar className="h-9 w-9">
+                      <AvatarFallback className="bg-primary/20 text-primary text-xs">
+                        {c.display_name.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0 text-left">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-medium text-foreground">{c.display_name}</span>
+                        <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded flex items-center gap-0.5 text-muted-foreground">
+                          {roleIcon(c.role_label)} {c.role_label}
+                        </span>
+                      </div>
+                      {c.detail && <p className="text-xs text-muted-foreground truncate">{c.detail}</p>}
+                    </div>
+                    {existing && existing.unread > 0 && (
+                      <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold">
+                        {existing.unread}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -285,46 +396,63 @@ export default function Messages() {
           </div>
         )}
 
-        {filteredConversations.length === 0 && search.length < 2 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-30" />
-            <p className="text-sm">Aucune conversation</p>
-            <p className="text-xs mt-1">Recherchez un utilisateur pour démarrer</p>
-          </div>
-        ) : (
-          <div className="space-y-1">
-            {filteredConversations.map((conv) => (
-              <button
-                key={conv.user_id}
-                onClick={() => {
-                  setSelectedUser(conv.user_id);
-                  setSelectedName(conv.display_name);
-                }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted/50 transition-colors"
-              >
-                <Avatar className="h-10 w-10">
-                  <AvatarFallback className="bg-primary/20 text-primary text-sm">
-                    {conv.display_name.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0 text-left">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-foreground">{conv.display_name}</span>
-                    <span className="text-[10px] text-muted-foreground">
-                      {format(new Date(conv.last_at), "dd/MM", { locale: fr })}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground truncate">{conv.last_message}</p>
+        {/* Existing conversations (exclude contacts already shown) */}
+        {(() => {
+          const contactIds = new Set(contacts.map(c => c.user_id));
+          const otherConversations = filteredConversations.filter(c => !contactIds.has(c.user_id));
+          
+          if (otherConversations.length === 0 && contacts.length === 0 && search.length < 2) {
+            return (
+              <div className="text-center py-12 text-muted-foreground">
+                <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                <p className="text-sm">Aucune conversation</p>
+                <p className="text-xs mt-1">Recherchez un utilisateur pour démarrer</p>
+              </div>
+            );
+          }
+
+          if (otherConversations.length > 0) {
+            return (
+              <>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Conversations</p>
+                <div className="space-y-1">
+                  {otherConversations.map((conv) => (
+                    <button
+                      key={conv.user_id}
+                      onClick={() => {
+                        setSelectedUser(conv.user_id);
+                        setSelectedName(conv.display_name);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted/50 transition-colors"
+                    >
+                      <Avatar className="h-10 w-10">
+                        <AvatarFallback className="bg-primary/20 text-primary text-sm">
+                          {conv.display_name.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0 text-left">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-foreground">{conv.display_name}</span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {format(new Date(conv.last_at), "dd/MM", { locale: fr })}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">{conv.last_message}</p>
+                      </div>
+                      {conv.unread > 0 && (
+                        <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold">
+                          {conv.unread}
+                        </span>
+                      )}
+                    </button>
+                  ))}
                 </div>
-                {conv.unread > 0 && (
-                  <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold">
-                    {conv.unread}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        )}
+              </>
+            );
+          }
+
+          return null;
+        })()}
       </div>
     </AppLayout>
   );

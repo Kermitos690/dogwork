@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { Send, ArrowLeft, MessageSquare, Search } from "lucide-react";
+import { Send, ArrowLeft, MessageSquare, Search, Users, ShieldCheck, GraduationCap, Heart } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { motion } from "framer-motion";
@@ -21,6 +21,13 @@ interface Conversation {
   unread: number;
 }
 
+interface Contact {
+  user_id: string;
+  display_name: string;
+  role_label: string;
+  detail?: string;
+}
+
 export default function ShelterMessages() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -31,44 +38,88 @@ export default function ShelterMessages() {
   const [search, setSearch] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Get admin user id
-  const { data: adminUserId } = useQuery({
-    queryKey: ["admin-user-for-shelter"],
+  // Fetch contacts: admin + coaches + adopters
+  const { data: contacts = [] } = useQuery({
+    queryKey: ["shelter-contacts", user?.id],
     queryFn: async () => {
-      const { data } = await supabase
+      const result: Contact[] = [];
+
+      // 1. Admin
+      const { data: adminRole } = await supabase
         .from("user_roles")
         .select("user_id")
         .eq("role", "admin" as any)
         .limit(1)
         .maybeSingle();
-      return data?.user_id || null;
-    },
-    enabled: !!user,
-  });
+      if (adminRole) {
+        const { data: adminProfile } = await supabase
+          .from("profiles")
+          .select("display_name")
+          .eq("user_id", adminRole.user_id)
+          .maybeSingle();
+        result.push({
+          user_id: adminRole.user_id,
+          display_name: adminProfile?.display_name || "Administrateur",
+          role_label: "Support",
+        });
+      }
 
-  // Get linked coaches
-  const { data: linkedCoaches = [] } = useQuery({
-    queryKey: ["shelter-linked-coaches", user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
+      // 2. Linked coaches
+      const { data: coachLinks } = await supabase
         .from("shelter_coaches")
         .select("coach_user_id")
         .eq("shelter_user_id", user!.id)
         .eq("status", "active");
-      return data?.map((c) => c.coach_user_id) || [];
+      if (coachLinks && coachLinks.length > 0) {
+        const coachIds = coachLinks.map(c => c.coach_user_id);
+        const { data: coachProfiles } = await supabase
+          .from("coach_profiles")
+          .select("user_id, display_name, specialty")
+          .in("user_id", coachIds);
+        for (const cp of coachProfiles || []) {
+          result.push({
+            user_id: cp.user_id,
+            display_name: cp.display_name || "Éducateur",
+            role_label: "Éducateur",
+            detail: cp.specialty || undefined,
+          });
+        }
+      }
+
+      // 3. Adopters via adopter_links
+      const { data: adopterLinks } = await supabase
+        .from("adopter_links" as any)
+        .select("adopter_user_id, animal_name")
+        .eq("shelter_user_id", user!.id);
+      if (adopterLinks && adopterLinks.length > 0) {
+        const adopterIds = [...new Set((adopterLinks as any[]).map((l: any) => l.adopter_user_id))];
+        const { data: adopterProfiles } = await supabase
+          .from("profiles")
+          .select("user_id, display_name")
+          .in("user_id", adopterIds);
+        for (const ap of adopterProfiles || []) {
+          const animals = (adopterLinks as any[])
+            .filter((l: any) => l.adopter_user_id === ap.user_id)
+            .map((l: any) => l.animal_name)
+            .filter(Boolean)
+            .join(", ");
+          result.push({
+            user_id: ap.user_id,
+            display_name: ap.display_name || "Adoptant",
+            role_label: "Adoptant",
+            detail: animals ? `A adopté : ${animals}` : undefined,
+          });
+        }
+      }
+
+      return result;
     },
     enabled: !!user,
   });
 
-  // Allowed contacts = admin + linked coaches
-  const allowedContactIds = [
-    ...(adminUserId ? [adminUserId] : []),
-    ...linkedCoaches,
-  ];
-
-  // Fetch conversations — no filter restriction, show all conversations involving this user
+  // Fetch conversations
   const { data: conversations = [] } = useQuery({
-    queryKey: ["shelter-conversations", user?.id, allowedContactIds.join(",")],
+    queryKey: ["shelter-conversations", user?.id],
     queryFn: async () => {
       const { data: msgs } = await supabase
         .from("messages")
@@ -108,43 +159,37 @@ export default function ShelterMessages() {
     enabled: !!user,
   });
 
-  // Search users (admin + coaches)
+  // Search users
   const { data: searchResults = [] } = useQuery({
-    queryKey: ["shelter-search-contacts", search, allowedContactIds.join(",")],
+    queryKey: ["shelter-search-contacts", search],
     queryFn: async () => {
-      if (search.length < 2 || allowedContactIds.length === 0) return [];
+      if (search.length < 2) return [];
       const { data } = await supabase
         .from("profiles")
         .select("user_id, display_name")
-        .in("user_id", allowedContactIds)
-        .ilike("display_name", `%${search}%`);
+        .ilike("display_name", `%${search}%`)
+        .neq("user_id", user!.id)
+        .limit(10);
       return data || [];
     },
-    enabled: !!user && search.length >= 2 && allowedContactIds.length > 0,
+    enabled: !!user && search.length >= 2,
   });
 
-  // Realtime subscription
+  // Realtime
   useEffect(() => {
     if (!user) return;
     const channel = supabase
       .channel("shelter-messages-realtime")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages" },
-        (payload) => {
-          const msg = payload.new as any;
-          if (msg.sender_id === user.id || msg.recipient_id === user.id) {
-            queryClient.invalidateQueries({ queryKey: ["shelter-conversations"] });
-            queryClient.invalidateQueries({ queryKey: ["shelter-chat"] });
-            queryClient.invalidateQueries({ queryKey: ["shelter-unread-count"] });
-          }
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
+        const msg = payload.new as any;
+        if (msg.sender_id === user.id || msg.recipient_id === user.id) {
+          queryClient.invalidateQueries({ queryKey: ["shelter-conversations"] });
+          queryClient.invalidateQueries({ queryKey: ["shelter-chat"] });
+          queryClient.invalidateQueries({ queryKey: ["shelter-unread-count"] });
         }
-      )
+      })
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [user, queryClient]);
 
   const { data: chatMessages = [] } = useQuery({
@@ -153,9 +198,7 @@ export default function ShelterMessages() {
       const { data } = await supabase
         .from("messages")
         .select("*")
-        .or(
-          `and(sender_id.eq.${user!.id},recipient_id.eq.${selectedUser}),and(sender_id.eq.${selectedUser},recipient_id.eq.${user!.id})`
-        )
+        .or(`and(sender_id.eq.${user!.id},recipient_id.eq.${selectedUser}),and(sender_id.eq.${selectedUser},recipient_id.eq.${user!.id})`)
         .order("created_at", { ascending: true });
       return data || [];
     },
@@ -163,12 +206,9 @@ export default function ShelterMessages() {
   });
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [chatMessages]);
 
-  // Mark as read
   useEffect(() => {
     if (selectedUser && user) {
       supabase
@@ -205,6 +245,12 @@ export default function ShelterMessages() {
     c.display_name.toLowerCase().includes(search.toLowerCase())
   );
 
+  const roleIcon = (label: string) => {
+    if (label === "Éducateur") return <GraduationCap className="h-3.5 w-3.5" />;
+    if (label === "Adoptant") return <Heart className="h-3.5 w-3.5" />;
+    return <ShieldCheck className="h-3.5 w-3.5" />;
+  };
+
   // Chat view
   if (selectedUser) {
     return (
@@ -227,13 +273,9 @@ export default function ShelterMessages() {
               const isMine = m.sender_id === user?.id;
               return (
                 <div key={m.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
-                  <div
-                    className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm ${
-                      isMine
-                        ? "bg-primary text-primary-foreground rounded-br-md"
-                        : "bg-muted text-foreground rounded-bl-md"
-                    }`}
-                  >
+                  <div className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm ${
+                    isMine ? "bg-primary text-primary-foreground rounded-br-md" : "bg-muted text-foreground rounded-bl-md"
+                  }`}>
                     <p>{m.content}</p>
                     <p className={`text-[9px] mt-1 ${isMine ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
                       {format(new Date(m.created_at), "HH:mm", { locale: fr })}
@@ -260,7 +302,7 @@ export default function ShelterMessages() {
     );
   }
 
-  // Conversation list
+  // Conversation list with contacts
   return (
     <ShelterLayout>
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pt-14 pb-8 space-y-4">
@@ -268,6 +310,50 @@ export default function ShelterMessages() {
           <MessageSquare className="h-5 w-5 text-primary" />
           Messages
         </h1>
+
+        {/* Contacts section */}
+        {contacts.length > 0 && (
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
+              <Users className="h-3.5 w-3.5" /> Vos contacts
+            </p>
+            <div className="space-y-1.5">
+              {contacts.map((c) => {
+                const existing = conversations.find(conv => conv.user_id === c.user_id);
+                return (
+                  <button
+                    key={c.user_id}
+                    onClick={() => {
+                      setSelectedUser(c.user_id);
+                      setSelectedName(c.display_name);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/50 transition-colors border border-border/30"
+                  >
+                    <Avatar className="h-9 w-9">
+                      <AvatarFallback className="bg-primary/20 text-primary text-xs">
+                        {c.display_name.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0 text-left">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-medium text-foreground">{c.display_name}</span>
+                        <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded flex items-center gap-0.5 text-muted-foreground">
+                          {roleIcon(c.role_label)} {c.role_label}
+                        </span>
+                      </div>
+                      {c.detail && <p className="text-xs text-muted-foreground truncate">{c.detail}</p>}
+                    </div>
+                    {existing && existing.unread > 0 && (
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
+                        {existing.unread}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -303,67 +389,59 @@ export default function ShelterMessages() {
           </div>
         )}
 
-        {/* Quick contact buttons for admin & coaches */}
-        <div className="flex flex-wrap gap-2">
-          {adminUserId && !conversations.some((c) => c.user_id === adminUserId) && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1"
-              onClick={() => {
-                setSelectedUser(adminUserId);
-                setSelectedName("Administrateur");
-              }}
-            >
-              <MessageSquare className="h-3.5 w-3.5" /> Admin
-            </Button>
-          )}
-        </div>
+        {/* Other conversations not in contacts */}
+        {(() => {
+          const contactIds = new Set(contacts.map(c => c.user_id));
+          const otherConvs = filteredConversations.filter(c => !contactIds.has(c.user_id));
 
-        {filteredConversations.length === 0 && search.length < 2 ? (
-          <Card>
-            <CardContent className="p-6 text-center">
-              <MessageSquare className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">Aucune conversation</p>
-              <p className="text-xs text-muted-foreground mt-1">Recherchez un contact ou cliquez sur Admin pour démarrer.</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-2">
-            {filteredConversations.map((conv) => (
-              <Card
-                key={conv.user_id}
-                className="cursor-pointer card-press"
-                onClick={() => {
-                  setSelectedUser(conv.user_id);
-                  setSelectedName(conv.display_name);
-                }}
-              >
-                <CardContent className="p-3 flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-primary/20 text-primary text-sm">
-                      {conv.display_name[0]?.toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-foreground truncate">{conv.display_name}</p>
-                      <span className="text-[10px] text-muted-foreground">
-                        {format(new Date(conv.last_at), "dd/MM HH:mm", { locale: fr })}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate">{conv.last_message}</p>
-                  </div>
-                  {conv.unread > 0 && (
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
-                      {conv.unread}
-                    </span>
-                  )}
+          if (otherConvs.length === 0 && contacts.length === 0 && search.length < 2) {
+            return (
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <MessageSquare className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">Aucune conversation</p>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        )}
+            );
+          }
+
+          if (otherConvs.length > 0) {
+            return (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground">Autres conversations</p>
+                {otherConvs.map((conv) => (
+                  <Card key={conv.user_id} className="cursor-pointer card-press" onClick={() => {
+                    setSelectedUser(conv.user_id);
+                    setSelectedName(conv.display_name);
+                  }}>
+                    <CardContent className="p-3 flex items-center gap-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarFallback className="bg-primary/20 text-primary text-sm">
+                          {conv.display_name[0]?.toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium text-foreground truncate">{conv.display_name}</p>
+                          <span className="text-[10px] text-muted-foreground">
+                            {format(new Date(conv.last_at), "dd/MM HH:mm", { locale: fr })}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">{conv.last_message}</p>
+                      </div>
+                      {conv.unread > 0 && (
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
+                          {conv.unread}
+                        </span>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            );
+          }
+          return null;
+        })()}
       </motion.div>
     </ShelterLayout>
   );
