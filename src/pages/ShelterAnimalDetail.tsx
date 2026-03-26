@@ -223,13 +223,13 @@ export default function ShelterAnimalDetail() {
         // Try to link adopter account if email matches a profile
         if (adopterEmail) {
           try {
-            const { data: matchingProfiles } = await supabase
-              .from("profiles" as any)
+            const { data: matchingProfiles } = await (supabase as any)
+              .from("profiles")
               .select("user_id")
               .eq("email", adopterEmail.toLowerCase().trim());
             
             if (matchingProfiles && matchingProfiles.length > 0) {
-              for (const mp of matchingProfiles) {
+              for (const mp of matchingProfiles as any[]) {
                 await supabase.from("adopter_links" as any).upsert({
                   adopter_user_id: mp.user_id,
                   shelter_user_id: user!.id,
