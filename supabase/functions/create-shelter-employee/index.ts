@@ -1,4 +1,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { encode as hexEncode } from "https://deno.land/std@0.208.0/encoding/hex.ts";
+
+async function hashPin(pin: string): Promise<string> {
+  const data = new TextEncoder().encode(pin);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return new TextDecoder().decode(hexEncode(new Uint8Array(hash)));
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
