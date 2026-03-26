@@ -1,4 +1,4 @@
-import { useDogs, useSetActiveDog, useActiveDog } from "@/hooks/useDogs";
+import { useDogs, useActiveDog, useSetActiveDog } from "@/hooks/useDogs";
 import { Dog, ChevronDown, Check } from "lucide-react";
 import {
   DropdownMenu,
@@ -6,7 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
 
 export function DogSwitcher() {
   const { data: dogs } = useDogs();
@@ -14,7 +14,6 @@ export function DogSwitcher() {
   const setActive = useSetActiveDog();
 
   if (!dogs || dogs.length <= 1) {
-    // Single dog → simple pill, no dropdown
     return (
       <div className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-full bg-card border border-border shadow-sm">
         {activeDog?.photo_url ? (
@@ -32,9 +31,10 @@ export function DogSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          className="flex items-center gap-1.5 pl-1.5 pr-2.5 py-1.5 rounded-full bg-card border border-border shadow-sm outline-none"
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex items-center gap-1.5 pl-1.5 pr-2.5 py-1.5 h-auto rounded-full bg-card border-border shadow-sm"
         >
           {activeDog?.photo_url ? (
             <img src={activeDog.photo_url} alt="" className="w-7 h-7 rounded-full object-cover" />
@@ -45,13 +45,15 @@ export function DogSwitcher() {
           )}
           <span className="text-xs font-semibold text-foreground max-w-[80px] truncate">{activeDog?.name}</span>
           <ChevronDown className="h-3 w-3 text-muted-foreground" />
-        </motion.button>
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-[180px]">
         {dogs.map((dog) => (
           <DropdownMenuItem
             key={dog.id}
-            onClick={() => { if (dog.id !== activeDog?.id) setActive.mutate(dog.id); }}
+            onSelect={() => {
+              if (dog.id !== activeDog?.id) setActive.mutate(dog.id);
+            }}
             className="flex items-center gap-2.5 cursor-pointer"
           >
             {dog.photo_url ? (
