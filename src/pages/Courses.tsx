@@ -330,7 +330,7 @@ export default function Courses() {
                 ) : (
                   <Button
                     className="w-full gap-2"
-                    onClick={() => handleBook(course.id)}
+                    onClick={() => handleBookClick(course.id)}
                     disabled={bookingLoading === course.id}
                   >
                     {bookingLoading === course.id ? (
