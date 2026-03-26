@@ -44,9 +44,14 @@ export default function Courses() {
   const [searchParams] = useSearchParams();
   const [category, setCategory] = useState("all");
   const [bookingLoading, setBookingLoading] = useState<string | null>(null);
+  const [bookingDogDialog, setBookingDogDialog] = useState<{ open: boolean; courseId: string }>({ open: false, courseId: "" });
+  const [selectedDogId, setSelectedDogId] = useState("");
   const [reviewDialog, setReviewDialog] = useState<{ open: boolean; courseId: string; educatorId: string }>({ open: false, courseId: "", educatorId: "" });
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
+
+  // Fetch user's dogs
+  const { dogs: myDogs = [] } = useDogs();
 
   // Handle return from Stripe (confirmation is done server-side via webhook)
   useEffect(() => {
@@ -179,11 +184,26 @@ export default function Courses() {
   const getCourseReviewCount = (courseId: string) =>
     reviews.filter((r: any) => r.course_id === courseId).length;
 
-  const handleBook = async (courseId: string) => {
+  const handleBookClick = (courseId: string) => {
+    if (myDogs.length === 0) {
+      toast({ title: "Ajoutez d'abord un chien", description: "Vous devez avoir un profil de chien pour réserver un cours.", variant: "destructive" });
+      return;
+    }
+    if (myDogs.length === 1) {
+      setSelectedDogId(myDogs[0].id);
+      handleBook(courseId, myDogs[0].id);
+    } else {
+      setSelectedDogId("");
+      setBookingDogDialog({ open: true, courseId });
+    }
+  };
+
+  const handleBook = async (courseId: string, dogId: string) => {
     setBookingLoading(courseId);
+    setBookingDogDialog({ open: false, courseId: "" });
     try {
       const { data, error } = await supabase.functions.invoke("create-course-checkout", {
-        body: { courseId },
+        body: { courseId, dogId },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
