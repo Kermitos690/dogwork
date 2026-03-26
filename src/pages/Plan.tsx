@@ -357,7 +357,7 @@ export default function PlanPage() {
                 )}
 
                 {/* Days by week */}
-                {[1, 2, 3, 4].map((week) => (
+                {Array.from(new Set(plan.days.map((d: any) => d.week))).sort((a: number, b: number) => a - b).map((week: number) => (
                   <div key={week} className="space-y-2">
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Semaine {week}</h3>
                 {plan.days.filter((d: any) => d.week === week).map((day: any) => {
