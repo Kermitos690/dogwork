@@ -140,7 +140,8 @@ Deno.serve(async (req) => {
       throw new Error(`Erreur attribution rôle: ${roleError.message}`);
     }
 
-    // Create employee record
+    // Create employee record with hashed PIN
+    const hashedPin = await hashPin(pin);
     const { error: empError } = await supabaseAdmin.from("shelter_employees").insert({
       shelter_user_id: effectiveShelterId,
       name,
@@ -149,7 +150,8 @@ Deno.serve(async (req) => {
       email,
       phone: phone || "",
       auth_user_id: userId,
-      pin_code: pin,
+      pin_code: "******",
+      hashed_pin: hashedPin,
     });
     if (empError) {
       await supabaseAdmin.auth.admin.deleteUser(userId);
