@@ -76,7 +76,7 @@ export default function EmployeeActivity() {
         employee_role: empInfo?.role || "soigneur",
         action_type: actionType,
         description: description.trim(),
-        animal_id: animalId || null,
+        animal_id: animalId && animalId !== "none" ? animalId : null,
       });
       if (error) throw error;
     },
