@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,6 +9,7 @@ import { EducatorSubscriptionProvider } from "@/hooks/useEducatorSubscription";
 import { PreferencesProvider } from "@/hooks/usePreferences";
 import { useDogs } from "./hooks/useDogs";
 import { useIsCoach, useIsShelter } from "./hooks/useCoach";
+import { supabase } from "@/integrations/supabase/client";
 const AIChatBot = lazy(() => import("@/components/AIChatBot").then(m => ({ default: m.AIChatBot })));
 const GuidedTour = lazy(() => import("@/components/GuidedTour").then(m => ({ default: m.GuidedTour })));
 
@@ -82,18 +83,26 @@ function ProtectedRoutes() {
   const { data: dogs, isLoading: dogsLoading } = useDogs();
   const { data: isCoach, isLoading: coachLoading } = useIsCoach();
   const { data: isShelter, isLoading: shelterLoading } = useIsShelter();
+  const { data: isAdmin, isLoading: adminLoading } = useQuery({
+    queryKey: ["is_admin_routing", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("is_admin");
+      return data === true;
+    },
+    enabled: !!user,
+  });
 
-  if (loading || dogsLoading || coachLoading || shelterLoading) {
+  if (loading || dogsLoading || coachLoading || shelterLoading || adminLoading) {
     return <PageLoader />;
   }
 
   if (!user) return <Auth />;
 
   const hasDogs = dogs && dogs.length > 0;
-  const onboardingInProgress = !hasDogs && !isCoach && !isShelter;
+  const onboardingInProgress = !hasDogs && !isCoach && !isShelter && !isAdmin;
 
-  // Shelter users get a completely separate route set
-  if (isShelter) {
+  // Shelter users (but NOT admin) get a completely separate route set
+  if (isShelter && !isAdmin) {
     return (
       <Suspense fallback={<PageLoader />}>
         <Routes>
@@ -161,19 +170,19 @@ function ProtectedRoutes() {
         <Route path="/coach/shelter-animals" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachShelterAnimals /></CoachGuard></Suspense>} />
         <Route path="/coach/shelter-animal/:animalId" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachShelterAnimalEval /></CoachGuard></Suspense>} />
         <Route path="/admin" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminDashboard /></AdminGuard></Suspense>} />
-        {/* Shelter routes accessible to admin too */}
-        {/* Shelter routes for admin access */}
-        <Route path="/shelter" element={<Suspense fallback={<PageLoader />}><AdminGuard><ShelterDashboard /></AdminGuard></Suspense>} />
-        <Route path="/shelter/animals" element={<Suspense fallback={<PageLoader />}><AdminGuard><ShelterAnimals /></AdminGuard></Suspense>} />
-        <Route path="/shelter/animals/:animalId" element={<Suspense fallback={<PageLoader />}><AdminGuard><ShelterAnimalDetail /></AdminGuard></Suspense>} />
-        <Route path="/shelter/profile" element={<Suspense fallback={<PageLoader />}><AdminGuard><ShelterProfile /></AdminGuard></Suspense>} />
-        <Route path="/shelter/messages" element={<Suspense fallback={<PageLoader />}><AdminGuard><ShelterMessages /></AdminGuard></Suspense>} />
-        <Route path="/shelter/settings" element={<Suspense fallback={<PageLoader />}><AdminGuard><ShelterSettings /></AdminGuard></Suspense>} />
-        <Route path="/shelter/employees" element={<Suspense fallback={<PageLoader />}><AdminGuard><ShelterEmployees /></AdminGuard></Suspense>} />
-        <Route path="/shelter/spaces" element={<Suspense fallback={<PageLoader />}><AdminGuard><ShelterSpaces /></AdminGuard></Suspense>} />
-        <Route path="/shelter/activity" element={<Suspense fallback={<PageLoader />}><AdminGuard><ShelterActivityLog /></AdminGuard></Suspense>} />
-        <Route path="/shelter/stats" element={<Suspense fallback={<PageLoader />}><AdminGuard><ShelterStats /></AdminGuard></Suspense>} />
-        <Route path="/shelter/subscription" element={<Suspense fallback={<PageLoader />}><AdminGuard><ShelterSubscription /></AdminGuard></Suspense>} />
+        {/* Shelter routes for admin access (ShelterGuard allows admin) */}
+        <Route path="/shelter" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterDashboard /></ShelterGuard></Suspense>} />
+        <Route path="/shelter/animals" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterAnimals /></ShelterGuard></Suspense>} />
+        <Route path="/shelter/animals/:animalId" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterAnimalDetail /></ShelterGuard></Suspense>} />
+        <Route path="/shelter/profile" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterProfile /></ShelterGuard></Suspense>} />
+        <Route path="/shelter/messages" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterMessages /></ShelterGuard></Suspense>} />
+        <Route path="/shelter/settings" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterSettings /></ShelterGuard></Suspense>} />
+        <Route path="/shelter/employees" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterEmployees /></ShelterGuard></Suspense>} />
+        <Route path="/shelter/spaces" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterSpaces /></ShelterGuard></Suspense>} />
+        <Route path="/shelter/activity" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterActivityLog /></ShelterGuard></Suspense>} />
+        <Route path="/shelter/stats" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterStats /></ShelterGuard></Suspense>} />
+        <Route path="/shelter/subscription" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterSubscription /></ShelterGuard></Suspense>} />
+        <Route path="/shelter/coaches" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterCoaches /></ShelterGuard></Suspense>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <AIChatBot />
