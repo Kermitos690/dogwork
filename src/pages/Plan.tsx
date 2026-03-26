@@ -48,13 +48,57 @@ export default function PlanPage() {
         .eq("dog_id", activeDog!.id).eq("is_active", true)
         .order("created_at", { ascending: false }).limit(1).maybeSingle();
       if (!data) return null;
+
+      // Normalize axes: templates store plain strings, personalized stores objects
+      const rawAxes = data.axes as any[];
+      const axes = (rawAxes || []).map((a: any, i: number) => {
+        if (typeof a === "string") return { key: a, label: a.charAt(0).toUpperCase() + a.slice(1), reason: "" };
+        return a;
+      });
+
+      // Normalize precautions: templates store plain strings
+      const rawPrecautions = data.precautions as any[];
+      const precautions = (rawPrecautions || []).map((p: any) => {
+        if (typeof p === "string") return { type: "safety", text: p };
+        return p;
+      });
+
+      // Normalize days: templates use {day, theme, exercises} format
+      const rawDays = data.days as any[];
+      const totalDays = data.total_days || rawDays?.length || 0;
+      const days = (rawDays || []).map((d: any, i: number) => {
+        if (d.dayNumber !== undefined) return d; // already normalized
+        const dayNum = d.day ?? (i + 1);
+        const week = Math.ceil(dayNum / 7) || 1;
+        const exCount = d.exercises?.length || 0;
+        const totalDur = d.exercises?.reduce((sum: number, ex: any) => {
+          const mins = parseInt(ex.duration) || 5;
+          return sum + mins;
+        }, 0) || 15;
+        return {
+          dayNumber: dayNum,
+          week,
+          title: d.theme || d.title || `Jour ${dayNum}`,
+          duration: `${totalDur} min`,
+          difficulty: week <= 2 ? "Facile" : "Intermédiaire",
+          exercises: (d.exercises || []).map((ex: any, ei: number) => ({
+            id: ex.slug || `ex-${dayNum}-${ei}`,
+            slug: ex.slug,
+            name: ex.slug?.replace(/-/g, " ") || `Exercice ${ei + 1}`,
+            repetitions: ex.repetitions || "5x",
+            duration: ex.duration || "5 min",
+            note: ex.note || "",
+          })),
+        };
+      });
+
       return {
         id: data.id, dogName: data.title, summary: data.summary,
-        axes: data.axes as any[], precautions: data.precautions as any[],
+        axes, precautions,
         frequency: data.frequency, averageDuration: data.average_duration,
-        totalDays: data.total_days,
+        totalDays,
         securityLevel: data.security_level as "standard" | "élevé" | "critique",
-        days: data.days as any[],
+        days,
       } as PersonalizedPlan;
     },
     enabled: !!activeDog,
@@ -313,7 +357,7 @@ export default function PlanPage() {
                 )}
 
                 {/* Days by week */}
-                {[1, 2, 3, 4].map((week) => (
+                {Array.from(new Set(plan.days.map((d: any) => d.week))).sort((a: number, b: number) => a - b).map((week: number) => (
                   <div key={week} className="space-y-2">
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Semaine {week}</h3>
                 {plan.days.filter((d: any) => d.week === week).map((day: any) => {
@@ -364,7 +408,7 @@ export default function PlanPage() {
           </TabsContent>
 
           <TabsContent value="templates" className="space-y-4 mt-4">
-            <TemplatesList />
+            <TemplatesList onActivated={() => { refetchPlan(); setActiveTab("personalized"); }} />
           </TabsContent>
 
           <TabsContent value="standard" className="space-y-4 mt-4">
@@ -423,7 +467,7 @@ function CheckItem({ label, done, action }: { label: string; done: boolean; acti
   );
 }
 
-function TemplatesList() {
+function TemplatesList({ onActivated }: { onActivated: () => void }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const activeDog = useActiveDog();
@@ -472,8 +516,7 @@ function TemplatesList() {
       days: full.days,
     });
     toast({ title: "✓ Programme activé", description: `${full.title} appliqué à ${activeDog.name}.` });
-    navigate("/plan");
-    window.location.reload();
+    onActivated();
   };
 
   const freeTemplates = templates.filter((t: any) => t.template_tier === "free");
