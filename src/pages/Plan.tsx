@@ -14,7 +14,7 @@ import { useHasFeature } from "@/hooks/useSubscription";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PROGRAM } from "@/data/program";
-import { generatePersonalizedPlan, type PersonalizedPlan } from "@/lib/planGenerator";
+import { generatePersonalizedPlan, setDbExercises, type PersonalizedPlan } from "@/lib/planGenerator";
 import { toast } from "@/hooks/use-toast";
 
 const statusColors: Record<string, string> = {
