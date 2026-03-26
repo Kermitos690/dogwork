@@ -44,3 +44,12 @@ verify_jwt = false
 
 [functions.generate-exercise-images]
 verify_jwt = false
+
+[functions.connect-onboard]
+verify_jwt = false
+
+[functions.connect-status]
+verify_jwt = false
+
+[functions.connect-dashboard]
+verify_jwt = false

@@ -12,6 +12,8 @@ const logStep = (step: string, details?: any) => {
   console.log(`[COURSE-CHECKOUT] ${step}${d}`);
 };
 
+const PLATFORM_COMMISSION_RATE = 0.158; // 15.8%
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -70,7 +72,7 @@ serve(async (req) => {
 
     if (existingBooking) throw new Error("Vous êtes déjà inscrit à ce cours");
 
-    const commissionCents = Math.round(course.price_cents * (course.commission_rate || 0.30));
+    const commissionCents = Math.round(course.price_cents * PLATFORM_COMMISSION_RATE);
 
     // Create pending booking
     const { data: booking, error: bookingError } = await supabaseAdmin
@@ -89,7 +91,13 @@ serve(async (req) => {
     if (bookingError) throw bookingError;
     logStep("Booking created", { bookingId: booking.id });
 
-    // Create Stripe checkout
+    // Get educator's Stripe Connect account
+    const { data: coachProfile } = await supabaseAdmin
+      .from("coach_profiles")
+      .select("stripe_account_id, stripe_onboarding_complete")
+      .eq("user_id", course.educator_user_id)
+      .single();
+
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });
@@ -100,7 +108,8 @@ serve(async (req) => {
 
     const origin = req.headers.get("origin") || "https://dogwork.lovable.app";
 
-    const session = await stripe.checkout.sessions.create({
+    // Build checkout session options
+    const sessionParams: any = {
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: [{
@@ -123,8 +132,25 @@ serve(async (req) => {
         user_id: user.id,
         commission_cents: commissionCents.toString(),
       },
-    });
+    };
 
+    // If educator has completed Stripe Connect onboarding, use destination charges
+    if (coachProfile?.stripe_account_id && coachProfile?.stripe_onboarding_complete) {
+      sessionParams.payment_intent_data = {
+        application_fee_amount: commissionCents,
+        transfer_data: {
+          destination: coachProfile.stripe_account_id,
+        },
+      };
+      logStep("Using Stripe Connect destination charge", {
+        destination: coachProfile.stripe_account_id,
+        applicationFee: commissionCents,
+      });
+    } else {
+      logStep("Educator not on Connect, payment goes to platform directly");
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
     logStep("Checkout session created", { sessionId: session.id });
 
     return new Response(JSON.stringify({ url: session.url, bookingId: booking.id }), {
