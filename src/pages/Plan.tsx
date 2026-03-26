@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Target, ClipboardCheck, AlertTriangle, BookOpen, Zap, Shield, ChevronRight, ChevronDown, Loader2, Info, Sparkles, Lock } from "lucide-react";
-import { useHasFeature } from "@/hooks/useSubscription";
+import { Target, ClipboardCheck, AlertTriangle, BookOpen, Zap, Shield, ChevronRight, ChevronDown, Loader2, Info, Sparkles, Lock, Crown, Star } from "lucide-react";
+import { useHasFeature, useSubscription } from "@/hooks/useSubscription";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PROGRAM } from "@/data/program";
@@ -186,8 +186,9 @@ export default function PlanPage() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full rounded-xl">
-            <TabsTrigger value="personalized" className="flex-1 text-xs rounded-lg">Plan personnalisé</TabsTrigger>
-            <TabsTrigger value="standard" className="flex-1 text-xs rounded-lg">Programme 28 jours</TabsTrigger>
+            <TabsTrigger value="personalized" className="flex-1 text-xs rounded-lg">Mon plan</TabsTrigger>
+            <TabsTrigger value="templates" className="flex-1 text-xs rounded-lg">Programmes</TabsTrigger>
+            <TabsTrigger value="standard" className="flex-1 text-xs rounded-lg">28 jours</TabsTrigger>
           </TabsList>
 
           <TabsContent value="personalized" className="space-y-4 mt-4">
@@ -362,6 +363,10 @@ export default function PlanPage() {
             )}
           </TabsContent>
 
+          <TabsContent value="templates" className="space-y-4 mt-4">
+            <TemplatesList />
+          </TabsContent>
+
           <TabsContent value="standard" className="space-y-4 mt-4">
             {[1, 2, 3, 4].map((week) => (
               <div key={week} className="space-y-2">
@@ -415,5 +420,134 @@ function CheckItem({ label, done, action }: { label: string; done: boolean; acti
       <span className={`text-sm flex-1 ${done ? "text-foreground" : "text-muted-foreground"}`}>{label}</span>
       <ChevronRight className="h-4 w-4 text-muted-foreground" />
     </button>
+  );
+}
+
+function TemplatesList() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const activeDog = useActiveDog();
+  const { tier } = useSubscription();
+  const isPro = tier === "pro" || tier === "expert";
+
+  const { data: templates = [], isLoading } = useQuery({
+    queryKey: ["plan-templates"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("training_plans")
+        .select("id, title, summary, template_tier, template_category, total_days, average_duration")
+        .eq("is_template", true)
+        .order("template_tier")
+        .order("title");
+      return data || [];
+    },
+  });
+
+  const handleActivate = async (template: any) => {
+    if (!activeDog || !user) {
+      toast({ title: "Sélectionnez un chien", variant: "destructive" });
+      return;
+    }
+    if (template.template_tier === "pro" && !isPro) {
+      navigate("/subscription");
+      return;
+    }
+    // Load full template
+    const { data: full } = await supabase
+      .from("training_plans")
+      .select("*")
+      .eq("id", template.id)
+      .single();
+    if (!full) return;
+
+    // Deactivate current plans
+    await supabase.from("training_plans").update({ is_active: false }).eq("dog_id", activeDog.id).eq("user_id", user.id);
+    // Insert as user's active plan
+    await supabase.from("training_plans").insert({
+      dog_id: activeDog.id, user_id: user.id, plan_type: "template",
+      title: full.title, summary: full.summary,
+      axes: full.axes, precautions: full.precautions,
+      frequency: full.frequency, average_duration: full.average_duration,
+      total_days: full.total_days, security_level: full.security_level,
+      days: full.days,
+    });
+    toast({ title: "✓ Programme activé", description: `${full.title} appliqué à ${activeDog.name}.` });
+    navigate("/plan");
+    window.location.reload();
+  };
+
+  const freeTemplates = templates.filter((t: any) => t.template_tier === "free");
+  const proTemplates = templates.filter((t: any) => t.template_tier === "pro");
+
+  if (isLoading) return <div className="text-center py-8 text-muted-foreground text-sm animate-pulse">Chargement...</div>;
+
+  return (
+    <div className="space-y-6">
+      {/* Free section */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Star className="h-4 w-4 text-primary" />
+          <h3 className="text-sm font-semibold text-foreground">Programmes Starter</h3>
+          <Badge variant="secondary" className="text-[10px] rounded-full">Gratuit</Badge>
+        </div>
+        {freeTemplates.map((t: any) => (
+          <Card key={t.id} className="rounded-2xl card-press" onClick={() => handleActivate(t)}>
+            <CardContent className="p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground">{t.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{t.summary}</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">📅 {t.total_days}j · ⏱ {t.average_duration}</p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Pro section */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Crown className="h-4 w-4 text-warning" />
+          <h3 className="text-sm font-semibold text-foreground">Programmes Pro</h3>
+          <Badge className="text-[10px] rounded-full bg-warning/15 text-warning border-0">Pro</Badge>
+        </div>
+        {!isPro && (
+          <div className="rounded-2xl border border-warning/20 bg-warning/5 p-3 flex items-center gap-3">
+            <Lock className="h-4 w-4 text-warning shrink-0" />
+            <div className="flex-1">
+              <p className="text-xs text-foreground font-medium">50 programmes exclusifs</p>
+              <p className="text-[10px] text-muted-foreground">Débloquez avec l'abonnement Pro</p>
+            </div>
+            <Button size="sm" variant="outline" className="shrink-0 text-xs" onClick={() => navigate("/subscription")}>
+              Voir l'offre
+            </Button>
+          </div>
+        )}
+        {proTemplates.map((t: any) => (
+          <Card
+            key={t.id}
+            className={`rounded-2xl ${isPro ? "card-press" : "opacity-60"}`}
+            onClick={() => handleActivate(t)}
+          >
+            <CardContent className="p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground">{t.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{t.summary}</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">📅 {t.total_days}j · ⏱ {t.average_duration}</p>
+                </div>
+                {isPro ? (
+                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+                ) : (
+                  <Lock className="h-4 w-4 text-warning shrink-0 mt-1" />
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
   );
 }
