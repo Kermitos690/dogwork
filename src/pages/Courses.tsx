@@ -51,7 +51,7 @@ export default function Courses() {
   const [reviewComment, setReviewComment] = useState("");
 
   // Fetch user's dogs
-  const { dogs: myDogs = [] } = useDogs();
+  const { data: myDogs = [] } = useDogs();
 
   // Handle return from Stripe (confirmation is done server-side via webhook)
   useEffect(() => {
