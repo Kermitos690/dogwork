@@ -363,6 +363,10 @@ export default function PlanPage() {
             )}
           </TabsContent>
 
+          <TabsContent value="templates" className="space-y-4 mt-4">
+            <TemplatesList />
+          </TabsContent>
+
           <TabsContent value="standard" className="space-y-4 mt-4">
             {[1, 2, 3, 4].map((week) => (
               <div key={week} className="space-y-2">
