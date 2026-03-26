@@ -3,10 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { CoachLayout } from "@/components/CoachLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Users, Search, Plus, ChevronRight, Dog, Calendar, ArrowLeft } from "lucide-react";
+import { Users, Search, Plus, ChevronRight, Dog, Calendar, ArrowLeft, Check } from "lucide-react";
 import { motion } from "framer-motion";
 import { useCoachClients } from "@/hooks/useCoach";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,48 +15,80 @@ import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
+type LinkableUser = {
+  user_id: string;
+  display_name: string | null;
+};
+
 export default function CoachClients() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: clients = [], isLoading } = useCoachClients();
   const [search, setSearch] = useState("");
   const [addOpen, setAddOpen] = useState(false);
-  const [clientEmail, setClientEmail] = useState("");
-  const [adding, setAdding] = useState(false);
+  const [clientQuery, setClientQuery] = useState("");
+  const [matches, setMatches] = useState<LinkableUser[]>([]);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [linking, setLinking] = useState(false);
   const queryClient = useQueryClient();
 
   const filtered = clients.filter((c) =>
     c.displayName.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleAddClient = async () => {
-    if (!clientEmail.trim() || !user) return;
-    setAdding(true);
+  const resetDialog = () => {
+    setClientQuery("");
+    setMatches([]);
+    setSelectedClientId(null);
+    setSearching(false);
+    setLinking(false);
+  };
+
+  const handleFindClients = async () => {
+    if (!clientQuery.trim() || !user) return;
+    setSearching(true);
     try {
-      // Look up profile by searching - we need to find user by some identifier
-      // For now, we'll use a placeholder approach
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, display_name")
-        .ilike("display_name", `%${clientEmail.trim()}%`);
+      const { data, error } = await (supabase as any).rpc("search_linkable_users", {
+        _query: clientQuery.trim(),
+      });
+      if (error) throw error;
 
-      if (!profiles?.length) {
-        toast({ title: "Client non trouvé", description: "Aucun utilisateur trouvé avec ce nom.", variant: "destructive" });
-        setAdding(false);
-        return;
+      const candidates = (data as LinkableUser[]) || [];
+      const filteredCandidates = candidates.filter((c) => c.user_id !== user.id);
+
+      setMatches(filteredCandidates);
+      setSelectedClientId(filteredCandidates[0]?.user_id ?? null);
+
+      if (!filteredCandidates.length) {
+        toast({
+          title: "Client non trouvé",
+          description: "Aucun utilisateur trouvé avec ce nom ou cet email.",
+          variant: "destructive",
+        });
       }
+    } catch (e: any) {
+      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    } finally {
+      setSearching(false);
+    }
+  };
 
-      const clientUserId = profiles[0].user_id;
+  const handleAddClient = async () => {
+    if (!selectedClientId || !user) {
+      toast({
+        title: "Sélection requise",
+        description: "Choisissez un client potentiel avant de lier.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-      if (clientUserId === user.id) {
-        toast({ title: "Erreur", description: "Vous ne pouvez pas vous ajouter vous-même comme client.", variant: "destructive" });
-        setAdding(false);
-        return;
-      }
-
+    setLinking(true);
+    try {
       const { error } = await supabase.from("client_links").insert({
         coach_user_id: user.id,
-        client_user_id: clientUserId,
+        client_user_id: selectedClientId,
         status: "pending",
       });
 
@@ -68,30 +99,36 @@ export default function CoachClients() {
           throw error;
         }
       } else {
-        toast({ title: "Client ajouté ✓" });
+        toast({ title: "Demande envoyée ✓", description: "Le client doit accepter la liaison." });
         queryClient.invalidateQueries({ queryKey: ["coach-clients"] });
         setAddOpen(false);
-        setClientEmail("");
+        resetDialog();
       }
     } catch (e: any) {
       toast({ title: "Erreur", description: e.message, variant: "destructive" });
+    } finally {
+      setLinking(false);
     }
-    setAdding(false);
   };
 
   return (
     <CoachLayout>
       <div className="space-y-4 pb-24">
-        {/* Header */}
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/coach")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate("/coach")}> 
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex-1">
             <h1 className="text-lg font-bold text-foreground">Mes clients</h1>
             <p className="text-xs text-muted-foreground">{clients.length} client{clients.length !== 1 ? "s" : ""}</p>
           </div>
-          <Dialog open={addOpen} onOpenChange={setAddOpen}>
+          <Dialog
+            open={addOpen}
+            onOpenChange={(open) => {
+              setAddOpen(open);
+              if (!open) resetDialog();
+            }}
+          >
             <DialogTrigger asChild>
               <Button size="sm" className="gap-1">
                 <Plus className="h-4 w-4" /> Ajouter
@@ -103,19 +140,50 @@ export default function CoachClients() {
               </DialogHeader>
               <div className="space-y-3 pt-2">
                 <Input
-                  placeholder="Nom du client..."
-                  value={clientEmail}
-                  onChange={(e) => setClientEmail(e.target.value)}
+                  placeholder="Nom ou email du client..."
+                  value={clientQuery}
+                  onChange={(e) => setClientQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleFindClients();
+                  }}
                 />
-                <Button className="w-full" onClick={handleAddClient} disabled={adding}>
-                  {adding ? "Recherche..." : "Lier le client"}
+                <Button variant="outline" className="w-full" onClick={handleFindClients} disabled={searching || !clientQuery.trim()}>
+                  {searching ? "Recherche..." : "Rechercher des clients potentiels"}
+                </Button>
+
+                {matches.length > 0 && (
+                  <div className="space-y-2 max-h-44 overflow-y-auto rounded-md border border-border p-2">
+                    {matches.map((candidate) => {
+                      const selected = selectedClientId === candidate.user_id;
+                      return (
+                        <button
+                          key={candidate.user_id}
+                          type="button"
+                          onClick={() => setSelectedClientId(candidate.user_id)}
+                          className={`w-full rounded-md border px-3 py-2 text-left text-sm transition-colors ${
+                            selected
+                              ? "border-primary bg-primary/10 text-foreground"
+                              : "border-border bg-background text-muted-foreground hover:bg-muted"
+                          }`}
+                        >
+                          <span className="flex items-center justify-between gap-2">
+                            <span>{candidate.display_name || "Client"}</span>
+                            {selected ? <Check className="h-4 w-4 text-primary" /> : null}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <Button className="w-full" onClick={handleAddClient} disabled={linking || !selectedClientId}>
+                  {linking ? "Liaison..." : "Lier le client"}
                 </Button>
               </div>
             </DialogContent>
           </Dialog>
         </div>
 
-        {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -126,7 +194,6 @@ export default function CoachClients() {
           />
         </div>
 
-        {/* List */}
         <div className="space-y-2">
           {filtered.map((client, i) => (
             <motion.div
