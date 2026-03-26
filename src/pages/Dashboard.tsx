@@ -182,25 +182,7 @@ export default function Dashboard() {
         <motion.div custom={0} variants={fadeUp} className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-foreground">Aujourd'hui</h1>
           <div className="flex items-center gap-2">
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate(`/dogs/${activeDog?.id}`)}
-              className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-full bg-card border border-border shadow-sm"
-            >
-              {activeDog?.photo_url ? (
-                <img src={activeDog.photo_url} alt="" className="w-7 h-7 rounded-full object-cover" />
-              ) : (
-                <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Dog className="h-3.5 w-3.5 text-primary" />
-                </div>
-              )}
-              <span className="text-xs font-semibold text-foreground">{activeDog?.name}</span>
-              {dogBadges.length > 0 && (
-                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${dogBadges[0].cls}`}>
-                  {dogBadges[0].label}
-                </span>
-              )}
-            </motion.button>
+            <DogSwitcher />
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={signOut}
