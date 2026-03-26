@@ -106,7 +106,7 @@ export default function PlanPage() {
     setGenerating(true);
     try {
       // Load all exercises from DB to feed the plan generator
-      const { data: dbExercises } = await supabase.from("exercises").select("id, slug, name, description, objective, summary, dedication, short_instruction, steps, tutorial_steps, success_criteria, contraindications");
+      const { data: dbExercises } = await supabase.from("exercises").select("id, slug, name, description, objective, summary, dedication, short_instruction, steps, tutorial_steps, success_criteria, contraindications, priority_axis, tags, target_problems, level, difficulty, compatible_reactivity, compatible_senior, compatible_puppy, compatible_muzzle, exercise_type, is_professional");
       if (dbExercises && dbExercises.length > 0) {
         setDbExercises(dbExercises);
       }
