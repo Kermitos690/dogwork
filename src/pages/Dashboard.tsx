@@ -144,7 +144,7 @@ export default function Dashboard() {
   // ── Next exercise to do ──
   const completedExerciseIds = inProgress?.completed_exercises || [];
   const planDays = (activePlan?.days as any[]) || [];
-  const planDay = planDays.find((d: any) => d.id === resumeDay || d.dayId === resumeDay);
+  const planDay = planDays.find((d: any) => d.dayNumber === resumeDay || d.id === resumeDay || d.dayId === resumeDay);
   const planExercises = planDay?.exercises || [];
   const dayExercises = planExercises.length > 0 ? planExercises : (getDayById(resumeDay)?.exercises || []);
   const nextExercise = dayExercises.find((ex: any) => !completedExerciseIds.includes(ex.id));
