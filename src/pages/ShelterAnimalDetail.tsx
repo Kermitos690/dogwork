@@ -210,7 +210,7 @@ export default function ShelterAnimalDetail() {
       const { error } = await supabase.from("shelter_animals" as any).update(update).eq("id", animalId!);
       if (error) throw error;
 
-      // Create initial adoption update record
+      // Create initial adoption update record + adopter link
       if (status === "adopté") {
         await supabase.from("adoption_updates" as any).insert({
           animal_id: animalId,
@@ -219,6 +219,28 @@ export default function ShelterAnimalDetail() {
           adopter_email: adopterEmail,
           message: `${animal?.name} a été adopté par ${adopterName || "un adoptant"}.`,
         } as any);
+
+        // Try to link adopter account if email matches a profile
+        if (adopterEmail) {
+          const { data: matchingUsers } = await supabase
+            .from("profiles")
+            .select("user_id")
+            .or(`display_name.ilike.%${adopterEmail}%`);
+
+          // Also search by auth email via user_roles (owners only)
+          // We use a simple approach: look for profiles where display_name contains the email
+          // A more robust approach would use an edge function with admin.listUsers
+          if (matchingUsers && matchingUsers.length > 0) {
+            for (const mu of matchingUsers) {
+              await supabase.from("adopter_links" as any).upsert({
+                adopter_user_id: mu.user_id,
+                shelter_user_id: user!.id,
+                animal_id: animalId,
+                animal_name: animal?.name || "",
+              } as any, { onConflict: "adopter_user_id,animal_id" });
+            }
+          }
+        }
       }
 
       await supabase.from("shelter_activity_log" as any).insert({
