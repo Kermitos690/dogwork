@@ -53,6 +53,3 @@ verify_jwt = false
 
 [functions.connect-dashboard]
 verify_jwt = false
-
-[functions.find-user-by-email]
-verify_jwt = false
