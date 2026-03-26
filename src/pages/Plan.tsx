@@ -467,7 +467,7 @@ function CheckItem({ label, done, action }: { label: string; done: boolean; acti
   );
 }
 
-function TemplatesList() {
+function TemplatesList({ onActivated }: { onActivated: () => void }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const activeDog = useActiveDog();
@@ -516,8 +516,7 @@ function TemplatesList() {
       days: full.days,
     });
     toast({ title: "✓ Programme activé", description: `${full.title} appliqué à ${activeDog.name}.` });
-    navigate("/plan");
-    window.location.reload();
+    onActivated();
   };
 
   const freeTemplates = templates.filter((t: any) => t.template_tier === "free");
