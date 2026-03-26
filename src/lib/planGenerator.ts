@@ -663,7 +663,7 @@ export function getAdaptiveSuggestions(signals: AdaptiveSignals): {
 }
 
 // ===== MAIN GENERATOR =====
-export function generatePersonalizedPlan(profile: DogProfile): PersonalizedPlan {
+export function generatePersonalizedPlan(profile: DogProfile, options?: { tier?: string; behaviorData?: AdaptiveSignals }): PersonalizedPlan {
   const securityLevel = calculateSecurityLevel(profile);
   const axes = determineAxes(profile);
   const precautions = determinePrecautions(profile);
@@ -672,12 +672,63 @@ export function generatePersonalizedPlan(profile: DogProfile): PersonalizedPlan 
   const days = generateDays(axes, profile);
   const priorityExplanation = buildPriorityExplanation(axes, profile);
 
+  // Expert tier enhancements: analyze behavior data and adapt
+  if (options?.tier === "expert" && options.behaviorData) {
+    const signals = options.behaviorData;
+    const adaptive = getAdaptiveSuggestions(signals);
+
+    // Adjust difficulty based on adaptive analysis
+    if (adaptive.shouldSimplify) {
+      days.forEach(day => {
+        day.difficulty = day.week <= 2 ? "très facile" : "facile";
+        day.exercises = day.exercises.slice(0, 2); // Reduce exercises
+        day.contextualTips = [
+          ...(day.contextualTips || []),
+          `📊 Analyse IA : ${adaptive.message}`,
+          `Tension moyenne observée : ${signals.avgTension.toFixed(1)}/5 — Réduire la charge.`,
+        ];
+      });
+    } else if (adaptive.shouldProgress) {
+      // Add progressive challenges in later weeks
+      days.filter(d => d.week >= 3).forEach(day => {
+        day.contextualTips = [
+          ...(day.contextualTips || []),
+          `📊 Analyse IA : ${adaptive.message}`,
+          `Score focus : ${signals.focusScore}% — Score stop : ${signals.stopScore}% — Prêt pour la progression.`,
+        ];
+      });
+    }
+
+    // Add behavioral insights to precautions
+    if (signals.incidentCount > 0) {
+      precautions.push({
+        type: "method",
+        severity: signals.incidentCount >= 3 ? "warning" : "info",
+        text: `${signals.incidentCount} incident(s) enregistré(s) dans le journal. ${signals.incidentCount >= 3 ? "Prudence accrue recommandée." : "Vigilance maintenue."}`,
+      });
+    }
+
+    // Add recovery analysis
+    if (signals.recoveryRate < 50) {
+      precautions.push({
+        type: "method",
+        severity: "warning",
+        text: `Taux de récupération observé : ${signals.recoveryRate}%. Augmentez les pauses entre stimulations.`,
+      });
+    }
+  }
+
+  // Expert tier: add deeper summary with behavioral analysis
   const topAxes = axes.slice(0, 3).map(a => a.label.toLowerCase()).join(", ");
+  const behaviorInsight = options?.tier === "expert" && options.behaviorData
+    ? ` Analyse comportementale : tension ${options.behaviorData.avgTension.toFixed(1)}/5, focus ${options.behaviorData.focusScore}%, ${options.behaviorData.daysCompleted} jours complétés.`
+    : "";
+
   const summary = securityLevel === "critique"
-    ? `Plan sécurisé pour ${profile.dog.name}. Priorité absolue à la sécurité. Axes : ${topAxes}.`
+    ? `Plan sécurisé pour ${profile.dog.name}. Priorité absolue à la sécurité. Axes : ${topAxes}.${behaviorInsight}`
     : securityLevel === "élevé"
-      ? `Plan adapté pour ${profile.dog.name} avec précautions renforcées. Axes : ${topAxes}.`
-      : `Plan personnalisé pour ${profile.dog.name} axé sur ${topAxes}. Progression sur 4 semaines.`;
+      ? `Plan adapté pour ${profile.dog.name} avec précautions renforcées. Axes : ${topAxes}.${behaviorInsight}`
+      : `Plan personnalisé pour ${profile.dog.name} axé sur ${topAxes}. Progression sur 4 semaines.${behaviorInsight}`;
 
   return {
     id: `plan-${profile.dog.id}-${Date.now()}`,
