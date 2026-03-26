@@ -8,7 +8,7 @@ import { SubscriptionProvider } from "@/hooks/useSubscription";
 import { EducatorSubscriptionProvider } from "@/hooks/useEducatorSubscription";
 import { PreferencesProvider } from "@/hooks/usePreferences";
 import { useDogs } from "./hooks/useDogs";
-import { useIsCoach, useIsShelter } from "./hooks/useCoach";
+import { useIsCoach, useIsShelter, useIsShelterEmployee } from "./hooks/useCoach";
 import { supabase } from "@/integrations/supabase/client";
 const AIChatBot = lazy(() => import("@/components/AIChatBot").then(m => ({ default: m.AIChatBot })));
 const GuidedTour = lazy(() => import("@/components/GuidedTour").then(m => ({ default: m.GuidedTour })));
