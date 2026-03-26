@@ -643,3 +643,203 @@ function SheltersList() {
     </Collapsible>
   );
 }
+
+function AdminDataManager() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<{ type: string; id: string; name: string } | null>(null);
+
+  // Search profiles
+  const { data: foundProfiles = [] } = useQuery({
+    queryKey: ["admin-search-profiles", searchQuery],
+    queryFn: async () => {
+      if (searchQuery.length < 2) return [];
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, created_at")
+        .ilike("display_name", `%${searchQuery}%`)
+        .limit(10);
+      return data || [];
+    },
+    enabled: searchQuery.length >= 2,
+  });
+
+  // Search dogs
+  const { data: foundDogs = [] } = useQuery({
+    queryKey: ["admin-search-dogs", searchQuery],
+    queryFn: async () => {
+      if (searchQuery.length < 2) return [];
+      const { data } = await supabase
+        .from("dogs")
+        .select("id, name, breed, user_id, created_at")
+        .ilike("name", `%${searchQuery}%`)
+        .limit(10);
+      return data || [];
+    },
+    enabled: searchQuery.length >= 2,
+  });
+
+  // Search training plans
+  const { data: foundPlans = [] } = useQuery({
+    queryKey: ["admin-search-plans", searchQuery],
+    queryFn: async () => {
+      if (searchQuery.length < 2) return [];
+      const { data } = await supabase
+        .from("training_plans")
+        .select("id, title, summary, user_id, created_at")
+        .ilike("title", `%${searchQuery}%`)
+        .limit(10);
+      return data || [];
+    },
+    enabled: searchQuery.length >= 2,
+  });
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      let error;
+      if (deleteTarget.type === "dog") {
+        ({ error } = await supabase.from("dogs").delete().eq("id", deleteTarget.id));
+      } else if (deleteTarget.type === "plan") {
+        ({ error } = await supabase.from("training_plans").delete().eq("id", deleteTarget.id));
+      } else if (deleteTarget.type === "message") {
+        ({ error } = await supabase.from("messages").delete().eq("id", deleteTarget.id));
+      }
+      if (error) throw error;
+      toast({ title: "Supprimé ✅", description: `${deleteTarget.name} a été supprimé.` });
+      queryClient.invalidateQueries({ queryKey: ["admin-search"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-search-dogs"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-search-plans"] });
+    } catch (err: any) {
+      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    }
+    setDeleteTarget(null);
+  };
+
+  return (
+    <>
+      <Collapsible>
+        <Card>
+          <CollapsibleTrigger className="w-full">
+            <CardHeader className="pb-3 flex flex-row items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Search className="h-4 w-4" /> Gestion des données
+              </CardTitle>
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="space-y-3 pt-0">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Rechercher utilisateur, chien, plan..."
+                  className="pl-10"
+                />
+              </div>
+
+              {searchQuery.length >= 2 && (
+                <div className="space-y-3">
+                  {/* Profiles */}
+                  {foundProfiles.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground mb-1 flex items-center gap-1">
+                        <Users className="h-3 w-3" /> Utilisateurs ({foundProfiles.length})
+                      </p>
+                      {foundProfiles.map((p: any) => (
+                        <div key={p.user_id} className="flex items-center justify-between p-2 rounded-lg bg-secondary/30 mb-1">
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{p.display_name || "Sans nom"}</p>
+                            <p className="text-[10px] text-muted-foreground">{new Date(p.created_at).toLocaleDateString("fr-FR")}</p>
+                          </div>
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Dogs */}
+                  {foundDogs.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground mb-1 flex items-center gap-1">
+                        <Dog className="h-3 w-3" /> Chiens ({foundDogs.length})
+                      </p>
+                      {foundDogs.map((d: any) => (
+                        <div key={d.id} className="flex items-center justify-between p-2 rounded-lg bg-secondary/30 mb-1">
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{d.name}</p>
+                            <p className="text-[10px] text-muted-foreground">{d.breed || "Race inconnue"}</p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            onClick={() => setDeleteTarget({ type: "dog", id: d.id, name: d.name })}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Plans */}
+                  {foundPlans.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground mb-1 flex items-center gap-1">
+                        <FileText className="h-3 w-3" /> Plans ({foundPlans.length})
+                      </p>
+                      {foundPlans.map((p: any) => (
+                        <div key={p.id} className="flex items-center justify-between p-2 rounded-lg bg-secondary/30 mb-1">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-foreground truncate">{p.title}</p>
+                            <p className="text-[10px] text-muted-foreground truncate">{p.summary?.substring(0, 60)}</p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive flex-shrink-0"
+                            onClick={() => setDeleteTarget({ type: "plan", id: p.id, name: p.title })}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {foundProfiles.length === 0 && foundDogs.length === 0 && foundPlans.length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-3">Aucun résultat trouvé.</p>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Confirmer la suppression
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer <strong>{deleteTarget?.name}</strong> ? Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
