@@ -33,8 +33,12 @@ export default function Auth() {
     setLoading(true);
     try {
       if (mode === "login") {
-        const { error } = await signIn(email, password);
-        if (error) throw error;
+        // Try normal login first; if it fails and password looks like a 6-digit PIN, retry with transformed password
+        let result = await signIn(email, password);
+        if (result.error && /^\d{6}$/.test(password)) {
+          result = await signIn(email, `DogWork!${password}#Secure`);
+        }
+        if (result.error) throw result.error;
       } else if (mode === "signup") {
         const { error } = await signUp(email, password, displayName);
         if (error) throw error;
