@@ -61,6 +61,9 @@ export default function ShelterEmployees() {
       if (!form.name.trim()) throw new Error("Nom requis");
       if (!form.email.trim()) throw new Error("Email requis");
 
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Non connecté");
+
       const { data, error } = await supabase.functions.invoke("create-shelter-employee", {
         body: {
           name: form.name,
@@ -70,6 +73,7 @@ export default function ShelterEmployees() {
           phone: form.phone,
           shelter_user_id: user!.id,
         },
+        headers: { Authorization: `Bearer ${session.access_token}` },
       });
 
       if (error) throw new Error(error.message || "Erreur création employé");
@@ -122,8 +126,12 @@ export default function ShelterEmployees() {
 
   const resetPinMutation = useMutation({
     mutationFn: async (emp: any) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Non connecté");
+
       const { data, error } = await supabase.functions.invoke("create-shelter-employee", {
         body: { action: "reset-pin", auth_user_id: emp.auth_user_id, employee_id: emp.id },
+        headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (error) throw new Error(error.message || "Erreur reset PIN");
       if (data?.error) throw new Error(data.error);
