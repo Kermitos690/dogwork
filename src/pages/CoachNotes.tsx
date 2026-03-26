@@ -13,6 +13,7 @@ import { motion } from "framer-motion";
 import { useCoachNotes, useCoachDogs } from "@/hooks/useCoach";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -41,6 +42,33 @@ export default function CoachNotes() {
   const { data: notes = [] } = useCoachNotes();
   const { data: dogs = [] } = useCoachDogs();
   const queryClient = useQueryClient();
+
+  // Also fetch shelter animals for coaches linked to shelters
+  const { data: shelterAnimals = [] } = useQuery({
+    queryKey: ["coach-shelter-animals-for-notes", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data: links } = await supabase
+        .from("shelter_coaches")
+        .select("shelter_user_id")
+        .eq("coach_user_id", user.id)
+        .eq("status", "active");
+      if (!links?.length) return [];
+      const shelterIds = links.map((l) => l.shelter_user_id);
+      const { data: animals } = await supabase
+        .from("shelter_animals")
+        .select("id, name, breed, species, user_id")
+        .in("user_id", shelterIds)
+        .neq("status", "adopté");
+      return (animals ?? []).map((a) => ({ ...a, _isShelterAnimal: true as const }));
+    },
+    enabled: !!user,
+  });
+
+  const allAnimals = [
+    ...dogs.map((d) => ({ id: d.id, name: d.name, label: `🐕 ${d.name} — ${d.clientName}`, userId: d.user_id })),
+    ...shelterAnimals.map((a) => ({ id: a.id, name: a.name, label: `🏠 ${a.name} (${a.breed || a.species})`, userId: a.user_id })),
+  ];
   const [search, setSearch] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [newNote, setNewNote] = useState({ title: "", content: "", note_type: "observation", priority_level: "normal", dog_id: "" });
@@ -107,11 +135,11 @@ export default function CoachNotes() {
                     <SelectItem value="high">Haute</SelectItem>
                   </SelectContent>
                 </Select>
-                {dogs.length > 0 && (
+                {allAnimals.length > 0 && (
                   <Select value={newNote.dog_id} onValueChange={(v) => setNewNote({ ...newNote, dog_id: v })}>
-                    <SelectTrigger><SelectValue placeholder="Chien (optionnel)" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Animal (optionnel)" /></SelectTrigger>
                     <SelectContent>
-                      {dogs.map((d) => <SelectItem key={d.id} value={d.id}>{d.name} — {d.clientName}</SelectItem>)}
+                      {allAnimals.map((a) => <SelectItem key={a.id} value={a.id}>{a.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 )}
