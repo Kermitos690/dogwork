@@ -70,6 +70,11 @@ const ShelterActivityLog = lazy(() => import("./pages/ShelterActivityLog"));
 const ShelterStats = lazy(() => import("./pages/ShelterStats"));
 const ShelterSubscription = lazy(() => import("./pages/ShelterSubscription"));
 const ShelterCoaches = lazy(() => import("./pages/ShelterCoaches"));
+const EmployeeGuard = lazy(() => import("./components/EmployeeGuard").then(m => ({ default: m.EmployeeGuard })));
+const EmployeeDashboard = lazy(() => import("./pages/EmployeeDashboard"));
+const EmployeeAnimals = lazy(() => import("./pages/EmployeeAnimals"));
+const EmployeeActivity = lazy(() => import("./pages/EmployeeActivity"));
+const EmployeeProfile = lazy(() => import("./pages/EmployeeProfile"));
 
 const queryClient = new QueryClient();
 
