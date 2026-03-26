@@ -39,16 +39,27 @@ Deno.serve(async (req) => {
     // Generate 6-digit PIN
     const pin = String(Math.floor(100000 + Math.random() * 900000));
 
-    // Create auth user with PIN as password
-    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password: pin,
-      email_confirm: true,
-      user_metadata: { display_name: name },
-    });
-    if (createError) throw new Error(`Erreur création compte: ${createError.message}`);
+    let userId: string;
 
-    const userId = newUser.user.id;
+    // Check if user already exists
+    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+    const existingUser = existingUsers?.users?.find((u: any) => u.email === email);
+
+    if (existingUser) {
+      userId = existingUser.id;
+      // Update password to new PIN
+      await supabaseAdmin.auth.admin.updateUser(userId, { password: pin });
+    } else {
+      // Create auth user with PIN as password
+      const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password: pin,
+        email_confirm: true,
+        user_metadata: { display_name: name },
+      });
+      if (createError) throw new Error(`Erreur création compte: ${createError.message}`);
+      userId = newUser.user.id;
+    }
 
     // Assign shelter_employee role (remove auto-assigned 'owner' role first)
     await supabaseAdmin.from("user_roles").delete().eq("user_id", userId).eq("role", "owner");
