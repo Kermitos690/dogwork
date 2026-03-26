@@ -50,13 +50,13 @@ Deno.serve(async (req) => {
 
     const userId = newUser.user.id;
 
-    // Assign shelter_employee role
+    // Assign shelter_employee role (remove auto-assigned 'owner' role first)
+    await supabaseAdmin.from("user_roles").delete().eq("user_id", userId).eq("role", "owner");
     const { error: roleError } = await supabaseAdmin.from("user_roles").insert({
       user_id: userId,
       role: "shelter_employee",
     });
     if (roleError) {
-      // Cleanup: delete created user
       await supabaseAdmin.auth.admin.deleteUser(userId);
       throw new Error(`Erreur attribution rôle: ${roleError.message}`);
     }
