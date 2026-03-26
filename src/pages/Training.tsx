@@ -76,30 +76,37 @@ export default function Training() {
 
   const completeExercise = useCallback(async () => {
     if (!exercise || !activeDog || !user) return;
-    if (!isExDone) {
-      const newCompleted = [...completedExercises, exercise.id];
-      if (progress) {
-        await supabase.from("day_progress").update({
-          completed_exercises: newCompleted,
-          status: newCompleted.length >= totalExercises ? "done" : "in_progress",
-        }).eq("id", progress.id);
-      } else {
-        await supabase.from("day_progress").insert({
-          dog_id: activeDog.id, user_id: user.id, day_id: id,
-          completed_exercises: newCompleted, status: "in_progress",
-        });
+    try {
+      if (!isExDone) {
+        const newCompleted = [...completedExercises, exercise.id];
+        if (progress) {
+          const { error } = await supabase.from("day_progress").update({
+            completed_exercises: newCompleted,
+            status: newCompleted.length >= totalExercises ? "done" : "in_progress",
+          }).eq("id", progress.id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from("day_progress").insert({
+            dog_id: activeDog.id, user_id: user.id, day_id: id,
+            completed_exercises: newCompleted, status: "in_progress",
+          });
+          if (error) throw error;
+        }
       }
-    }
-    await supabase.from("exercise_sessions").insert({
-      dog_id: activeDog.id, user_id: user.id, day_id: id,
-      exercise_id: exercise.id, repetitions_done: reps, completed: true,
-    });
-    refetch();
-    toast({ title: "✓ Exercice terminé", description: exercise.name });
-    if (currentIndex < totalExercises - 1) {
-      setCurrentIndex(currentIndex + 1);
-      setReps(0);
-      setShowSteps(false);
+      await supabase.from("exercise_sessions").insert({
+        dog_id: activeDog.id, user_id: user.id, day_id: id,
+        exercise_id: exercise.id, repetitions_done: reps, completed: true,
+      });
+      await refetch();
+      toast({ title: "✓ Exercice terminé", description: exercise.name });
+      if (currentIndex < totalExercises - 1) {
+        setCurrentIndex(currentIndex + 1);
+        setReps(0);
+        setShowSteps(false);
+      }
+    } catch (err: any) {
+      console.error("Exercise completion error:", err);
+      toast({ title: "Erreur", description: "Impossible de valider l'exercice. Réessayez.", variant: "destructive" });
     }
   }, [isExDone, completedExercises, progress, exercise, id, reps, currentIndex, totalExercises, activeDog, user, refetch]);
 

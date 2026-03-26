@@ -77,85 +77,85 @@ export interface AdaptiveSignals {
 
 // ===== AXIS → REAL EXERCISE SLUGS MAPPING =====
 // Maps each training axis to real exercise slugs from the database
+// Each week has a LARGE pool to ensure variety across days
 const AXIS_EXERCISE_SLUGS: Record<string, string[][]> = {
-  // [week1 slugs, week2 slugs, week3 slugs, week4 slugs]
   securite: [
-    ["stop-urgence", "demi-tour", "regarde-moi"],
-    ["stop-urgence", "u-turn", "regarde-moi", "distance-confort"],
-    ["stop-urgence", "u-turn", "zone-tampon", "pas-bouger"],
-    ["stop-urgence", "u-turn", "zone-tampon", "passage-en-arc"],
+    ["stop-urgence", "demi-tour", "regarde-moi", "distance-confort", "u-turn", "arret-spontane"],
+    ["stop-urgence", "u-turn", "regarde-moi", "distance-confort", "zone-tampon", "demi-tour", "passage-en-arc"],
+    ["stop-urgence", "u-turn", "zone-tampon", "pas-bouger", "passage-en-arc", "distance-confort", "gestion-peur"],
+    ["stop-urgence", "u-turn", "zone-tampon", "passage-en-arc", "pas-bouger", "gerer-bruit-soudain", "calme-exterieur"],
   ],
   focus: [
-    ["regarde-moi", "reponse-au-nom", "touche-main"],
-    ["regarde-moi", "reponse-au-nom", "touche-main", "capturing-calme"],
-    ["regarde-moi", "focus-pres-stimulus", "touche-main", "engage-disengage"],
-    ["focus-pres-stimulus", "engage-disengage", "regarde-moi", "lat-look-at-that"],
+    ["regarde-moi", "reponse-au-nom", "touche-main", "capturing-calme", "assis-base", "zen-game"],
+    ["regarde-moi", "reponse-au-nom", "touche-main", "capturing-calme", "tapis-calme", "attente-recompense", "zen-bowl"],
+    ["regarde-moi", "focus-pres-stimulus", "touche-main", "engage-disengage", "assis-automatique", "attente-passive", "calme-pendant-activites"],
+    ["focus-pres-stimulus", "engage-disengage", "regarde-moi", "lat-look-at-that", "pattern-games", "calme-exterieur", "assis-longue-duree"],
   ],
   reactivite_chiens: [
-    ["distance-confort", "regarde-moi", "u-turn"],
-    ["counter-conditioning", "engage-disengage", "u-turn", "zone-tampon"],
-    ["lat-look-at-that", "marche-parallele", "bat-training", "passage-en-arc"],
-    ["bat-training", "marche-parallele", "focus-pres-stimulus", "pattern-games"],
+    ["distance-confort", "regarde-moi", "u-turn", "station-observation", "marche-sniffari", "auto-apaisement"],
+    ["counter-conditioning", "engage-disengage", "u-turn", "zone-tampon", "choix-direction", "compteur-comportemental", "desens-sons-enregistres"],
+    ["lat-look-at-that", "marche-parallele", "bat-training", "passage-en-arc", "pattern-games", "desens-sac-poubelle"],
+    ["bat-training", "marche-parallele", "focus-pres-stimulus", "pattern-games", "calme-exterieur", "gestion-fenetre", "desens-cage-transport"],
   ],
   reactivite_humains: [
-    ["distance-confort", "regarde-moi", "u-turn"],
-    ["counter-conditioning", "engage-disengage", "croisement-pieton"],
-    ["lat-look-at-that", "rencontre-humains", "passage-en-arc"],
-    ["bat-training", "manipulations-douces", "focus-pres-stimulus"],
+    ["distance-confort", "regarde-moi", "u-turn", "station-observation", "auto-apaisement", "desens-chapeau"],
+    ["counter-conditioning", "engage-disengage", "croisement-pieton", "zone-tampon", "desens-parapluie", "choix-direction"],
+    ["lat-look-at-that", "rencontre-humains", "passage-en-arc", "pattern-games", "desens-manipulations-pattes", "personnes-agees"],
+    ["bat-training", "manipulations-douces", "focus-pres-stimulus", "gerer-visiteurs", "calme-exterieur", "noms-personnes"],
   ],
   marche: [
-    ["marche-sans-tirer", "demi-tour", "arret-spontane"],
-    ["marche-sans-tirer", "changement-rythme", "ignore-nourriture-sol"],
-    ["marche-relaxation", "contournement-obstacles", "attente-au-pied"],
-    ["marche-en-ville", "marche-foret", "marche-relaxation"],
+    ["marche-sans-tirer", "demi-tour", "arret-spontane", "mettre-harnais", "premiere-laisse", "passer-une-porte"],
+    ["marche-sans-tirer", "changement-rythme", "ignore-nourriture-sol", "marche-laisse-longue", "marche-sniffari", "contournement-obstacles"],
+    ["marche-relaxation", "contournement-obstacles", "attente-au-pied", "marche-foret", "marche-laisse-longue", "monter-descendre-escaliers"],
+    ["marche-en-ville", "marche-foret", "marche-relaxation", "calme-exterieur", "marche-laisse-longue", "attendre-en-voiture"],
   ],
   accueil: [
-    ["assis-base", "assis-automatique", "regarde-moi"],
-    ["assis-automatique", "gerer-visiteurs", "reste-assis"],
-    ["gerer-visiteurs", "joie-moderee", "reste-assis"],
-    ["gerer-visiteurs", "calme-pendant-activites", "assis-automatique"],
+    ["assis-base", "assis-automatique", "regarde-moi", "couche-base", "touche-main", "calme-chiot"],
+    ["assis-automatique", "gerer-visiteurs", "reste-assis", "renoncement-friandise", "calme-pendant-activites", "frustration-porte"],
+    ["gerer-visiteurs", "joie-moderee", "reste-assis", "calm-apres-jeu", "excitation-controlée", "assis-longue-duree"],
+    ["gerer-visiteurs", "calme-pendant-activites", "assis-automatique", "reste-couche", "enchainement-positions", "gestion-peur"],
   ],
   solitude: [
-    ["solitude-10s", "solitude-1min", "tapis-calme"],
-    ["solitude-5min", "porte-fermee", "detachement-piece"],
-    ["solitude-15min", "ritual-depart", "occupation-seul"],
-    ["solitude-30min", "ignorer-depart", "ritual-retour"],
+    ["solitude-10s", "solitude-1min", "tapis-calme", "detachement-piece", "kong-occupe", "barriere-bebe"],
+    ["solitude-5min", "porte-fermee", "detachement-piece", "occupation-seul", "camera-monitoring", "tapis-lickimat"],
+    ["solitude-15min", "ritual-depart", "occupation-seul", "ignorer-depart", "solitude-jardin", "calme-fin-journee"],
+    ["solitude-30min", "ignorer-depart", "ritual-retour", "solitude-1h", "solitude-jardin", "camera-monitoring"],
   ],
   aboiements: [
-    ["regarde-moi", "capturing-calme", "reponse-au-nom"],
-    ["jeu-interruptible", "renoncement-friandise", "regarde-moi"],
-    ["gerer-bruit-soudain", "gestion-fenetre", "tapis-calme"],
-    ["aboie-sur-commande", "calme-exterieur", "pattern-games"],
+    ["regarde-moi", "capturing-calme", "reponse-au-nom", "zen-game", "tapis-calme", "calme-chiot"],
+    ["jeu-interruptible", "renoncement-friandise", "regarde-moi", "frustration-porte", "attente-recompense", "calme-sur-couverture"],
+    ["gerer-bruit-soudain", "gestion-fenetre", "tapis-calme", "habituation-bruits", "bruits-menagers", "desens-sons-enregistres"],
+    ["aboie-sur-commande", "calme-exterieur", "pattern-games", "protocole-relaxation", "calme-pendant-activites", "resilience-bruits-chiot"],
   ],
   autocontrole: [
-    ["tapis-calme", "zen-game", "attente-recompense"],
-    ["frustration-porte", "renoncement-friandise", "jouet-interdit"],
-    ["frustration-barriere", "jeu-interruptible", "calm-apres-jeu"],
-    ["excitation-controlée", "transition-energie", "calme-pendant-activites"],
+    ["tapis-calme", "zen-game", "attente-recompense", "capturing-calme", "zen-bowl", "calme-sur-couverture"],
+    ["frustration-porte", "renoncement-friandise", "jouet-interdit", "attend-gamelle", "attente-passive", "calme-pendant-activites"],
+    ["frustration-barriere", "jeu-interruptible", "calm-apres-jeu", "excitation-controlée", "protocole-relaxation", "donne-objet"],
+    ["excitation-controlée", "transition-energie", "calme-pendant-activites", "gerer-bruit-soudain", "enchainement-positions", "assis-longue-duree"],
   ],
   rappel: [
-    ["rappel-base", "reponse-au-nom", "touche-main"],
-    ["rappel-longe", "rappel-jeu", "rappel-entre-2-personnes"],
-    ["rappel-distractions", "rappel-course", "rappel-reward-jackpot"],
-    ["rappel-avec-chiens", "rappel-sifflet", "rappel-sans-friandise"],
+    ["rappel-base", "reponse-au-nom", "touche-main", "premier-rappel", "rappel-entre-2-personnes", "rappel-progressif-distance"],
+    ["rappel-longe", "rappel-jeu", "rappel-entre-2-personnes", "rappel-position", "rappel-vocal-varie", "rappel-reward-jackpot"],
+    ["rappel-distractions", "rappel-course", "rappel-reward-jackpot", "rappel-cache", "rappel-terrain-varie", "rappel-nuit"],
+    ["rappel-avec-chiens", "rappel-sifflet", "rappel-sans-friandise", "rappel-libre", "rappel-urgence", "rappel-gibier"],
   ],
   museliere: [
-    ["desens-museliere", "touche-main", "capturing-calme"],
-    ["desens-museliere", "marche-sans-tirer", "regarde-moi"],
-    ["desens-museliere", "marche-relaxation", "tapis-calme"],
-    ["desens-museliere", "marche-en-ville", "calme-exterieur"],
+    ["desens-museliere", "touche-main", "capturing-calme", "chin-rest", "handling-chiot", "brossage"],
+    ["desens-museliere", "marche-sans-tirer", "regarde-moi", "palpation-corporelle", "nettoyage-yeux", "desens-manipulations-pattes"],
+    ["desens-museliere", "marche-relaxation", "tapis-calme", "desens-oreilles", "desens-dents", "desens-clippers"],
+    ["desens-museliere", "marche-en-ville", "calme-exterieur", "desens-tondeuse", "desens-seche-cheveux", "desens-collier-elisabethain"],
   ],
   stop: [
-    ["stop-urgence", "regarde-moi", "pas-bouger"],
-    ["stop-urgence", "stop-en-marche", "reste-assis"],
-    ["stop-urgence", "stop-en-marche", "reste-distractions"],
-    ["stop-urgence", "stop-en-marche", "couche-a-distance"],
+    ["stop-urgence", "regarde-moi", "pas-bouger", "assis-base", "couche-base", "arret-spontane"],
+    ["stop-urgence", "stop-en-marche", "reste-assis", "reste-couche", "attente-passive", "demi-tour"],
+    ["stop-urgence", "stop-en-marche", "reste-distractions", "assis-longue-duree", "couche-longue-duree", "enchainement-positions"],
+    ["stop-urgence", "stop-en-marche", "couche-a-distance", "pas-bouger", "debout-base", "rappel-urgence"],
   ],
   non: [
-    ["laisse-ca", "renoncement-friandise", "regarde-moi"],
-    ["laisse-ca", "jouet-interdit", "pas-toucher-objet"],
-    ["laisse-ca", "ignore-nourriture-sol", "zen-game"],
-    ["laisse-ca", "jouet-interdit", "resilience-echec"],
+    ["laisse-ca", "renoncement-friandise", "regarde-moi", "zen-game", "attente-recompense", "zen-bowl"],
+    ["laisse-ca", "jouet-interdit", "pas-toucher-objet", "frustration-porte", "attend-gamelle", "donne-objet"],
+    ["laisse-ca", "ignore-nourriture-sol", "zen-game", "frustration-barriere", "jeu-interruptible", "calme-pendant-activites"],
+    ["laisse-ca", "jouet-interdit", "resilience-echec", "excitation-controlée", "gestion-peur", "enchainement-positions"],
   ],
 };
 
@@ -437,11 +437,19 @@ function buildExercisesForAxis(
   const uniqueSlugs = Array.from(new Set(slugsForWeek));
   if (!uniqueSlugs.length) return exercises;
 
-  const rotatedSlugs = rotateArray(uniqueSlugs, variationSeed);
-  const prioritizedSlugs = [
-    ...rotatedSlugs.filter((slug) => !avoidSlugs.has(slug)),
-    ...rotatedSlugs.filter((slug) => avoidSlugs.has(slug)),
-  ];
+  // Use a seeded shuffle for true variety across days
+  const shuffled = [...uniqueSlugs];
+  let seed = variationSeed;
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    const j = seed % (i + 1);
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  // Strongly prioritize exercises NOT used on the previous day
+  const fresh = shuffled.filter((slug) => !avoidSlugs.has(slug));
+  const stale = shuffled.filter((slug) => avoidSlugs.has(slug));
+  const prioritizedSlugs = [...fresh, ...stale];
 
   const targetCount = Math.min(
     prioritizedSlugs.length,
