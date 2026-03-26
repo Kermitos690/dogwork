@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Plus, Pencil, Trash2, Phone, Mail, Briefcase } from "lucide-react";
+import { Users, Plus, Pencil, Trash2, Phone, Mail, KeyRound } from "lucide-react";
 import { motion } from "framer-motion";
 
 const ROLES = [
@@ -54,26 +54,55 @@ export default function ShelterEmployees() {
     enabled: !!user,
   });
 
-  const saveMutation = useMutation({
+  const createMutation = useMutation({
     mutationFn: async () => {
       if (!form.name.trim()) throw new Error("Nom requis");
-      if (editId) {
-        const { error } = await (supabase.from("shelter_employees" as any) as any)
-          .update({ name: form.name, role: form.role, job_title: form.job_title, email: form.email, phone: form.phone })
-          .eq("id", editId);
-        if (error) throw error;
-      } else {
-        const { error } = await (supabase.from("shelter_employees" as any) as any)
-          .insert({ shelter_user_id: user!.id, name: form.name, role: form.role, job_title: form.job_title, email: form.email, phone: form.phone });
-        if (error) throw error;
-      }
+      if (!form.email.trim()) throw new Error("Email requis");
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      const { data, error } = await supabase.functions.invoke("create-shelter-employee", {
+        body: {
+          name: form.name,
+          email: form.email,
+          role: form.role,
+          job_title: form.job_title,
+          phone: form.phone,
+          shelter_user_id: user!.id,
+        },
+      });
+
+      if (error) throw new Error(error.message || "Erreur création employé");
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["shelter-employees"] });
+      setDialogOpen(false);
+      setForm(emptyForm);
+      toast({
+        title: "Employé créé ✅",
+        description: `Code PIN envoyé à ${form.email}. PIN: ${data?.pin || "voir email"}`,
+      });
+    },
+    onError: (e: any) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+      if (!form.name.trim()) throw new Error("Nom requis");
+      const { error } = await (supabase.from("shelter_employees" as any) as any)
+        .update({ name: form.name, role: form.role, job_title: form.job_title, email: form.email, phone: form.phone })
+        .eq("id", editId);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shelter-employees"] });
       setDialogOpen(false);
       setEditId(null);
       setForm(emptyForm);
-      toast({ title: editId ? "Employé mis à jour" : "Employé ajouté" });
+      toast({ title: "Employé mis à jour" });
     },
     onError: (e: any) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
   });
@@ -87,7 +116,7 @@ export default function ShelterEmployees() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shelter-employees"] });
-      toast({ title: "Employé supprimé" });
+      toast({ title: "Employé désactivé" });
     },
   });
 
@@ -102,6 +131,16 @@ export default function ShelterEmployees() {
     setForm(emptyForm);
     setDialogOpen(true);
   };
+
+  const handleSave = () => {
+    if (editId) {
+      updateMutation.mutate();
+    } else {
+      createMutation.mutate();
+    }
+  };
+
+  const isSaving = createMutation.isPending || updateMutation.isPending;
 
   return (
     <ShelterLayout>
@@ -127,6 +166,10 @@ export default function ShelterEmployees() {
                   <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Nom complet" />
                 </div>
                 <div className="space-y-2">
+                  <Label>Email * {!editId && <span className="text-muted-foreground text-xs">(le code PIN sera envoyé ici)</span>}</Label>
+                  <Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} type="email" disabled={!!editId} />
+                </div>
+                <div className="space-y-2">
                   <Label>Rôle</Label>
                   <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -142,15 +185,17 @@ export default function ShelterEmployees() {
                   <Input value={form.job_title} onChange={(e) => setForm({ ...form, job_title: e.target.value })} placeholder="Ex: Chef soigneur, Stagiaire vétérinaire..." />
                 </div>
                 <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} type="email" />
-                </div>
-                <div className="space-y-2">
                   <Label>Téléphone</Label>
                   <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} type="tel" />
                 </div>
-                <Button className="w-full" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-                  {saveMutation.isPending ? "Sauvegarde..." : "Enregistrer"}
+                {!editId && (
+                  <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground flex items-start gap-2">
+                    <KeyRound className="h-4 w-4 mt-0.5 shrink-0" />
+                    <span>Un code PIN à 6 chiffres sera généré et envoyé par email. L'employé pourra se connecter avec son email et ce code.</span>
+                  </div>
+                )}
+                <Button className="w-full" onClick={handleSave} disabled={isSaving}>
+                  {isSaving ? "Sauvegarde..." : "Enregistrer"}
                 </Button>
               </div>
             </DialogContent>
@@ -195,6 +240,11 @@ export default function ShelterEmployees() {
                         </span>
                       )}
                     </div>
+                    {emp.auth_user_id && (
+                      <span className="text-[10px] text-green-600 flex items-center gap-0.5 mt-0.5">
+                        <KeyRound className="h-3 w-3" /> Compte actif
+                      </span>
+                    )}
                   </div>
                   <div className="flex gap-1">
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(emp)}>
