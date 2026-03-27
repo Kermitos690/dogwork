@@ -81,13 +81,25 @@ serve(async (req) => {
         .eq("user_id", targetUserId);
     }
 
-    return new Response(JSON.stringify({
+    // Only expose account_id to admins — educators don't need it
+    const { data: callerAdminRoles } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin");
+    const callerIsAdmin = (callerAdminRoles?.length ?? 0) > 0;
+
+    const result: Record<string, any> = {
       connected: true,
       onboarding_complete: isComplete,
       charges_enabled: account.charges_enabled,
       payouts_enabled: account.payouts_enabled,
-      account_id: account.id,
-    }), {
+    };
+    if (callerIsAdmin) {
+      result.account_id = account.id;
+    }
+
+    return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: any) {
