@@ -90,7 +90,13 @@ export default function CoachSubscription() {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("customer-portal");
-      if (error) throw error;
+      if (error) {
+        // If no Stripe customer exists, redirect to checkout instead
+        const errorBody = typeof error === "object" && "context" in error ? error : null;
+        toast({ title: "Info", description: "Redirection vers la page de paiement...", });
+        await handleCheckout();
+        return;
+      }
       if (data?.url) window.open(data.url, "_blank");
     } catch (e: any) {
       toast({ title: "Erreur", description: e.message, variant: "destructive" });
