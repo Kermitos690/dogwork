@@ -65,7 +65,7 @@ serve(async (req) => {
     const isAdminApple = user.app_metadata?.provider === "apple" && 
       appleProviderId === "001806.9d0ff72f8fd64bac88fe99b4436db8df.1226";
 
-    if (isTestAccount || isAdminEmail) {
+    if (isTestAccount || isAdminEmail || isAdminApple) {
       logStep("Privileged account detected, granting full access", { email: user.email, roles });
 
       // Determine best product_id based on role
