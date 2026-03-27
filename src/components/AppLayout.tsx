@@ -51,12 +51,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background pb-20">
       <SlideMenu />
       <FloatingReadAloud />
-      <div className="mx-auto max-w-lg px-4">
+      <div className="mx-auto max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-6xl px-4 pt-16">
         {children}
       </div>
       {!hideNav && (
         <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/70 glass safe-bottom border-t border-border/30">
-          <div className="mx-auto flex max-w-lg items-center justify-around py-1">
+          <div className="mx-auto flex max-w-lg md:max-w-2xl items-center justify-around py-1">
             {tabs.map((tab) => {
               const active = isActive(tab.path);
               return (
