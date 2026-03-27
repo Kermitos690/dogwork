@@ -81,6 +81,7 @@ export default function Auth() {
       });
       if (sessionErr) throw sessionErr;
       toast({ title: "Connexion réussie", description: `Connecté en tant que ${role}` });
+      navigate("/");
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
     } finally {
