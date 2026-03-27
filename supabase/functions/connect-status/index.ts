@@ -31,7 +31,10 @@ serve(async (req) => {
     if (!user?.email) throw new Error("Non authentifié");
 
     // Check if request is from admin checking a specific educator
-    const body = req.method === "POST" ? await req.json() : {};
+    let body: Record<string, any> = {};
+    try {
+      if (req.method === "POST") body = await req.json();
+    } catch { /* empty body is fine */ }
     const targetUserId = body.educator_user_id || user.id;
 
     // If checking another user, verify admin role
@@ -60,6 +63,10 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+      apiVersion: "2025-08-27.basil",
+    });
 
     const account = await stripe.accounts.retrieve(stripeData.stripe_account_id);
     logStep("Account retrieved", {
