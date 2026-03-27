@@ -87,6 +87,26 @@ const PageLoader = () => (
   </div>
 );
 
+function RecoveryRouteGuard() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { isPasswordRecovery } = useAuth();
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const hasRecoveryCode = searchParams.has("code");
+    const hasRecoveryType = searchParams.get("type") === "recovery";
+    const hasRecoveryHash = location.hash.includes("type=recovery") || location.hash.includes("access_token=");
+    const shouldGoToReset = hasRecoveryCode || hasRecoveryType || hasRecoveryHash || isPasswordRecovery;
+
+    if (shouldGoToReset && location.pathname !== "/reset-password") {
+      navigate(`/reset-password${location.search}${location.hash}`, { replace: true });
+    }
+  }, [isPasswordRecovery, location.hash, location.pathname, location.search, navigate]);
+
+  return null;
+}
+
 function ProtectedRoutes() {
   const { user, loading, isPasswordRecovery } = useAuth();
   const location = useLocation();
@@ -246,6 +266,7 @@ const App = () => {
         <TooltipProvider>
           <Toaster />
           <BrowserRouter>
+            <RecoveryRouteGuard />
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/landing" element={<Landing />} />
