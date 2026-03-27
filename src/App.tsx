@@ -105,7 +105,7 @@ function ProtectedRoutes() {
     return <PageLoader />;
   }
 
-  if (!user) return <Auth />;
+  if (!user) return <Navigate to="/landing" replace />;
 
   const hasDogs = dogs && dogs.length > 0;
   const onboardingInProgress = !hasDogs && !isCoach && !isShelter && !isShelterEmployee && !isAdmin;
@@ -230,6 +230,7 @@ const App = () => {
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/landing" element={<Landing />} />
+                <Route path="/auth" element={<Auth />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/*" element={<ProtectedRoutes />} />
               </Routes>
