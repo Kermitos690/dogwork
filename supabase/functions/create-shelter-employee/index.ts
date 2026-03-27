@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
 
       // Update pin_code hash in shelter_employees (clear pin removed)
       const hashedPin = await hashPin(pin);
-      await supabaseAdmin.from("shelter_employees").update({ pin_code: "******", hashed_pin: hashedPin }).eq("id", employee_id);
+      await supabaseAdmin.from("shelter_employees").update({ hashed_pin: hashedPin }).eq("id", employee_id);
 
       // Get employee info for email
       const { data: emp } = await supabaseAdmin.from("shelter_employees").select("name, email").eq("id", employee_id).single();
@@ -155,7 +155,6 @@ Deno.serve(async (req) => {
       email,
       phone: phone || "",
       auth_user_id: userId,
-      pin_code: "******",
       hashed_pin: hashedPin,
     });
     if (empError) {

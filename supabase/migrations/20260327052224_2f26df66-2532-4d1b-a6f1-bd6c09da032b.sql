@@ -1,0 +1,1 @@
+ALTER TABLE public.shelter_employees DROP COLUMN pin_code;
