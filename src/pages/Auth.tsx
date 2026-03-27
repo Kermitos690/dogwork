@@ -90,11 +90,9 @@ export default function Auth() {
     <main className="min-h-screen bg-background flex items-center justify-center p-4" aria-label="Authentification">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-primary flex items-center justify-center">
-            <Dog className="h-8 w-8 text-primary-foreground" />
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">PawPlan</h1>
-          <p className="text-sm text-muted-foreground">Journal de bord canin intelligent</p>
+          <img src="/favicon.png" alt="DogWork" className="mx-auto w-16 h-16 rounded-2xl" />
+          <h1 className="text-2xl font-bold text-foreground">DogWork</h1>
+          <p className="text-sm text-muted-foreground">Éducation canine intelligente</p>
         </div>
 
         <div className="space-y-3">

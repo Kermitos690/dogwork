@@ -22,7 +22,7 @@ import type { Dog as DogType } from "@/hooks/useDogs";
 
 // ===== Constants =====
 const TOTAL_STEPS = 12;
-const STORAGE_KEY = "pawplan_onboarding";
+const STORAGE_KEY = "dogwork_onboarding";
 const PROGRESS_STEPS = { first: 2, last: 9 };
 const STEP_TIME_MINUTES: Record<number, number> = {
   2: 0.3, 3: 1, 4: 1.5, 5: 1, 6: 2, 7: 1.5, 8: 1, 9: 0.5,
