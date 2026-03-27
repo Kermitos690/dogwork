@@ -221,5 +221,33 @@
     "sensitive": "Sensible",
     "muzzle": "Muselière",
     "cautious": "Prudent"
+  },
+  "exerciseDetail": {
+    "notFound": "Exercice introuvable.",
+    "listen": "Écouter",
+    "stepLabel": "Étape {{n}}",
+    "tutorialSteps": "Étapes du tutoriel",
+    "voiceCommands": "Que dire et comment",
+    "tone": "Ton",
+    "when": "Quand",
+    "bodyPositioning": "Position du corps",
+    "handlerPosition": "Position du maître",
+    "dogPosition": "Position du chien",
+    "distance": "Distance",
+    "leashManagement": "Gestion de la laisse",
+    "troubleshooting": "En cas de difficulté",
+    "ifProblem": "Si",
+    "thenSolution": "Alors",
+    "prevention": "Prévention",
+    "mistakes": "Erreurs à éviter",
+    "consequence": "Conséquence",
+    "correction": "Correction",
+    "validationProtocol": "Protocole de validation",
+    "successCriteria": "Critère de réussite",
+    "stopCriteria": "Signaux d'arrêt",
+    "vigilance": "Vigilance & sécurité",
+    "adaptations": "Adaptations par profil",
+    "equipment": "Matériel",
+    "start": "Commencer"
   }
 }
