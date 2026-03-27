@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ function Section({ title, icon, children, defaultOpen = false }: { title: string
 export default function ExerciseDetail() {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const { data: exercise, isLoading } = useQuery({
     queryKey: ["exercise_detail", slug],
@@ -56,15 +58,15 @@ export default function ExerciseDetail() {
   });
 
   if (isLoading) {
-    return <AppLayout><div className="pt-12 text-center"><div className="animate-pulse text-muted-foreground">Chargement...</div></div></AppLayout>;
+    return <AppLayout><div className="pt-12 text-center"><div className="animate-pulse text-muted-foreground">{t("common.loading")}</div></div></AppLayout>;
   }
 
   if (!exercise) {
     return (
       <AppLayout>
         <div className="pt-12 text-center">
-          <p className="text-muted-foreground">Exercice introuvable.</p>
-          <Button variant="outline" onClick={() => navigate("/exercises")} className="mt-4">Retour</Button>
+          <p className="text-muted-foreground">{t("exerciseDetail.notFound")}</p>
+          <Button variant="outline" onClick={() => navigate("/exercises")} className="mt-4">{t("common.back")}</Button>
         </div>
       </AppLayout>
     );
@@ -108,7 +110,7 @@ export default function ExerciseDetail() {
           </div>
         </div>
 
-        {/* Cover image — responsive, no overlap */}
+        {/* Cover image */}
         {exercise.cover_image ? (
           <div className="w-full rounded-2xl overflow-hidden border border-border">
             <img src={exercise.cover_image} alt={exercise.name} className="w-full h-auto max-w-full object-contain" />
@@ -123,8 +125,8 @@ export default function ExerciseDetail() {
           <Badge variant="secondary" className="text-[10px] gap-1"><Clock className="h-2.5 w-2.5" />{exercise.duration}</Badge>
           <Badge variant="secondary" className="text-[10px] gap-1"><Repeat className="h-2.5 w-2.5" />{exercise.repetitions}</Badge>
           {exercise.is_professional && <Badge className="text-[10px] bg-primary/15 text-primary">PRO</Badge>}
-          {tags.slice(0, 3).map(t => (
-            <Badge key={t} variant="outline" className="text-[10px] text-primary border-primary/20">#{t}</Badge>
+          {tags.slice(0, 3).map(tag => (
+            <Badge key={tag} variant="outline" className="text-[10px] text-primary border-primary/20">#{tag}</Badge>
           ))}
         </div>
 
@@ -139,16 +141,16 @@ export default function ExerciseDetail() {
           getText={() => {
             const parts = [exercise.name, exercise.objective];
             if (exercise.description) parts.push(exercise.description);
-            tutorialSteps.forEach((s: any, i: number) => parts.push(`Étape ${i + 1}: ${s.title}. ${s.description}`));
-            if (exercise.success_criteria) parts.push(`Critère de réussite: ${exercise.success_criteria}`);
+            tutorialSteps.forEach((s: any, i: number) => parts.push(`${t("exerciseDetail.stepLabel", { n: i + 1 })}: ${s.title}. ${s.description}`));
+            if (exercise.success_criteria) parts.push(`${t("exerciseDetail.successCriteria")}: ${exercise.success_criteria}`);
             return parts.join(". ");
           }}
-          label="Écouter"
+          label={t("exerciseDetail.listen")}
         />
 
         {/* Tutorial steps */}
         {tutorialSteps.length > 0 && (
-          <Section title="Étapes du tutoriel" icon={<Play className="h-3.5 w-3.5 text-primary" />} defaultOpen={true}>
+          <Section title={t("exerciseDetail.tutorialSteps")} icon={<Play className="h-3.5 w-3.5 text-primary" />} defaultOpen={true}>
             {tutorialSteps.map((ts: any, i: number) => (
               <div key={i} className="rounded-lg bg-secondary/30 p-3 space-y-1.5">
                 <div className="flex items-start gap-3">
@@ -178,12 +180,12 @@ export default function ExerciseDetail() {
 
         {/* Voice commands summary */}
         {voiceCommands.length > 0 && (
-          <Section title="Que dire et comment" icon={<Mic className="h-3.5 w-3.5 text-primary" />}>
+          <Section title={t("exerciseDetail.voiceCommands")} icon={<Mic className="h-3.5 w-3.5 text-primary" />}>
             {voiceCommands.map((vc: any, i: number) => (
               <div key={i} className="rounded-lg bg-primary/5 p-3 space-y-1">
                 <p className="text-xs font-semibold text-foreground break-words">🗣️ « {vc.command} »</p>
-                <p className="text-[10px] text-muted-foreground break-words"><span className="font-medium">Ton :</span> {vc.tone}</p>
-                <p className="text-[10px] text-muted-foreground break-words"><span className="font-medium">Quand :</span> {vc.timing}</p>
+                <p className="text-[10px] text-muted-foreground break-words"><span className="font-medium">{t("exerciseDetail.tone")} :</span> {vc.tone}</p>
+                <p className="text-[10px] text-muted-foreground break-words"><span className="font-medium">{t("exerciseDetail.when")} :</span> {vc.timing}</p>
                 {vc.warning && <p className="text-[10px] text-destructive break-words">⚠️ {vc.warning}</p>}
               </div>
             ))}
@@ -192,29 +194,29 @@ export default function ExerciseDetail() {
 
         {/* Body positioning */}
         {bodyPositioning && (
-          <Section title="Position du corps" icon={<User className="h-3.5 w-3.5 text-accent-foreground" />}>
+          <Section title={t("exerciseDetail.bodyPositioning")} icon={<User className="h-3.5 w-3.5 text-accent-foreground" />}>
             <div className="space-y-2">
               {bodyPositioning.handler_position && (
                 <div className="rounded-lg bg-secondary/30 p-3 space-y-1">
-                  <p className="text-xs font-semibold text-foreground">🧍 Position du maître</p>
+                  <p className="text-xs font-semibold text-foreground">🧍 {t("exerciseDetail.handlerPosition")}</p>
                   <p className="text-[11px] text-muted-foreground break-words">{bodyPositioning.handler_position}</p>
                 </div>
               )}
               {bodyPositioning.dog_position && (
                 <div className="rounded-lg bg-secondary/30 p-3 space-y-1">
-                  <p className="text-xs font-semibold text-foreground">🐕 Position du chien</p>
+                  <p className="text-xs font-semibold text-foreground">🐕 {t("exerciseDetail.dogPosition")}</p>
                   <p className="text-[11px] text-muted-foreground break-words">{bodyPositioning.dog_position}</p>
                 </div>
               )}
               {bodyPositioning.distance && (
                 <div className="rounded-lg bg-secondary/30 p-3 space-y-1">
-                  <p className="text-xs font-semibold text-foreground">📏 Distance</p>
+                  <p className="text-xs font-semibold text-foreground">📏 {t("exerciseDetail.distance")}</p>
                   <p className="text-[11px] text-muted-foreground break-words">{bodyPositioning.distance}</p>
                 </div>
               )}
               {bodyPositioning.leash_management && (
                 <div className="rounded-lg bg-secondary/30 p-3 space-y-1">
-                  <p className="text-xs font-semibold text-foreground">🪢 Gestion de la laisse</p>
+                  <p className="text-xs font-semibold text-foreground">🪢 {t("exerciseDetail.leashManagement")}</p>
                   <p className="text-[11px] text-muted-foreground break-words">{bodyPositioning.leash_management}</p>
                 </div>
               )}
@@ -224,12 +226,12 @@ export default function ExerciseDetail() {
 
         {/* Troubleshooting */}
         {troubleshooting.length > 0 && (
-          <Section title="En cas de difficulté" icon={<HelpCircle className="h-3.5 w-3.5 text-warning" />}>
+          <Section title={t("exerciseDetail.troubleshooting")} icon={<HelpCircle className="h-3.5 w-3.5 text-warning" />}>
             {troubleshooting.map((ts: any, i: number) => (
               <div key={i} className="rounded-lg border border-warning/20 bg-warning/5 p-3 space-y-1">
-                <p className="text-xs font-semibold text-foreground break-words">❓ Si : {ts.problem || ts.situation || "—"}</p>
-                <p className="text-[11px] text-foreground break-words">✅ Alors : {ts.solution}</p>
-                {ts.prevention && <p className="text-[10px] text-muted-foreground break-words">🛡️ Prévention : {ts.prevention}</p>}
+                <p className="text-xs font-semibold text-foreground break-words">❓ {t("exerciseDetail.ifProblem")} : {ts.problem || ts.situation || "—"}</p>
+                <p className="text-[11px] text-foreground break-words">✅ {t("exerciseDetail.thenSolution")} : {ts.solution}</p>
+                {ts.prevention && <p className="text-[10px] text-muted-foreground break-words">🛡️ {t("exerciseDetail.prevention")} : {ts.prevention}</p>}
               </div>
             ))}
           </Section>
@@ -237,7 +239,7 @@ export default function ExerciseDetail() {
 
         {/* Mistakes */}
         {parsedMistakes.length > 0 && (
-          <Section title="Erreurs à éviter" icon={<XCircle className="h-3.5 w-3.5 text-destructive" />}>
+          <Section title={t("exerciseDetail.mistakes")} icon={<XCircle className="h-3.5 w-3.5 text-destructive" />}>
             {parsedMistakes.map((m: any, i: number) => (
               <div key={i} className="rounded-lg bg-destructive/5 p-3 space-y-1">
                 {typeof m === "string" ? (
@@ -245,8 +247,8 @@ export default function ExerciseDetail() {
                 ) : (
                   <>
                     <p className="text-xs font-semibold text-foreground break-words">❌ {m.mistake}</p>
-                    <p className="text-[10px] text-muted-foreground break-words">→ Conséquence : {m.consequence}</p>
-                    <p className="text-[10px] text-success break-words">✅ Correction : {m.correction}</p>
+                    <p className="text-[10px] text-muted-foreground break-words">→ {t("exerciseDetail.consequence")} : {m.consequence}</p>
+                    <p className="text-[10px] text-success break-words">✅ {t("exerciseDetail.correction")} : {m.correction}</p>
                   </>
                 )}
               </div>
@@ -256,7 +258,7 @@ export default function ExerciseDetail() {
 
         {/* Validation protocol */}
         {validationProtocol && (
-          <Section title="Protocole de validation" icon={<ShieldCheck className="h-3.5 w-3.5 text-primary" />}>
+          <Section title={t("exerciseDetail.validationProtocol")} icon={<ShieldCheck className="h-3.5 w-3.5 text-primary" />}>
             <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
               <p className="text-xs text-foreground break-words">{validationProtocol}</p>
             </div>
@@ -265,14 +267,14 @@ export default function ExerciseDetail() {
 
         {/* Success criteria */}
         {exercise.success_criteria && (
-          <Section title="Critère de réussite" icon={<CheckCircle2 className="h-3.5 w-3.5 text-success" />}>
+          <Section title={t("exerciseDetail.successCriteria")} icon={<CheckCircle2 className="h-3.5 w-3.5 text-success" />}>
             <p className="text-xs text-foreground break-words">{exercise.success_criteria}</p>
           </Section>
         )}
 
         {/* Stop criteria */}
         {exercise.stop_criteria && (
-          <Section title="Signaux d'arrêt" icon={<StopCircle className="h-3.5 w-3.5 text-destructive" />}>
+          <Section title={t("exerciseDetail.stopCriteria")} icon={<StopCircle className="h-3.5 w-3.5 text-destructive" />}>
             <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3">
               <p className="text-xs text-foreground break-words">🛑 {exercise.stop_criteria}</p>
             </div>
@@ -281,7 +283,7 @@ export default function ExerciseDetail() {
 
         {/* Vigilance & safety */}
         {(precautions.length > 0 || contraindications.length > 0 || exercise.vigilance) && (
-          <Section title="Vigilance & sécurité" icon={<AlertTriangle className="h-3.5 w-3.5 text-warning" />}>
+          <Section title={t("exerciseDetail.vigilance")} icon={<AlertTriangle className="h-3.5 w-3.5 text-warning" />}>
             {exercise.vigilance && <p className="text-xs text-foreground break-words">{exercise.vigilance}</p>}
             {precautions.map((p: any, i: number) => (
               <p key={i} className="text-xs text-muted-foreground flex items-start gap-2 break-words">
@@ -300,7 +302,7 @@ export default function ExerciseDetail() {
 
         {/* Adaptations */}
         {adaptations.length > 0 && (
-          <Section title="Adaptations par profil" icon={<Heart className="h-3.5 w-3.5 text-primary" />}>
+          <Section title={t("exerciseDetail.adaptations")} icon={<Heart className="h-3.5 w-3.5 text-primary" />}>
             {adaptations.map((a: any, i: number) => (
               <div key={i} className="rounded-lg bg-secondary/30 p-3 space-y-0.5">
                 {typeof a === "string" ? (
@@ -319,7 +321,7 @@ export default function ExerciseDetail() {
         {/* Equipment */}
         {equipment.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
-            <span className="text-[10px] text-muted-foreground mr-1">Matériel :</span>
+            <span className="text-[10px] text-muted-foreground mr-1">{t("exerciseDetail.equipment")} :</span>
             {equipment.map((m: string, i: number) => (
               <Badge key={i} variant="secondary" className="text-[10px]">{m}</Badge>
             ))}
@@ -330,7 +332,7 @@ export default function ExerciseDetail() {
         <div className="flex gap-2 pt-2">
           <motion.div whileTap={{ scale: 0.95 }} className="flex-1">
             <Button className="w-full gap-2 rounded-xl h-11" onClick={() => navigate(`/training/1?source=exercise&exercise=${exercise.slug}`)}>
-              <Play className="h-4 w-4" /> Commencer
+              <Play className="h-4 w-4" /> {t("exerciseDetail.start")}
             </Button>
           </motion.div>
           <motion.div whileTap={{ scale: 0.95 }}>
