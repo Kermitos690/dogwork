@@ -14,8 +14,10 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 type Mode = "login" | "employee" | "signup" | "forgot";
 
-// Dev login buttons are only shown when ENVIRONMENT is not production
-const IS_PRODUCTION = import.meta.env.VITE_ENVIRONMENT === "production";
+// Dev login buttons are only shown when ENVIRONMENT is explicitly set to "development"
+// Safe by default: if VITE_ENVIRONMENT is not set or is anything other than "development", dev tools are hidden
+const IS_DEV = import.meta.env.VITE_ENVIRONMENT === "development";
+const IS_PRODUCTION = !IS_DEV;
 
 const toEmployeePassword = (pin: string) => `DogWork!${pin}#Secure`;
 
