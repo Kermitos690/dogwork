@@ -12,9 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { PawPrint, Plus, Search, Filter, ArrowLeft } from "lucide-react";
+import { PawPrint, Plus, Search, ArrowLeft, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
+import type { Database } from "@/integrations/supabase/types";
 
+type ShelterAnimal = Database["public"]["Tables"]["shelter_animals"]["Row"];
+
+const PAGE_SIZE = 40;
 const speciesOptions = ["chien", "chat", "reptile", "oiseau", "NAC", "autre"];
 const statusOptions = ["arrivée", "quarantaine", "soins", "adoptable", "adopté", "décédé", "transféré"];
 const speciesEmoji: Record<string, string> = { chien: "🐕", chat: "🐱", reptile: "🦎", oiseau: "🐦", NAC: "🐹", autre: "🐾" };
@@ -39,6 +43,7 @@ export default function ShelterAnimals() {
   const [filterSpecies, setFilterSpecies] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [showNew, setShowNew] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
     if (searchParams.get("new") === "1") setShowNew(true);
@@ -53,11 +58,11 @@ export default function ShelterAnimals() {
     queryKey: ["shelter-animals", user?.id],
     queryFn: async () => {
       const { data } = await supabase
-        .from("shelter_animals" as any)
-        .select("*")
+        .from("shelter_animals")
+        .select("id, name, species, breed, sex, status, photo_url, created_at")
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false });
-      return (data as any[]) || [];
+      return (data ?? []) as Pick<ShelterAnimal, "id" | "name" | "species" | "breed" | "sex" | "status" | "photo_url" | "created_at">[];
     },
     enabled: !!user,
   });
@@ -65,8 +70,8 @@ export default function ShelterAnimals() {
   const createMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase
-        .from("shelter_animals" as any)
-        .insert({ ...form, user_id: user!.id } as any);
+        .from("shelter_animals")
+        .insert({ ...form, user_id: user!.id });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -75,17 +80,20 @@ export default function ShelterAnimals() {
       setShowNew(false);
       setForm({ name: "", species: "chien", breed: "", sex: "", estimated_age: "", description: "", chip_id: "", health_notes: "", behavior_notes: "" });
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
     },
   });
 
-  const filtered = animals.filter((a: any) => {
+  const filtered = animals.filter((a) => {
     if (filterSpecies !== "all" && a.species !== filterSpecies) return false;
     if (filterStatus !== "all" && a.status !== filterStatus) return false;
     if (search && !a.name.toLowerCase().includes(search.toLowerCase()) && !(a.breed || "").toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
+
+  const visible = filtered.slice(0, visibleCount);
+  const hasMore = visibleCount < filtered.length;
 
   return (
     <ShelterLayout>
@@ -109,17 +117,17 @@ export default function ShelterAnimals() {
         <div className="space-y-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Rechercher..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+            <Input placeholder="Rechercher..." value={search} onChange={e => { setSearch(e.target.value); setVisibleCount(PAGE_SIZE); }} className="pl-9" />
           </div>
           <div className="flex gap-2">
-            <Select value={filterSpecies} onValueChange={setFilterSpecies}>
+            <Select value={filterSpecies} onValueChange={v => { setFilterSpecies(v); setVisibleCount(PAGE_SIZE); }}>
               <SelectTrigger className="flex-1 text-xs h-8"><SelectValue placeholder="Espèce" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Toutes espèces</SelectItem>
                 {speciesOptions.map(s => <SelectItem key={s} value={s}>{speciesEmoji[s]} {s}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <Select value={filterStatus} onValueChange={v => { setFilterStatus(v); setVisibleCount(PAGE_SIZE); }}>
               <SelectTrigger className="flex-1 text-xs h-8"><SelectValue placeholder="Statut" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tous statuts</SelectItem>
@@ -139,7 +147,7 @@ export default function ShelterAnimals() {
           </div>
         ) : (
           <div className="space-y-2">
-            {filtered.map((animal: any) => (
+            {visible.map((animal) => (
               <Card key={animal.id} className="cursor-pointer card-press" onClick={() => navigate(`/shelter/animals/${animal.id}`)}>
                 <CardContent className="p-3 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-lg">
@@ -155,6 +163,11 @@ export default function ShelterAnimals() {
                 </CardContent>
               </Card>
             ))}
+            {hasMore && (
+              <Button variant="ghost" className="w-full gap-2 text-muted-foreground" onClick={() => setVisibleCount(c => c + PAGE_SIZE)}>
+                <ChevronDown className="h-4 w-4" /> Voir plus ({filtered.length - visibleCount} restants)
+              </Button>
+            )}
           </div>
         )}
 

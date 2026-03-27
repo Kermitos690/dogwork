@@ -9,6 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { PawPrint, Search, Building2, ClipboardCheck } from "lucide-react";
 import { motion } from "framer-motion";
+import type { Database } from "@/integrations/supabase/types";
+
+type SafeAnimal = Database["public"]["Views"]["shelter_animals_safe"]["Row"];
 
 const statusColors: Record<string, string> = {
   "arrivée": "bg-blue-500/20 text-blue-400",
@@ -28,16 +31,16 @@ export default function CoachShelterAnimals() {
     queryKey: ["coach-shelter-links", user?.id],
     queryFn: async () => {
       const { data } = await supabase
-        .from("shelter_coaches" as any)
-        .select("*")
+        .from("shelter_coaches")
+        .select("shelter_user_id, status")
         .eq("coach_user_id", user!.id)
         .eq("status", "active");
-      return (data as any[]) || [];
+      return data ?? [];
     },
     enabled: !!user,
   });
 
-  const shelterIds = shelterLinks.map((l: any) => l.shelter_user_id);
+  const shelterIds = shelterLinks.map((l) => l.shelter_user_id);
 
   // Get shelter profiles
   const { data: shelterProfiles = [] } = useQuery({
@@ -45,42 +48,42 @@ export default function CoachShelterAnimals() {
     queryFn: async () => {
       if (!shelterIds.length) return [];
       const { data } = await supabase
-        .from("shelter_profiles" as any)
-        .select("*")
+        .from("shelter_profiles")
+        .select("id, user_id, name")
         .in("user_id", shelterIds);
-      return (data as any[]) || [];
+      return data ?? [];
     },
     enabled: shelterIds.length > 0,
   });
 
-  // Get animals from linked shelters
+  // Get animals from linked shelters (safe view)
   const { data: animals = [], isLoading } = useQuery({
     queryKey: ["coach-shelter-animals", shelterIds],
     queryFn: async () => {
       if (!shelterIds.length) return [];
       const { data } = await supabase
         .from("shelter_animals_safe")
-        .select("*")
+        .select("id, name, species, breed, status, photo_url, user_id, created_at")
         .in("user_id", shelterIds)
         .order("created_at", { ascending: false });
-      return (data as any[]) || [];
+      return (data ?? []) as SafeAnimal[];
     },
     enabled: shelterIds.length > 0,
   });
 
   // Get existing evaluations count per animal
-  const { data: evalCounts = {} } = useQuery({
+  const { data: evalCounts = {} as Record<string, number> } = useQuery({
     queryKey: ["coach-shelter-eval-counts", user?.id],
     queryFn: async () => {
-      const animalIds = animals.map((a: any) => a.id);
-      if (!animalIds.length) return {};
+      const animalIds = animals.map((a) => a.id).filter(Boolean) as string[];
+      if (!animalIds.length) return {} as Record<string, number>;
       const { data } = await supabase
-        .from("shelter_animal_evaluations" as any)
+        .from("shelter_animal_evaluations")
         .select("animal_id")
         .eq("coach_user_id", user!.id)
         .in("animal_id", animalIds);
       const counts: Record<string, number> = {};
-      (data as any[])?.forEach((e: any) => {
+      data?.forEach((e) => {
         counts[e.animal_id] = (counts[e.animal_id] || 0) + 1;
       });
       return counts;
@@ -88,10 +91,10 @@ export default function CoachShelterAnimals() {
     enabled: animals.length > 0 && !!user,
   });
 
-  const filtered = animals.filter((a: any) =>
+  const filtered = animals.filter((a) =>
     !search ||
-    a.name.toLowerCase().includes(search.toLowerCase()) ||
-    (a.breed || "").toLowerCase().includes(search.toLowerCase())
+    (a.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
+    (a.breed ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -121,7 +124,7 @@ export default function CoachShelterAnimals() {
           ) : (
             <>
               <div className="flex gap-2 mb-3">
-                {shelterProfiles.map((sp: any) => (
+              {shelterProfiles.map((sp) => (
                   <Badge key={sp.id} variant="secondary" className="text-xs">
                     {sp.name}
                   </Badge>
@@ -144,9 +147,9 @@ export default function CoachShelterAnimals() {
                 <p className="text-center py-8 text-muted-foreground text-sm">Aucun animal trouvé</p>
               ) : (
                 <div className="space-y-2">
-                  {filtered.map((animal: any) => {
-                    const shelter = shelterProfiles.find((sp: any) => sp.user_id === animal.user_id);
-                    const hasEval = (evalCounts as Record<string, number>)[animal.id] > 0;
+                  {filtered.map((animal) => {
+                    const shelter = shelterProfiles.find((sp) => sp.user_id === animal.user_id);
+                    const hasEval = animal.id ? evalCounts[animal.id] > 0 : false;
                     return (
                       <Card
                         key={animal.id}
