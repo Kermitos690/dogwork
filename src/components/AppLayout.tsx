@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, Dog, BookOpen, Play, BarChart3, ClipboardList, User } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { Home, Dog, BookOpen, Play, BarChart3 } from "lucide-react";
 import { useActiveDog } from "@/hooks/useDogs";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,18 +8,19 @@ import { motion } from "framer-motion";
 import { SlideMenu } from "@/components/SlideMenu";
 import { FloatingReadAloud } from "@/components/FloatingReadAloud";
 
-const tabs = [
-  { label: "Accueil", icon: Home, path: "/" },
-  { label: "Chiens", icon: Dog, path: "/dogs" },
-  { label: "Go", icon: Play, path: "/training", center: true },
-  { label: "Plan", icon: BookOpen, path: "/plan" },
-  { label: "Stats", icon: BarChart3, path: "/stats" },
-];
-
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const activeDog = useActiveDog();
+  const { t } = useTranslation();
+
+  const tabs = [
+    { label: t("nav.home"), icon: Home, path: "/" },
+    { label: t("nav.dogs"), icon: Dog, path: "/dogs" },
+    { label: t("nav.go"), icon: Play, path: "/training", center: true },
+    { label: t("nav.plan"), icon: BookOpen, path: "/plan" },
+    { label: t("nav.stats"), icon: BarChart3, path: "/stats" },
+  ];
 
   const { data: progress } = useQuery({
     queryKey: ["day_progress_nav", activeDog?.id],
