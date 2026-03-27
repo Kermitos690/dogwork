@@ -333,7 +333,7 @@ export default function ExerciseDetail() {
         {/* Actions */}
         <div className="flex gap-2 pt-2">
           <motion.div whileTap={{ scale: 0.95 }} className="flex-1">
-            <Button className="w-full gap-2 rounded-xl h-11">
+            <Button className="w-full gap-2 rounded-xl h-11" onClick={() => navigate(`/training/1?source=exercise&exercise=${exercise.slug}`)}>
               <Play className="h-4 w-4" /> Commencer
             </Button>
           </motion.div>
