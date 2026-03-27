@@ -8,6 +8,7 @@ import { ArrowLeft, Play, Heart, Clock, Repeat, AlertTriangle, CheckCircle2, XCi
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { ReadAloudButton } from "@/components/ReadAloudButton";
+import { ExerciseCoverFallback } from "@/components/ExerciseCoverFallback";
 
 const levelColors: Record<string, string> = {
   "débutant": "bg-success/15 text-success",
