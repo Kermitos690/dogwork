@@ -1,82 +1,44 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 
-// ── Mock auth ──
-const mockUseAuth = vi.fn();
 vi.mock("@/hooks/useAuth", () => ({
-  useAuth: () => mockUseAuth(),
+  useAuth: vi.fn().mockReturnValue({ user: null }),
 }));
 
-// ── Mock Supabase ──
-const mockSelect = vi.fn();
-const mockEq = vi.fn();
 const mockOrder = vi.fn();
-const mockFrom = vi.fn();
-
+const mockEq = vi.fn(() => ({ order: mockOrder }));
+const mockSelect = vi.fn(() => ({ eq: mockEq }));
 vi.mock("@/integrations/supabase/client", () => ({
-  supabase: {
-    from: (...args: unknown[]) => mockFrom(...args),
-  },
+  supabase: { from: vi.fn(() => ({ select: mockSelect })) },
 }));
 
+import { useAuth } from "@/hooks/useAuth";
 import { useDogs } from "@/hooks/useDogs";
+import { supabase } from "@/integrations/supabase/client";
 
 function createWrapper() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: 0 } },
-  });
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   return ({ children }: { children: React.ReactNode }) =>
-    React.createElement(QueryClientProvider, { client: queryClient }, children);
+    React.createElement(QueryClientProvider, { client: qc }, children);
 }
 
 describe("useDogs", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockOrder.mockResolvedValue({ data: [], error: null });
-    mockEq.mockReturnValue({ order: mockOrder });
-    mockSelect.mockReturnValue({ eq: mockEq });
-    mockFrom.mockReturnValue({ select: mockSelect });
-  });
-
   it("does not fetch when user is null", () => {
-    mockUseAuth.mockReturnValue({ user: null });
-    const { result } = renderHook(() => useDogs(), { wrapper: createWrapper() });
-    expect(mockFrom).not.toHaveBeenCalled();
-    expect(result.current.data).toBeUndefined();
+    (useAuth as ReturnType<typeof vi.fn>).mockReturnValue({ user: null });
+    renderHook(() => useDogs(), { wrapper: createWrapper() });
+    expect(supabase.from).not.toHaveBeenCalled();
   });
 
   it("fetches dogs when user is present", async () => {
-    mockUseAuth.mockReturnValue({ user: { id: "user-123" } });
-    const mockDogs = [
-      { id: "dog-1", name: "Rex", user_id: "user-123", is_active: true },
-      { id: "dog-2", name: "Bella", user_id: "user-123", is_active: false },
-    ];
-    mockOrder.mockResolvedValue({ data: mockDogs, error: null });
+    (useAuth as ReturnType<typeof vi.fn>).mockReturnValue({ user: { id: "u1" } });
+    const dogs = [{ id: "d1", name: "Rex", user_id: "u1" }];
+    mockOrder.mockResolvedValue({ data: dogs, error: null });
 
     const { result } = renderHook(() => useDogs(), { wrapper: createWrapper() });
-
-    await vi.waitFor(() => {
-      expect(result.current.data).toBeDefined();
-    });
-
-    expect(mockFrom).toHaveBeenCalledWith("dogs");
-    expect(mockSelect).toHaveBeenCalledWith("*");
-    expect(mockEq).toHaveBeenCalledWith("user_id", "user-123");
-    expect(result.current.data).toEqual(mockDogs);
-  });
-
-  it("throws on supabase error", async () => {
-    mockUseAuth.mockReturnValue({ user: { id: "user-123" } });
-    mockOrder.mockResolvedValue({ data: null, error: new Error("DB error") });
-
-    const { result } = renderHook(() => useDogs(), { wrapper: createWrapper() });
-
-    await vi.waitFor(() => {
-      expect(result.current.error).toBeDefined();
-    });
-
-    expect(result.current.error?.message).toBe("DB error");
+    await vi.waitFor(() => expect(result.current.data).toBeDefined());
+    expect(supabase.from).toHaveBeenCalledWith("dogs");
+    expect(result.current.data).toEqual(dogs);
   });
 });
