@@ -215,7 +215,8 @@ export default function Auth() {
                   variant="outline"
                   className="w-full h-12 text-base gap-2"
                   onClick={async () => {
-                    const { error } = await lovable.auth.signInWithOAuth("apple", { redirect_uri: window.location.origin });
+                    const redirectUri = window.location.hostname.endsWith(".lovable.app") || window.location.hostname.endsWith(".lovableproject.com") ? window.location.origin : "https://dogwork.lovable.app";
+                    const { error } = await lovable.auth.signInWithOAuth("apple", { redirect_uri: redirectUri });
                     if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
                   }}
                 >
