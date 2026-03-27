@@ -30,6 +30,28 @@ interface MenuSection {
   items: MenuItem[];
 }
 
+function MenuProfileName({ userId, fallback }: { userId?: string; fallback?: string }) {
+  const { data: profileName } = useQuery({
+    queryKey: ["profile-display-name", userId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("user_id", userId!)
+        .maybeSingle();
+      return data?.display_name || null;
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60_000,
+  });
+
+  return (
+    <p className="text-sm font-medium text-foreground truncate">
+      {profileName || fallback || "Utilisateur"}
+    </p>
+  );
+}
+
 export function SlideMenu() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
@@ -208,27 +230,25 @@ export function SlideMenu() {
       <div className="fixed top-4 right-4 z-[60]">
         <NotificationBell />
       </div>
-      <SheetContent side="left" className="w-[300px] p-0 bg-card border-r border-border/40">
+      <SheetContent side="left" className="w-[280px] sm:w-[320px] p-0 bg-card border-r border-border/40">
         {/* Header */}
-        <div className="p-5 pb-3 border-b border-border/30">
+        <div className="px-4 pt-4 pb-3 border-b border-border/30">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-bold text-foreground tracking-tight">DogWork</h2>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <LanguageSwitcher />
-              <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground">
-                <X className="h-5 w-5" />
+              <button onClick={() => setOpen(false)} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                <X className="h-4 w-4" />
               </button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
               <User className="h-4 w-4 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">
-                {user?.user_metadata?.display_name || user?.email?.split("@")[0]}
-              </p>
-              <div className="flex gap-1 mt-0.5">
+              <MenuProfileName userId={user?.id} fallback={user?.user_metadata?.display_name || user?.email?.split("@")[0]} />
+              <div className="flex flex-wrap gap-1 mt-0.5">
                 {isAdmin && <Badge className="text-[9px] px-1.5 py-0 bg-amber-600 text-white border-0">Admin</Badge>}
                 {isEducator && <Badge className="text-[9px] px-1.5 py-0 bg-emerald-600 text-white border-0">{t("menu.educator")}</Badge>}
                 {isShelter && <Badge className="text-[9px] px-1.5 py-0 bg-violet-600 text-white border-0">{t("menu.shelter")}</Badge>}
