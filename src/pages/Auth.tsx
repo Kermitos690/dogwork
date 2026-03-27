@@ -41,6 +41,7 @@ export default function Auth() {
       if (mode === "login") {
         const { error } = await signIn(normalizedEmail, password);
         if (error) throw error;
+        navigate("/");
       } else if (mode === "employee") {
         const pin = password.trim();
         if (!/^\d{6}$/.test(pin)) {
@@ -51,6 +52,7 @@ export default function Auth() {
         if (error) {
           throw new Error("Identifiants employé invalides. Vérifiez email + PIN ou demandez une réinitialisation au refuge.");
         }
+        navigate("/");
       } else if (mode === "signup") {
         const { error } = await signUp(normalizedEmail, password, displayName);
         if (error) throw error;
