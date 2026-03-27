@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const logStep = (step: string, details?: any) => {
+const logStep = (step: string, details?: Record<string, unknown>) => {
   const d = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[COURSE-CHECKOUT] ${step}${d}`);
 };
@@ -19,24 +19,71 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseAdmin = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false } }
-  );
-
   try {
     logStep("Function started");
 
-    const authHeader = req.headers.get("Authorization")!;
-    const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseAdmin.auth.getUser(token);
-    const user = data.user;
-    if (!user?.email) throw new Error("Non authentifié");
-    logStep("User authenticated", { email: user.email });
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) throw new Error("Configuration serveur incomplète");
 
-    const { courseId } = await req.json();
-    if (!courseId) throw new Error("courseId requis");
+    // ── Auth via getClaims pattern (ES256 compatible) ──
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Non authentifié" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await userClient.auth.getUser(token);
+    if (claimsError || !claimsData?.user) {
+      logStep("Auth failed", { error: claimsError?.message });
+      return new Response(JSON.stringify({ error: "Non authentifié" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const user = claimsData.user;
+    if (!user.email) {
+      return new Response(JSON.stringify({ error: "Email requis" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    logStep("User authenticated", { userId: user.id });
+
+    // ── Input validation ──
+    let body: Record<string, unknown>;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "Corps de requête invalide" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const courseId = typeof body.courseId === "string" ? body.courseId.trim() : "";
+    if (!courseId || courseId.length < 10) {
+      return new Response(JSON.stringify({ error: "courseId invalide" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Service role client for DB operations ──
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
 
     // Fetch course details
     const { data: course, error: courseError } = await supabaseAdmin
@@ -47,8 +94,21 @@ serve(async (req) => {
       .eq("approval_status", "approved")
       .single();
 
-    if (courseError || !course) throw new Error("Cours introuvable ou non disponible");
+    if (courseError || !course) {
+      return new Response(JSON.stringify({ error: "Cours introuvable ou non disponible" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     logStep("Course found", { title: course.title, price: course.price_cents });
+
+    // Validate price
+    if (!course.price_cents || course.price_cents <= 0) {
+      return new Response(JSON.stringify({ error: "Prix du cours invalide" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Check capacity
     const { count } = await supabaseAdmin
@@ -58,10 +118,13 @@ serve(async (req) => {
       .in("status", ["confirmed", "pending"]);
 
     if ((count || 0) >= (course.max_participants || 10)) {
-      throw new Error("Ce cours est complet");
+      return new Response(JSON.stringify({ error: "Ce cours est complet" }), {
+        status: 409,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Check if user already booked (ignore stale unpaid pending bookings)
+    // Check existing booking
     const { data: existingBooking } = await supabaseAdmin
       .from("course_bookings")
       .select("id, status, payment_status")
@@ -71,19 +134,20 @@ serve(async (req) => {
       .maybeSingle();
 
     if (existingBooking) {
-      // If there's an existing confirmed booking, block
       if (existingBooking.status === "confirmed") {
-        throw new Error("Vous êtes déjà inscrit à ce cours");
+        return new Response(JSON.stringify({ error: "Vous êtes déjà inscrit à ce cours" }), {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
-      // If pending but unpaid, delete the stale booking and allow re-creation
       if (existingBooking.status === "pending" && existingBooking.payment_status === "unpaid") {
-        await supabaseAdmin
-          .from("course_bookings")
-          .delete()
-          .eq("id", existingBooking.id);
+        await supabaseAdmin.from("course_bookings").delete().eq("id", existingBooking.id);
         logStep("Deleted stale unpaid booking", { id: existingBooking.id });
       } else {
-        throw new Error("Vous êtes déjà inscrit à ce cours");
+        return new Response(JSON.stringify({ error: "Vous êtes déjà inscrit à ce cours" }), {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
     }
 
@@ -103,28 +167,30 @@ serve(async (req) => {
       .select()
       .single();
 
-    if (bookingError) throw bookingError;
+    if (bookingError) {
+      logStep("Booking creation failed", { error: bookingError.message });
+      return new Response(JSON.stringify({ error: "Impossible de créer la réservation" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     logStep("Booking created", { bookingId: booking.id });
 
-    // Get educator's Stripe Connect account from dedicated table
+    // Get educator's Stripe Connect account
     const { data: stripeData } = await supabaseAdmin
       .from("coach_stripe_data")
       .select("stripe_account_id, stripe_onboarding_complete")
       .eq("user_id", course.educator_user_id)
       .maybeSingle();
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-      apiVersion: "2025-08-27.basil",
-    });
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    let customerId: string | undefined;
-    if (customers.data.length > 0) customerId = customers.data[0].id;
+    const customerId = customers.data.length > 0 ? customers.data[0].id : undefined;
 
     const origin = req.headers.get("origin") || "https://dogwork.lovable.app";
 
-    // Build checkout session options
-    const sessionParams: any = {
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: [{
@@ -132,7 +198,7 @@ serve(async (req) => {
           currency: "chf",
           product_data: {
             name: course.title,
-            description: `Cours avec ${course.location || "lieu à confirmer"} — ${course.duration_minutes || 60} min`,
+            description: `Cours — ${course.duration_minutes || 60} min`,
           },
           unit_amount: course.price_cents,
         },
@@ -149,20 +215,15 @@ serve(async (req) => {
       },
     };
 
-    // If educator has completed Stripe Connect onboarding, use destination charges
+    // Stripe Connect destination charges
     if (stripeData?.stripe_account_id && stripeData?.stripe_onboarding_complete) {
       sessionParams.payment_intent_data = {
         application_fee_amount: commissionCents,
-        transfer_data: {
-          destination: stripeData.stripe_account_id,
-        },
+        transfer_data: { destination: stripeData.stripe_account_id },
       };
-      logStep("Using Stripe Connect destination charge", {
-        destination: stripeData.stripe_account_id,
-        applicationFee: commissionCents,
-      });
+      logStep("Using Stripe Connect", { destination: stripeData.stripe_account_id });
     } else {
-      logStep("Educator not on Connect, payment goes to platform directly");
+      logStep("Payment goes to platform directly");
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams);
@@ -171,10 +232,11 @@ serve(async (req) => {
     return new Response(JSON.stringify({ url: session.url, bookingId: booking.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error: any) {
-    logStep("ERROR", { message: error.message });
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Erreur interne";
+    logStep("ERROR", { message });
+    return new Response(JSON.stringify({ error: "Une erreur est survenue lors de la création du paiement" }), {
+      status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
