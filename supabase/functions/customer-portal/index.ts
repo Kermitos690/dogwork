@@ -46,7 +46,7 @@ serve(async (req) => {
       logStep("No Stripe customer found", { email: user.email });
       return new Response(JSON.stringify({ error: "no_customer", message: "Aucun abonnement Stripe trouvé. Veuillez d'abord souscrire à un plan." }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 404,
+        status: 200,
       });
     }
 
