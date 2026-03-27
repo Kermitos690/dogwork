@@ -6,11 +6,13 @@ const { fontFamily: inter } = loadInter("normal", { weights: ["400", "500", "600
 
 export const FONTS = { outfit, inter };
 export const COLORS = {
-  bg: "#0B0F1A",
-  bgLight: "#131829",
+  bg: "#0A0E1A",
+  bgLight: "#121830",
   primary: "#3B82F6",
   accent: "#8B5CF6",
   amber: "#F59E0B",
+  emerald: "#10B981",
+  rose: "#F43F5E",
   text: "#F1F5F9",
   textMuted: "#94A3B8",
 };

@@ -1,154 +1,112 @@
 import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, spring, Img, staticFile } from "remotion";
 import { FONTS, COLORS } from "../constants";
 
-export const Scene5CTA: React.FC = () => {
+export const Scene5CTA = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const logoScale = spring({ frame, fps, config: { damping: 12, stiffness: 80 } });
-  const logoOpacity = interpolate(frame, [0, 20], [0, 1], { extrapolateRight: "clamp" });
+  const imgScale = interpolate(frame, [0, 150], [1.1, 1], { extrapolateRight: "clamp" });
+  const imgOpacity = interpolate(frame, [0, 30], [0, 0.3], { extrapolateRight: "clamp" });
 
-  const titleOpacity = interpolate(frame, [15, 40], [0, 1], { extrapolateRight: "clamp" });
-  const titleY = interpolate(
-    spring({ frame: frame - 15, fps, config: { damping: 20 } }),
-    [0, 1], [40, 0]
-  );
+  const logoSp = spring({ frame: frame - 10, fps, config: { damping: 12, stiffness: 80 } });
+  const titleSp = spring({ frame: frame - 25, fps, config: { damping: 15, stiffness: 90 } });
+  const tagSp = spring({ frame: frame - 45, fps, config: { damping: 18 } });
+  const urlSp = spring({ frame: frame - 60, fps, config: { damping: 20 } });
 
-  const ctaOpacity = interpolate(frame, [45, 65], [0, 1], { extrapolateRight: "clamp" });
-  const ctaScale = spring({ frame: frame - 45, fps, config: { damping: 12 } });
+  const breathe = Math.sin(frame * 0.06) * 4;
 
-  const urlOpacity = interpolate(frame, [70, 90], [0, 1], { extrapolateRight: "clamp" });
-
-  // Pulsing glow on CTA
-  const ctaGlow = interpolate(Math.sin(frame * 0.08), [-1, 1], [0.4, 1]);
-
-  // Big gradient orbs
-  const orb1Y = Math.sin(frame * 0.03) * 30;
-  const orb2Y = Math.cos(frame * 0.025) * 25;
+  // Radial glow pulse
+  const glowSize = 40 + Math.sin(frame * 0.08) * 10;
 
   return (
-    <AbsoluteFill style={{ backgroundColor: "transparent" }}>
-      {/* Dramatic gradient orbs */}
-      <div style={{
-        position: "absolute",
-        width: 900,
-        height: 900,
-        borderRadius: "50%",
-        background: `radial-gradient(circle, ${COLORS.primary}20, transparent 60%)`,
-        left: 510,
-        top: 90 + orb1Y,
-      }} />
-      <div style={{
-        position: "absolute",
-        width: 600,
-        height: 600,
-        borderRadius: "50%",
-        background: `radial-gradient(circle, ${COLORS.accent}15, transparent 60%)`,
-        left: 200,
-        top: 300 + orb2Y,
-      }} />
-
-      {/* Logo centered */}
-      <div style={{
-        position: "absolute",
-        left: 0,
-        right: 0,
-        top: 200,
-        display: "flex",
-        justifyContent: "center",
-        opacity: logoOpacity,
-        transform: `scale(${logoScale})`,
-      }}>
-        <Img src={staticFile("images/logo-icon.png")} style={{
-          width: 100,
-          height: 100,
-          borderRadius: 24,
+    <AbsoluteFill style={{
+      background: `radial-gradient(ellipse ${glowSize}% ${glowSize}% at 50% 50%, ${COLORS.primary}20 0%, ${COLORS.bg} 70%)`,
+    }}>
+      {/* Background training photo */}
+      <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+        <Img src={staticFile("images/staffie-training.jpg")} style={{
+          width: "100%", height: "100%", objectFit: "cover",
+          transform: `scale(${imgScale})`,
+          opacity: imgOpacity,
         }} />
       </div>
 
-      {/* Brand title */}
+      {/* Centered content */}
       <div style={{
-        position: "absolute",
-        left: 0,
-        right: 0,
-        top: 330,
+        position: "absolute", inset: 0,
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
         textAlign: "center",
-        opacity: titleOpacity,
-        transform: `translateY(${titleY}px)`,
       }}>
+        {/* Logo */}
         <div style={{
-          fontFamily: FONTS.outfit,
-          fontSize: 100,
-          fontWeight: 900,
-          letterSpacing: -4,
-          color: COLORS.text,
+          fontFamily: FONTS.outfit, fontWeight: 900, fontSize: 28,
+          color: COLORS.primary, letterSpacing: 8,
+          opacity: logoSp,
+          transform: `scale(${logoSp}) translateY(${interpolate(logoSp, [0, 1], [30, 0])}px)`,
+          marginBottom: 32,
         }}>
-          Dog<span style={{ color: COLORS.primary }}>Work</span>
+          DOGWORK
         </div>
-      </div>
 
-      {/* CTA pill */}
-      <div style={{
-        position: "absolute",
-        left: 0,
-        right: 0,
-        top: 490,
-        display: "flex",
-        justifyContent: "center",
-        opacity: ctaOpacity,
-        transform: `scale(${ctaScale})`,
-      }}>
+        {/* Main CTA text */}
         <div style={{
-          padding: "18px 60px",
-          borderRadius: 100,
-          background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.accent})`,
-          fontFamily: FONTS.outfit,
-          fontSize: 28,
-          fontWeight: 700,
-          color: "#fff",
-          boxShadow: `0 0 ${40 * ctaGlow}px ${COLORS.primary}60`,
+          fontFamily: FONTS.outfit, fontWeight: 900, fontSize: 72,
+          color: COLORS.text, lineHeight: 1.1,
+          opacity: titleSp,
+          transform: `translateY(${interpolate(titleSp, [0, 1], [60, breathe])}px)`,
+          marginBottom: 24,
         }}>
-          Commencez gratuitement
+          Rejoignez le
+          <br />
+          <span style={{
+            background: `linear-gradient(90deg, ${COLORS.primary}, ${COLORS.accent}, ${COLORS.emerald})`,
+            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+          }}>
+            mouvement
+          </span>
         </div>
-      </div>
 
-      {/* URL */}
-      <div style={{
-        position: "absolute",
-        left: 0,
-        right: 0,
-        top: 580,
-        textAlign: "center",
-        opacity: urlOpacity,
-      }}>
+        {/* Tags */}
         <div style={{
-          fontFamily: FONTS.inter,
-          fontSize: 24,
-          fontWeight: 500,
-          color: COLORS.textMuted,
-          letterSpacing: 1,
+          display: "flex", gap: 12, marginBottom: 48,
+          opacity: tagSp,
+          transform: `translateY(${interpolate(tagSp, [0, 1], [30, 0])}px)`,
+        }}>
+          {["Éducation IA", "Gestion refuge", "Suivi adoption"].map((t, i) => (
+            <div key={t} style={{
+              fontFamily: FONTS.inter, fontWeight: 600, fontSize: 16,
+              color: COLORS.text, padding: "10px 24px",
+              borderRadius: 100,
+              background: `${COLORS.text}10`,
+              border: `1px solid ${COLORS.text}20`,
+              transform: `scale(${spring({ frame: frame - 45 - i * 6, fps, config: { damping: 10 } })})`,
+            }}>
+              {t}
+            </div>
+          ))}
+        </div>
+
+        {/* URL */}
+        <div style={{
+          fontFamily: FONTS.inter, fontWeight: 600, fontSize: 24,
+          color: COLORS.primary,
+          opacity: urlSp,
+          transform: `translateY(${interpolate(urlSp, [0, 1], [20, 0])}px)`,
+          padding: "14px 40px",
+          borderRadius: 14,
+          background: `${COLORS.primary}12`,
+          border: `1px solid ${COLORS.primary}30`,
         }}>
           dogwork.lovable.app
         </div>
-      </div>
 
-      {/* Tagline */}
-      <div style={{
-        position: "absolute",
-        left: 0,
-        right: 0,
-        bottom: 120,
-        textAlign: "center",
-        opacity: interpolate(frame, [90, 110], [0, 1], { extrapolateRight: "clamp" }),
-      }}>
+        {/* Gratuit badge */}
         <div style={{
-          fontFamily: FONTS.inter,
-          fontSize: 20,
-          color: `${COLORS.textMuted}80`,
-          letterSpacing: 3,
-          textTransform: "uppercase",
+          fontFamily: FONTS.inter, fontWeight: 500, fontSize: 16,
+          color: COLORS.textMuted, marginTop: 20,
+          opacity: interpolate(frame, [70, 90], [0, 1], { extrapolateRight: "clamp" }),
         }}>
-          Éducation canine intelligente
+          Gratuit pour les propriétaires • Plans Pro pour éducateurs & refuges
         </div>
       </div>
     </AbsoluteFill>
