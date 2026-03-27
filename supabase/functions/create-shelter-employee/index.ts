@@ -145,21 +145,38 @@ Deno.serve(async (req) => {
       throw new Error(`Erreur attribution rôle: ${roleError.message}`);
     }
 
-    // Create employee record with hashed PIN
+    // Create employee record with hashed PIN (or update if already exists)
     const hashedPin = await hashPin(pin);
-    const { error: empError } = await supabaseAdmin.from("shelter_employees").insert({
-      shelter_user_id: effectiveShelterId,
-      name,
-      role: role || "soigneur",
-      job_title: job_title || "",
-      email,
-      phone: phone || "",
-      auth_user_id: userId,
-      hashed_pin: hashedPin,
-    });
-    if (empError) {
-      await supabaseAdmin.auth.admin.deleteUser(userId);
-      throw new Error(`Erreur création employé: ${empError.message}`);
+
+    // Check if employee record already exists for this auth_user_id
+    const { data: existingEmp } = await supabaseAdmin
+      .from("shelter_employees")
+      .select("id")
+      .eq("auth_user_id", userId)
+      .maybeSingle();
+
+    if (existingEmp) {
+      // Update existing record
+      const { error: updateEmpError } = await supabaseAdmin
+        .from("shelter_employees")
+        .update({ name, role: role || "soigneur", job_title: job_title || "", email, phone: phone || "", hashed_pin: hashedPin, is_active: true })
+        .eq("id", existingEmp.id);
+      if (updateEmpError) throw new Error(`Erreur mise à jour employé: ${updateEmpError.message}`);
+    } else {
+      const { error: empError } = await supabaseAdmin.from("shelter_employees").insert({
+        shelter_user_id: effectiveShelterId,
+        name,
+        role: role || "soigneur",
+        job_title: job_title || "",
+        email,
+        phone: phone || "",
+        auth_user_id: userId,
+        hashed_pin: hashedPin,
+      });
+      if (empError) {
+        await supabaseAdmin.auth.admin.deleteUser(userId);
+        throw new Error(`Erreur création employé: ${empError.message}`);
+      }
     }
 
     // Create profile (non-critical)
