@@ -154,15 +154,25 @@ export default function Landing() {
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
             className="relative rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl shadow-primary/15 border border-border/40">
             <div className="absolute -inset-1 bg-gradient-to-br from-primary/20 via-transparent to-accent/20 rounded-[1.5rem] md:rounded-[2rem] blur-xl -z-10" />
+            {/* Desktop: 16:9 horizontal */}
             <video
-              className="w-full aspect-video"
+              className="hidden md:block w-full aspect-video"
               autoPlay
               muted
               loop
               playsInline
-              poster="/dogwork-promo-poster.jpg"
             >
               <source src="/dogwork-promo.mp4" type="video/mp4" />
+            </video>
+            {/* Mobile: 9:16 vertical */}
+            <video
+              className="md:hidden w-full aspect-[9/16]"
+              autoPlay
+              muted
+              loop
+              playsInline
+            >
+              <source src="/dogwork-promo-vertical.mp4" type="video/mp4" />
             </video>
           </motion.div>
         </div>

@@ -4,8 +4,10 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const compositionId = process.argv[2] || "main";
+const outputName = compositionId === "vertical" ? "dogwork-promo-vertical.mp4" : "dogwork-promo.mp4";
 
-console.log("Bundling...");
+console.log(`Bundling for composition "${compositionId}"...`);
 const bundled = await bundle({
   entryPoint: path.resolve(__dirname, "../src/index.ts"),
   webpackOverride: (config) => config,
@@ -23,20 +25,20 @@ const browser = await openBrowser("chrome", {
 console.log("Selecting composition...");
 const composition = await selectComposition({
   serveUrl: bundled,
-  id: "main",
+  id: compositionId,
   puppeteerInstance: browser,
 });
 
-console.log(`Rendering ${composition.durationInFrames} frames at ${composition.fps}fps...`);
+console.log(`Rendering ${composition.durationInFrames} frames at ${composition.fps}fps (${composition.width}x${composition.height})...`);
 await renderMedia({
   composition,
   serveUrl: bundled,
   codec: "h264",
-  outputLocation: "/mnt/documents/dogwork-promo.mp4",
+  outputLocation: `/mnt/documents/${outputName}`,
   puppeteerInstance: browser,
   muted: true,
   concurrency: 1,
 });
 
-console.log("Done! Video saved to /mnt/documents/dogwork-promo.mp4");
+console.log(`Done! Video saved to /mnt/documents/${outputName}`);
 await browser.close({ silent: false });
