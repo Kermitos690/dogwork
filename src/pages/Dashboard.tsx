@@ -112,7 +112,7 @@ export default function Dashboard() {
             </div>
           </motion.div>
           <div className="space-y-1.5">
-            <h1 className="text-xl font-bold text-foreground">Bienvenue sur PawPlan</h1>
+            <h1 className="text-xl font-bold text-foreground">Bienvenue sur DogWork</h1>
             <p className="text-sm text-muted-foreground max-w-[260px] mx-auto leading-relaxed">
               Ajoutez votre chien pour démarrer un programme d'éducation adapté.
             </p>
