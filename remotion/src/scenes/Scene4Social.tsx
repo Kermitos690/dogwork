@@ -1,5 +1,5 @@
 import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, spring, Img, staticFile } from "remotion";
-import { FONTS, COLORS } from "../MainVideo";
+import { FONTS, COLORS } from "../constants";
 
 export const Scene4Social: React.FC = () => {
   const frame = useCurrentFrame();

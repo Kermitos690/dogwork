@@ -1,5 +1,5 @@
 import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, spring } from "remotion";
-import { FONTS, COLORS } from "../MainVideo";
+import { FONTS, COLORS } from "../constants";
 
 const PROBLEMS = [
   { icon: "😰", text: "Programmes génériques qui ne marchent pas" },

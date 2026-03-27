@@ -1,5 +1,5 @@
 import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, spring, Img, staticFile } from "remotion";
-import { FONTS, COLORS } from "../MainVideo";
+import { FONTS, COLORS } from "../constants";
 
 const FEATURES = [
   { title: "Plans IA personnalisés", desc: "28 jours adaptés au profil de votre chien", color: COLORS.primary },

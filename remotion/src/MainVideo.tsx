@@ -3,27 +3,13 @@ import { TransitionSeries, springTiming } from "@remotion/transitions";
 import { fade } from "@remotion/transitions/fade";
 import { wipe } from "@remotion/transitions/wipe";
 import { slide } from "@remotion/transitions/slide";
-import { loadFont } from "@remotion/google-fonts/Outfit";
-import { loadFont as loadInter } from "@remotion/google-fonts/Inter";
 import { Scene1Hook } from "./scenes/Scene1Hook";
 import { Scene2Problem } from "./scenes/Scene2Problem";
 import { Scene3Features } from "./scenes/Scene3Features";
 import { Scene4Social } from "./scenes/Scene4Social";
 import { Scene5CTA } from "./scenes/Scene5CTA";
 
-const { fontFamily: outfit } = loadFont("normal", { weights: ["400", "700", "900"], subsets: ["latin"] });
-const { fontFamily: inter } = loadInter("normal", { weights: ["400", "500", "600"], subsets: ["latin"] });
 
-export const FONTS = { outfit, inter };
-export const COLORS = {
-  bg: "#0B0F1A",
-  bgLight: "#131829",
-  primary: "#3B82F6",
-  accent: "#8B5CF6",
-  amber: "#F59E0B",
-  text: "#F1F5F9",
-  textMuted: "#94A3B8",
-};
 
 const TRANSITION_DURATION = 20;
 
@@ -99,4 +85,3 @@ export const MainVideo = () => {
       </TransitionSeries>
     </AbsoluteFill>
   );
-};

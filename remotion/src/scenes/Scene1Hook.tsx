@@ -1,5 +1,5 @@
 import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, spring, Img, staticFile } from "remotion";
-import { FONTS, COLORS } from "../MainVideo";
+import { FONTS, COLORS } from "../constants";
 
 export const Scene1Hook: React.FC = () => {
   const frame = useCurrentFrame();
