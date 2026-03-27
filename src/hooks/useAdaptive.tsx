@@ -12,7 +12,7 @@ export function useAdaptiveSuggestion() {
     queryFn: async () => {
       const { data } = await supabase
         .from("behavior_logs")
-        .select("*")
+        .select("tension_level, dog_reaction_level, human_reaction_level, stop_response, focus_quality, recovery_after_trigger")
         .eq("dog_id", activeDog!.id)
         .order("created_at", { ascending: false })
         .limit(10);
@@ -26,7 +26,7 @@ export function useAdaptiveSuggestion() {
     queryFn: async () => {
       const { data } = await supabase
         .from("day_progress")
-        .select("*")
+        .select("validated")
         .eq("dog_id", activeDog!.id);
       return data || [];
     },
@@ -54,7 +54,7 @@ export function useAdaptiveSuggestion() {
     const recentLogs = logs.slice(0, 7);
 
     const score = (field: string, goodValue: string) => {
-      const vals = recentLogs.map((l: any) => l[field]).filter(Boolean);
+      const vals = recentLogs.map((l) => (l as Record<string, unknown>)[field]).filter(Boolean);
       if (!vals.length) return 50;
       return Math.round((vals.filter((v: string) => v === goodValue).length / vals.length) * 100);
     };
@@ -62,7 +62,7 @@ export function useAdaptiveSuggestion() {
     const signals: AdaptiveSignals = {
       avgTension: avg(recentLogs.map(l => l.tension_level || 0).filter(Boolean)),
       avgDogReaction: avg(recentLogs.map(l => l.dog_reaction_level || 0).filter(Boolean)),
-      avgHumanReaction: avg(recentLogs.map((l: any) => l.human_reaction_level || 0).filter(Boolean)),
+      avgHumanReaction: avg(recentLogs.map(l => l.human_reaction_level || 0).filter(Boolean)),
       stopScore: score("stop_response", "oui"),
       focusScore: score("focus_quality", "bon"),
       recoveryRate: score("recovery_after_trigger", "rapide"),

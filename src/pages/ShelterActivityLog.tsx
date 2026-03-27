@@ -3,8 +3,17 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ShelterLayout } from "@/components/ShelterLayout";
 import { Card, CardContent } from "@/components/ui/card";
-import { ClipboardList, User, PawPrint, Clock } from "lucide-react";
+import { ClipboardList, User, Clock } from "lucide-react";
 import { motion } from "framer-motion";
+
+interface ActivityLogRow {
+  id: string;
+  employee_name: string;
+  employee_role: string;
+  description: string;
+  action_type: string;
+  created_at: string;
+}
 
 export default function ShelterActivityLog() {
   const { user } = useAuth();
@@ -13,12 +22,12 @@ export default function ShelterActivityLog() {
     queryKey: ["shelter-activity-log", user?.id],
     queryFn: async () => {
       const { data } = await supabase
-        .from("shelter_activity_log" as any)
-        .select("*")
+        .from("shelter_activity_log")
+        .select("id, employee_name, employee_role, description, action_type, created_at")
         .eq("shelter_user_id", user!.id)
         .order("created_at", { ascending: false })
         .limit(100);
-      return (data as any[]) || [];
+      return (data ?? []) as ActivityLogRow[];
     },
     enabled: !!user,
   });
@@ -42,7 +51,7 @@ export default function ShelterActivityLog() {
           </Card>
         ) : (
           <div className="space-y-2">
-            {logs.map((log: any) => (
+            {logs.map((log) => (
               <Card key={log.id}>
                 <CardContent className="p-3 space-y-1">
                   <div className="flex items-center justify-between">
