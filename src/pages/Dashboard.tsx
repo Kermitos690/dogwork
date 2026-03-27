@@ -41,7 +41,9 @@ export default function Dashboard() {
   const { data: progress } = useQuery({
     queryKey: ["day_progress", activeDog?.id],
     queryFn: async () => {
-      const { data } = await supabase.from("day_progress").select("*").eq("dog_id", activeDog!.id);
+      const { data } = await supabase.from("day_progress")
+        .select("day_id, status, validated, completed_exercises")
+        .eq("dog_id", activeDog!.id);
       return data || [];
     },
     enabled: !!activeDog,
@@ -51,7 +53,9 @@ export default function Dashboard() {
     queryKey: ["last_behavior_log", activeDog?.id],
     queryFn: async () => {
       const { data } = await supabase
-        .from("behavior_logs").select("*").eq("dog_id", activeDog!.id)
+        .from("behavior_logs")
+        .select("tension_level, focus_quality, recovery_after_trigger")
+        .eq("dog_id", activeDog!.id)
         .order("created_at", { ascending: false }).limit(1).maybeSingle();
       return data;
     },
@@ -62,7 +66,9 @@ export default function Dashboard() {
     queryKey: ["last_journal", activeDog?.id],
     queryFn: async () => {
       const { data } = await supabase
-        .from("journal_entries").select("*").eq("dog_id", activeDog!.id)
+        .from("journal_entries")
+        .select("tension_level, focus_quality, recovery_time")
+        .eq("dog_id", activeDog!.id)
         .order("created_at", { ascending: false }).limit(1).maybeSingle();
       return data;
     },
@@ -73,7 +79,8 @@ export default function Dashboard() {
     queryKey: ["active_plan_dashboard", activeDog?.id],
     queryFn: async () => {
       const { data } = await supabase
-        .from("training_plans").select("*")
+        .from("training_plans")
+        .select("id, total_days, axes, days, summary, security_level, created_at")
         .eq("dog_id", activeDog!.id).eq("is_active", true)
         .order("created_at", { ascending: false }).limit(1).maybeSingle();
       return data;
@@ -96,7 +103,9 @@ export default function Dashboard() {
     queryKey: ["last_session", activeDog?.id],
     queryFn: async () => {
       const { data } = await supabase
-        .from("exercise_sessions").select("*").eq("dog_id", activeDog!.id)
+        .from("exercise_sessions")
+        .select("id, day_id, started_at")
+        .eq("dog_id", activeDog!.id)
         .eq("completed", false).order("started_at", { ascending: false }).limit(1).maybeSingle();
       return data;
     },

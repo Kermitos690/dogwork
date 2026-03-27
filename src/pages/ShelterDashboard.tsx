@@ -18,6 +18,28 @@ const statusConfig: Record<string, { label: string; icon: React.ElementType; col
   "adopté": { label: "Adoptés", icon: Home, color: "text-primary" },
 };
 
+interface ShelterAnimalRow {
+  id: string;
+  name: string;
+  species: string;
+  breed: string | null;
+  status: string;
+  arrival_date: string;
+  created_at: string;
+}
+
+interface ShelterProfileRow {
+  name: string;
+}
+
+interface AdoptionUpdateRow {
+  id: string;
+  animal_id: string;
+  adopter_name: string | null;
+  message: string | null;
+  created_at: string;
+}
+
 export default function ShelterDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -26,11 +48,11 @@ export default function ShelterDashboard() {
     queryKey: ["shelter-animals", user?.id],
     queryFn: async () => {
       const { data } = await supabase
-        .from("shelter_animals" as any)
-        .select("*")
+        .from("shelter_animals")
+        .select("id, name, species, breed, status, arrival_date, created_at")
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false });
-      return (data as any[]) || [];
+      return (data ?? []) as ShelterAnimalRow[];
     },
     enabled: !!user,
   });
@@ -39,11 +61,11 @@ export default function ShelterDashboard() {
     queryKey: ["shelter-profile", user?.id],
     queryFn: async () => {
       const { data } = await supabase
-        .from("shelter_profiles" as any)
-        .select("*")
+        .from("shelter_profiles")
+        .select("name")
         .eq("user_id", user!.id)
         .maybeSingle();
-      return data as any;
+      return data as ShelterProfileRow | null;
     },
     enabled: !!user,
   });
@@ -53,12 +75,12 @@ export default function ShelterDashboard() {
     queryKey: ["adoption-updates", user?.id],
     queryFn: async () => {
       const { data } = await supabase
-        .from("adoption_updates" as any)
-        .select("*")
+        .from("adoption_updates")
+        .select("id, animal_id, adopter_name, message, created_at")
         .eq("shelter_user_id", user!.id)
         .order("created_at", { ascending: false })
         .limit(5);
-      return (data as any[]) || [];
+      return (data ?? []) as AdoptionUpdateRow[];
     },
     enabled: !!user,
   });
@@ -77,18 +99,18 @@ export default function ShelterDashboard() {
     enabled: !!user,
   });
 
-  const activeAnimals = animals.filter((a: any) => !["adopté", "décédé", "transféré"].includes(a.status));
-  const statusCounts = activeAnimals.reduce((acc: Record<string, number>, a: any) => {
+  const activeAnimals = animals.filter(a => !["adopté", "décédé", "transféré"].includes(a.status));
+  const statusCounts = activeAnimals.reduce<Record<string, number>>((acc, a) => {
     acc[a.status] = (acc[a.status] || 0) + 1;
     return acc;
   }, {});
 
-  const speciesCounts = activeAnimals.reduce((acc: Record<string, number>, a: any) => {
+  const speciesCounts = activeAnimals.reduce<Record<string, number>>((acc, a) => {
     acc[a.species] = (acc[a.species] || 0) + 1;
     return acc;
   }, {});
 
-  const recentArrivals = animals.filter((a: any) => a.status === "arrivée").slice(0, 5);
+  const recentArrivals = animals.filter(a => a.status === "arrivée").slice(0, 5);
 
   return (
     <ShelterLayout>
@@ -179,7 +201,7 @@ export default function ShelterDashboard() {
         <Card>
           <CardContent className="p-4 text-center">
             <Heart className="h-6 w-6 text-primary mx-auto mb-1" />
-            <p className="text-lg font-bold text-foreground">{animals.filter((a: any) => a.status === "adopté").length}</p>
+            <p className="text-lg font-bold text-foreground">{animals.filter(a => a.status === "adopté").length}</p>
             <p className="text-xs text-muted-foreground">Adoptions réalisées</p>
           </CardContent>
         </Card>
@@ -191,8 +213,8 @@ export default function ShelterDashboard() {
               <Mail className="h-4 w-4 text-primary" /> Nouvelles post-adoption
             </p>
             <div className="space-y-2">
-              {adoptionUpdates.map((update: any) => {
-                const animalData = animals.find((a: any) => a.id === update.animal_id);
+              {adoptionUpdates.map((update) => {
+                const animalData = animals.find(a => a.id === update.animal_id);
                 return (
                   <Card key={update.id} className="cursor-pointer card-press" onClick={() => animalData && navigate(`/shelter/animals/${update.animal_id}`)}>
                     <CardContent className="p-3">
