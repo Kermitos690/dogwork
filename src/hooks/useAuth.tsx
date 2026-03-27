@@ -101,8 +101,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const resetPassword = useCallback(async (email: string) => {
+    const { hostname, origin } = window.location;
+    const isLovablePreview =
+      hostname.endsWith("lovableproject.com") || hostname.includes("id-preview--");
+    const redirectTo = isLovablePreview
+      ? "https://dogwork.lovable.app/reset-password"
+      : `${origin}/reset-password`;
+
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo,
     });
     return { error: error as Error | null };
   }, []);
