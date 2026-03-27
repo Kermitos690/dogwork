@@ -3,6 +3,7 @@ import { TransitionSeries, springTiming } from "@remotion/transitions";
 import { fade } from "@remotion/transitions/fade";
 import { wipe } from "@remotion/transitions/wipe";
 import { slide } from "@remotion/transitions/slide";
+import { COLORS } from "./constants";
 import { Scene1Hook } from "./scenes/Scene1Hook";
 import { Scene2Problem } from "./scenes/Scene2Problem";
 import { Scene3Features } from "./scenes/Scene3Features";
