@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/hooks/useAuth";
 import { lovable } from "@/integrations/lovable/index";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,15 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dog, Mail, Lock, User, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 type Mode = "login" | "employee" | "signup" | "forgot";
-
-const DEV_ROLES = [
-  { role: "owner", emoji: "🐕", label: "Propriétaire", desc: "Gérer mes chiens et suivre leur plan d'entraînement", gradient: "from-sky-500 to-blue-600" },
-  { role: "educator", emoji: "🎓", label: "Éducateur", desc: "Suivre mes clients et évaluer les animaux en refuge", gradient: "from-emerald-500 to-teal-600" },
-  { role: "shelter", emoji: "🏠", label: "Refuge", desc: "Gérer les animaux, employés et espaces du refuge", gradient: "from-amber-500 to-orange-600" },
-  { role: "admin", emoji: "🛡️", label: "Administrateur", desc: "Superviser la plateforme et gérer les contenus", gradient: "from-rose-500 to-red-600" },
-];
 
 const toEmployeePassword = (pin: string) => `DogWork!${pin}#Secure`;
 
@@ -31,6 +26,14 @@ export default function Auth() {
   const { user, loading: authLoading, signIn, signUp, resetPassword } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useTranslation();
+
+  const DEV_ROLES = [
+    { role: "owner", emoji: "🐕", label: t("auth.owner"), desc: t("auth.ownerDesc"), gradient: "from-sky-500 to-blue-600" },
+    { role: "educator", emoji: "🎓", label: t("auth.educator"), desc: t("auth.educatorDesc"), gradient: "from-emerald-500 to-teal-600" },
+    { role: "shelter", emoji: "🏠", label: t("auth.shelter"), desc: t("auth.shelterDesc"), gradient: "from-amber-500 to-orange-600" },
+    { role: "admin", emoji: "🛡️", label: t("auth.admin"), desc: t("auth.adminDesc"), gradient: "from-rose-500 to-red-600" },
+  ];
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -51,27 +54,26 @@ export default function Auth() {
       } else if (mode === "employee") {
         const pin = password.trim();
         if (!/^\d{6}$/.test(pin)) {
-          throw new Error("Le code PIN employé doit contenir exactement 6 chiffres.");
+          throw new Error(t("auth.pinError"));
         }
-
         const { error } = await signIn(normalizedEmail, toEmployeePassword(pin));
         if (error) {
-          throw new Error("Identifiants employé invalides. Vérifiez email + PIN ou demandez une réinitialisation au refuge.");
+          throw new Error(t("auth.employeeError"));
         }
         navigate("/");
       } else if (mode === "signup") {
         const { error } = await signUp(normalizedEmail, password, displayName);
         if (error) throw error;
-        toast({ title: "Inscription réussie", description: "Vérifiez votre email pour confirmer votre compte." });
+        toast({ title: t("auth.signupSuccess"), description: t("auth.signupSuccessDesc") });
         setMode("login");
       } else {
         const { error } = await resetPassword(normalizedEmail);
         if (error) throw error;
-        toast({ title: "Email envoyé", description: "Consultez votre boîte mail pour réinitialiser votre mot de passe." });
+        toast({ title: t("auth.emailSent"), description: t("auth.emailSentDesc") });
         setMode("login");
       }
     } catch (err: any) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: t("common.error"), description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -88,10 +90,10 @@ export default function Auth() {
         refresh_token: data.refresh_token,
       });
       if (sessionErr) throw sessionErr;
-      toast({ title: "Connexion réussie", description: `Connecté en tant que ${role}` });
+      toast({ title: t("auth.connectionSuccess"), description: t("auth.connectedAs", { role }) });
       navigate("/");
     } catch (err: any) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      toast({ title: t("common.error"), description: err.message, variant: "destructive" });
     } finally {
       setDevLoading(null);
     }
@@ -101,15 +103,18 @@ export default function Auth() {
     <main className="min-h-screen bg-background flex items-center justify-center p-4" aria-label="Authentification">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
+          <div className="flex justify-end mb-2">
+            <LanguageSwitcher />
+          </div>
           <img src="/favicon.png" alt="DogWork" className="mx-auto w-16 h-16 rounded-2xl" />
-          <h1 className="text-2xl font-bold text-foreground">DogWork</h1>
-          <p className="text-sm text-muted-foreground">Éducation canine intelligente</p>
+          <h1 className="text-2xl font-bold text-foreground">{t("auth.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("auth.subtitle")}</p>
         </div>
 
         <div className="space-y-3">
           <div className="text-center">
             <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary">
-              🧪 Mode test — Choisissez un profil
+              {t("auth.testMode")}
             </span>
           </div>
           <div className="grid grid-cols-1 gap-2.5">
@@ -145,38 +150,38 @@ export default function Auth() {
             <span className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-3 text-muted-foreground">ou connectez-vous</span>
+            <span className="bg-background px-3 text-muted-foreground">{t("auth.orConnect")}</span>
           </div>
         </div>
 
         <Card>
           <CardHeader className="pb-4">
             <CardTitle className="text-lg">
-              {mode === "login" && "Connexion"}
-              {mode === "employee" && "Connexion employé refuge"}
-              {mode === "signup" && "Inscription"}
-              {mode === "forgot" && "Mot de passe oublié"}
+              {mode === "login" && t("auth.login")}
+              {mode === "employee" && t("auth.employee")}
+              {mode === "signup" && t("auth.signup")}
+              {mode === "forgot" && t("auth.forgot")}
             </CardTitle>
             <CardDescription>
-              {mode === "login" && "Connectez-vous à votre compte"}
-              {mode === "employee" && "Employés refuge : utilisez votre email + code PIN à 6 chiffres"}
-              {mode === "signup" && "Créez votre compte en quelques secondes"}
-              {mode === "forgot" && "Entrez votre email pour recevoir un lien de réinitialisation"}
+              {mode === "login" && t("auth.loginDesc")}
+              {mode === "employee" && t("auth.employeeDesc")}
+              {mode === "signup" && t("auth.signupDesc")}
+              {mode === "forgot" && t("auth.forgotDesc")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               {mode === "signup" && (
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nom</Label>
+                  <Label htmlFor="name">{t("auth.name")}</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input id="name" placeholder="Votre nom" value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="pl-9" />
+                    <Input id="name" placeholder={t("auth.namePlaceholder")} value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="pl-9" />
                   </div>
                 </div>
               )}
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t("auth.email")}</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input id="email" type="email" placeholder="votre@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="pl-9" />
@@ -184,7 +189,7 @@ export default function Auth() {
               </div>
               {mode !== "forgot" && (
                 <div className="space-y-2">
-                  <Label htmlFor="password">{mode === "employee" ? "Code PIN" : "Mot de passe"}</Label>
+                  <Label htmlFor="password">{mode === "employee" ? t("auth.pin") : t("auth.password")}</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -194,7 +199,7 @@ export default function Auth() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
-                      minLength={mode === "employee" ? 6 : 6}
+                      minLength={6}
                       maxLength={mode === "employee" ? 6 : undefined}
                       className="pl-9"
                     />
@@ -202,7 +207,7 @@ export default function Auth() {
                 </div>
               )}
               <Button type="submit" className="w-full h-12 text-base" disabled={loading}>
-                {loading ? "Chargement..." : mode === "login" ? "Se connecter" : mode === "employee" ? "Se connecter (Employé)" : mode === "signup" ? "Créer mon compte" : "Envoyer le lien"}
+                {loading ? t("common.loading") : mode === "login" ? t("auth.loginButton") : mode === "employee" ? t("auth.loginEmployee") : mode === "signup" ? t("auth.signupButton") : t("auth.sendLink")}
               </Button>
             </form>
 
@@ -213,7 +218,7 @@ export default function Auth() {
                     <span className="w-full border-t border-border" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">ou</span>
+                    <span className="bg-card px-2 text-muted-foreground">{t("common.or")}</span>
                   </div>
                 </div>
                 <Button
@@ -222,13 +227,13 @@ export default function Auth() {
                   className="w-full h-12 text-base gap-2"
                   onClick={async () => {
                     const { error } = await lovable.auth.signInWithOAuth("apple", { redirect_uri: window.location.origin });
-                    if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
+                    if (error) toast({ title: t("common.error"), description: error.message, variant: "destructive" });
                   }}
                 >
                   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
                   </svg>
-                  Continuer avec Apple
+                  {t("auth.continueApple")}
                 </Button>
               </div>
             )}
@@ -236,21 +241,21 @@ export default function Auth() {
             <div className="mt-4 space-y-2 text-center text-sm">
               {mode === "login" && (
                 <>
-                  <button onClick={() => setMode("employee")} className="text-primary hover:underline block w-full">Connexion employé refuge (PIN)</button>
-                  <button onClick={() => setMode("forgot")} className="text-primary hover:underline block w-full">Mot de passe oublié ?</button>
+                  <button onClick={() => setMode("employee")} className="text-primary hover:underline block w-full">{t("auth.employeeLink")}</button>
+                  <button onClick={() => setMode("forgot")} className="text-primary hover:underline block w-full">{t("auth.forgotLink")}</button>
                   <p className="text-muted-foreground">
-                    Pas de compte ?{" "}
-                    <button onClick={() => setMode("signup")} className="text-primary hover:underline">S'inscrire</button>
+                    {t("auth.noAccount")}{" "}
+                    <button onClick={() => setMode("signup")} className="text-primary hover:underline">{t("auth.signupLink")}</button>
                   </p>
                 </>
               )}
               {(mode === "signup" || mode === "forgot" || mode === "employee") && (
                 <button onClick={() => setMode("login")} className="text-primary hover:underline flex items-center justify-center gap-1 w-full">
-                  <ArrowLeft className="h-3 w-3" /> Retour à la connexion
+                  <ArrowLeft className="h-3 w-3" /> {t("auth.backToLogin")}
                 </button>
               )}
               {mode === "employee" && (
-                <p className="text-xs text-muted-foreground">Le PIN est envoyé/réinitialisé par l'administrateur du refuge.</p>
+                <p className="text-xs text-muted-foreground">{t("auth.pinHelp")}</p>
               )}
             </div>
           </CardContent>
