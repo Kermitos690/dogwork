@@ -113,6 +113,7 @@ function RecoveryRedirect() {
 
 function ProtectedRoutes() {
   const { user, loading } = useAuth();
+  const location = useLocation();
   const { data: dogs, isLoading: dogsLoading } = useDogs();
   const { data: isCoach, isLoading: coachLoading } = useIsCoach();
   const { data: isShelter, isLoading: shelterLoading } = useIsShelter();
@@ -126,11 +127,22 @@ function ProtectedRoutes() {
     enabled: !!user,
   });
 
+  const searchParams = new URLSearchParams(location.search);
+  const hasRecoveryCode = searchParams.has("code");
+  const hasRecoveryType = searchParams.get("type") === "recovery";
+  const hasRecoveryHash = location.hash.includes("type=recovery") || location.hash.includes("access_token=");
+  const isRecoveryFlow = hasRecoveryCode || hasRecoveryType || hasRecoveryHash;
+
   if (loading || dogsLoading || coachLoading || shelterLoading || shelterEmpLoading || adminLoading) {
     return <PageLoader />;
   }
 
-  if (!user) return <Navigate to="/landing" replace />;
+  if (!user) {
+    if (isRecoveryFlow) {
+      return <Navigate to={`/reset-password${location.search}${location.hash}`} replace />;
+    }
+    return <Navigate to="/landing" replace />;
+  }
 
   const hasDogs = dogs && dogs.length > 0;
   const onboardingInProgress = !hasDogs && !isCoach && !isShelter && !isShelterEmployee && !isAdmin;
