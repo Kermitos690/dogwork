@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Search, ArrowLeft, BookOpen, SlidersHorizontal } from "lucide-react";
 import { motion } from "framer-motion";
+import { ExerciseCoverFallback } from "@/components/ExerciseCoverFallback";
 
 const levelColors: Record<string, string> = {
   "débutant": "bg-success/15 text-success border-success/20",
@@ -137,9 +138,7 @@ export default function ExerciseLibrary() {
                     <img src={exercise.cover_image} alt={exercise.name} className="w-full h-full object-cover" loading="lazy" />
                   </div>
                 ) : (
-                  <div className="w-14 h-auto shrink-0 bg-secondary/60 flex items-center justify-center text-lg">
-                    {exercise.exercise_categories?.icon || "📋"}
-                  </div>
+                  <ExerciseCoverFallback name={exercise.name} categoryIcon={exercise.exercise_categories?.icon} size="sm" className="rounded-none rounded-l-xl" />
                 )}
                 <div className="flex-1 min-w-0 p-3">
                   <p className="text-sm font-semibold text-foreground truncate">{exercise.name}</p>

@@ -8,6 +8,7 @@ import { ArrowLeft, Play, Heart, Clock, Repeat, AlertTriangle, CheckCircle2, XCi
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { ReadAloudButton } from "@/components/ReadAloudButton";
+import { ExerciseCoverFallback } from "@/components/ExerciseCoverFallback";
 
 const levelColors: Record<string, string> = {
   "débutant": "bg-success/15 text-success",
@@ -113,12 +114,7 @@ export default function ExerciseDetail() {
             <img src={exercise.cover_image} alt={exercise.name} className="w-full h-auto max-w-full object-contain" />
           </div>
         ) : (
-          <div className="w-full h-40 rounded-2xl bg-secondary/50 flex items-center justify-center border border-border">
-            <div className="flex flex-col items-center gap-1.5 text-muted-foreground">
-              <Camera className="h-8 w-8" />
-              <span className="text-[10px]">Illustration à venir</span>
-            </div>
-          </div>
+          <ExerciseCoverFallback name={exercise.name} categoryIcon={exercise.exercise_categories?.icon} size="lg" />
         )}
 
         {/* Badges */}
