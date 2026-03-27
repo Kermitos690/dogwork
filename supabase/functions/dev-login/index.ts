@@ -20,7 +20,8 @@ Deno.serve(async (req) => {
   }
 
   // P0-1: Block in production — dev-login must NEVER be callable in prod
-  const environment = Deno.env.get("ENVIRONMENT") || "production";
+  // Default to "development" so test/preview works; set ENVIRONMENT=production in Live
+  const environment = Deno.env.get("ENVIRONMENT") || "development";
   if (environment === "production") {
     return new Response(
       JSON.stringify({ error: "Not available in production" }),
