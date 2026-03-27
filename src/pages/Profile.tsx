@@ -41,8 +41,15 @@ export default function ProfilePage() {
 
   const handleSaveName = async () => {
     if (!user) return;
-    await supabase.from("profiles").update({ display_name: displayName }).eq("user_id", user.id);
-    toast({ title: "Profil mis à jour" });
+    const { error } = await supabase
+      .from("profiles")
+      .upsert({ user_id: user.id, display_name: displayName }, { onConflict: "user_id" });
+    if (error) {
+      toast({ title: "Erreur", description: "Impossible de sauvegarder le profil", variant: "destructive" });
+      console.error("Profile save error:", error);
+    } else {
+      toast({ title: "Profil mis à jour ✅" });
+    }
   };
 
   const handleExport = async () => {
