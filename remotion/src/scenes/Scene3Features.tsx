@@ -1,149 +1,118 @@
 import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, spring, Img, staticFile } from "remotion";
 import { FONTS, COLORS } from "../constants";
 
-const FEATURES = [
-  { title: "Plans IA personnalisés", desc: "28 jours adaptés au profil de votre chien", color: COLORS.primary },
-  { title: "Suivi comportemental", desc: "Journal, évaluation, statistiques en temps réel", color: COLORS.accent },
-  { title: "Gestion de refuge", desc: "Animaux, employés, espaces, adoptions", color: COLORS.amber },
-  { title: "Espace éducateur", desc: "Clients, cours, calendrier, paiements", color: "#10B981" },
-];
-
-export const Scene3Features: React.FC = () => {
+export const Scene3Features = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const titleOpacity = interpolate(frame, [0, 20], [0, 1], { extrapolateRight: "clamp" });
-  const titleScale = spring({ frame, fps, config: { damping: 20, stiffness: 120 } });
+  const features = [
+    { icon: "🧠", title: "Plans IA personnalisés", desc: "Éducation adaptée à chaque profil", color: COLORS.primary, delay: 15 },
+    { icon: "🏥", title: "Gestion de refuge", desc: "Suivi complet de chaque animal", color: COLORS.emerald, delay: 30 },
+    { icon: "📊", title: "Évaluations comportementales", desc: "Analyses pro pour les éducateurs", color: COLORS.accent, delay: 45 },
+    { icon: "💬", title: "Messagerie intégrée", desc: "Refuge ↔ Éducateur ↔ Adoptant", color: COLORS.amber, delay: 60 },
+  ];
+
+  const titleSp = spring({ frame: frame - 5, fps, config: { damping: 18 } });
 
   return (
-    <AbsoluteFill style={{ backgroundColor: "transparent" }}>
-      {/* Title */}
+    <AbsoluteFill style={{
+      background: `linear-gradient(160deg, ${COLORS.bg} 0%, ${COLORS.bgLight} 50%, ${COLORS.bg} 100%)`,
+    }}>
+      {/* Background app screenshot */}
       <div style={{
-        position: "absolute",
-        left: 0,
-        right: 0,
-        top: 60,
-        textAlign: "center",
-        opacity: titleOpacity,
-        transform: `scale(${titleScale})`,
+        position: "absolute", right: -40, top: "50%", transform: "translateY(-50%)",
+        width: 700, height: 500, borderRadius: 20, overflow: "hidden",
+        opacity: interpolate(frame, [20, 50], [0, 0.2], { extrapolateRight: "clamp" }),
       }}>
-        <div style={{
-          fontFamily: FONTS.outfit,
-          fontSize: 56,
-          fontWeight: 900,
-          color: COLORS.text,
-        }}>
-          La solution<span style={{ color: COLORS.primary }}>.</span>
-        </div>
-      </div>
-
-      {/* Training photo background */}
-      <div style={{
-        position: "absolute",
-        right: 0,
-        top: 0,
-        width: "100%",
-        height: "100%",
-        opacity: interpolate(frame, [10, 40], [0, 0.12], { extrapolateRight: "clamp" }),
-      }}>
-        <Img src={staticFile("images/training-scene.jpg")} style={{
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
+        <Img src={staticFile("images/app-dashboard.jpg")} style={{
+          width: "100%", height: "100%", objectFit: "cover",
         }} />
       </div>
 
-      {/* Feature cards grid */}
-      <div style={{
-        position: "absolute",
-        left: 80,
-        right: 80,
-        top: 180,
-        display: "flex",
-        flexWrap: "wrap",
-        gap: 30,
-        justifyContent: "center",
-      }}>
-        {FEATURES.map((feat, i) => {
-          const delay = 20 + i * 20;
-          const s = spring({ frame: frame - delay, fps, config: { damping: 15, stiffness: 80 } });
-          const y = interpolate(s, [0, 1], [80, 0]);
-          const opacity = interpolate(frame, [delay, delay + 20], [0, 1], { extrapolateRight: "clamp" });
-          const cardFloat = Math.sin((frame + i * 20) * 0.04) * 3;
+      {/* Floating grid dots */}
+      {Array.from({ length: 20 }).map((_, i) => (
+        <div key={i} style={{
+          position: "absolute",
+          left: 80 + (i % 5) * 380,
+          top: 80 + Math.floor(i / 5) * 250,
+          width: 3, height: 3, borderRadius: "50%",
+          backgroundColor: COLORS.primary,
+          opacity: interpolate(Math.sin((frame + i * 20) * 0.04), [-1, 1], [0.05, 0.15]),
+        }} />
+      ))}
 
-          return (
-            <div key={i} style={{
-              width: 400,
-              padding: 40,
-              borderRadius: 24,
-              background: `linear-gradient(145deg, ${COLORS.bgLight}F0, ${COLORS.bg}E0)`,
-              border: `1px solid ${feat.color}30`,
-              opacity,
-              transform: `translateY(${y + cardFloat}px)`,
-              boxShadow: `0 20px 60px ${feat.color}15`,
-            }}>
-              {/* Accent dot */}
-              <div style={{
-                width: 12,
-                height: 12,
-                borderRadius: "50%",
-                backgroundColor: feat.color,
-                marginBottom: 20,
-                boxShadow: `0 0 20px ${feat.color}60`,
-              }} />
-              <div style={{
-                fontFamily: FONTS.outfit,
-                fontSize: 28,
-                fontWeight: 700,
-                color: COLORS.text,
-                marginBottom: 10,
-              }}>
-                {feat.title}
-              </div>
-              <div style={{
-                fontFamily: FONTS.inter,
-                fontSize: 20,
-                fontWeight: 400,
-                color: COLORS.textMuted,
-                lineHeight: 1.5,
-              }}>
-                {feat.desc}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Bottom stat bar */}
+      {/* Content */}
       <div style={{
-        position: "absolute",
-        bottom: 60,
-        left: 0,
-        right: 0,
-        display: "flex",
-        justifyContent: "center",
-        gap: 80,
-        opacity: interpolate(frame, [100, 120], [0, 1], { extrapolateRight: "clamp" }),
+        position: "absolute", inset: 0,
+        display: "flex", flexDirection: "column", justifyContent: "center",
+        padding: "0 120px",
       }}>
-        {[
-          { num: "200+", label: "exercices" },
-          { num: "28", label: "jours de plan" },
-          { num: "4", label: "rôles métier" },
-        ].map((stat, i) => (
-          <div key={i} style={{ textAlign: "center" }}>
-            <div style={{
-              fontFamily: FONTS.outfit,
-              fontSize: 42,
-              fontWeight: 900,
-              color: COLORS.primary,
-            }}>{stat.num}</div>
-            <div style={{
-              fontFamily: FONTS.inter,
-              fontSize: 18,
-              color: COLORS.textMuted,
-            }}>{stat.label}</div>
-          </div>
-        ))}
+        {/* Label */}
+        <div style={{
+          fontFamily: FONTS.inter, fontWeight: 600, fontSize: 14,
+          color: COLORS.primary, letterSpacing: 4, textTransform: "uppercase",
+          opacity: titleSp, marginBottom: 16,
+        }}>
+          La solution
+        </div>
+
+        <div style={{
+          fontFamily: FONTS.outfit, fontWeight: 900, fontSize: 52,
+          color: COLORS.text, lineHeight: 1.15, marginBottom: 56,
+          opacity: titleSp,
+          transform: `translateY(${interpolate(titleSp, [0, 1], [40, 0])}px)`,
+        }}>
+          Une plateforme,
+          <br />
+          <span style={{
+            background: `linear-gradient(90deg, ${COLORS.primary}, ${COLORS.accent})`,
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+          }}>
+            tous les acteurs
+          </span>
+        </div>
+
+        {/* Feature cards grid */}
+        <div style={{
+          display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24,
+          maxWidth: 900,
+        }}>
+          {features.map((f, i) => {
+            const sp = spring({ frame: frame - f.delay, fps, config: { damping: 14, stiffness: 100 } });
+            const hover = Math.sin((frame + i * 30) * 0.05) * 3;
+            return (
+              <div key={i} style={{
+                display: "flex", alignItems: "flex-start", gap: 18,
+                padding: "28px 32px",
+                borderRadius: 16,
+                background: `${COLORS.text}08`,
+                border: `1px solid ${f.color}25`,
+                opacity: sp,
+                transform: `translateY(${interpolate(sp, [0, 1], [50, hover])}px) scale(${interpolate(sp, [0, 1], [0.9, 1])})`,
+              }}>
+                <div style={{
+                  fontSize: 36, width: 50, height: 50,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  borderRadius: 12,
+                  background: `${f.color}15`,
+                }}>
+                  {f.icon}
+                </div>
+                <div>
+                  <div style={{
+                    fontFamily: FONTS.outfit, fontWeight: 700, fontSize: 22,
+                    color: COLORS.text, marginBottom: 6,
+                  }}>{f.title}</div>
+                  <div style={{
+                    fontFamily: FONTS.inter, fontWeight: 400, fontSize: 16,
+                    color: COLORS.textMuted,
+                  }}>{f.desc}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </AbsoluteFill>
   );
