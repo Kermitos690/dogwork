@@ -106,12 +106,12 @@ serve(async (req) => {
     if (bookingError) throw bookingError;
     logStep("Booking created", { bookingId: booking.id });
 
-    // Get educator's Stripe Connect account
-    const { data: coachProfile } = await supabaseAdmin
-      .from("coach_profiles")
+    // Get educator's Stripe Connect account from dedicated table
+    const { data: stripeData } = await supabaseAdmin
+      .from("coach_stripe_data")
       .select("stripe_account_id, stripe_onboarding_complete")
       .eq("user_id", course.educator_user_id)
-      .single();
+      .maybeSingle();
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
@@ -150,15 +150,15 @@ serve(async (req) => {
     };
 
     // If educator has completed Stripe Connect onboarding, use destination charges
-    if (coachProfile?.stripe_account_id && coachProfile?.stripe_onboarding_complete) {
+    if (stripeData?.stripe_account_id && stripeData?.stripe_onboarding_complete) {
       sessionParams.payment_intent_data = {
         application_fee_amount: commissionCents,
         transfer_data: {
-          destination: coachProfile.stripe_account_id,
+          destination: stripeData.stripe_account_id,
         },
       };
       logStep("Using Stripe Connect destination charge", {
-        destination: coachProfile.stripe_account_id,
+        destination: stripeData.stripe_account_id,
         applicationFee: commissionCents,
       });
     } else {
