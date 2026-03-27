@@ -46,13 +46,13 @@ serve(async (req) => {
     });
 
     // Check if educator already has a Connect account
-    const { data: coachProfile } = await supabaseAdmin
-      .from("coach_profiles")
+    const { data: stripeData } = await supabaseAdmin
+      .from("coach_stripe_data")
       .select("stripe_account_id, stripe_onboarding_complete")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
-    let accountId = coachProfile?.stripe_account_id;
+    let accountId = stripeData?.stripe_account_id;
 
     if (!accountId) {
       // Create a new Express Connect account
@@ -74,11 +74,10 @@ serve(async (req) => {
       accountId = account.id;
       logStep("Connect account created", { accountId });
 
-      // Save to coach_profiles
+      // Save to coach_stripe_data (upsert)
       await supabaseAdmin
-        .from("coach_profiles")
-        .update({ stripe_account_id: accountId })
-        .eq("user_id", user.id);
+        .from("coach_stripe_data")
+        .upsert({ user_id: user.id, stripe_account_id: accountId }, { onConflict: "user_id" });
     } else {
       logStep("Existing Connect account found", { accountId });
     }

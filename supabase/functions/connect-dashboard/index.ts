@@ -45,23 +45,31 @@ serve(async (req) => {
     });
 
     if (action === "list_accounts") {
-      // List all educators with Connect accounts
-      const { data: coaches } = await supabaseAdmin
-        .from("coach_profiles")
-        .select("user_id, display_name, stripe_account_id, stripe_onboarding_complete")
+      // List all educators with Connect accounts from dedicated stripe table
+      const { data: stripeAccounts } = await supabaseAdmin
+        .from("coach_stripe_data")
+        .select("user_id, stripe_account_id, stripe_onboarding_complete")
         .not("stripe_account_id", "is", null);
 
+      // Get display names from coach_profiles
+      const userIds = (stripeAccounts || []).map(s => s.user_id);
+      const { data: profiles } = await supabaseAdmin
+        .from("coach_profiles")
+        .select("user_id, display_name")
+        .in("user_id", userIds);
+      const nameMap = new Map((profiles || []).map(p => [p.user_id, p.display_name]));
+
       const accounts = [];
-      for (const coach of coaches || []) {
+      for (const sd of stripeAccounts || []) {
         try {
-          const account = await stripe.accounts.retrieve(coach.stripe_account_id!);
+          const account = await stripe.accounts.retrieve(sd.stripe_account_id!);
           const balance = await stripe.balance.retrieve({
-            stripeAccount: coach.stripe_account_id!,
+            stripeAccount: sd.stripe_account_id!,
           });
           accounts.push({
-            user_id: coach.user_id,
-            display_name: coach.display_name,
-            account_id: coach.stripe_account_id,
+            user_id: sd.user_id,
+            display_name: nameMap.get(sd.user_id) || null,
+            account_id: sd.stripe_account_id,
             charges_enabled: account.charges_enabled,
             payouts_enabled: account.payouts_enabled,
             balance_available: balance.available,
@@ -69,9 +77,9 @@ serve(async (req) => {
           });
         } catch (e: any) {
           accounts.push({
-            user_id: coach.user_id,
-            display_name: coach.display_name,
-            account_id: coach.stripe_account_id,
+            user_id: sd.user_id,
+            display_name: nameMap.get(sd.user_id) || null,
+            account_id: sd.stripe_account_id,
             error: e.message,
           });
         }
@@ -93,15 +101,15 @@ serve(async (req) => {
 
     if (action === "create_login_link" && educator_user_id) {
       // Create Express dashboard login link for a specific educator
-      const { data: coach } = await supabaseAdmin
-        .from("coach_profiles")
+      const { data: sd } = await supabaseAdmin
+        .from("coach_stripe_data")
         .select("stripe_account_id")
         .eq("user_id", educator_user_id)
         .single();
 
-      if (!coach?.stripe_account_id) throw new Error("Éducateur sans compte Connect");
+      if (!sd?.stripe_account_id) throw new Error("Éducateur sans compte Connect");
 
-      const loginLink = await stripe.accounts.createLoginLink(coach.stripe_account_id);
+      const loginLink = await stripe.accounts.createLoginLink(sd.stripe_account_id);
       return new Response(JSON.stringify({ url: loginLink.url }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

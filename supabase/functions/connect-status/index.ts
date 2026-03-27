@@ -44,13 +44,13 @@ serve(async (req) => {
       if (!adminRoles?.length) throw new Error("Accès non autorisé");
     }
 
-    const { data: coachProfile } = await supabaseAdmin
-      .from("coach_profiles")
+    const { data: stripeData } = await supabaseAdmin
+      .from("coach_stripe_data")
       .select("stripe_account_id, stripe_onboarding_complete")
       .eq("user_id", targetUserId)
-      .single();
+      .maybeSingle();
 
-    if (!coachProfile?.stripe_account_id) {
+    if (!stripeData?.stripe_account_id) {
       return new Response(JSON.stringify({
         connected: false,
         onboarding_complete: false,
@@ -61,11 +61,7 @@ serve(async (req) => {
       });
     }
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-      apiVersion: "2025-08-27.basil",
-    });
-
-    const account = await stripe.accounts.retrieve(coachProfile.stripe_account_id);
+    const account = await stripe.accounts.retrieve(stripeData.stripe_account_id);
     logStep("Account retrieved", {
       accountId: account.id,
       chargesEnabled: account.charges_enabled,
@@ -74,9 +70,9 @@ serve(async (req) => {
 
     // Update onboarding status in DB if changed
     const isComplete = account.charges_enabled && account.payouts_enabled;
-    if (isComplete !== coachProfile.stripe_onboarding_complete) {
+    if (isComplete !== stripeData.stripe_onboarding_complete) {
       await supabaseAdmin
-        .from("coach_profiles")
+        .from("coach_stripe_data")
         .update({ stripe_onboarding_complete: isComplete })
         .eq("user_id", targetUserId);
     }

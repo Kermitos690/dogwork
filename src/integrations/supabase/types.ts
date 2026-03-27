@@ -315,8 +315,6 @@ export type Database = {
           display_name: string | null
           id: string
           specialty: string | null
-          stripe_account_id: string | null
-          stripe_onboarding_complete: boolean | null
           updated_at: string
           user_id: string
         }
@@ -326,8 +324,6 @@ export type Database = {
           display_name?: string | null
           id?: string
           specialty?: string | null
-          stripe_account_id?: string | null
-          stripe_onboarding_complete?: boolean | null
           updated_at?: string
           user_id: string
         }
@@ -337,6 +333,31 @@ export type Database = {
           display_name?: string | null
           id?: string
           specialty?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      coach_stripe_data: {
+        Row: {
+          created_at: string
+          id: string
+          stripe_account_id: string | null
+          stripe_onboarding_complete: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          stripe_account_id?: string | null
+          stripe_onboarding_complete?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
           stripe_account_id?: string | null
           stripe_onboarding_complete?: boolean | null
           updated_at?: string
