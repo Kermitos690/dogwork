@@ -114,48 +114,52 @@ export default function Auth() {
           <p className="text-sm text-muted-foreground">{t("auth.subtitle")}</p>
         </div>
 
-        <div className="space-y-3">
-          <div className="text-center">
-            <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary">
-              {t("auth.testMode")}
-            </span>
-          </div>
-          <div className="grid grid-cols-1 gap-2.5">
-            {DEV_ROLES.map(({ role, emoji, label, desc, gradient }) => (
-              <button
-                key={role}
-                onClick={() => handleDevLogin(role)}
-                disabled={devLoading !== null}
-                className={`relative overflow-hidden rounded-xl p-4 text-left transition-all active:scale-[0.98] disabled:opacity-60
-                  bg-gradient-to-r ${gradient} text-white shadow-lg hover:shadow-xl hover:scale-[1.01]`}
-              >
-                <div className="flex items-center gap-3.5">
-                  <span className="text-3xl">{emoji}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-[15px] leading-tight">{label}</div>
-                    <div className="text-xs text-white/80 mt-0.5 leading-snug">{desc}</div>
+        {!IS_PRODUCTION && (
+          <div className="space-y-3">
+            <div className="text-center">
+              <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary">
+                {t("auth.testMode")}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-2.5">
+              {DEV_ROLES.map(({ role, emoji, label, desc, gradient }) => (
+                <button
+                  key={role}
+                  onClick={() => handleDevLogin(role)}
+                  disabled={devLoading !== null}
+                  className={`relative overflow-hidden rounded-xl p-4 text-left transition-all active:scale-[0.98] disabled:opacity-60
+                    bg-gradient-to-r ${gradient} text-white shadow-lg hover:shadow-xl hover:scale-[1.01]`}
+                >
+                  <div className="flex items-center gap-3.5">
+                    <span className="text-3xl">{emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-[15px] leading-tight">{label}</div>
+                      <div className="text-xs text-white/80 mt-0.5 leading-snug">{desc}</div>
+                    </div>
+                    {devLoading === role ? (
+                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white shrink-0" />
+                    ) : (
+                      <svg className="h-5 w-5 text-white/60 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    )}
                   </div>
-                  {devLoading === role ? (
-                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white shrink-0" />
-                  ) : (
-                    <svg className="h-5 w-5 text-white/60 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                    </svg>
-                  )}
-                </div>
-              </button>
-            ))}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-border" />
+        {!IS_PRODUCTION && (
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-3 text-muted-foreground">{t("auth.orConnect")}</span>
+            </div>
           </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-3 text-muted-foreground">{t("auth.orConnect")}</span>
-          </div>
-        </div>
+        )}
 
         <Card>
           <CardHeader className="pb-4">
