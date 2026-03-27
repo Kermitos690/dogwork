@@ -240,9 +240,9 @@ export default function ExerciseDetail() {
         )}
 
         {/* Mistakes */}
-        {mistakes.length > 0 && (
+        {parsedMistakes.length > 0 && (
           <Section title="Erreurs à éviter" icon={<XCircle className="h-3.5 w-3.5 text-destructive" />}>
-            {mistakes.map((m: any, i: number) => (
+            {parsedMistakes.map((m: any, i: number) => (
               <div key={i} className="rounded-lg bg-destructive/5 p-3 space-y-1">
                 {typeof m === "string" ? (
                   <p className="text-xs text-muted-foreground break-words flex items-start gap-2"><XCircle className="h-3 w-3 text-destructive shrink-0 mt-0.5" />{m}</p>
