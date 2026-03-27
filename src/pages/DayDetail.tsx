@@ -238,13 +238,13 @@ export default function DayDetail() {
     }
   }, [activeDog, user, progress, id, initDone]);
 
-  if (!standardDay && !planDay) return <AppLayout><p className="pt-10 text-center text-muted-foreground">Jour non trouvé</p></AppLayout>;
-  if (!activeDog) return <AppLayout><p className="pt-10 text-center text-muted-foreground">Ajoutez d'abord un chien.</p></AppLayout>;
+  if (!standardDay && !planDay) return <AppLayout><p className="pt-4 text-center text-muted-foreground">Jour non trouvé</p></AppLayout>;
+  if (!activeDog) return <AppLayout><p className="pt-4 text-center text-muted-foreground">Ajoutez d'abord un chien.</p></AppLayout>;
 
   if (isDayLocked) {
     return (
       <AppLayout>
-        <div className="pt-16 text-center space-y-6 animate-fade-in">
+        <div className="pt-4 text-center space-y-6 animate-fade-in">
           <div className="mx-auto w-20 h-20 rounded-3xl bg-muted flex items-center justify-center">
             <Lock className="h-10 w-10 text-muted-foreground" />
           </div>
@@ -323,7 +323,7 @@ export default function DayDetail() {
   if (showValidation) {
     return (
       <AppLayout>
-        <div className="pt-16 text-center space-y-6 animate-fade-in">
+        <div className="pt-4 text-center space-y-6 animate-fade-in">
           <div className="mx-auto w-20 h-20 rounded-3xl bg-success/10 flex items-center justify-center animate-bounce-check">
             <CheckCircle2 className="h-10 w-10 text-success" />
           </div>

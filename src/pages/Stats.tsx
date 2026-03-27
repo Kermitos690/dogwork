@@ -176,7 +176,7 @@ export default function Stats() {
   if (!activeDog) {
     return (
       <AppLayout>
-        <div className="pt-12 text-center text-muted-foreground">Ajoutez d'abord un chien.</div>
+        <div className="pt-4 text-center text-muted-foreground">Ajoutez d'abord un chien.</div>
       </AppLayout>
     );
   }
@@ -184,7 +184,7 @@ export default function Stats() {
   if (!stats) {
     return (
       <AppLayout>
-        <div className="pt-12 text-center">
+        <div className="pt-4 text-center">
           <div className="animate-pulse text-muted-foreground">Chargement...</div>
         </div>
       </AppLayout>

@@ -123,7 +123,7 @@ export default function DogProfile() {
     }
   };
 
-  if (loading) return <AppLayout><p className="pt-12 text-center text-muted-foreground">Chargement…</p></AppLayout>;
+  if (loading) return <AppLayout><p className="pt-4 text-center text-muted-foreground">Chargement…</p></AppLayout>;
 
   return (
     <AppLayout>

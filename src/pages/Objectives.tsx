@@ -84,7 +84,7 @@ export default function ObjectivesPage() {
     }
   };
 
-  if (!activeDog) return <AppLayout><p className="pt-12 text-center text-muted-foreground">Ajoutez d'abord un chien.</p></AppLayout>;
+  if (!activeDog) return <AppLayout><p className="pt-4 text-center text-muted-foreground">Ajoutez d'abord un chien.</p></AppLayout>;
 
   return (
     <AppLayout>

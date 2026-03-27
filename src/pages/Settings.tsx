@@ -53,7 +53,7 @@ export default function Settings() {
 
   return (
     <AppLayout>
-      <div className="animate-fade-in space-y-5 pt-14 pb-4">
+      <div className="animate-fade-in space-y-5 pb-4">
         <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground">
           <ArrowLeft className="h-4 w-4" /> Retour
         </button>

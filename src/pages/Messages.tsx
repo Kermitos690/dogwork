@@ -254,7 +254,7 @@ export default function Messages() {
   if (selectedUser) {
     return (
       <AppLayout>
-        <div className="pt-14 pb-4">
+        <div className="pb-4">
           <div className="flex items-center gap-3 mb-4">
             <button onClick={() => setSelectedUser(null)} className="text-muted-foreground hover:text-foreground">
               <ArrowLeft className="h-5 w-5" />
@@ -315,7 +315,7 @@ export default function Messages() {
   // Conversations list with contacts
   return (
     <AppLayout>
-      <div className="pt-14 pb-4">
+      <div className="pb-4">
         <h1 className="text-2xl font-bold text-foreground mb-4">Messages</h1>
 
         {/* Contacts section */}

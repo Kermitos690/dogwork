@@ -58,13 +58,13 @@ export default function ExerciseDetail() {
   });
 
   if (isLoading) {
-    return <AppLayout><div className="pt-12 text-center"><div className="animate-pulse text-muted-foreground">{t("common.loading")}</div></div></AppLayout>;
+    return <AppLayout><div className="pt-4 text-center"><div className="animate-pulse text-muted-foreground">{t("common.loading")}</div></div></AppLayout>;
   }
 
   if (!exercise) {
     return (
       <AppLayout>
-        <div className="pt-12 text-center">
+        <div className="pt-4 text-center">
           <p className="text-muted-foreground">{t("exerciseDetail.notFound")}</p>
           <Button variant="outline" onClick={() => navigate("/exercises")} className="mt-4">{t("common.back")}</Button>
         </div>

@@ -165,11 +165,11 @@ export default function AdminDashboard() {
     }
   };
 
-  if (adminLoading) return <AppLayout><div className="pt-12 text-center animate-pulse text-muted-foreground">Chargement...</div></AppLayout>;
+  if (adminLoading) return <AppLayout><div className="pt-4 text-center animate-pulse text-muted-foreground">Chargement...</div></AppLayout>;
   if (!isAdmin) {
     return (
       <AppLayout>
-        <div className="pt-12 text-center space-y-4">
+        <div className="pt-4 text-center space-y-4">
           <Shield className="h-12 w-12 text-destructive mx-auto" />
           <p className="text-foreground font-bold">Accès refusé</p>
           <p className="text-sm text-muted-foreground">Vous n'avez pas les droits administrateur.</p>

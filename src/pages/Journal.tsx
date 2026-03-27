@@ -300,7 +300,7 @@ export default function Journal() {
   if (!activeDog) {
     return (
       <AppLayout>
-        <div className="pt-12 text-center text-muted-foreground">Ajoutez d'abord un chien.</div>
+        <div className="pt-4 text-center text-muted-foreground">Ajoutez d'abord un chien.</div>
       </AppLayout>
     );
   }
