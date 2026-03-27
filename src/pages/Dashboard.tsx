@@ -114,9 +114,9 @@ export default function Dashboard() {
             </div>
           </motion.div>
           <div className="space-y-1.5">
-            <h1 className="text-xl font-bold text-foreground">Bienvenue sur DogWork</h1>
+            <h1 className="text-xl font-bold text-foreground">{t("dashboard.welcome")}</h1>
             <p className="text-sm text-muted-foreground max-w-[260px] mx-auto leading-relaxed">
-              Ajoutez votre chien pour démarrer un programme d'éducation adapté.
+              {t("dashboard.welcomeDesc")}
             </p>
           </div>
           <motion.button
@@ -124,7 +124,7 @@ export default function Dashboard() {
             onClick={() => navigate("/onboarding")}
             className="flex items-center gap-2.5 h-12 px-6 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm shadow-lg"
           >
-            <Plus className="h-4.5 w-4.5" /> Ajouter mon chien
+            <Plus className="h-4.5 w-4.5" /> {t("dashboard.addDog")}
           </motion.button>
         </div>
       </AppLayout>
@@ -162,18 +162,18 @@ export default function Dashboard() {
 
   // Badges (compact)
   const dogBadges: { label: string; cls: string }[] = [];
-  if (activeDog?.bite_history) dogBadges.push({ label: "Sensible", cls: "bg-destructive/10 text-destructive" });
-  if (activeDog?.muzzle_required) dogBadges.push({ label: "Muselière", cls: "bg-warning/10 text-warning" });
-  if (activePlan?.security_level && activePlan.security_level !== "standard") dogBadges.push({ label: "Prudent", cls: "bg-warning/10 text-warning" });
+  if (activeDog?.bite_history) dogBadges.push({ label: t("dashboard.sensitive"), cls: "bg-destructive/10 text-destructive" });
+  if (activeDog?.muzzle_required) dogBadges.push({ label: t("dashboard.muzzle"), cls: "bg-warning/10 text-warning" });
+  if (activePlan?.security_level && activePlan.security_level !== "standard") dogBadges.push({ label: t("dashboard.cautious"), cls: "bg-warning/10 text-warning" });
 
   // Smart quick actions based on state
   const quickActions = [
-    hasPlan && { icon: Play, label: "Entraînement", path: `/training/${resumeDay}?source=plan`, priority: dashState === "in_progress" ? 10 : 5 },
-    { icon: BookOpen, label: "Mon plan", path: "/plan", priority: dashState === "no_plan" ? 10 : 3 },
-    { icon: ClipboardList, label: "Journal", path: "/journal", priority: 2 },
-    { icon: BarChart3, label: "Stats", path: "/stats", priority: 1 },
-    { icon: PawPrint, label: "Profil", path: activeDog ? `/dogs/${activeDog.id}` : "/dogs", priority: 0 },
-    { icon: Activity, label: "Exercices", path: "/exercises", priority: 0 },
+    hasPlan && { icon: Play, label: t("nav.training"), path: `/training/${resumeDay}?source=plan`, priority: dashState === "in_progress" ? 10 : 5 },
+    { icon: BookOpen, label: t("nav.plan"), path: "/plan", priority: dashState === "no_plan" ? 10 : 3 },
+    { icon: ClipboardList, label: t("nav.journal"), path: "/journal", priority: 2 },
+    { icon: BarChart3, label: t("nav.stats"), path: "/stats", priority: 1 },
+    { icon: PawPrint, label: t("nav.profile"), path: activeDog ? `/dogs/${activeDog.id}` : "/dogs", priority: 0 },
+    { icon: Activity, label: t("nav.exercises"), path: "/exercises", priority: 0 },
   ].filter(Boolean).sort((a: any, b: any) => b.priority - a.priority) as { icon: any; label: string; path: string; priority: number }[];
 
   return (
@@ -182,14 +182,14 @@ export default function Dashboard() {
 
         {/* ── Header: greeting + dog pill ── */}
         <motion.div custom={0} variants={fadeUp} className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-foreground">Aujourd'hui</h1>
+          <h1 className="text-xl font-bold text-foreground">{t("dashboard.today")}</h1>
           <div className="flex items-center gap-2">
             <DogSwitcher />
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={signOut}
               className="w-8 h-8 rounded-full bg-card border border-border flex items-center justify-center shadow-sm"
-              title="Se déconnecter"
+              title={t("common.signOut")}
             >
               <LogOut className="h-3.5 w-3.5 text-muted-foreground" />
             </motion.button>
@@ -202,7 +202,7 @@ export default function Dashboard() {
             <div className="rounded-xl border border-destructive/15 bg-destructive/5 px-3.5 py-2.5 flex items-center gap-2.5">
               <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
               <p className="text-xs text-foreground font-medium leading-snug">
-                {activeDog!.muzzle_required ? "Muselière obligatoire" : "Profil sensible"} — Privilégiez les environnements calmes.
+                {activeDog!.muzzle_required ? t("dashboard.muzzleRequired") : t("dashboard.sensitiveProfile")} — {t("dashboard.calmEnvironment")}
               </p>
             </div>
           </motion.div>
@@ -236,8 +236,8 @@ export default function Dashboard() {
                         <Sparkles className="h-6 w-6 text-primary-foreground" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-foreground">Générer votre plan</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">Profil prêt — Créons un programme adapté</p>
+                        <p className="text-sm font-bold text-foreground">{t("dashboard.generatePlan")}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{t("dashboard.profileReady")}</p>
                       </div>
                       <ArrowRight className="h-4.5 w-4.5 text-primary shrink-0" />
                     </div>
