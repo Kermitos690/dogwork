@@ -1578,7 +1578,6 @@ export type Database = {
           job_title: string | null
           name: string
           phone: string | null
-          pin_code: string | null
           role: string
           shelter_user_id: string
           updated_at: string
@@ -1593,7 +1592,6 @@ export type Database = {
           job_title?: string | null
           name?: string
           phone?: string | null
-          pin_code?: string | null
           role?: string
           shelter_user_id: string
           updated_at?: string
@@ -1608,7 +1606,6 @@ export type Database = {
           job_title?: string | null
           name?: string
           phone?: string | null
-          pin_code?: string | null
           role?: string
           shelter_user_id?: string
           updated_at?: string
