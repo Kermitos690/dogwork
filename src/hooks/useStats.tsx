@@ -81,7 +81,9 @@ export function useStats(period: "7" | "14" | "30" | "all" = "all") {
   const { data: progressData } = useQuery({
     queryKey: ["stats_progress", activeDog?.id],
     queryFn: async () => {
-      const { data } = await supabase.from("day_progress").select("*").eq("dog_id", activeDog!.id);
+      const { data } = await supabase.from("day_progress")
+        .select("day_id, status, validated, completed_exercises")
+        .eq("dog_id", activeDog!.id);
       return data || [];
     },
     enabled: !!activeDog,
@@ -90,7 +92,10 @@ export function useStats(period: "7" | "14" | "30" | "all" = "all") {
   const { data: behaviorData } = useQuery({
     queryKey: ["stats_behavior", activeDog?.id],
     queryFn: async () => {
-      const { data } = await supabase.from("behavior_logs").select("*").eq("dog_id", activeDog!.id).order("created_at");
+      const { data } = await supabase.from("behavior_logs")
+        .select("day_id, tension_level, dog_reaction_level, human_reaction_level, comfort_distance_meters, stop_response, no_response, focus_quality, leash_walk_quality, recovery_after_trigger, jump_on_human, barking, created_at")
+        .eq("dog_id", activeDog!.id)
+        .order("created_at");
       return data || [];
     },
     enabled: !!activeDog,
@@ -99,7 +104,9 @@ export function useStats(period: "7" | "14" | "30" | "all" = "all") {
   const { data: sessionsData } = useQuery({
     queryKey: ["stats_sessions", activeDog?.id],
     queryFn: async () => {
-      const { data } = await supabase.from("exercise_sessions").select("*").eq("dog_id", activeDog!.id);
+      const { data } = await supabase.from("exercise_sessions")
+        .select("id, completed, duration_actual")
+        .eq("dog_id", activeDog!.id);
       return data || [];
     },
     enabled: !!activeDog,
@@ -108,7 +115,10 @@ export function useStats(period: "7" | "14" | "30" | "all" = "all") {
   const { data: journalData } = useQuery({
     queryKey: ["stats_journal", activeDog?.id],
     queryFn: async () => {
-      const { data } = await supabase.from("journal_entries").select("*").eq("dog_id", activeDog!.id).order("created_at");
+      const { data } = await supabase.from("journal_entries")
+        .select("tension_level, success_level, created_at")
+        .eq("dog_id", activeDog!.id)
+        .order("created_at");
       return data || [];
     },
     enabled: !!activeDog,
@@ -133,7 +143,7 @@ export function useStats(period: "7" | "14" | "30" | "all" = "all") {
     // Averages
     const tensions = filteredLogs.map(l => l.tension_level).filter((v): v is number => v != null && v > 0);
     const dogReactions = filteredLogs.map(l => l.dog_reaction_level).filter((v): v is number => v != null && v > 0);
-    const humanReactions = filteredLogs.map(l => (l as any).human_reaction_level).filter((v): v is number => v != null && v > 0);
+    const humanReactions = filteredLogs.map(l => l.human_reaction_level).filter((v): v is number => v != null && v > 0);
     const distances = filteredLogs.map(l => l.comfort_distance_meters).filter((v): v is number => v != null);
 
     const avgTension = avg(tensions);
@@ -189,7 +199,7 @@ export function useStats(period: "7" | "14" | "30" | "all" = "all") {
       jour: `J${log.day_id}`,
       tension: log.tension_level,
       chiens: log.dog_reaction_level,
-      humains: (log as any).human_reaction_level,
+      humains: log.human_reaction_level,
       date: log.created_at,
     }));
 

@@ -1,6 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import type { Database } from "@/integrations/supabase/types";
+
+type AppRole = Database["public"]["Enums"]["app_role"];
 
 /**
  * Single query to fetch ALL roles for the current user.
@@ -30,12 +33,14 @@ export function useIsCoach() {
 
 export function useIsShelter() {
   const { data: roles, ...rest } = useUserRoles();
-  return { ...rest, data: roles?.includes("shelter" as any) ?? false };
+  // "shelter" exists in DB but not in the generated app_role enum type
+  return { ...rest, data: roles?.includes("shelter" as AppRole) ?? false };
 }
 
 export function useIsShelterEmployee() {
   const { data: roles, ...rest } = useUserRoles();
-  return { ...rest, data: roles?.includes("shelter_employee" as any) ?? false };
+  // "shelter_employee" exists in DB but not in the generated app_role enum type
+  return { ...rest, data: roles?.includes("shelter_employee" as AppRole) ?? false };
 }
 
 export function useShelterEmployeeInfo() {
@@ -46,11 +51,11 @@ export function useShelterEmployeeInfo() {
       if (!user) return null;
       const { data } = await supabase
         .from("shelter_employees_safe")
-        .select("*")
+        .select("id, name, role, job_title, email, phone, shelter_user_id, auth_user_id, is_active, created_at, updated_at")
         .eq("auth_user_id", user.id)
         .eq("is_active", true)
         .maybeSingle();
-      return data as any;
+      return data;
     },
     enabled: !!user,
   });
@@ -64,7 +69,7 @@ export function useClientLinks() {
       if (!user) return [];
       const { data } = await supabase
         .from("client_links")
-        .select("*")
+        .select("id, client_user_id, coach_user_id, status, created_at")
         .eq("coach_user_id", user.id)
         .eq("status", "active");
       return data ?? [];
@@ -89,8 +94,8 @@ export function useCoachClients() {
       const clientIds = links.map((l) => l.client_user_id);
       
       const [{ data: profiles }, { data: dogs }, { data: journals }] = await Promise.all([
-        supabase.from("profiles").select("*").in("user_id", clientIds),
-        supabase.from("dogs").select("*").in("user_id", clientIds),
+        supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", clientIds),
+        supabase.from("dogs").select("id, name, breed, user_id, photo_url").in("user_id", clientIds),
         supabase.from("journal_entries")
           .select("user_id, created_at, tension_level")
           .in("user_id", clientIds)
@@ -137,7 +142,7 @@ export function useCoachDogs() {
       const clientIds = links.map((l) => l.client_user_id);
       const { data: dogs } = await supabase
         .from("dogs")
-        .select("*")
+        .select("id, name, breed, photo_url, user_id, bite_history, muzzle_required, created_at, weight_kg, size, vet_restrictions, physical_limitations, joint_pain, heart_problems, epilepsy, obedience_level, sociability_dogs, sociability_humans, excitement_level, frustration_level, recovery_capacity")
         .in("user_id", clientIds)
         .order("created_at", { ascending: false });
 
@@ -146,7 +151,7 @@ export function useCoachDogs() {
       const [{ data: profiles }, { data: journals }, { data: plans }] = await Promise.all([
         supabase.from("profiles").select("user_id, display_name").in("user_id", clientIds),
         supabase.from("journal_entries")
-          .select("*")
+          .select("dog_id, tension_level, created_at")
           .in("dog_id", dogIds)
           .order("created_at", { ascending: false })
           .limit(100),
@@ -185,7 +190,7 @@ export function useCoachNotes(dogId?: string) {
       if (!user) return [];
       let q = supabase
         .from("coach_notes")
-        .select("*")
+        .select("id, title, content, note_type, priority_level, dog_id, client_user_id, created_at, updated_at")
         .eq("coach_user_id", user.id)
         .order("created_at", { ascending: false });
       if (dogId) q = q.eq("dog_id", dogId);
@@ -204,7 +209,7 @@ export function useProAlerts() {
       if (!user) return [];
       const { data } = await supabase
         .from("professional_alerts")
-        .select("*")
+        .select("id, title, description, severity, alert_type, dog_id, client_user_id, resolved, created_at")
         .eq("coach_user_id", user.id)
         .eq("resolved", false)
         .order("created_at", { ascending: false });
