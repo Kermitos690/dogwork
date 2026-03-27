@@ -77,9 +77,22 @@ export default function ExerciseDetail() {
   const equipment = Array.isArray(exercise.equipment) ? exercise.equipment : [];
   const tags = (exercise.tags as string[]) || [];
   const voiceCommands = Array.isArray((exercise as any).voice_commands) ? (exercise as any).voice_commands : [];
-  const bodyPositioning = Array.isArray((exercise as any).body_positioning) ? (exercise as any).body_positioning : [];
+  const rawBody = (exercise as any).body_positioning;
+  const bodyPositioning = rawBody && typeof rawBody === "object" && !Array.isArray(rawBody) ? rawBody : null;
   const troubleshooting = Array.isArray((exercise as any).troubleshooting) ? (exercise as any).troubleshooting : [];
   const validationProtocol = (exercise as any).validation_protocol || "";
+
+  // Mistakes can be a JSON-encoded string array
+  const parsedMistakes = (() => {
+    if (Array.isArray(exercise.mistakes)) {
+      const first = exercise.mistakes[0];
+      if (typeof first === "string") {
+        try { const parsed = JSON.parse(first); if (Array.isArray(parsed)) return parsed; } catch {}
+      }
+      return exercise.mistakes;
+    }
+    return [];
+  })();
 
   return (
     <AppLayout>
