@@ -231,7 +231,7 @@ export default function ExerciseDetail() {
           <Section title="En cas de difficulté" icon={<HelpCircle className="h-3.5 w-3.5 text-warning" />}>
             {troubleshooting.map((ts: any, i: number) => (
               <div key={i} className="rounded-lg border border-warning/20 bg-warning/5 p-3 space-y-1">
-                <p className="text-xs font-semibold text-foreground break-words">❓ Si : {ts.situation}</p>
+                <p className="text-xs font-semibold text-foreground break-words">❓ Si : {ts.problem || ts.situation || "—"}</p>
                 <p className="text-[11px] text-foreground break-words">✅ Alors : {ts.solution}</p>
                 {ts.prevention && <p className="text-[10px] text-muted-foreground break-words">🛡️ Prévention : {ts.prevention}</p>}
               </div>
