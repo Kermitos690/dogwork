@@ -31,7 +31,7 @@ export default function EmployeeAnimalDetail() {
     queryKey: ["employee-animal-detail", animalId],
     queryFn: async () => {
       const { data } = await supabase
-        .from("shelter_animals")
+        .from("shelter_animals_safe")
         .select("*")
         .eq("id", animalId!)
         .eq("user_id", shelterId!)

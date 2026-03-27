@@ -703,7 +703,7 @@ function SheltersList() {
     queryFn: async () => {
       const { data: profiles } = await supabase.from("shelter_profiles").select("*").order("created_at", { ascending: false });
       if (!profiles?.length) return [];
-      const { data: employees } = await supabase.from("shelter_employees").select("shelter_user_id").eq("is_active", true);
+      const { data: employees } = await supabase.from("shelter_employees_safe").select("shelter_user_id").eq("is_active", true);
       const empCounts: Record<string, number> = {};
       (employees || []).forEach((e: any) => { empCounts[e.shelter_user_id] = (empCounts[e.shelter_user_id] || 0) + 1; });
       return profiles.map((p: any) => ({ ...p, employeeCount: empCounts[p.user_id] || 0 }));
