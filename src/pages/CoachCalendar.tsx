@@ -205,7 +205,7 @@ export default function CoachCalendar() {
 
   return (
     <CoachLayout>
-      <div className="space-y-4 pb-24 pt-6">
+      <div className="space-y-4 pb-24">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
