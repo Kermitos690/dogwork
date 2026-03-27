@@ -14,7 +14,7 @@ export default function ResetPassword() {
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(true);
   const [sessionReady, setSessionReady] = useState(false);
-  const { updatePassword } = useAuth();
+  const { updatePassword, clearPasswordRecovery } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
@@ -71,6 +71,7 @@ export default function ResetPassword() {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Mot de passe mis à jour", description: "Vous pouvez maintenant vous connecter." });
+      clearPasswordRecovery();
       navigate("/");
     }
     setLoading(false);
