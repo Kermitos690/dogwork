@@ -43,7 +43,7 @@ export default function CoachNotes() {
   const { data: dogs = [] } = useCoachDogs();
   const queryClient = useQueryClient();
 
-  // Also fetch shelter animals for coaches linked to shelters
+  // Also fetch shelter animals for coaches linked to shelters (safe view, typed)
   const { data: shelterAnimals = [] } = useQuery({
     queryKey: ["coach-shelter-animals-for-notes", user?.id],
     queryFn: async () => {
@@ -60,14 +60,14 @@ export default function CoachNotes() {
         .select("id, name, breed, species, user_id")
         .in("user_id", shelterIds)
         .neq("status", "adopté");
-      return (animals ?? []).map((a) => ({ ...a, _isShelterAnimal: true as const }));
+      return animals ?? [];
     },
     enabled: !!user,
   });
 
   const allAnimals = [
     ...dogs.map((d) => ({ id: d.id, name: d.name, label: `🐕 ${d.name} — ${d.clientName}`, userId: d.user_id })),
-    ...shelterAnimals.map((a) => ({ id: a.id, name: a.name, label: `🏠 ${a.name} (${a.breed || a.species})`, userId: a.user_id })),
+    ...shelterAnimals.map((a) => ({ id: a.id ?? "", name: a.name ?? "", label: `🏠 ${a.name ?? ""} (${a.breed || a.species})`, userId: a.user_id })),
   ];
   const [search, setSearch] = useState("");
   const [addOpen, setAddOpen] = useState(false);

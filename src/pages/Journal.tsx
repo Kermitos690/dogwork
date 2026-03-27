@@ -162,14 +162,14 @@ export default function Journal() {
   const [mode, setMode] = useState<JournalMode>("quick");
   const [entry, setEntry] = useState(defaultEntry);
   const [saving, setSaving] = useState(false);
-  const [filterPeriod, setFilterPeriod] = useState<"7" | "30" | "all">("all");
+  const [filterPeriod, setFilterPeriod] = useState<"7" | "30" | "all">("30");
 
-  // ─── Data queries ──────
+  // ─── Data queries (limited to 200 most recent) ──────
   const { data: logs } = useQuery({
     queryKey: ["behavior_logs_all", activeDog?.id],
     queryFn: async () => {
       const { data } = await supabase.from("behavior_logs").select("*")
-        .eq("dog_id", activeDog!.id).order("created_at", { ascending: false });
+        .eq("dog_id", activeDog!.id).order("created_at", { ascending: false }).limit(200);
       return data || [];
     },
     enabled: !!activeDog,
@@ -179,7 +179,7 @@ export default function Journal() {
     queryKey: ["journal_entries", activeDog?.id],
     queryFn: async () => {
       const { data } = await supabase.from("journal_entries").select("*")
-        .eq("dog_id", activeDog!.id).order("created_at", { ascending: false });
+        .eq("dog_id", activeDog!.id).order("created_at", { ascending: false }).limit(200);
       return data || [];
     },
     enabled: !!activeDog,

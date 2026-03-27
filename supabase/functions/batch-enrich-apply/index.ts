@@ -8,6 +8,15 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // Safe by default: block unless ENVIRONMENT is explicitly "development"
+  const environment = Deno.env.get("ENVIRONMENT") || "production";
+  if (environment !== "development") {
+    return new Response(JSON.stringify({ error: "Not available in this environment" }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     // Auth check: admin only
     const authHeader = req.headers.get("Authorization");
