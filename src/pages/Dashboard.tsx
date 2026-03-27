@@ -187,7 +187,7 @@ export default function Dashboard() {
 
   return (
     <AppLayout>
-      <motion.div initial="hidden" animate="show" className="pt-5 pb-4 space-y-3.5">
+      <motion.div initial="hidden" animate="show" className="pb-4 space-y-3.5">
 
         {/* ── Header: greeting + dog pill ── */}
         <motion.div custom={0} variants={fadeUp} className="flex items-center justify-between">
