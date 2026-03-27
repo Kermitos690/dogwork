@@ -77,9 +77,22 @@ export default function ExerciseDetail() {
   const equipment = Array.isArray(exercise.equipment) ? exercise.equipment : [];
   const tags = (exercise.tags as string[]) || [];
   const voiceCommands = Array.isArray((exercise as any).voice_commands) ? (exercise as any).voice_commands : [];
-  const bodyPositioning = Array.isArray((exercise as any).body_positioning) ? (exercise as any).body_positioning : [];
+  const rawBody = (exercise as any).body_positioning;
+  const bodyPositioning = rawBody && typeof rawBody === "object" && !Array.isArray(rawBody) ? rawBody : null;
   const troubleshooting = Array.isArray((exercise as any).troubleshooting) ? (exercise as any).troubleshooting : [];
   const validationProtocol = (exercise as any).validation_protocol || "";
+
+  // Mistakes can be a JSON-encoded string array
+  const parsedMistakes = (() => {
+    if (Array.isArray(exercise.mistakes)) {
+      const first = exercise.mistakes[0];
+      if (typeof first === "string") {
+        try { const parsed = JSON.parse(first); if (Array.isArray(parsed)) return parsed; } catch {}
+      }
+      return exercise.mistakes;
+    }
+    return [];
+  })();
 
   return (
     <AppLayout>
@@ -182,15 +195,34 @@ export default function ExerciseDetail() {
         )}
 
         {/* Body positioning */}
-        {bodyPositioning.length > 0 && (
+        {bodyPositioning && (
           <Section title="Position du corps" icon={<User className="h-3.5 w-3.5 text-accent-foreground" />}>
-            {bodyPositioning.map((bp: any, i: number) => (
-              <div key={i} className="rounded-lg bg-secondary/30 p-3 space-y-1">
-                <p className="text-xs font-semibold text-foreground break-words">📍 {bp.phase}</p>
-                <p className="text-[11px] text-muted-foreground break-words">{bp.position}</p>
-                {bp.common_mistake && <p className="text-[10px] text-destructive break-words">❌ Erreur fréquente : {bp.common_mistake}</p>}
-              </div>
-            ))}
+            <div className="space-y-2">
+              {bodyPositioning.handler_position && (
+                <div className="rounded-lg bg-secondary/30 p-3 space-y-1">
+                  <p className="text-xs font-semibold text-foreground">🧍 Position du maître</p>
+                  <p className="text-[11px] text-muted-foreground break-words">{bodyPositioning.handler_position}</p>
+                </div>
+              )}
+              {bodyPositioning.dog_position && (
+                <div className="rounded-lg bg-secondary/30 p-3 space-y-1">
+                  <p className="text-xs font-semibold text-foreground">🐕 Position du chien</p>
+                  <p className="text-[11px] text-muted-foreground break-words">{bodyPositioning.dog_position}</p>
+                </div>
+              )}
+              {bodyPositioning.distance && (
+                <div className="rounded-lg bg-secondary/30 p-3 space-y-1">
+                  <p className="text-xs font-semibold text-foreground">📏 Distance</p>
+                  <p className="text-[11px] text-muted-foreground break-words">{bodyPositioning.distance}</p>
+                </div>
+              )}
+              {bodyPositioning.leash_management && (
+                <div className="rounded-lg bg-secondary/30 p-3 space-y-1">
+                  <p className="text-xs font-semibold text-foreground">🪢 Gestion de la laisse</p>
+                  <p className="text-[11px] text-muted-foreground break-words">{bodyPositioning.leash_management}</p>
+                </div>
+              )}
+            </div>
           </Section>
         )}
 
@@ -199,7 +231,7 @@ export default function ExerciseDetail() {
           <Section title="En cas de difficulté" icon={<HelpCircle className="h-3.5 w-3.5 text-warning" />}>
             {troubleshooting.map((ts: any, i: number) => (
               <div key={i} className="rounded-lg border border-warning/20 bg-warning/5 p-3 space-y-1">
-                <p className="text-xs font-semibold text-foreground break-words">❓ Si : {ts.situation}</p>
+                <p className="text-xs font-semibold text-foreground break-words">❓ Si : {ts.problem || ts.situation || "—"}</p>
                 <p className="text-[11px] text-foreground break-words">✅ Alors : {ts.solution}</p>
                 {ts.prevention && <p className="text-[10px] text-muted-foreground break-words">🛡️ Prévention : {ts.prevention}</p>}
               </div>
@@ -208,9 +240,9 @@ export default function ExerciseDetail() {
         )}
 
         {/* Mistakes */}
-        {mistakes.length > 0 && (
+        {parsedMistakes.length > 0 && (
           <Section title="Erreurs à éviter" icon={<XCircle className="h-3.5 w-3.5 text-destructive" />}>
-            {mistakes.map((m: any, i: number) => (
+            {parsedMistakes.map((m: any, i: number) => (
               <div key={i} className="rounded-lg bg-destructive/5 p-3 space-y-1">
                 {typeof m === "string" ? (
                   <p className="text-xs text-muted-foreground break-words flex items-start gap-2"><XCircle className="h-3 w-3 text-destructive shrink-0 mt-0.5" />{m}</p>
