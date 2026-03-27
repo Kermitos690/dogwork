@@ -230,7 +230,7 @@ export function SlideMenu() {
       <div className="fixed top-4 right-4 z-[60]">
         <NotificationBell />
       </div>
-      <SheetContent side="left" className="w-[280px] sm:w-[320px] p-0 bg-card border-r border-border/40 z-[70]">
+      <SheetContent side="left" className="w-[280px] sm:w-[320px] p-0 bg-card border-r border-border/40">
         {/* Header */}
         <div className="px-4 pt-4 pb-3 border-b border-border/30">
           <div className="flex items-center justify-between mb-3">
