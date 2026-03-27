@@ -225,7 +225,7 @@ export function SlideMenu() {
               <User className="h-4 w-4 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <ProfileName userId={user?.id} fallback={user?.user_metadata?.display_name || user?.email?.split("@")[0]} />
+              <MenuProfileName userId={user?.id} fallback={user?.user_metadata?.display_name || user?.email?.split("@")[0]} />
               <div className="flex flex-wrap gap-1 mt-0.5">
                 {isAdmin && <Badge className="text-[9px] px-1.5 py-0 bg-amber-600 text-white border-0">Admin</Badge>}
                 {isEducator && <Badge className="text-[9px] px-1.5 py-0 bg-emerald-600 text-white border-0">{t("menu.educator")}</Badge>}
