@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { lovable } from "@/integrations/lovable/index";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +29,7 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [devLoading, setDevLoading] = useState<string | null>(null);
   const { signIn, signUp, resetPassword } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,6 +41,7 @@ export default function Auth() {
       if (mode === "login") {
         const { error } = await signIn(normalizedEmail, password);
         if (error) throw error;
+        navigate("/");
       } else if (mode === "employee") {
         const pin = password.trim();
         if (!/^\d{6}$/.test(pin)) {
@@ -49,6 +52,7 @@ export default function Auth() {
         if (error) {
           throw new Error("Identifiants employé invalides. Vérifiez email + PIN ou demandez une réinitialisation au refuge.");
         }
+        navigate("/");
       } else if (mode === "signup") {
         const { error } = await signUp(normalizedEmail, password, displayName);
         if (error) throw error;
@@ -79,6 +83,7 @@ export default function Auth() {
       });
       if (sessionErr) throw sessionErr;
       toast({ title: "Connexion réussie", description: `Connecté en tant que ${role}` });
+      navigate("/");
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
     } finally {
