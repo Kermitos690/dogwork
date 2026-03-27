@@ -112,9 +112,27 @@ export default function CoachSubscription() {
         headers: { Authorization: `Bearer ${session?.access_token}` },
       });
       if (error) throw error;
+      if (data?.error) {
+        // Platform Connect not yet activated — show clear message
+        toast({
+          title: "Stripe Connect indisponible",
+          description: "La plateforme n'a pas encore activé Stripe Connect. Contactez l'administrateur.",
+          variant: "destructive",
+        });
+        return;
+      }
       if (data?.url) window.open(data.url, "_blank");
     } catch (e: any) {
-      toast({ title: "Erreur", description: e.message, variant: "destructive" });
+      const msg = e.message || "";
+      if (msg.includes("connect") || msg.includes("platform")) {
+        toast({
+          title: "Stripe Connect indisponible",
+          description: "Le module Connect n'est pas encore configuré. L'administrateur doit l'activer sur la plateforme Stripe.",
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Erreur", description: msg, variant: "destructive" });
+      }
     } finally {
       setConnectLoading(false);
     }
