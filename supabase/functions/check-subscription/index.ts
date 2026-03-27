@@ -31,7 +31,7 @@ serve(async (req) => {
       });
     }
 
-    // Use anon-key client with user's auth header for ES256 JWT compatibility
+    // Use anon-key client with getClaims for ES256 JWT compatibility
     const userClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
@@ -58,57 +58,49 @@ serve(async (req) => {
       });
     }
 
-    // Service role client for admin queries (user_roles, etc.)
+    // Service role client for admin queries
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
       { auth: { persistSession: false } }
     );
 
-    const user = { id: userId, email: userEmail } as { id: string; email: string };
-    logStep("User authenticated", { email: user.email });
+    logStep("User authenticated", { userId });
 
-    // Dev/test accounts get full access automatically
-    // Check if user has admin, educator, or shelter role for appropriate bypass
+    // Check roles for test account bypass (dev environment only)
     const { data: userRoles } = await supabaseClient
       .from("user_roles")
       .select("role")
-      .eq("user_id", user.id);
-    
+      .eq("user_id", userId);
+
     const roles = (userRoles || []).map((r: any) => r.role);
     const isAdmin = roles.includes("admin");
     const isEducator = roles.includes("educator");
     const isShelter = roles.includes("shelter");
 
+    // Only bypass for test accounts in non-production environments
+    const environment = Deno.env.get("ENVIRONMENT") || "development";
     const TEST_EMAILS = [
       "test-owner@pawplan.dev",
       "test-educator@pawplan.dev",
       "test-admin@pawplan.dev",
       "test-shelter@pawplan.dev",
     ];
-    const isTestAccount = TEST_EMAILS.includes(user.email);
-    const isAdminEmail = user.email.toLowerCase() === "teba.gaetan@gmail.com";
+    const isTestAccount = TEST_EMAILS.includes(userEmail);
 
-    // Apple admin check — not available via claims, skip for now
-    const isAdminApple = false;
+    if (isTestAccount && environment !== "production") {
+      logStep("Test account in dev mode, granting access", { email: userEmail });
 
-    if (isTestAccount || isAdminEmail || isAdminApple) {
-      logStep("Privileged account detected, granting full access", { email: user.email, roles });
-
-      // Determine best product_id based on role
       let productId: string;
       let priceId: string;
 
-      if (isEducator || user.email === "test-educator@pawplan.dev") {
-        // Educator subscription product
+      if (isEducator || userEmail === "test-educator@pawplan.dev") {
         productId = "prod_U8CxlV7PMpHAgA";
         priceId = "price_1T9wXlPshPrEibTgEM0BNrSm";
-      } else if (isShelter || user.email === "test-shelter@pawplan.dev") {
-        // Shelter subscription product
+      } else if (isShelter || userEmail === "test-shelter@pawplan.dev") {
         productId = "prod_UDKcjmnJnM7pBo";
         priceId = "price_1TEtxAPshPrEibTgsDFHr8Nw";
       } else {
-        // Owner/Admin → Expert tier (highest)
         productId = "prod_U83inCbv8JMMgf";
         priceId = "price_1T9nbAPshPrEibTgo3JA1m5S";
       }
@@ -125,7 +117,7 @@ serve(async (req) => {
     }
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
 
     if (customers.data.length === 0) {
       logStep("No Stripe customer found");
@@ -154,7 +146,7 @@ serve(async (req) => {
       subscriptionEnd = new Date(sub.current_period_end * 1000).toISOString();
       productId = sub.items.data[0].price.product;
       priceId = sub.items.data[0].price.id;
-      logStep("Active subscription found", { productId, priceId, subscriptionEnd });
+      logStep("Active subscription found", { productId, subscriptionEnd });
     } else {
       logStep("No active subscription");
     }
@@ -171,7 +163,7 @@ serve(async (req) => {
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     logStep("ERROR", { message: msg });
-    return new Response(JSON.stringify({ error: msg }), {
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
