@@ -30,6 +30,28 @@ interface MenuSection {
   items: MenuItem[];
 }
 
+function MenuProfileName({ userId, fallback }: { userId?: string; fallback?: string }) {
+  const { data: profileName } = useQuery({
+    queryKey: ["profile-display-name", userId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("user_id", userId!)
+        .maybeSingle();
+      return data?.display_name || null;
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60_000,
+  });
+
+  return (
+    <p className="text-sm font-medium text-foreground truncate">
+      {profileName || fallback || "Utilisateur"}
+    </p>
+  );
+}
+
 export function SlideMenu() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
