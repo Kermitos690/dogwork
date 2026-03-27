@@ -19,6 +19,15 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // P0-1: Block in production — dev-login must NEVER be callable in prod
+  const environment = Deno.env.get("ENVIRONMENT") || "production";
+  if (environment === "production") {
+    return new Response(
+      JSON.stringify({ error: "Not available in production" }),
+      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
   try {
     const { role } = await req.json();
     const account = TEST_ACCOUNTS[role];
