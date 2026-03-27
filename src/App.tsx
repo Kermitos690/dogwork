@@ -229,6 +229,7 @@ const App = () => {
           <BrowserRouter>
             <Suspense fallback={<PageLoader />}>
               <Routes>
+                <Route path="/landing" element={<Landing />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/*" element={<ProtectedRoutes />} />
               </Routes>
