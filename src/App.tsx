@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
+import { Toaster as Sonner } from "sonner";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
@@ -12,6 +13,7 @@ import { useIsCoach, useIsShelter, useIsShelterEmployee } from "./hooks/useCoach
 import { supabase } from "@/integrations/supabase/client";
 const AIChatBot = lazy(() => import("@/components/AIChatBot").then(m => ({ default: m.AIChatBot })));
 const GuidedTour = lazy(() => import("@/components/GuidedTour").then(m => ({ default: m.GuidedTour })));
+import { NotificationToast } from "@/components/NotificationToast";
 
 // Eagerly loaded (critical path)
 import Auth from "./pages/Auth";
@@ -252,6 +254,7 @@ function ProtectedRoutes() {
         <Route path="*" element={<NotFound />} />
       </Routes>
       <AIChatBot />
+      <NotificationToast />
     </Suspense>
   );
 }
@@ -265,6 +268,7 @@ const App = () => {
         <EducatorSubscriptionProvider>
         <TooltipProvider>
           <Toaster />
+          <Sonner position="top-center" richColors closeButton />
           <BrowserRouter>
             <RecoveryRouteGuard />
             <Suspense fallback={<PageLoader />}>

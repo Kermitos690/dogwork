@@ -16,6 +16,7 @@ import {
   Target, AlertTriangle, Dumbbell, LogOut, Settings, Star, X
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { NotificationBell } from "@/components/NotificationBell";
 
 interface MenuItem {
   label: string;
@@ -201,13 +202,12 @@ export function SlideMenu() {
           aria-label="Menu"
         >
           <Menu className="h-5 w-5" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[9px] flex items-center justify-center font-bold">
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </span>
-          )}
         </button>
       </SheetTrigger>
+      {/* Notification bell next to menu */}
+      <div className="fixed top-4 right-4 z-[60]">
+        <NotificationBell />
+      </div>
       <SheetContent side="left" className="w-[300px] p-0 bg-card border-r border-border/40">
         {/* Header */}
         <div className="p-5 pb-3 border-b border-border/30">
