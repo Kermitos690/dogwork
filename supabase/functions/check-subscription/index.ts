@@ -60,7 +60,12 @@ serve(async (req) => {
     const isTestAccount = TEST_EMAILS.includes(user.email!);
     const isAdminEmail = user.email!.toLowerCase() === "teba.gaetan@gmail.com";
 
-    if (isTestAccount || isAdminEmail) {
+    // Also check if Apple login user is the admin (via provider_id in user metadata)
+    const appleProviderId = user.user_metadata?.provider_id || user.user_metadata?.sub;
+    const isAdminApple = user.app_metadata?.provider === "apple" && 
+      appleProviderId === "001806.9d0ff72f8fd64bac88fe99b4436db8df.1226";
+
+    if (isTestAccount || isAdminEmail || isAdminApple) {
       logStep("Privileged account detected, granting full access", { email: user.email, roles });
 
       // Determine best product_id based on role
