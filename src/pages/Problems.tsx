@@ -121,11 +121,11 @@ export default function Problems() {
     }
   };
 
-  if (!activeDog) return <AppLayout><p className="pt-12 text-center text-muted-foreground">Ajoutez d'abord un chien.</p></AppLayout>;
+  if (!activeDog) return <AppLayout><p className="pt-4 text-center text-muted-foreground">Ajoutez d'abord un chien.</p></AppLayout>;
 
   return (
     <AppLayout>
-      <div className="pt-6 pb-8 space-y-4 animate-fade-in">
+      <div className="pb-8 space-y-4 animate-fade-in">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-5 w-5" />

@@ -39,7 +39,7 @@ export default function EmployeeAnimals() {
 
   return (
     <EmployeeLayout>
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pt-14 pb-8 space-y-4">
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pb-8 space-y-4">
         <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
           <PawPrint className="h-5 w-5 text-primary" /> Animaux
         </h1>

@@ -139,7 +139,7 @@ export default function Training() {
   if ((!standardDay && !planDay) || exercises.length === 0 || !exercise) {
     return (
       <AppLayout>
-        <div className="pt-10 text-center space-y-4">
+        <div className="pt-4 text-center space-y-4">
           <p className="text-muted-foreground">Jour non trouvé ou aucun exercice.</p>
           <Button variant="outline" onClick={() => navigate("/plan")}>Voir le plan</Button>
         </div>

@@ -223,7 +223,7 @@ export default function PlanPage() {
   if (!activeDog) {
     return (
       <AppLayout>
-        <div className="pt-12 text-center space-y-4">
+        <div className="pt-4 text-center space-y-4">
           <p className="text-muted-foreground">Ajoutez d'abord un chien.</p>
           <Button onClick={() => navigate("/dogs/new")}>Ajouter un chien</Button>
         </div>
@@ -235,7 +235,7 @@ export default function PlanPage() {
 
   return (
     <AppLayout>
-      <div className="pt-6 pb-4 space-y-4 animate-fade-in">
+      <div className="pb-4 space-y-4 animate-fade-in">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Plan d'entraînement</h1>
           <p className="text-sm text-muted-foreground">{activeDog.name}</p>

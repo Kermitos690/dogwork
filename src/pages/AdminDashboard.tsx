@@ -165,11 +165,11 @@ export default function AdminDashboard() {
     }
   };
 
-  if (adminLoading) return <AppLayout><div className="pt-12 text-center animate-pulse text-muted-foreground">Chargement...</div></AppLayout>;
+  if (adminLoading) return <AppLayout><div className="pt-4 text-center animate-pulse text-muted-foreground">Chargement...</div></AppLayout>;
   if (!isAdmin) {
     return (
       <AppLayout>
-        <div className="pt-12 text-center space-y-4">
+        <div className="pt-4 text-center space-y-4">
           <Shield className="h-12 w-12 text-destructive mx-auto" />
           <p className="text-foreground font-bold">Accès refusé</p>
           <p className="text-sm text-muted-foreground">Vous n'avez pas les droits administrateur.</p>
@@ -181,7 +181,7 @@ export default function AdminDashboard() {
 
   return (
     <AppLayout>
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pt-6 pb-8 space-y-4 theme-admin">
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pb-8 space-y-4 theme-admin">
         <div className="flex items-center gap-3">
           <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate("/")} className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center">
             <ArrowLeft className="h-4 w-4 text-foreground" />

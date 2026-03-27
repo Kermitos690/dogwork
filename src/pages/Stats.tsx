@@ -176,7 +176,7 @@ export default function Stats() {
   if (!activeDog) {
     return (
       <AppLayout>
-        <div className="pt-12 text-center text-muted-foreground">Ajoutez d'abord un chien.</div>
+        <div className="pt-4 text-center text-muted-foreground">Ajoutez d'abord un chien.</div>
       </AppLayout>
     );
   }
@@ -184,7 +184,7 @@ export default function Stats() {
   if (!stats) {
     return (
       <AppLayout>
-        <div className="pt-12 text-center">
+        <div className="pt-4 text-center">
           <div className="animate-pulse text-muted-foreground">Chargement...</div>
         </div>
       </AppLayout>
@@ -193,7 +193,7 @@ export default function Stats() {
 
   return (
     <AppLayout>
-      <div className="pt-6 pb-6 space-y-5">
+      <div className="pb-6 space-y-5">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Vos statistiques</h1>

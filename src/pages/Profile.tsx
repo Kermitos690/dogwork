@@ -76,7 +76,7 @@ export default function ProfilePage() {
 
   return (
     <AppLayout>
-      <div className="pt-6 pb-8 space-y-4 animate-fade-in">
+      <div className="pb-8 space-y-4 animate-fade-in">
         <h1 className="text-2xl font-bold text-foreground">Profil</h1>
 
         <Card>

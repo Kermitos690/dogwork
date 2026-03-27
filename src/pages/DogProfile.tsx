@@ -123,7 +123,7 @@ export default function DogProfile() {
     }
   };
 
-  if (loading) return <AppLayout><p className="pt-12 text-center text-muted-foreground">Chargement…</p></AppLayout>;
+  if (loading) return <AppLayout><p className="pt-4 text-center text-muted-foreground">Chargement…</p></AppLayout>;
 
   return (
     <AppLayout>
@@ -131,7 +131,7 @@ export default function DogProfile() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="pt-6 pb-8 space-y-4"
+        className="pb-8 space-y-4"
       >
         {/* Header */}
         <div className="flex items-center gap-3">

@@ -31,7 +31,7 @@ export default function Dogs() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="pt-6 pb-4 space-y-5"
+        className="pb-4 space-y-5"
       >
         <div className="flex items-center justify-between">
           <div>

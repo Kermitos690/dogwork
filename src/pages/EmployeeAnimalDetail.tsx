@@ -92,14 +92,14 @@ export default function EmployeeAnimalDetail() {
     enabled: !!animalId,
   });
 
-  if (isLoading) return <EmployeeLayout><div className="pt-14 text-center animate-pulse text-muted-foreground">Chargement...</div></EmployeeLayout>;
-  if (!animal) return <EmployeeLayout><div className="pt-14 text-center text-muted-foreground">Animal non trouvé</div></EmployeeLayout>;
+  if (isLoading) return <EmployeeLayout><div className="text-center animate-pulse text-muted-foreground">Chargement...</div></EmployeeLayout>;
+  if (!animal) return <EmployeeLayout><div className="text-center text-muted-foreground">Animal non trouvé</div></EmployeeLayout>;
 
   const obsTypeIcon: Record<string, React.ElementType> = { "médical": Stethoscope, "comportement": Eye, "général": PawPrint };
 
   return (
     <EmployeeLayout>
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pt-14 pb-8 space-y-4">
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pb-8 space-y-4">
         {/* Header */}
         <div className="flex items-center gap-3">
           <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate("/employee/animals")} className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center">

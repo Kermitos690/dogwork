@@ -126,7 +126,7 @@ export default function AdminLaunchChecklist() {
 
   return (
     <AppLayout>
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pt-6 pb-8 space-y-5">
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pb-8 space-y-5">
         {/* Header */}
         <div className="flex items-center gap-3">
           <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate("/admin")} className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center">
