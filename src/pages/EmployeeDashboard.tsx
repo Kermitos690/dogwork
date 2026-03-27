@@ -18,7 +18,7 @@ export default function EmployeeDashboard() {
     queryKey: ["employee-animal-count", shelterId],
     queryFn: async () => {
       const { count } = await supabase
-        .from("shelter_animals")
+        .from("shelter_animals_safe")
         .select("*", { count: "exact", head: true })
         .eq("user_id", shelterId!)
         .neq("status", "adopté");

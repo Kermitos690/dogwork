@@ -56,7 +56,7 @@ export default function CoachNotes() {
       if (!links?.length) return [];
       const shelterIds = links.map((l) => l.shelter_user_id);
       const { data: animals } = await supabase
-        .from("shelter_animals")
+        .from("shelter_animals_safe")
         .select("id, name, breed, species, user_id")
         .in("user_id", shelterIds)
         .neq("status", "adopté");

@@ -59,7 +59,7 @@ export default function CoachShelterAnimals() {
     queryFn: async () => {
       if (!shelterIds.length) return [];
       const { data } = await supabase
-        .from("shelter_animals" as any)
+        .from("shelter_animals_safe")
         .select("*")
         .in("user_id", shelterIds)
         .order("created_at", { ascending: false });

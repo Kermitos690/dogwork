@@ -3,13 +3,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req) => {
-  if (req.method === "OPTIONS")
-    return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -24,26 +22,33 @@ serve(async (req) => {
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-  // Auth check - admin only (skip for internal cron calls without auth header)
-  const authHeader = req.headers.get("Authorization") || "";
+  // Strict auth check: admin only, no bypass
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const token = authHeader.replace("Bearer ", "");
-  if (token && token !== SUPABASE_URL && !token.startsWith("eyJ")) {
-    // Non-standard token, skip auth
-  } else if (token && token.startsWith("eyJ")) {
-    // Check if it's a user token (not the anon key used by cron)
-    const { data: { user } } = await supabase.auth.getUser(token);
-    if (user) {
-      const { data: isAdmin } = await supabase.rpc("has_role", {
-        _user_id: user.id,
-        _role: "admin",
-      });
-      if (!isAdmin) {
-        return new Response(JSON.stringify({ error: "Admin only" }), {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    }
+  const { data: { user } } = await supabase.auth.getUser(token);
+  if (!user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const { data: isAdmin } = await supabase.rpc("has_role", {
+    _user_id: user.id,
+    _role: "admin",
+  });
+  if (!isAdmin) {
+    return new Response(JSON.stringify({ error: "Forbidden: admin only" }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   const body = await req.json().catch(() => ({}));
@@ -76,7 +81,6 @@ serve(async (req) => {
 
   for (const exercise of exercises) {
     try {
-      // Build a concise prompt for a professional illustration
       const prompt = `Professional minimalist illustration for a dog training exercise card. Clean white background. Show a simple, elegant line-art style drawing of a person training a dog. The exercise is: "${exercise.name}" - ${exercise.objective || exercise.description?.slice(0, 100) || ""}. 
 Style: Modern flat illustration with clean lines, soft muted colors (sage green, warm beige, soft blue accents), minimal details, professional quality like a premium app UI. The dog should look friendly and attentive. No text on the image. Aspect ratio 16:9, horizontal layout.`;
 
@@ -100,7 +104,6 @@ Style: Modern flat illustration with clean lines, soft muted colors (sage green,
         const errText = await aiResponse.text();
         console.error(`AI error for ${exercise.slug}: ${aiResponse.status} ${errText}`);
         results.push({ slug: exercise.slug, success: false, error: `AI ${aiResponse.status}` });
-        // Rate limit: wait before next
         if (aiResponse.status === 429) {
           await new Promise((r) => setTimeout(r, 15000));
         }
@@ -108,15 +111,13 @@ Style: Modern flat illustration with clean lines, soft muted colors (sage green,
       }
 
       const aiData = await aiResponse.json();
-      const imageUrl =
-        aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      const imageUrl = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
       if (!imageUrl || !imageUrl.startsWith("data:image")) {
         results.push({ slug: exercise.slug, success: false, error: "No image in response" });
         continue;
       }
 
-      // Extract base64 data
       const base64Match = imageUrl.match(/^data:image\/(\w+);base64,(.+)$/);
       if (!base64Match) {
         results.push({ slug: exercise.slug, success: false, error: "Invalid base64" });
@@ -125,11 +126,8 @@ Style: Modern flat illustration with clean lines, soft muted colors (sage green,
 
       const ext = base64Match[1] === "jpeg" ? "jpg" : base64Match[1];
       const base64Data = base64Match[2];
-      const binaryData = Uint8Array.from(atob(base64Data), (c) =>
-        c.charCodeAt(0)
-      );
+      const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
 
-      // Upload to exercise-images bucket
       const filePath = `covers/${exercise.slug}.${ext}`;
       const { error: uploadErr } = await supabase.storage
         .from("exercise-images")
@@ -143,12 +141,8 @@ Style: Modern flat illustration with clean lines, soft muted colors (sage green,
         continue;
       }
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from("exercise-images")
-        .getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage.from("exercise-images").getPublicUrl(filePath);
 
-      // Update exercise record
       const { error: updateErr } = await supabase
         .from("exercises")
         .update({ cover_image: urlData.publicUrl })
@@ -161,8 +155,6 @@ Style: Modern flat illustration with clean lines, soft muted colors (sage green,
 
       results.push({ slug: exercise.slug, success: true });
       console.log(`✓ Generated image for: ${exercise.name}`);
-
-      // Small delay between generations to avoid rate limits
       await new Promise((r) => setTimeout(r, 3000));
     } catch (err) {
       console.error(`Error for ${exercise.slug}:`, err);
@@ -181,7 +173,6 @@ Style: Modern flat illustration with clean lines, soft muted colors (sage green,
       processed: results.length,
       success: successCount,
       failed: results.length - successCount,
-      remaining: 473 - offset - successCount,
       results,
     }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } }
