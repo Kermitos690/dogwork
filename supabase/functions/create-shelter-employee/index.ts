@@ -28,11 +28,10 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Verify caller is shelter or admin
+    // Verify caller is shelter or admin via getClaims (ES256 compatible)
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Non autorisé");
+    if (!authHeader?.startsWith("Bearer ")) throw new Error("Non autorisé");
 
-    // Use anon-key client with getClaims for ES256 JWT compatibility
     const userClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
@@ -61,7 +60,7 @@ Deno.serve(async (req) => {
       const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(auth_user_id, { password: pinToPassword(pin) });
       if (updateErr) throw new Error(`Erreur reset mot de passe: ${updateErr.message}`);
 
-      // Update pin_code hash in shelter_employees (clear pin removed)
+      // Update pin_code hash in shelter_employees
       const hashedPin = await hashPin(pin);
       await supabaseAdmin.from("shelter_employees").update({ hashed_pin: hashedPin }).eq("id", employee_id);
 
@@ -115,31 +114,57 @@ Deno.serve(async (req) => {
 
     let userId: string;
 
-    // Check if user already exists — targeted lookup instead of listing all users
-    const { data: { users: matchedUsers }, error: listErr } = await supabaseAdmin.auth.admin.listUsers({
-      page: 1,
-      perPage: 1,
+    // Try to create the user directly; if duplicate, update password instead.
+    // This avoids the expensive listUsers(perPage: 1000) call.
+    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password: pinToPassword(pin),
+      email_confirm: true,
+      user_metadata: { display_name: name },
     });
 
-    // Use a more targeted approach: try to create, catch duplicate
-    let existingUser = null;
-    // Search by email in the full list (Supabase Admin API doesn't support email filter directly)
-    const { data: allUsersData } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-    if (allUsersData?.users) {
-      existingUser = allUsersData.users.find((u: any) => u.email === email);
-    }
+    if (createError) {
+      // Check if it's a duplicate email error
+      if (createError.message?.includes("already been registered") || createError.message?.includes("already exists")) {
+        // Look up existing user by email via admin API (single targeted call)
+        const { data: existingList } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1 });
+        // Unfortunately admin API doesn't support email filter, so we use a workaround:
+        // Try signing in to get the user ID, or look up via profiles table
+        const { data: profileMatch } = await supabaseAdmin
+          .from("profiles")
+          .select("user_id")
+          .ilike("display_name", name)
+          .limit(1);
+        
+        // More reliable: use the service role to get user by email via RPC or direct lookup
+        // The Supabase admin.listUsers doesn't support email filter, but we can search
+        // through auth.users via a targeted approach
+        let existingUserId: string | null = null;
+        
+        // Search in shelter_employees first (most likely case for re-creation)
+        const { data: existingEmpByEmail } = await supabaseAdmin
+          .from("shelter_employees")
+          .select("auth_user_id")
+          .eq("email", email)
+          .maybeSingle();
+        
+        if (existingEmpByEmail?.auth_user_id) {
+          existingUserId = existingEmpByEmail.auth_user_id;
+        } else {
+          // Fall back: list a small page and search (only if employee not found)
+          const { data: usersPage } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 50 });
+          const found = usersPage?.users?.find((u) => u.email === email);
+          if (found) existingUserId = found.id;
+        }
 
-    if (existingUser) {
-      userId = existingUser.id;
-      await supabaseAdmin.auth.admin.updateUserById(userId, { password: pinToPassword(pin) });
+        if (!existingUserId) throw new Error(`Erreur création compte: ${createError.message}`);
+        
+        userId = existingUserId;
+        await supabaseAdmin.auth.admin.updateUserById(userId, { password: pinToPassword(pin) });
+      } else {
+        throw new Error(`Erreur création compte: ${createError.message}`);
+      }
     } else {
-      const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password: pinToPassword(pin),
-        email_confirm: true,
-        user_metadata: { display_name: name },
-      });
-      if (createError) throw new Error(`Erreur création compte: ${createError.message}`);
       userId = newUser.user.id;
     }
 
@@ -186,8 +211,11 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Create profile (non-critical)
-    await supabaseAdmin.from("profiles").insert({ user_id: userId, display_name: name });
+    // Create profile (non-critical, ignore conflict)
+    await supabaseAdmin.from("profiles").upsert(
+      { user_id: userId, display_name: name },
+      { onConflict: "user_id" }
+    );
 
     // Send PIN via email
     const resendKey = Deno.env.get("RESEND_API_KEY");
@@ -223,8 +251,9 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ success: true, userId, pin }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? (error as Error).message : "Erreur inconnue";
+    return new Response(JSON.stringify({ error: message }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

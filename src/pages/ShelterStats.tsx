@@ -9,6 +9,13 @@ import { motion } from "framer-motion";
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
 
+interface ShelterAnimalStats {
+  status: string;
+  species: string;
+  arrival_date: string | null;
+  departure_date: string | null;
+}
+
 export default function ShelterStats() {
   const { user } = useAuth();
 
@@ -16,17 +23,17 @@ export default function ShelterStats() {
     queryKey: ["shelter-animals-stats", user?.id],
     queryFn: async () => {
       const { data } = await supabase
-        .from("shelter_animals" as any)
-        .select("*")
+        .from("shelter_animals")
+        .select("status, species, arrival_date, departure_date")
         .eq("user_id", user!.id);
-      return (data as any[]) || [];
+      return (data ?? []) as ShelterAnimalStats[];
     },
     enabled: !!user,
   });
 
   // Active animals
-  const active = animals.filter((a: any) => !["adopté", "décédé", "transféré"].includes(a.status));
-  const adopted = animals.filter((a: any) => a.status === "adopté");
+  const active = animals.filter((a) => !["adopté", "décédé", "transféré"].includes(a.status));
+  const adopted = animals.filter((a) => a.status === "adopté");
 
   // Adoptions par mois (12 derniers mois)
   const adoptionsByMonth = (() => {
@@ -37,7 +44,7 @@ export default function ShelterStats() {
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       months[key] = 0;
     }
-    adopted.forEach((a: any) => {
+    adopted.forEach((a) => {
       if (a.departure_date) {
         const key = a.departure_date.substring(0, 7);
         if (months[key] !== undefined) months[key]++;
@@ -51,10 +58,10 @@ export default function ShelterStats() {
 
   // Durée moyenne de séjour (animaux partis)
   const stayDurations = animals
-    .filter((a: any) => a.departure_date && a.arrival_date)
-    .map((a: any) => {
-      const arr = new Date(a.arrival_date).getTime();
-      const dep = new Date(a.departure_date).getTime();
+    .filter((a) => a.departure_date && a.arrival_date)
+    .map((a) => {
+      const arr = new Date(a.arrival_date!).getTime();
+      const dep = new Date(a.departure_date!).getTime();
       return Math.max(1, Math.round((dep - arr) / (1000 * 60 * 60 * 24)));
     });
   const avgStay = stayDurations.length > 0 ? Math.round(stayDurations.reduce((a, b) => a + b, 0) / stayDurations.length) : 0;
@@ -62,14 +69,14 @@ export default function ShelterStats() {
   // Répartition par espèce
   const speciesData = (() => {
     const counts: Record<string, number> = {};
-    active.forEach((a: any) => { counts[a.species] = (counts[a.species] || 0) + 1; });
+    active.forEach((a) => { counts[a.species] = (counts[a.species] || 0) + 1; });
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   })();
 
   // Répartition par statut
   const statusData = (() => {
     const counts: Record<string, number> = {};
-    active.forEach((a: any) => { counts[a.status] = (counts[a.status] || 0) + 1; });
+    active.forEach((a) => { counts[a.status] = (counts[a.status] || 0) + 1; });
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   })();
 
@@ -82,7 +89,7 @@ export default function ShelterStats() {
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       months[key] = 0;
     }
-    animals.forEach((a: any) => {
+    animals.forEach((a) => {
       if (a.arrival_date) {
         const key = a.arrival_date.substring(0, 7);
         if (months[key] !== undefined) months[key]++;

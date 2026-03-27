@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
@@ -17,13 +16,13 @@ const esc = (s: string | null | undefined): string => {
     .replace(/'/g, "&#39;");
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Authenticate the caller
+    // Authenticate the caller via getClaims (ES256 compatible)
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
@@ -32,22 +31,29 @@ serve(async (req) => {
       );
     }
 
-    const supabaseAdmin = createClient(
+    const userClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
     );
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: authError } = await supabaseAdmin.auth.getUser(token);
-    if (authError || !userData.user) {
+    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const userId = userData.user.id;
+    const userId = claimsData.claims.sub as string;
+
+    // Service role client for DB operations
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
 
     const { type, data } = await req.json();
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
@@ -87,7 +93,6 @@ serve(async (req) => {
         break;
       }
       case "course_approved": {
-        // Look up educator email server-side from courseId
         if (!data.courseId) {
           return new Response(JSON.stringify({ error: "courseId required" }), {
             status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -119,7 +124,6 @@ serve(async (req) => {
         break;
       }
       case "course_rejected": {
-        // Look up educator email server-side from courseId
         if (!data.courseId) {
           return new Response(JSON.stringify({ error: "courseId required" }), {
             status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -151,7 +155,6 @@ serve(async (req) => {
         break;
       }
       case "booking_confirmed": {
-        // Look up user email server-side from bookingId
         if (!data.bookingId) {
           return new Response(JSON.stringify({ error: "bookingId required" }), {
             status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -225,8 +228,6 @@ serve(async (req) => {
       if (!res.ok) {
         const err = await res.text();
         console.error("Resend error (non-blocking):", err);
-        // In sandbox mode, Resend only allows sending to the account owner.
-        // Log the error but don't crash the app — the notification is best-effort.
         return new Response(JSON.stringify({ success: true, warning: "Email could not be delivered (sandbox mode)", subject }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -241,9 +242,10 @@ serve(async (req) => {
     return new Response(JSON.stringify({ success: true, subject }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error: any) {
-    console.error("Notification error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Erreur inconnue";
+    console.error("Notification error:", message);
+    return new Response(JSON.stringify({ error: message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

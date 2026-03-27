@@ -41,8 +41,8 @@ serve(async (req) => {
     );
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await userClient.auth.getUser(token);
-    if (claimsError || !claimsData?.user) {
+    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
       logStep("Auth failed", { error: claimsError?.message });
       return new Response(JSON.stringify({ error: "Non authentifié" }), {
         status: 401,
@@ -50,7 +50,7 @@ serve(async (req) => {
       });
     }
 
-    const user = claimsData.user;
+    const user = { id: claimsData.claims.sub as string, email: claimsData.claims.email as string };
     if (!user.email) {
       return new Response(JSON.stringify({ error: "Email requis" }), {
         status: 400,

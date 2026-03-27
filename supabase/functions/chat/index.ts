@@ -1,5 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -37,13 +36,13 @@ FORMAT :
 - Utilise des listes à puces quand c'est pertinent
 - Ajoute des émojis 🐕 pour rendre les réponses engageantes`;
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Authenticate the user
+    // Authenticate the user via getClaims (ES256 compatible)
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
@@ -52,22 +51,30 @@ serve(async (req) => {
       );
     }
 
-    const supabaseAdmin = createClient(
+    const userClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      { auth: { persistSession: false } }
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
     );
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: authError } = await supabaseAdmin.auth.getUser(token);
-    if (authError || !userData.user) {
+    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
       return new Response(
         JSON.stringify({ error: "Non autorisé" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const userId = userData.user.id;
+    const userId = claimsData.claims.sub as string;
+    const userEmail = claimsData.claims.email as string;
+
+    // Service role client for DB lookups
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false } }
+    );
 
     // Check if user has privileged role (admin or educator get free access)
     const { data: roles } = await supabaseAdmin
@@ -89,11 +96,7 @@ serve(async (req) => {
         );
       }
 
-      // Get user email
-      const { data: userDataById } = await supabaseAdmin.auth.admin.getUserById(userId);
-      const email = userDataById?.user?.email;
-
-      if (!email) {
+      if (!userEmail) {
         return new Response(
           JSON.stringify({ error: "Utilisateur introuvable" }),
           { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -104,7 +107,7 @@ serve(async (req) => {
       const Stripe = (await import("https://esm.sh/stripe@18.5.0")).default;
       const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2025-08-27.basil" });
 
-      const customers = await stripe.customers.list({ email, limit: 1 });
+      const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
       let hasExpertSub = false;
 
       if (customers.data.length > 0) {
