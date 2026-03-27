@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
   Shield, Users, GraduationCap, BookOpen, DollarSign, Plus, ArrowLeft, Trash2, Check, X, Eye, ChevronDown, Home, Sparkles, Image, Wallet,
-  Search, Dog, FileText, MessageSquare, AlertTriangle, Edit2, UserCog, Mail,
+  Search, Dog, FileText, MessageSquare, AlertTriangle, Edit2, UserCog, Mail, Rocket,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
@@ -426,6 +426,9 @@ export default function AdminDashboard() {
 
         {/* Quick links */}
         <div className="grid grid-cols-2 gap-2">
+          <Button className="h-11 gap-2 text-sm bg-primary text-primary-foreground hover:bg-primary/90 col-span-2" onClick={() => navigate("/admin/launch")}>
+            <Rocket className="h-4 w-4" /> Checklist de lancement
+          </Button>
           <Button variant="outline" className="h-11 gap-2 text-sm" onClick={() => navigate("/admin/treasury")}>
             <Wallet className="h-4 w-4" /> Trésorerie
           </Button>
