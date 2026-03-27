@@ -135,6 +135,39 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ========== VIDEO PROMO ========== */}
+      <section className="py-16 md:py-24 px-4">
+        <div className="max-w-5xl mx-auto">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }}
+            variants={fadeUp} custom={0} className="text-center mb-10">
+            <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">
+              Découvrez DogWork<span className="text-primary">.</span>
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              Du refuge à la famille — une plateforme pour chaque étape du parcours canin.
+            </p>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 40, scale: 0.95 }}
+            whileInView={{ opacity: 1, y: 0, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+            className="relative rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl shadow-primary/15 border border-border/40">
+            <div className="absolute -inset-1 bg-gradient-to-br from-primary/20 via-transparent to-accent/20 rounded-[1.5rem] md:rounded-[2rem] blur-xl -z-10" />
+            <video
+              className="w-full aspect-video"
+              autoPlay
+              muted
+              loop
+              playsInline
+              poster="/dogwork-promo-poster.jpg"
+            >
+              <source src="/dogwork-promo.mp4" type="video/mp4" />
+            </video>
+          </motion.div>
+        </div>
+      </section>
+
       {/* ========== STATS BAR ========== */}
       <section className="py-12 border-y border-border/30 bg-card/30">
         <div className="max-w-5xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-8">
