@@ -277,7 +277,7 @@ export default function CoachCourses() {
   return (
     <CoachLayout>
       {/* Header */}
-      <div className="bg-card border-b border-border px-4 pt-12 pb-4 -mx-4">
+      <div className="bg-card border-b border-border px-4 pb-4 -mx-4">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold">Mes cours</h1>
