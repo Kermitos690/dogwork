@@ -69,7 +69,7 @@ export default function ShelterProfile() {
   if (isLoading) {
     return (
       <ShelterLayout>
-        <div className="pt-14 flex items-center justify-center min-h-[50vh]">
+        <div className="flex items-center justify-center min-h-[50vh]">
           <div className="animate-pulse text-muted-foreground">Chargement...</div>
         </div>
       </ShelterLayout>
@@ -78,7 +78,7 @@ export default function ShelterProfile() {
 
   return (
     <ShelterLayout>
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pt-14 pb-8 space-y-4">
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pb-8 space-y-4">
         <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
           <Building2 className="h-5 w-5 text-primary" />
           Profil du refuge

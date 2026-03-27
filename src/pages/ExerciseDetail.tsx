@@ -99,7 +99,7 @@ export default function ExerciseDetail() {
 
   return (
     <AppLayout>
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pt-6 pb-8 space-y-4">
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pb-8 space-y-4">
         <div className="flex items-center gap-3">
           <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate("/exercises")} className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center shrink-0">
             <ArrowLeft className="h-4 w-4 text-foreground" />

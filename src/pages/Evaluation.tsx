@@ -139,7 +139,7 @@ export default function Evaluation() {
 
   return (
     <AppLayout>
-      <div className="pt-6 pb-8 space-y-5 animate-fade-in">
+      <div className="pb-8 space-y-5 animate-fade-in">
         {/* Header */}
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="rounded-xl" onClick={() => step > 0 ? setStep(step - 1) : navigate(-1)}>

@@ -125,7 +125,7 @@ export default function Problems() {
 
   return (
     <AppLayout>
-      <div className="pt-6 pb-8 space-y-4 animate-fade-in">
+      <div className="pb-8 space-y-4 animate-fade-in">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-5 w-5" />

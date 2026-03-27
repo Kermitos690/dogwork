@@ -307,7 +307,7 @@ export default function Journal() {
 
   return (
     <AppLayout>
-      <div className="pt-6 pb-6 space-y-5">
+      <div className="pb-6 space-y-5">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="space-y-1">
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Journal de bord</h1>

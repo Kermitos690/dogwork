@@ -116,7 +116,7 @@ export default function Dashboard() {
   if (!dogs || dogs.length === 0) {
     return (
       <AppLayout>
-        <div className="pt-20 pb-8 flex flex-col items-center text-center gap-6">
+        <div className="pt-4 pb-8 flex flex-col items-center text-center gap-6">
           <motion.div initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", damping: 20 }}>
             <div className="w-20 h-20 rounded-[1.25rem] bg-primary/10 flex items-center justify-center">
               <Dog className="h-10 w-10 text-primary" />

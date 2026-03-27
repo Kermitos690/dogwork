@@ -523,7 +523,7 @@ export default function HelpPage() {
 
   return (
     <AppLayout>
-      <div className="pt-6 pb-24 space-y-4 animate-fade-in">
+      <div className="pb-24 space-y-4 animate-fade-in">
         <div className="flex items-center gap-2">
           <HelpCircle className="h-5 w-5 text-primary" />
           <h1 className="text-xl font-bold text-foreground">Guide d'utilisation</h1>

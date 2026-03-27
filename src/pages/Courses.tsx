@@ -228,7 +228,7 @@ export default function Courses() {
 
   return (
     <AppLayout>
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pt-6 pb-8 space-y-4">
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pb-8 space-y-4">
         <div>
           <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
             <GraduationCap className="h-5 w-5 text-primary" /> Cours en présentiel
