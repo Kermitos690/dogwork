@@ -11,22 +11,29 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
   Shield, Users, GraduationCap, BookOpen, DollarSign, Plus, ArrowLeft, Trash2, Check, X, Eye, ChevronDown, Home, Sparkles, Image, Wallet,
-  Search, Dog, FileText, MessageSquare, AlertTriangle,
+  Search, Dog, FileText, MessageSquare, AlertTriangle, Edit2, UserCog, Mail,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+const ROLE_LABELS: Record<string, { label: string; color: string; icon: string }> = {
+  owner: { label: "Propriétaire", color: "bg-sky-500/20 text-sky-400", icon: "🐕" },
+  educator: { label: "Éducateur", color: "bg-emerald-500/20 text-emerald-400", icon: "🎓" },
+  admin: { label: "Admin", color: "bg-rose-500/20 text-rose-400", icon: "🛡️" },
+  shelter: { label: "Refuge", color: "bg-amber-500/20 text-amber-400", icon: "🏠" },
+  shelter_employee: { label: "Employé refuge", color: "bg-purple-500/20 text-purple-400", icon: "👤" },
+};
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -44,7 +51,7 @@ export default function AdminDashboard() {
   const [enrichProgress, setEnrichProgress] = useState<{ processed: number; total: number; success: number; failed: number; done: boolean } | null>(null);
   const [generatingImages, setGeneratingImages] = useState(false);
   const [imageProgress, setImageProgress] = useState<{ processed: number; total: number; success: number; failed: number; done: boolean } | null>(null);
-  // Check admin role
+
   const { data: isAdmin, isLoading: adminLoading } = useQuery({
     queryKey: ["is_admin", user?.id],
     queryFn: async () => {
@@ -54,7 +61,6 @@ export default function AdminDashboard() {
     enabled: !!user,
   });
 
-  // Stats
   const { data: stats } = useQuery({
     queryKey: ["admin_stats"],
     queryFn: async () => {
@@ -72,7 +78,6 @@ export default function AdminDashboard() {
     enabled: isAdmin === true,
   });
 
-  // Educators list
   const { data: educators, refetch: refetchEducators } = useQuery({
     queryKey: ["admin_educators"],
     queryFn: async () => {
@@ -85,20 +90,15 @@ export default function AdminDashboard() {
     enabled: isAdmin === true,
   });
 
-  // Pending courses
   const { data: pendingCourses = [], refetch: refetchCourses } = useQuery({
     queryKey: ["admin_pending_courses"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("courses")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const { data } = await supabase.from("courses").select("*").order("created_at", { ascending: false });
       return data || [];
     },
     enabled: isAdmin === true,
   });
 
-  // Bookings stats
   const { data: allBookings = [] } = useQuery({
     queryKey: ["admin_all_bookings"],
     queryFn: async () => {
@@ -123,9 +123,7 @@ export default function AdminDashboard() {
       });
       if (error) throw error;
       toast({ title: "Éducateur créé", description: `${newEducatorEmail} a été ajouté comme éducateur.` });
-      setNewEducatorEmail("");
-      setNewEducatorName("");
-      setNewEducatorPassword("");
+      setNewEducatorEmail(""); setNewEducatorName(""); setNewEducatorPassword("");
       refetchEducators();
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message || "Impossible de créer l'éducateur", variant: "destructive" });
@@ -145,9 +143,7 @@ export default function AdminDashboard() {
       });
       if (error) throw error;
       toast({ title: "Refuge créé", description: `${newShelterEmail} a été ajouté comme refuge.` });
-      setNewShelterEmail("");
-      setNewShelterName("");
-      setNewShelterPassword("");
+      setNewShelterEmail(""); setNewShelterName(""); setNewShelterPassword("");
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message || "Impossible de créer le refuge", variant: "destructive" });
     }
@@ -155,7 +151,6 @@ export default function AdminDashboard() {
   };
 
   const handleApproval = async (courseId: string, status: "approved" | "rejected") => {
-    const course = pendingCourses.find((c: any) => c.id === courseId);
     const { error } = await supabase.from("courses").update({ approval_status: status }).eq("id", courseId);
     if (error) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
@@ -164,19 +159,13 @@ export default function AdminDashboard() {
       refetchCourses();
       try {
         await supabase.functions.invoke("send-notification-email", {
-          body: {
-            type: status === "approved" ? "course_approved" : "course_rejected",
-            data: { courseId },
-          },
+          body: { type: status === "approved" ? "course_approved" : "course_rejected", data: { courseId } },
         });
-      } catch (e) {
-        console.error("Email notification error:", e);
-      }
+      } catch (e) { console.error("Email notification error:", e); }
     }
   };
 
   if (adminLoading) return <AppLayout><div className="pt-12 text-center animate-pulse text-muted-foreground">Chargement...</div></AppLayout>;
-
   if (!isAdmin) {
     return (
       <AppLayout>
@@ -199,12 +188,12 @@ export default function AdminDashboard() {
           </motion.button>
           <div>
             <h1 className="text-xl font-bold text-foreground flex items-center gap-2"><Shield className="h-5 w-5 text-primary" /> Administration</h1>
-            <p className="text-[10px] text-muted-foreground">Gestion de la plateforme</p>
+            <p className="text-[10px] text-muted-foreground">Gestion complète de la plateforme</p>
           </div>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-4 gap-2">
           {[
             { icon: Users, label: "Utilisateurs", value: stats?.users },
             { icon: GraduationCap, label: "Éducateurs", value: stats?.educators },
@@ -212,383 +201,241 @@ export default function AdminDashboard() {
             { icon: BookOpen, label: "Cours", value: stats?.courses },
           ].map((s, i) => (
             <Card key={i} className="text-center">
-              <CardContent className="p-3">
-                <s.icon className="h-5 w-5 text-primary mx-auto mb-1" />
+              <CardContent className="p-2.5">
+                <s.icon className="h-4 w-4 text-primary mx-auto mb-0.5" />
                 <p className="text-lg font-bold text-foreground">{s.value ?? "–"}</p>
-                <p className="text-[9px] text-muted-foreground">{s.label}</p>
+                <p className="text-[8px] text-muted-foreground leading-tight">{s.label}</p>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        {/* Revenue stats */}
         <div className="grid grid-cols-2 gap-2">
           <Card>
             <CardContent className="p-3 text-center">
-              <DollarSign className="h-5 w-5 text-primary mx-auto mb-1" />
+              <DollarSign className="h-4 w-4 text-primary mx-auto mb-0.5" />
               <p className="text-lg font-bold text-foreground">{(totalRevenue / 100).toFixed(0)} CHF</p>
-              <p className="text-[9px] text-muted-foreground">CA total cours</p>
+              <p className="text-[9px] text-muted-foreground">CA total</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-3 text-center">
-              <DollarSign className="h-5 w-5 text-primary mx-auto mb-1" />
+              <DollarSign className="h-4 w-4 text-primary mx-auto mb-0.5" />
               <p className="text-lg font-bold text-foreground">{(totalCommission / 100).toFixed(0)} CHF</p>
-              <p className="text-[9px] text-muted-foreground">Commission (30%)</p>
+              <p className="text-[9px] text-muted-foreground">Commission</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Pending courses approval */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Eye className="h-4 w-4" /> Cours à valider ({pendingCourses.filter((c: any) => c.approval_status === "pending").length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {pendingCourses.filter((c: any) => c.approval_status === "pending").length === 0 && (
-              <p className="text-xs text-muted-foreground">Aucun cours en attente de validation.</p>
-            )}
-            {pendingCourses.filter((c: any) => c.approval_status === "pending").map((course: any) => (
-              <div key={course.id} className="p-3 rounded-lg bg-secondary/30 space-y-2">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{course.title}</p>
-                    <p className="text-[10px] text-muted-foreground">{(course.price_cents / 100).toFixed(0)} CHF — {course.category} — {course.duration_minutes} min</p>
-                    {course.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{course.description}</p>}
-                    {course.location && <p className="text-xs text-muted-foreground">📍 {course.location}</p>}
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button size="sm" className="flex-1 gap-1" onClick={() => handleApproval(course.id, "approved")}>
-                    <Check className="h-3 w-3" /> Approuver
-                  </Button>
-                  <Button size="sm" variant="destructive" className="flex-1 gap-1" onClick={() => handleApproval(course.id, "rejected")}>
-                    <X className="h-3 w-3" /> Refuser
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+        {/* Main admin tabs */}
+        <Tabs defaultValue="users" className="w-full">
+          <TabsList className="w-full grid grid-cols-4 h-10">
+            <TabsTrigger value="users" className="text-xs gap-1"><Users className="h-3 w-3" /> Utilisateurs</TabsTrigger>
+            <TabsTrigger value="courses" className="text-xs gap-1"><BookOpen className="h-3 w-3" /> Cours</TabsTrigger>
+            <TabsTrigger value="tools" className="text-xs gap-1"><Sparkles className="h-3 w-3" /> Outils</TabsTrigger>
+            <TabsTrigger value="create" className="text-xs gap-1"><Plus className="h-3 w-3" /> Créer</TabsTrigger>
+          </TabsList>
 
-        {/* All courses list — collapsible */}
-        <Collapsible>
-          <Card>
-            <CollapsibleTrigger className="w-full">
-              <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                <CardTitle className="text-base">Tous les cours ({pendingCourses.length})</CardTitle>
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          {/* USERS TAB */}
+          <TabsContent value="users" className="space-y-3 mt-3">
+            <AdminUsersManager />
+          </TabsContent>
+
+          {/* COURSES TAB */}
+          <TabsContent value="courses" className="space-y-3 mt-3">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Eye className="h-4 w-4" /> À valider ({pendingCourses.filter((c: any) => c.approval_status === "pending").length})
+                </CardTitle>
               </CardHeader>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <CardContent className="space-y-2 pt-0">
-                {pendingCourses.map((course: any) => (
-                  <div key={course.id} className="flex items-center justify-between p-2 rounded-lg bg-secondary/30">
+              <CardContent className="space-y-2">
+                {pendingCourses.filter((c: any) => c.approval_status === "pending").length === 0 && (
+                  <p className="text-xs text-muted-foreground">Aucun cours en attente.</p>
+                )}
+                {pendingCourses.filter((c: any) => c.approval_status === "pending").map((course: any) => (
+                  <div key={course.id} className="p-3 rounded-lg bg-secondary/30 space-y-2">
                     <div>
                       <p className="text-sm font-medium text-foreground">{course.title}</p>
-                      <p className="text-[10px] text-muted-foreground">{(course.price_cents / 100).toFixed(0)} CHF</p>
+                      <p className="text-[10px] text-muted-foreground">{(course.price_cents / 100).toFixed(0)} CHF — {course.category} — {course.duration_minutes} min</p>
+                      {course.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{course.description}</p>}
                     </div>
-                    <div className="flex items-center gap-2">
-                      {course.approval_status === "approved" && <Badge className="text-[9px] bg-emerald-500/20 text-emerald-400 border-0">Approuvé</Badge>}
-                      {course.approval_status === "pending" && <Badge className="text-[9px] bg-amber-500/20 text-amber-400 border-0">En attente</Badge>}
-                      {course.approval_status === "rejected" && <Badge variant="destructive" className="text-[9px]">Refusé</Badge>}
+                    <div className="flex gap-2">
+                      <Button size="sm" className="flex-1 gap-1" onClick={() => handleApproval(course.id, "approved")}>
+                        <Check className="h-3 w-3" /> Approuver
+                      </Button>
+                      <Button size="sm" variant="destructive" className="flex-1 gap-1" onClick={() => handleApproval(course.id, "rejected")}>
+                        <X className="h-3 w-3" /> Refuser
+                      </Button>
                     </div>
                   </div>
                 ))}
               </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
+            </Card>
+            <Collapsible>
+              <Card>
+                <CollapsibleTrigger className="w-full">
+                  <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                    <CardTitle className="text-sm">Tous les cours ({pendingCourses.length})</CardTitle>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="space-y-1.5 pt-0">
+                    {pendingCourses.map((course: any) => (
+                      <div key={course.id} className="flex items-center justify-between p-2 rounded-lg bg-secondary/30">
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{course.title}</p>
+                          <p className="text-[10px] text-muted-foreground">{(course.price_cents / 100).toFixed(0)} CHF</p>
+                        </div>
+                        <Badge className={`text-[9px] border-0 ${course.approval_status === "approved" ? "bg-emerald-500/20 text-emerald-400" : course.approval_status === "pending" ? "bg-amber-500/20 text-amber-400" : "bg-destructive/20 text-destructive"}`}>
+                          {course.approval_status === "approved" ? "Approuvé" : course.approval_status === "pending" ? "En attente" : "Refusé"}
+                        </Badge>
+                      </div>
+                    ))}
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+          </TabsContent>
 
-        {/* Create educator — collapsible */}
-        <Collapsible>
-          <Card>
-            <CollapsibleTrigger className="w-full">
-              <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Plus className="h-4 w-4" /> Créer un éducateur
-                </CardTitle>
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          {/* TOOLS TAB */}
+          <TabsContent value="tools" className="space-y-3 mt-3">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> Enrichir exercices (IA)</CardTitle>
               </CardHeader>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <CardContent className="space-y-3 pt-0">
-                <div className="space-y-1">
-                  <Label className="text-xs">Email</Label>
-                  <Input value={newEducatorEmail} onChange={e => setNewEducatorEmail(e.target.value)} placeholder="educateur@email.com" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Nom d'affichage</Label>
-                  <Input value={newEducatorName} onChange={e => setNewEducatorName(e.target.value)} placeholder="Nom du professionnel" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Mot de passe</Label>
-                  <Input type="password" value={newEducatorPassword} onChange={e => setNewEducatorPassword(e.target.value)} placeholder="Mot de passe temporaire" />
-                </div>
-                <Button onClick={handleCreateEducator} disabled={creating || !newEducatorEmail || !newEducatorPassword} className="w-full gap-2">
+              <CardContent className="space-y-3">
+                <p className="text-xs text-muted-foreground">Enrichit descriptions, étapes et conseils par lots.</p>
+                {enrichProgress && (
+                  <div className="space-y-1">
+                    <Progress value={(enrichProgress.processed / Math.max(enrichProgress.total, 1)) * 100} className="h-2" />
+                    <p className="text-[10px] text-muted-foreground">{enrichProgress.processed}/{enrichProgress.total} — {enrichProgress.success} ✓ — {enrichProgress.failed} ✗{enrichProgress.done && " — Terminé !"}</p>
+                  </div>
+                )}
+                <Button
+                  onClick={async () => {
+                    setEnriching(true);
+                    let totalProcessed = 0, totalSuccess = 0, totalFailed = 0, isDone = false;
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (!session?.access_token) { toast({ title: "Erreur", description: "Session expirée", variant: "destructive" }); setEnriching(false); return; }
+                    while (!isDone) {
+                      let retries = 0, batchSuccess = false;
+                      while (retries < 3 && !batchSuccess) {
+                        try {
+                          const { data, error } = await supabase.functions.invoke("enrich-exercises", { body: { batchSize: 1, offset: 0 }, headers: { Authorization: `Bearer ${session.access_token}` } });
+                          if (error) throw error;
+                          totalProcessed += data.success || 0; totalSuccess += data.success || 0; totalFailed += data.failed || 0;
+                          isDone = data.done || (data.remaining ?? 0) === 0; batchSuccess = true;
+                          setEnrichProgress({ processed: totalProcessed, total: totalProcessed + (data.remaining ?? 0), success: totalSuccess, failed: totalFailed, done: isDone });
+                          if (!isDone) await new Promise(r => setTimeout(r, 500));
+                        } catch (err: any) {
+                          retries++;
+                          if (retries >= 3) { toast({ title: "Erreur", description: err.message, variant: "destructive" }); isDone = true; }
+                          else await new Promise(r => setTimeout(r, 5000));
+                        }
+                      }
+                    }
+                    setEnriching(false);
+                    if (totalSuccess > 0) toast({ title: "Enrichissement terminé ✨", description: `${totalSuccess} exercices enrichis.` });
+                  }}
+                  disabled={enriching} className="w-full gap-2" size="sm"
+                >
+                  <Sparkles className="h-4 w-4" /> {enriching ? "En cours..." : "Lancer l'enrichissement IA"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2"><Image className="h-4 w-4 text-primary" /> Illustrations (IA)</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-xs text-muted-foreground">Génère les illustrations manquantes pour les exercices.</p>
+                {imageProgress && (
+                  <div className="space-y-1">
+                    <Progress value={(imageProgress.processed / Math.max(imageProgress.total, 1)) * 100} className="h-2" />
+                    <p className="text-[10px] text-muted-foreground">{imageProgress.processed}/{imageProgress.total} — {imageProgress.success} ✓ — {imageProgress.failed} ✗{imageProgress.done && " — Terminé !"}</p>
+                  </div>
+                )}
+                <Button
+                  onClick={async () => {
+                    setGeneratingImages(true);
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (!session?.access_token) { toast({ title: "Erreur", description: "Session expirée", variant: "destructive" }); setGeneratingImages(false); return; }
+                    const { count } = await supabase.from("exercises").select("*", { count: "exact", head: true }).is("cover_image", null);
+                    if (!count) { toast({ title: "✨", description: "Tous les exercices ont une illustration." }); setGeneratingImages(false); return; }
+                    let totalProcessed = 0, totalSuccess = 0, totalFailed = 0;
+                    while (totalProcessed < count) {
+                      try {
+                        const { data, error } = await supabase.functions.invoke("generate-exercise-images", { body: { batch_size: 5, offset: 0 }, headers: { Authorization: `Bearer ${session.access_token}` } });
+                        if (error) throw error;
+                        if (data?.processed === 0) break;
+                        totalProcessed += data.processed || 0; totalSuccess += data.success || 0; totalFailed += data.failed || 0;
+                        setImageProgress({ processed: totalProcessed, total: count, success: totalSuccess, failed: totalFailed, done: totalProcessed >= count || data.processed === 0 });
+                      } catch (err) {
+                        totalFailed += 5; totalProcessed += 5;
+                        setImageProgress({ processed: totalProcessed, total: count, success: totalSuccess, failed: totalFailed, done: false });
+                        await new Promise(r => setTimeout(r, 10000));
+                      }
+                    }
+                    setGeneratingImages(false);
+                    toast({ title: "Illustrations terminées 🎨", description: `${totalSuccess} images générées.` });
+                  }}
+                  disabled={generatingImages} className="w-full gap-2" size="sm"
+                >
+                  <Image className="h-4 w-4" /> {generatingImages ? "En cours..." : "Générer illustrations IA"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <SheltersList />
+          </TabsContent>
+
+          {/* CREATE TAB */}
+          <TabsContent value="create" className="space-y-3 mt-3">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2"><GraduationCap className="h-4 w-4" /> Créer un éducateur</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2.5">
+                <div className="space-y-1"><Label className="text-xs">Email</Label><Input value={newEducatorEmail} onChange={e => setNewEducatorEmail(e.target.value)} placeholder="educateur@email.com" /></div>
+                <div className="space-y-1"><Label className="text-xs">Nom</Label><Input value={newEducatorName} onChange={e => setNewEducatorName(e.target.value)} placeholder="Nom" /></div>
+                <div className="space-y-1"><Label className="text-xs">Mot de passe</Label><Input type="password" value={newEducatorPassword} onChange={e => setNewEducatorPassword(e.target.value)} placeholder="Mot de passe" /></div>
+                <Button onClick={handleCreateEducator} disabled={creating || !newEducatorEmail || !newEducatorPassword} className="w-full gap-2" size="sm">
                   <GraduationCap className="h-4 w-4" /> {creating ? "Création..." : "Créer l'éducateur"}
                 </Button>
-                <p className="text-[10px] text-muted-foreground">L'éducateur paiera 30% de commission sur chaque cours vendu.</p>
               </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
+            </Card>
 
-        {/* Educators list — collapsible */}
-        <Collapsible>
-          <Card>
-            <CollapsibleTrigger className="w-full">
-              <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                <CardTitle className="text-base">Éducateurs ({educators?.length || 0})</CardTitle>
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2"><Home className="h-4 w-4" /> Créer un refuge</CardTitle>
               </CardHeader>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <CardContent className="space-y-2 pt-0">
-                {educators?.length === 0 && <p className="text-xs text-muted-foreground">Aucun éducateur pour le moment.</p>}
-                {educators?.map((ed: any) => (
-                  <div key={ed.id} className="flex items-center justify-between p-2 rounded-lg bg-secondary/30">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{ed.display_name || "Sans nom"}</p>
-                      <p className="text-[10px] text-muted-foreground">{ed.user_id}</p>
-                    </div>
-                    <GraduationCap className="h-4 w-4 text-primary" />
-                  </div>
-                ))}
-              </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
-
-        {/* Create shelter — collapsible */}
-        <Collapsible>
-          <Card>
-            <CollapsibleTrigger className="w-full">
-              <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Plus className="h-4 w-4" /> Créer un refuge
-                </CardTitle>
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <CardContent className="space-y-3 pt-0">
-                <div className="space-y-1">
-                  <Label className="text-xs">Email</Label>
-                  <Input value={newShelterEmail} onChange={e => setNewShelterEmail(e.target.value)} placeholder="refuge@email.com" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Nom du refuge</Label>
-                  <Input value={newShelterName} onChange={e => setNewShelterName(e.target.value)} placeholder="SPA de Genève" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Mot de passe</Label>
-                  <Input type="password" value={newShelterPassword} onChange={e => setNewShelterPassword(e.target.value)} placeholder="Mot de passe temporaire" />
-                </div>
-                <Button onClick={handleCreateShelter} disabled={creatingShelter || !newShelterEmail || !newShelterPassword} className="w-full gap-2">
+              <CardContent className="space-y-2.5">
+                <div className="space-y-1"><Label className="text-xs">Email</Label><Input value={newShelterEmail} onChange={e => setNewShelterEmail(e.target.value)} placeholder="refuge@email.com" /></div>
+                <div className="space-y-1"><Label className="text-xs">Nom du refuge</Label><Input value={newShelterName} onChange={e => setNewShelterName(e.target.value)} placeholder="SPA de Genève" /></div>
+                <div className="space-y-1"><Label className="text-xs">Mot de passe</Label><Input type="password" value={newShelterPassword} onChange={e => setNewShelterPassword(e.target.value)} placeholder="Mot de passe" /></div>
+                <Button onClick={handleCreateShelter} disabled={creatingShelter || !newShelterEmail || !newShelterPassword} className="w-full gap-2" size="sm">
                   <Home className="h-4 w-4" /> {creatingShelter ? "Création..." : "Créer le refuge"}
                 </Button>
               </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
-
-        {/* Enrich exercises with AI */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" /> Enrichir les exercices (IA)
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-xs text-muted-foreground">
-              Enrichit automatiquement les descriptions, étapes et conseils de tous les exercices mal documentés avec l'IA. Traite par lots de 10.
-            </p>
-            {enrichProgress && (
-              <div className="space-y-2">
-                <Progress value={(enrichProgress.processed / Math.max(enrichProgress.total, 1)) * 100} className="h-2" />
-                <p className="text-xs text-muted-foreground">
-                  {enrichProgress.processed}/{enrichProgress.total} traités — {enrichProgress.success} ✓ — {enrichProgress.failed} ✗
-                  {enrichProgress.done && " — Terminé !"}
-                </p>
-              </div>
-            )}
-            <Button
-              onClick={async () => {
-                setEnriching(true);
-                let totalProcessed = 0;
-                let totalSuccess = 0;
-                let totalFailed = 0;
-                let isDone = false;
-
-                const { data: { session } } = await supabase.auth.getSession();
-                if (!session?.access_token) {
-                  toast({ title: "Erreur", description: "Session expirée, reconnectez-vous.", variant: "destructive" });
-                  setEnriching(false);
-                  return;
-                }
-                const accessToken = session.access_token;
-
-                while (!isDone) {
-                  let retries = 0;
-                  let batchSuccess = false;
-                  while (retries < 3 && !batchSuccess) {
-                    try {
-                      const { data, error } = await supabase.functions.invoke("enrich-exercises", {
-                        body: { batchSize: 1, offset: 0 },
-                        headers: { Authorization: `Bearer ${accessToken}` },
-                      });
-                      if (error) throw error;
-
-                      totalProcessed += data.success || 0;
-                      totalSuccess += data.success || 0;
-                      totalFailed += data.failed || 0;
-                      const remaining = data.remaining ?? 0;
-                      isDone = data.done || remaining === 0;
-                      batchSuccess = true;
-
-                      setEnrichProgress({ 
-                        processed: totalProcessed, 
-                        total: totalProcessed + remaining, 
-                        success: totalSuccess, 
-                        failed: totalFailed, 
-                        done: isDone 
-                      });
-                      
-                      if (!isDone) {
-                        await new Promise(r => setTimeout(r, 500));
-                      }
-                    } catch (err: any) {
-                      retries++;
-                      if (retries >= 3) {
-                        toast({ title: "Erreur enrichissement", description: err.message, variant: "destructive" });
-                        isDone = true;
-                      } else {
-                        await new Promise(r => setTimeout(r, 5000));
-                      }
-                    }
-                  }
-                }
-
-                setEnriching(false);
-                if (totalSuccess > 0) {
-                  toast({ title: "Enrichissement terminé ✨", description: `${totalSuccess} exercices enrichis avec succès.` });
-                }
-              }}
-              disabled={enriching}
-              className="w-full gap-2"
-            >
-              <Sparkles className="h-4 w-4" /> {enriching ? "Enrichissement en cours..." : "Lancer l'enrichissement IA"}
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Generate exercise images with AI */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Image className="h-4 w-4 text-primary" /> Générer les illustrations (IA)
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-xs text-muted-foreground">
-              Génère automatiquement des illustrations pédagogiques pour les exercices sans image via l'IA.
-            </p>
-            {imageProgress && (
-              <div className="space-y-2">
-                <Progress value={(imageProgress.processed / Math.max(imageProgress.total, 1)) * 100} className="h-2" />
-                <p className="text-xs text-muted-foreground">
-                  {imageProgress.processed}/{imageProgress.total} traités — {imageProgress.success} ✓ — {imageProgress.failed} ✗
-                  {imageProgress.done && " — Terminé !"}
-                </p>
-              </div>
-            )}
-            <Button
-              onClick={async () => {
-                setGeneratingImages(true);
-                const { data: { session } } = await supabase.auth.getSession();
-                if (!session?.access_token) {
-                  toast({ title: "Erreur", description: "Session expirée", variant: "destructive" });
-                  setGeneratingImages(false);
-                  return;
-                }
-
-                // Count exercises without cover_image
-                const { count } = await supabase
-                  .from("exercises")
-                  .select("*", { count: "exact", head: true })
-                  .is("cover_image", null);
-
-                if (!count || count === 0) {
-                  toast({ title: "✨", description: "Tous les exercices ont déjà une illustration." });
-                  setGeneratingImages(false);
-                  return;
-                }
-
-                const total = count;
-                let totalProcessed = 0;
-                let totalSuccess = 0;
-                let totalFailed = 0;
-                const batchSize = 5;
-
-                // Process in batches
-                while (totalProcessed < total) {
-                  try {
-                    const { data, error } = await supabase.functions.invoke("generate-exercise-images", {
-                      body: { batch_size: batchSize, offset: 0 },
-                      headers: { Authorization: `Bearer ${session.access_token}` },
-                    });
-                    if (error) throw error;
-
-                    if (data?.processed === 0) break;
-
-                    totalProcessed += data.processed || 0;
-                    totalSuccess += data.success || 0;
-                    totalFailed += data.failed || 0;
-                    setImageProgress({ processed: totalProcessed, total, success: totalSuccess, failed: totalFailed, done: totalProcessed >= total || data.processed === 0 });
-
-                    if (data.processed === 0) break;
-                  } catch (err) {
-                    console.error("Batch error:", err);
-                    totalFailed += batchSize;
-                    totalProcessed += batchSize;
-                    setImageProgress({ processed: totalProcessed, total, success: totalSuccess, failed: totalFailed, done: false });
-                    // Wait before retrying on error
-                    await new Promise(r => setTimeout(r, 10000));
-                  }
-                }
-
-                setGeneratingImages(false);
-                toast({ title: "Illustrations terminées 🎨", description: `${totalSuccess} images générées.` });
-              }}
-              disabled={generatingImages}
-              className="w-full gap-2"
-            >
-              <Image className="h-4 w-4" /> {generatingImages ? "Génération en cours..." : "Générer les illustrations IA"}
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Shelters list — collapsible */}
-        <SheltersList />
-
-        {/* Admin data management */}
-        <AdminDataManager />
+            </Card>
+          </TabsContent>
+        </Tabs>
 
         {/* Quick links */}
         <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" className="h-12 gap-2" onClick={() => navigate("/admin/treasury")}>
+          <Button variant="outline" className="h-11 gap-2 text-sm" onClick={() => navigate("/admin/treasury")}>
             <Wallet className="h-4 w-4" /> Trésorerie
           </Button>
-          <Button variant="outline" className="h-12 gap-2" onClick={() => navigate("/exercises")}>
+          <Button variant="outline" className="h-11 gap-2 text-sm" onClick={() => navigate("/exercises")}>
             <BookOpen className="h-4 w-4" /> Exercices
           </Button>
-          <Button variant="outline" className="h-12 gap-2" onClick={() => navigate("/coach")}>
+          <Button variant="outline" className="h-11 gap-2 text-sm" onClick={() => navigate("/coach")}>
             <GraduationCap className="h-4 w-4" /> Coach
           </Button>
-          <Button variant="outline" className="h-12 gap-2" onClick={() => navigate("/shelter")}>
+          <Button variant="outline" className="h-11 gap-2 text-sm" onClick={() => navigate("/shelter")}>
             <Home className="h-4 w-4" /> Refuge
           </Button>
         </div>
@@ -597,18 +444,265 @@ export default function AdminDashboard() {
   );
 }
 
+/* ───────── USERS MANAGER ───────── */
+function AdminUsersManager() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [deleteTarget, setDeleteTarget] = useState<{ userId: string; name: string } | null>(null);
+  const [editTarget, setEditTarget] = useState<{ userId: string; name: string; roles: string[] } | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editRoleToAdd, setEditRoleToAdd] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  // Fetch ALL users with roles
+  const { data: allUsers = [], isLoading, refetch } = useQuery({
+    queryKey: ["admin_all_users"],
+    queryFn: async () => {
+      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, created_at").order("created_at", { ascending: false });
+      if (!profiles) return [];
+      const { data: allRoles } = await supabase.from("user_roles").select("user_id, role");
+      const roleMap: Record<string, string[]> = {};
+      (allRoles || []).forEach((r: any) => {
+        if (!roleMap[r.user_id]) roleMap[r.user_id] = [];
+        roleMap[r.user_id].push(r.role);
+      });
+      return profiles.map((p: any) => ({
+        userId: p.user_id,
+        name: p.display_name || "Sans nom",
+        roles: roleMap[p.user_id] || [],
+        createdAt: p.created_at,
+      }));
+    },
+  });
+
+  const filtered = allUsers.filter((u: any) => {
+    const matchSearch = searchQuery.length < 2 || u.name.toLowerCase().includes(searchQuery.toLowerCase()) || u.userId.includes(searchQuery);
+    const matchRole = roleFilter === "all" || u.roles.includes(roleFilter);
+    return matchSearch && matchRole;
+  });
+
+  const handleDeleteUser = async () => {
+    if (!deleteTarget) return;
+    try {
+      // Delete all user data cascading
+      await Promise.all([
+        supabase.from("dogs").delete().eq("user_id", deleteTarget.userId),
+        supabase.from("training_plans").delete().eq("user_id", deleteTarget.userId),
+        supabase.from("day_progress").delete().eq("user_id", deleteTarget.userId),
+        supabase.from("journal_entries").delete().eq("user_id", deleteTarget.userId),
+        supabase.from("behavior_logs").delete().eq("user_id", deleteTarget.userId),
+        supabase.from("dog_evaluations").delete().eq("user_id", deleteTarget.userId),
+        supabase.from("dog_objectives").delete().eq("user_id", deleteTarget.userId),
+        supabase.from("dog_problems").delete().eq("user_id", deleteTarget.userId),
+        supabase.from("exercise_sessions").delete().eq("user_id", deleteTarget.userId),
+        supabase.from("messages").delete().eq("sender_id", deleteTarget.userId),
+        supabase.from("messages").delete().eq("recipient_id", deleteTarget.userId),
+        supabase.from("user_preferences").delete().eq("user_id", deleteTarget.userId),
+        supabase.from("client_links").delete().eq("client_user_id", deleteTarget.userId),
+        supabase.from("client_links").delete().eq("coach_user_id", deleteTarget.userId),
+        supabase.from("user_roles").delete().eq("user_id", deleteTarget.userId),
+        supabase.from("profiles").delete().eq("user_id", deleteTarget.userId),
+      ]);
+      toast({ title: "Utilisateur supprimé ✅", description: `${deleteTarget.name} et toutes ses données ont été supprimés.` });
+      refetch();
+    } catch (err: any) {
+      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    }
+    setDeleteTarget(null);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editTarget) return;
+    setSaving(true);
+    try {
+      // Update display name
+      if (editName !== editTarget.name) {
+        const { error } = await supabase.from("profiles").update({ display_name: editName }).eq("user_id", editTarget.userId);
+        if (error) throw error;
+      }
+      toast({ title: "Modifié ✅" });
+      refetch();
+      setEditTarget(null);
+    } catch (err: any) {
+      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    }
+    setSaving(false);
+  };
+
+  const handleAddRole = async (userId: string, role: string) => {
+    try {
+      const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: role as any });
+      if (error) throw error;
+      toast({ title: "Rôle ajouté ✅" });
+      refetch();
+      if (editTarget) setEditTarget({ ...editTarget, roles: [...editTarget.roles, role] });
+    } catch (err: any) {
+      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleRemoveRole = async (userId: string, role: string) => {
+    try {
+      const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role as any);
+      if (error) throw error;
+      toast({ title: "Rôle retiré ✅" });
+      refetch();
+      if (editTarget) setEditTarget({ ...editTarget, roles: editTarget.roles.filter(r => r !== role) });
+    } catch (err: any) {
+      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+    }
+  };
+
+  return (
+    <>
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2"><UserCog className="h-4 w-4" /> Tous les utilisateurs ({allUsers.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Rechercher..." className="pl-8 h-9 text-sm" />
+            </div>
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="w-[130px] h-9 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous</SelectItem>
+                <SelectItem value="owner">Propriétaires</SelectItem>
+                <SelectItem value="educator">Éducateurs</SelectItem>
+                <SelectItem value="shelter">Refuges</SelectItem>
+                <SelectItem value="admin">Admins</SelectItem>
+                <SelectItem value="shelter_employee">Employés</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {isLoading ? (
+            <p className="text-xs text-muted-foreground text-center py-4 animate-pulse">Chargement...</p>
+          ) : (
+            <div className="space-y-1.5 max-h-[400px] overflow-y-auto">
+              {filtered.length === 0 && <p className="text-xs text-muted-foreground text-center py-3">Aucun utilisateur trouvé.</p>}
+              {filtered.map((u: any) => (
+                <div key={u.userId} className="flex items-center gap-2 p-2.5 rounded-lg bg-secondary/30">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{u.name}</p>
+                    <div className="flex flex-wrap gap-1 mt-0.5">
+                      {u.roles.map((r: string) => (
+                        <Badge key={r} className={`text-[8px] px-1.5 py-0 border-0 ${ROLE_LABELS[r]?.color || "bg-muted text-muted-foreground"}`}>
+                          {ROLE_LABELS[r]?.icon} {ROLE_LABELS[r]?.label || r}
+                        </Badge>
+                      ))}
+                      {u.roles.length === 0 && <span className="text-[9px] text-muted-foreground">Aucun rôle</span>}
+                    </div>
+                    <p className="text-[9px] text-muted-foreground mt-0.5">{new Date(u.createdAt).toLocaleDateString("fr-FR")}</p>
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditTarget(u); setEditName(u.name); }}>
+                      <Edit2 className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteTarget({ userId: u.userId, name: u.name })}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Delete dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" /> Supprimer l'utilisateur
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Supprimer <strong>{deleteTarget?.name}</strong> et TOUTES ses données (chiens, plans, journaux, messages) ? Irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Supprimer tout</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit dialog */}
+      <Dialog open={!!editTarget} onOpenChange={(o) => !o && setEditTarget(null)}>
+        <DialogContent className="max-w-[90vw] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Edit2 className="h-4 w-4" /> Modifier l'utilisateur</DialogTitle>
+          </DialogHeader>
+          {editTarget && (
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Nom d'affichage</Label>
+                <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs">Rôles actuels</Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {editTarget.roles.map((r) => (
+                    <Badge key={r} className={`text-xs gap-1 ${ROLE_LABELS[r]?.color || ""}`}>
+                      {ROLE_LABELS[r]?.icon} {ROLE_LABELS[r]?.label || r}
+                      <button onClick={() => handleRemoveRole(editTarget.userId, r)} className="ml-1 hover:text-destructive">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs">Ajouter un rôle</Label>
+                <div className="flex gap-2">
+                  <Select value={editRoleToAdd} onValueChange={setEditRoleToAdd}>
+                    <SelectTrigger className="flex-1 h-9 text-xs">
+                      <SelectValue placeholder="Choisir..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(ROLE_LABELS).filter(([k]) => !editTarget.roles.includes(k)).map(([k, v]) => (
+                        <SelectItem key={k} value={k}>{v.icon} {v.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button size="sm" disabled={!editRoleToAdd} onClick={() => { if (editRoleToAdd) { handleAddRole(editTarget.userId, editRoleToAdd); setEditRoleToAdd(""); } }}>
+                    <Plus className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+
+              <p className="text-[10px] text-muted-foreground">ID: {editTarget.userId}</p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditTarget(null)}>Annuler</Button>
+            <Button onClick={handleSaveEdit} disabled={saving}>{saving ? "Sauvegarde..." : "Sauvegarder"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+/* ───────── SHELTERS LIST ───────── */
 function SheltersList() {
   const { data: shelters = [] } = useQuery({
     queryKey: ["admin_shelters_list"],
     queryFn: async () => {
       const { data: profiles } = await supabase.from("shelter_profiles").select("*").order("created_at", { ascending: false });
       if (!profiles?.length) return [];
-      const shelterUserIds = profiles.map((p: any) => p.user_id);
       const { data: employees } = await supabase.from("shelter_employees").select("shelter_user_id").eq("is_active", true);
       const empCounts: Record<string, number> = {};
-      (employees || []).forEach((e: any) => {
-        empCounts[e.shelter_user_id] = (empCounts[e.shelter_user_id] || 0) + 1;
-      });
+      (employees || []).forEach((e: any) => { empCounts[e.shelter_user_id] = (empCounts[e.shelter_user_id] || 0) + 1; });
       return profiles.map((p: any) => ({ ...p, employeeCount: empCounts[p.user_id] || 0 }));
     },
   });
@@ -617,22 +711,19 @@ function SheltersList() {
     <Collapsible>
       <Card>
         <CollapsibleTrigger className="w-full">
-          <CardHeader className="pb-3 flex flex-row items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Home className="h-4 w-4" /> Refuges ({shelters.length})
-            </CardTitle>
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm flex items-center gap-2"><Home className="h-4 w-4" /> Refuges ({shelters.length})</CardTitle>
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <CardContent className="space-y-2 pt-0">
-            {shelters.length === 0 && <p className="text-xs text-muted-foreground">Aucun refuge enregistré.</p>}
+          <CardContent className="space-y-1.5 pt-0">
+            {shelters.length === 0 && <p className="text-xs text-muted-foreground">Aucun refuge.</p>}
             {shelters.map((s: any) => (
               <div key={s.id} className="flex items-center justify-between p-2 rounded-lg bg-secondary/30">
                 <div>
                   <p className="text-sm font-medium text-foreground">{s.name || "Sans nom"}</p>
                   <p className="text-[10px] text-muted-foreground">{s.organization_type || "refuge"} — {s.employeeCount} employé(s)</p>
-                  <p className="text-[10px] text-muted-foreground">{new Date(s.created_at).toLocaleDateString("fr-FR")}</p>
                 </div>
                 <Home className="h-4 w-4 text-primary" />
               </div>
@@ -641,205 +732,5 @@ function SheltersList() {
         </CollapsibleContent>
       </Card>
     </Collapsible>
-  );
-}
-
-function AdminDataManager() {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [deleteTarget, setDeleteTarget] = useState<{ type: string; id: string; name: string } | null>(null);
-
-  // Search profiles
-  const { data: foundProfiles = [] } = useQuery({
-    queryKey: ["admin-search-profiles", searchQuery],
-    queryFn: async () => {
-      if (searchQuery.length < 2) return [];
-      const { data } = await supabase
-        .from("profiles")
-        .select("user_id, display_name, created_at")
-        .ilike("display_name", `%${searchQuery}%`)
-        .limit(10);
-      return data || [];
-    },
-    enabled: searchQuery.length >= 2,
-  });
-
-  // Search dogs
-  const { data: foundDogs = [] } = useQuery({
-    queryKey: ["admin-search-dogs", searchQuery],
-    queryFn: async () => {
-      if (searchQuery.length < 2) return [];
-      const { data } = await supabase
-        .from("dogs")
-        .select("id, name, breed, user_id, created_at")
-        .ilike("name", `%${searchQuery}%`)
-        .limit(10);
-      return data || [];
-    },
-    enabled: searchQuery.length >= 2,
-  });
-
-  // Search training plans
-  const { data: foundPlans = [] } = useQuery({
-    queryKey: ["admin-search-plans", searchQuery],
-    queryFn: async () => {
-      if (searchQuery.length < 2) return [];
-      const { data } = await supabase
-        .from("training_plans")
-        .select("id, title, summary, user_id, created_at")
-        .ilike("title", `%${searchQuery}%`)
-        .limit(10);
-      return data || [];
-    },
-    enabled: searchQuery.length >= 2,
-  });
-
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    try {
-      let error;
-      if (deleteTarget.type === "dog") {
-        ({ error } = await supabase.from("dogs").delete().eq("id", deleteTarget.id));
-      } else if (deleteTarget.type === "plan") {
-        ({ error } = await supabase.from("training_plans").delete().eq("id", deleteTarget.id));
-      } else if (deleteTarget.type === "message") {
-        ({ error } = await supabase.from("messages").delete().eq("id", deleteTarget.id));
-      }
-      if (error) throw error;
-      toast({ title: "Supprimé ✅", description: `${deleteTarget.name} a été supprimé.` });
-      queryClient.invalidateQueries({ queryKey: ["admin-search"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-search-dogs"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-search-plans"] });
-    } catch (err: any) {
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
-    }
-    setDeleteTarget(null);
-  };
-
-  return (
-    <>
-      <Collapsible>
-        <Card>
-          <CollapsibleTrigger className="w-full">
-            <CardHeader className="pb-3 flex flex-row items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Search className="h-4 w-4" /> Gestion des données
-              </CardTitle>
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <CardContent className="space-y-3 pt-0">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Rechercher utilisateur, chien, plan..."
-                  className="pl-10"
-                />
-              </div>
-
-              {searchQuery.length >= 2 && (
-                <div className="space-y-3">
-                  {/* Profiles */}
-                  {foundProfiles.length > 0 && (
-                    <div>
-                      <p className="text-xs font-semibold text-muted-foreground mb-1 flex items-center gap-1">
-                        <Users className="h-3 w-3" /> Utilisateurs ({foundProfiles.length})
-                      </p>
-                      {foundProfiles.map((p: any) => (
-                        <div key={p.user_id} className="flex items-center justify-between p-2 rounded-lg bg-secondary/30 mb-1">
-                          <div>
-                            <p className="text-sm font-medium text-foreground">{p.display_name || "Sans nom"}</p>
-                            <p className="text-[10px] text-muted-foreground">{new Date(p.created_at).toLocaleDateString("fr-FR")}</p>
-                          </div>
-                          <Users className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Dogs */}
-                  {foundDogs.length > 0 && (
-                    <div>
-                      <p className="text-xs font-semibold text-muted-foreground mb-1 flex items-center gap-1">
-                        <Dog className="h-3 w-3" /> Chiens ({foundDogs.length})
-                      </p>
-                      {foundDogs.map((d: any) => (
-                        <div key={d.id} className="flex items-center justify-between p-2 rounded-lg bg-secondary/30 mb-1">
-                          <div>
-                            <p className="text-sm font-medium text-foreground">{d.name}</p>
-                            <p className="text-[10px] text-muted-foreground">{d.breed || "Race inconnue"}</p>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive"
-                            onClick={() => setDeleteTarget({ type: "dog", id: d.id, name: d.name })}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Plans */}
-                  {foundPlans.length > 0 && (
-                    <div>
-                      <p className="text-xs font-semibold text-muted-foreground mb-1 flex items-center gap-1">
-                        <FileText className="h-3 w-3" /> Plans ({foundPlans.length})
-                      </p>
-                      {foundPlans.map((p: any) => (
-                        <div key={p.id} className="flex items-center justify-between p-2 rounded-lg bg-secondary/30 mb-1">
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-foreground truncate">{p.title}</p>
-                            <p className="text-[10px] text-muted-foreground truncate">{p.summary?.substring(0, 60)}</p>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive flex-shrink-0"
-                            onClick={() => setDeleteTarget({ type: "plan", id: p.id, name: p.title })}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {foundProfiles.length === 0 && foundDogs.length === 0 && foundPlans.length === 0 && (
-                    <p className="text-xs text-muted-foreground text-center py-3">Aucun résultat trouvé.</p>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </CollapsibleContent>
-        </Card>
-      </Collapsible>
-
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-              Confirmer la suppression
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Êtes-vous sûr de vouloir supprimer <strong>{deleteTarget?.name}</strong> ? Cette action est irréversible.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Supprimer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
   );
 }
