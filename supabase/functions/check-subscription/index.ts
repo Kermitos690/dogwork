@@ -79,7 +79,8 @@ serve(async (req) => {
     const isShelter = roles.includes("shelter");
 
     // Only bypass for test accounts in non-production environments
-    const environment = Deno.env.get("ENVIRONMENT") || "development";
+    // Safe by default: if ENVIRONMENT is not set, treat as production (no test bypass)
+    const environment = Deno.env.get("ENVIRONMENT") || "production";
     const TEST_EMAILS = [
       "test-owner@pawplan.dev",
       "test-educator@pawplan.dev",
