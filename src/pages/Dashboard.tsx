@@ -15,6 +15,7 @@ import { DogSwitcher } from "@/components/DogSwitcher";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getDayById } from "@/data/program";
+import { useTranslation } from "react-i18next";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 14 },
@@ -35,6 +36,7 @@ export default function Dashboard() {
   const activeDog = useActiveDog();
   const { data: dogs } = useDogs();
   const adaptiveSuggestion = useAdaptiveSuggestion();
+  const { t } = useTranslation();
 
   const { data: progress } = useQuery({
     queryKey: ["day_progress", activeDog?.id],
