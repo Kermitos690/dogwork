@@ -42,7 +42,7 @@ export default function EmployeeActivity() {
     queryKey: ["employee-animals-list", shelterId],
     queryFn: async () => {
       const { data } = await supabase
-        .from("shelter_animals")
+        .from("shelter_animals_safe")
         .select("id, name")
         .eq("user_id", shelterId!)
         .neq("status", "adopté")
