@@ -221,5 +221,33 @@
     "sensitive": "Sensitive",
     "muzzle": "Muzzle",
     "cautious": "Cautious"
+  },
+  "exerciseDetail": {
+    "notFound": "Exercise not found.",
+    "listen": "Listen",
+    "stepLabel": "Step {{n}}",
+    "tutorialSteps": "Tutorial steps",
+    "voiceCommands": "What to say and how",
+    "tone": "Tone",
+    "when": "When",
+    "bodyPositioning": "Body positioning",
+    "handlerPosition": "Handler position",
+    "dogPosition": "Dog position",
+    "distance": "Distance",
+    "leashManagement": "Leash management",
+    "troubleshooting": "Troubleshooting",
+    "ifProblem": "If",
+    "thenSolution": "Then",
+    "prevention": "Prevention",
+    "mistakes": "Mistakes to avoid",
+    "consequence": "Consequence",
+    "correction": "Correction",
+    "validationProtocol": "Validation protocol",
+    "successCriteria": "Success criteria",
+    "stopCriteria": "Stop signals",
+    "vigilance": "Vigilance & safety",
+    "adaptations": "Profile adaptations",
+    "equipment": "Equipment",
+    "start": "Start"
   }
 }
