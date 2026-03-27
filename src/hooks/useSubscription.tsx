@@ -99,10 +99,10 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     checkSubscription();
   }, [checkSubscription]);
 
-  // Auto-refresh every 60s
+  // Auto-refresh every 5 minutes (was 60s — too aggressive)
   useEffect(() => {
     if (!session) return;
-    const interval = setInterval(checkSubscription, 60_000);
+    const interval = setInterval(checkSubscription, 5 * 60_000);
     return () => clearInterval(interval);
   }, [session, checkSubscription]);
 

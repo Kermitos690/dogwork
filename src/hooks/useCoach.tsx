@@ -2,52 +2,40 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
-export function useIsCoach() {
+/**
+ * Single query to fetch ALL roles for the current user.
+ * Every role-check hook below derives from this shared cache.
+ */
+function useUserRoles() {
   const { user } = useAuth();
   return useQuery({
-    queryKey: ["user-role", user?.id],
+    queryKey: ["user-roles", user?.id],
     queryFn: async () => {
-      if (!user) return false;
+      if (!user) return [];
       const { data } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id);
-      return data?.some((r) => r.role === "educator") ?? false;
+      return (data ?? []).map((r) => r.role);
     },
     enabled: !!user,
+    staleTime: 5 * 60_000,
   });
+}
+
+export function useIsCoach() {
+  const { data: roles, ...rest } = useUserRoles();
+  return { ...rest, data: roles?.includes("educator") ?? false };
 }
 
 export function useIsShelter() {
-  const { user } = useAuth();
-  return useQuery({
-    queryKey: ["user-role-shelter", user?.id],
-    queryFn: async () => {
-      if (!user) return false;
-      const { data } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id);
-      return data?.some((r) => r.role === ("shelter" as any)) ?? false;
-    },
-    enabled: !!user,
-  });
+  const { data: roles, ...rest } = useUserRoles();
+  return { ...rest, data: roles?.includes("shelter" as any) ?? false };
 }
 
 export function useIsShelterEmployee() {
-  const { user } = useAuth();
-  return useQuery({
-    queryKey: ["user-role-shelter-employee", user?.id],
-    queryFn: async () => {
-      if (!user) return false;
-      const { data } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id);
-      return data?.some((r) => r.role === ("shelter_employee" as any)) ?? false;
-    },
-    enabled: !!user,
-  });
+  const { data: roles, ...rest } = useUserRoles();
+  return { ...rest, data: roles?.includes("shelter_employee" as any) ?? false };
 }
 
 export function useShelterEmployeeInfo() {
@@ -91,7 +79,6 @@ export function useCoachClients() {
     queryKey: ["coach-clients", user?.id],
     queryFn: async () => {
       if (!user) return [];
-      // Get linked client IDs
       const { data: links } = await supabase
         .from("client_links")
         .select("client_user_id, created_at, status")
@@ -101,25 +88,15 @@ export function useCoachClients() {
 
       const clientIds = links.map((l) => l.client_user_id);
       
-      // Get profiles for these clients
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("*")
-        .in("user_id", clientIds);
-
-      // Get dogs for these clients
-      const { data: dogs } = await supabase
-        .from("dogs")
-        .select("*")
-        .in("user_id", clientIds);
-
-      // Get journal entries for recent activity
-      const { data: journals } = await supabase
-        .from("journal_entries")
-        .select("user_id, created_at, tension_level")
-        .in("user_id", clientIds)
-        .order("created_at", { ascending: false })
-        .limit(50);
+      const [{ data: profiles }, { data: dogs }, { data: journals }] = await Promise.all([
+        supabase.from("profiles").select("*").in("user_id", clientIds),
+        supabase.from("dogs").select("*").in("user_id", clientIds),
+        supabase.from("journal_entries")
+          .select("user_id, created_at, tension_level")
+          .in("user_id", clientIds)
+          .order("created_at", { ascending: false })
+          .limit(50),
+      ]);
 
       return links.map((link) => {
         const profile = profiles?.find((p) => p.user_id === link.client_user_id);
@@ -164,26 +141,19 @@ export function useCoachDogs() {
         .in("user_id", clientIds)
         .order("created_at", { ascending: false });
 
-      // Get profiles to attach client names
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, display_name")
-        .in("user_id", clientIds);
-
-      // Get recent journals for each dog
       const dogIds = (dogs ?? []).map((d) => d.id);
-      const { data: journals } = await supabase
-        .from("journal_entries")
-        .select("*")
-        .in("dog_id", dogIds)
-        .order("created_at", { ascending: false })
-        .limit(100);
 
-      // Get training plans
-      const { data: plans } = await supabase
-        .from("training_plans")
-        .select("id, dog_id, title, is_active")
-        .in("dog_id", dogIds);
+      const [{ data: profiles }, { data: journals }, { data: plans }] = await Promise.all([
+        supabase.from("profiles").select("user_id, display_name").in("user_id", clientIds),
+        supabase.from("journal_entries")
+          .select("*")
+          .in("dog_id", dogIds)
+          .order("created_at", { ascending: false })
+          .limit(100),
+        supabase.from("training_plans")
+          .select("id, dog_id, title, is_active")
+          .in("dog_id", dogIds),
+      ]);
 
       return (dogs ?? []).map((dog) => {
         const profile = profiles?.find((p) => p.user_id === dog.user_id);
