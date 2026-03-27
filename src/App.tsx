@@ -17,6 +17,7 @@ const GuidedTour = lazy(() => import("@/components/GuidedTour").then(m => ({ def
 import Auth from "./pages/Auth";
 
 // Lazy loaded pages
+const Landing = lazy(() => import("./pages/Landing"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -228,6 +229,7 @@ const App = () => {
           <BrowserRouter>
             <Suspense fallback={<PageLoader />}>
               <Routes>
+                <Route path="/landing" element={<Landing />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/*" element={<ProtectedRoutes />} />
               </Routes>
