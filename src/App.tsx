@@ -87,6 +87,30 @@ const PageLoader = () => (
   </div>
 );
 
+/** Detects recovery tokens in the URL hash and redirects to /reset-password */
+function RecoveryRedirect() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash.includes("type=recovery")) {
+      navigate("/reset-password" + hash, { replace: true });
+    }
+  }, [navigate, location]);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        navigate("/reset-password", { replace: true });
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  return null;
+}
+
 function ProtectedRoutes() {
   const { user, loading } = useAuth();
   const { data: dogs, isLoading: dogsLoading } = useDogs();
