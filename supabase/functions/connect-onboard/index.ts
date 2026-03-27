@@ -17,48 +17,69 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseAdmin = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false } }
-  );
-
   try {
     logStep("Function started");
 
-    const authHeader = req.headers.get("Authorization")!;
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Use anon-key client with getClaims for ES256 JWT compatibility
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
     const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseAdmin.auth.getUser(token);
-    const user = data.user;
-    if (!user?.email) throw new Error("Non authentifié");
-    logStep("User authenticated", { email: user.email });
+    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userId = claimsData.claims.sub as string;
+    const userEmail = claimsData.claims.email as string;
+    if (!userEmail) throw new Error("Email not available");
+    logStep("User authenticated", { userId });
+
+    // Service role client for DB operations
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
 
     // Verify educator role
     const { data: roles } = await supabaseAdmin
       .from("user_roles")
       .select("role")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .eq("role", "educator");
     if (!roles?.length) throw new Error("Accès réservé aux éducateurs");
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-      apiVersion: "2025-08-27.basil",
-    });
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     // Check if educator already has a Connect account
     const { data: stripeData } = await supabaseAdmin
       .from("coach_stripe_data")
       .select("stripe_account_id, stripe_onboarding_complete")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .maybeSingle();
 
     let accountId = stripeData?.stripe_account_id;
 
     if (!accountId) {
-      // Create a new Express Connect account
       const account = await stripe.accounts.create({
         type: "express",
-        email: user.email,
+        email: userEmail,
         country: "CH",
         capabilities: {
           card_payments: { requested: true },
@@ -66,7 +87,7 @@ serve(async (req) => {
         },
         business_type: "individual",
         metadata: {
-          user_id: user.id,
+          user_id: userId,
           platform: "dogwork",
         },
       });
@@ -74,15 +95,13 @@ serve(async (req) => {
       accountId = account.id;
       logStep("Connect account created", { accountId });
 
-      // Save to coach_stripe_data (upsert)
       await supabaseAdmin
         .from("coach_stripe_data")
-        .upsert({ user_id: user.id, stripe_account_id: accountId }, { onConflict: "user_id" });
+        .upsert({ user_id: userId, stripe_account_id: accountId }, { onConflict: "user_id" });
     } else {
       logStep("Existing Connect account found", { accountId });
     }
 
-    // Create an account link for onboarding
     const origin = req.headers.get("origin") || "https://dogwork.lovable.app";
 
     const accountLink = await stripe.accountLinks.create({
@@ -92,9 +111,9 @@ serve(async (req) => {
       type: "account_onboarding",
     });
 
-    logStep("Account link created", { url: accountLink.url });
+    logStep("Account link created");
 
-    return new Response(JSON.stringify({ url: accountLink.url, accountId }), {
+    return new Response(JSON.stringify({ url: accountLink.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: any) {

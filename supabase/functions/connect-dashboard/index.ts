@@ -17,41 +17,59 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseAdmin = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false } }
-  );
-
   try {
-    const authHeader = req.headers.get("Authorization")!;
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Use anon-key client with getClaims for ES256 JWT compatibility
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
     const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseAdmin.auth.getUser(token);
-    const user = data.user;
-    if (!user?.email) throw new Error("Non authentifié");
+    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userId = claimsData.claims.sub as string;
+
+    // Service role client for DB operations
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
 
     // Only admin can access the treasury dashboard
     const { data: adminRoles } = await supabaseAdmin
       .from("user_roles")
       .select("role")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .eq("role", "admin");
     if (!adminRoles?.length) throw new Error("Accès réservé à l'administrateur");
 
     const { action, educator_user_id } = await req.json();
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-      apiVersion: "2025-08-27.basil",
-    });
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     if (action === "list_accounts") {
-      // List all educators with Connect accounts from dedicated stripe table
       const { data: stripeAccounts } = await supabaseAdmin
         .from("coach_stripe_data")
         .select("user_id, stripe_account_id, stripe_onboarding_complete")
         .not("stripe_account_id", "is", null);
 
-      // Get display names from coach_profiles
       const userIds = (stripeAccounts || []).map(s => s.user_id);
       const { data: profiles } = await supabaseAdmin
         .from("coach_profiles")
@@ -80,12 +98,11 @@ serve(async (req) => {
             user_id: sd.user_id,
             display_name: nameMap.get(sd.user_id) || null,
             account_id: sd.stripe_account_id,
-            error: e.message,
+            error: "Account retrieval failed",
           });
         }
       }
 
-      // Platform balance
       const platformBalance = await stripe.balance.retrieve();
 
       return new Response(JSON.stringify({
@@ -100,7 +117,6 @@ serve(async (req) => {
     }
 
     if (action === "create_login_link" && educator_user_id) {
-      // Create Express dashboard login link for a specific educator
       const { data: sd } = await supabaseAdmin
         .from("coach_stripe_data")
         .select("stripe_account_id")
@@ -116,7 +132,6 @@ serve(async (req) => {
     }
 
     if (action === "platform_transfers") {
-      // List recent transfers from platform
       const transfers = await stripe.transfers.list({ limit: 50 });
       return new Response(JSON.stringify({ transfers: transfers.data }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -47,6 +47,13 @@ export type Database = {
             referencedRelation: "shelter_animals"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "adopter_links_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_animals_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       adoption_updates: {
@@ -86,6 +93,13 @@ export type Database = {
             columns: ["animal_id"]
             isOneToOne: false
             referencedRelation: "shelter_animals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "adoption_updates_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_animals_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -1392,10 +1406,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "shelter_activity_log_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_animals_safe"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "shelter_activity_log_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "shelter_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shelter_activity_log_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_employees_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -1476,6 +1504,13 @@ export type Database = {
             columns: ["animal_id"]
             isOneToOne: false
             referencedRelation: "shelter_animals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shelter_animal_evaluations_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_animals_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -1676,10 +1711,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "shelter_observations_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_animals_safe"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "shelter_observations_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "shelter_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shelter_observations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_employees_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -1775,6 +1824,13 @@ export type Database = {
             columns: ["current_animal_id"]
             isOneToOne: false
             referencedRelation: "shelter_animals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shelter_spaces_current_animal_id_fkey"
+            columns: ["current_animal_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_animals_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -1915,7 +1971,117 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      shelter_animals_safe: {
+        Row: {
+          arrival_date: string | null
+          behavior_notes: string | null
+          breed: string | null
+          chip_id: string | null
+          created_at: string | null
+          departure_date: string | null
+          departure_reason: string | null
+          description: string | null
+          estimated_age: string | null
+          health_notes: string | null
+          id: string | null
+          is_sterilized: boolean | null
+          name: string | null
+          photo_url: string | null
+          sex: string | null
+          species: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+          weight_kg: number | null
+        }
+        Insert: {
+          arrival_date?: string | null
+          behavior_notes?: string | null
+          breed?: string | null
+          chip_id?: string | null
+          created_at?: string | null
+          departure_date?: string | null
+          departure_reason?: string | null
+          description?: string | null
+          estimated_age?: string | null
+          health_notes?: string | null
+          id?: string | null
+          is_sterilized?: boolean | null
+          name?: string | null
+          photo_url?: string | null
+          sex?: string | null
+          species?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          weight_kg?: number | null
+        }
+        Update: {
+          arrival_date?: string | null
+          behavior_notes?: string | null
+          breed?: string | null
+          chip_id?: string | null
+          created_at?: string | null
+          departure_date?: string | null
+          departure_reason?: string | null
+          description?: string | null
+          estimated_age?: string | null
+          health_notes?: string | null
+          id?: string | null
+          is_sterilized?: boolean | null
+          name?: string | null
+          photo_url?: string | null
+          sex?: string | null
+          species?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          weight_kg?: number | null
+        }
+        Relationships: []
+      }
+      shelter_employees_safe: {
+        Row: {
+          auth_user_id: string | null
+          created_at: string | null
+          email: string | null
+          id: string | null
+          is_active: boolean | null
+          job_title: string | null
+          name: string | null
+          phone: string | null
+          role: string | null
+          shelter_user_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          auth_user_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          job_title?: string | null
+          name?: string | null
+          phone?: string | null
+          role?: string | null
+          shelter_user_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          auth_user_id?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          job_title?: string | null
+          name?: string | null
+          phone?: string | null
+          role?: string | null
+          shelter_user_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_coach_profile_safe: {

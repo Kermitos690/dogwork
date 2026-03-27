@@ -17,32 +17,51 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseAdmin = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false } }
-  );
-
   try {
-    const authHeader = req.headers.get("Authorization")!;
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Use anon-key client with getClaims for ES256 JWT compatibility
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
     const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseAdmin.auth.getUser(token);
-    const user = data.user;
-    if (!user?.email) throw new Error("Non authentifié");
+    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userId = claimsData.claims.sub as string;
+
+    // Service role client for DB operations
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
 
     // Check if request is from admin checking a specific educator
     let body: Record<string, any> = {};
     try {
       if (req.method === "POST") body = await req.json();
     } catch { /* empty body is fine */ }
-    const targetUserId = body.educator_user_id || user.id;
+    const targetUserId = body.educator_user_id || userId;
 
     // If checking another user, verify admin role
-    if (targetUserId !== user.id) {
+    if (targetUserId !== userId) {
       const { data: adminRoles } = await supabaseAdmin
         .from("user_roles")
         .select("role")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .eq("role", "admin");
       if (!adminRoles?.length) throw new Error("Accès non autorisé");
     }
@@ -64,13 +83,13 @@ serve(async (req) => {
       });
     }
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-      apiVersion: "2025-08-27.basil",
-    });
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
+
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     const account = await stripe.accounts.retrieve(stripeData.stripe_account_id);
     logStep("Account retrieved", {
-      accountId: account.id,
       chargesEnabled: account.charges_enabled,
       payoutsEnabled: account.payouts_enabled,
     });
@@ -84,11 +103,11 @@ serve(async (req) => {
         .eq("user_id", targetUserId);
     }
 
-    // Only expose account_id to admins — educators don't need it
+    // Only expose account_id to admins
     const { data: callerAdminRoles } = await supabaseAdmin
       .from("user_roles")
       .select("role")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .eq("role", "admin");
     const callerIsAdmin = (callerAdminRoles?.length ?? 0) > 0;
 
