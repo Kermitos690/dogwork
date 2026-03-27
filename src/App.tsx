@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
+import { Toaster as Sonner } from "sonner";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
@@ -265,6 +266,7 @@ const App = () => {
         <EducatorSubscriptionProvider>
         <TooltipProvider>
           <Toaster />
+          <Sonner position="top-center" richColors closeButton />
           <BrowserRouter>
             <RecoveryRouteGuard />
             <Suspense fallback={<PageLoader />}>
