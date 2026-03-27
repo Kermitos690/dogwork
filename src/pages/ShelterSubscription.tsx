@@ -60,6 +60,10 @@ export default function ShelterSubscription() {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (error) throw error;
+      if (data?.error === "no_customer") {
+        toast({ title: "Aucun abonnement", description: "Veuillez d'abord souscrire à un plan pour accéder au portail de gestion.", variant: "destructive" });
+        return;
+      }
       if (data?.url) window.open(data.url, "_blank");
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
