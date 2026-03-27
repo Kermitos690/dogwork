@@ -1,21 +1,34 @@
-import { describe, it, expect } from "vitest";
-import { getPhotoUrl } from "@/lib/photoUrl";
+import { describe, it, expect, vi } from "vitest";
 
-describe("getPhotoUrl", () => {
-  it("returns null for null input", () => {
-    expect(getPhotoUrl(null)).toBeNull();
+// Mock supabase before importing
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: {
+    storage: {
+      from: () => ({
+        createSignedUrl: vi.fn().mockResolvedValue({ data: { signedUrl: "https://signed.url" }, error: null }),
+        upload: vi.fn().mockResolvedValue({ error: null }),
+      }),
+    },
+  },
+}));
+
+import { getSignedPhotoUrl } from "@/lib/photoUrl";
+
+describe("getSignedPhotoUrl", () => {
+  it("returns null for null input", async () => {
+    expect(await getSignedPhotoUrl(null)).toBeNull();
   });
 
-  it("returns null for undefined input", () => {
-    expect(getPhotoUrl(undefined)).toBeNull();
+  it("returns null for undefined input", async () => {
+    expect(await getSignedPhotoUrl(undefined)).toBeNull();
   });
 
-  it("returns null for empty string", () => {
-    expect(getPhotoUrl("")).toBeNull();
+  it("returns null for empty string", async () => {
+    expect(await getSignedPhotoUrl("")).toBeNull();
   });
 
-  it("returns URL as-is if it starts with http", () => {
-    const url = "https://example.com/photo.jpg";
-    expect(getPhotoUrl(url)).toBe(url);
+  it("returns a signed URL for a valid path", async () => {
+    const result = await getSignedPhotoUrl("user123/dog456.jpg");
+    expect(result).toBeTruthy();
   });
 });

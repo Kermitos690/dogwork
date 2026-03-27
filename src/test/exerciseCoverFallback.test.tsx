@@ -1,16 +1,16 @@
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render } from "@testing-library/react";
 import { ExerciseCoverFallback } from "@/components/ExerciseCoverFallback";
 
 describe("ExerciseCoverFallback", () => {
   it("renders with exercise name", () => {
-    render(<ExerciseCoverFallback name="Rappel de base" />);
-    expect(screen.getByText("Rappel de base")).toBeInTheDocument();
+    const { getByText } = render(<ExerciseCoverFallback name="Rappel de base" />);
+    expect(getByText("Rappel de base")).toBeInTheDocument();
   });
 
   it("renders category icon when provided", () => {
-    render(<ExerciseCoverFallback name="Test" categoryIcon="🐕" />);
-    expect(screen.getByText("🐕")).toBeInTheDocument();
+    const { getByText } = render(<ExerciseCoverFallback name="Test" categoryIcon="🐕" />);
+    expect(getByText("🐕")).toBeInTheDocument();
   });
 
   it("produces deterministic gradient for same name", () => {
@@ -20,12 +20,12 @@ describe("ExerciseCoverFallback", () => {
   });
 
   it("does not show name text for sm size", () => {
-    render(<ExerciseCoverFallback name="Hidden Name" size="sm" />);
-    expect(screen.queryByText("Hidden Name")).not.toBeInTheDocument();
+    const { queryByText } = render(<ExerciseCoverFallback name="Hidden Name" size="sm" />);
+    expect(queryByText("Hidden Name")).not.toBeInTheDocument();
   });
 
   it("renders with lg size", () => {
-    render(<ExerciseCoverFallback name="Large Ex" size="lg" />);
-    expect(screen.getByText("Large Ex")).toBeInTheDocument();
+    const { getByText } = render(<ExerciseCoverFallback name="Large Ex" size="lg" />);
+    expect(getByText("Large Ex")).toBeInTheDocument();
   });
 });
