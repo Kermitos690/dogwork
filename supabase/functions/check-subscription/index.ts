@@ -17,12 +17,6 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false } }
-  );
-
   try {
     logStep("Function started");
 
@@ -37,16 +31,41 @@ serve(async (req) => {
       });
     }
 
+    // Use anon-key client with user's auth header for ES256 JWT compatibility
+    const userClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError || !userData.user?.email) {
-      logStep("Auth failed", { message: userError?.message || "No user/email" });
+    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      logStep("Auth failed", { message: claimsError?.message || "No claims" });
       return new Response(JSON.stringify({ subscribed: false, error: "auth_error" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 401,
       });
     }
-    const user = userData.user;
+
+    const userId = claimsData.claims.sub as string;
+    const userEmail = claimsData.claims.email as string;
+    if (!userEmail) {
+      logStep("No email in claims");
+      return new Response(JSON.stringify({ subscribed: false, error: "auth_error" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
+
+    // Service role client for admin queries (user_roles, etc.)
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
+
+    const user = { id: userId, email: userEmail } as { id: string; email: string };
     logStep("User authenticated", { email: user.email });
 
     // Dev/test accounts get full access automatically
