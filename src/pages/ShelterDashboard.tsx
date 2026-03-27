@@ -180,7 +180,7 @@ export default function ShelterDashboard() {
             <p className="text-xs text-muted-foreground">Aucune arrivée récente.</p>
           ) : (
             <div className="space-y-2">
-              {recentArrivals.map((animal: any) => (
+              {recentArrivals.map((animal) => (
                 <Card key={animal.id} className="cursor-pointer card-press" onClick={() => navigate(`/shelter/animals/${animal.id}`)}>
                   <CardContent className="p-3 flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-lg">
