@@ -87,32 +87,8 @@ const PageLoader = () => (
   </div>
 );
 
-/** Detects recovery tokens in the URL hash and redirects to /reset-password */
-function RecoveryRedirect() {
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  useEffect(() => {
-    const hash = window.location.hash;
-    if (hash && hash.includes("type=recovery")) {
-      navigate("/reset-password" + hash, { replace: true });
-    }
-  }, [navigate, location]);
-
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        navigate("/reset-password", { replace: true });
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  return null;
-}
-
 function ProtectedRoutes() {
-  const { user, loading } = useAuth();
+  const { user, loading, isPasswordRecovery } = useAuth();
   const location = useLocation();
   const { data: dogs, isLoading: dogsLoading } = useDogs();
   const { data: isCoach, isLoading: coachLoading } = useIsCoach();
@@ -142,6 +118,11 @@ function ProtectedRoutes() {
       return <Navigate to={`/reset-password${location.search}${location.hash}`} replace />;
     }
     return <Navigate to="/landing" replace />;
+  }
+
+  // If the auth system flagged this as a password recovery session, redirect to reset-password
+  if (isPasswordRecovery) {
+    return <Navigate to="/reset-password" replace />;
   }
 
   const hasDogs = dogs && dogs.length > 0;
@@ -265,7 +246,6 @@ const App = () => {
         <TooltipProvider>
           <Toaster />
           <BrowserRouter>
-            <RecoveryRedirect />
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/landing" element={<Landing />} />
