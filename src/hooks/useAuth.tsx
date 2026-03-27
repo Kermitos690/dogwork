@@ -24,22 +24,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
   useEffect(() => {
+    // Check if URL contains recovery markers — if so, we must wait for the
+    // code exchange to complete before declaring "not loading" to avoid
+    // premature redirect to /landing.
+    const params = new URLSearchParams(window.location.search);
+    const hash = window.location.hash;
+    const hasRecoveryMarkers =
+      params.has("code") ||
+      params.get("type") === "recovery" ||
+      hash.includes("type=recovery") ||
+      hash.includes("access_token=");
+    let codeExchangeHandled = !hasRecoveryMarkers; // if no markers, no need to wait
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      setLoading(false);
       if (event === "PASSWORD_RECOVERY") {
         setIsPasswordRecovery(true);
+      }
+      // For recovery flows, only stop loading once we get a real auth event
+      // (not INITIAL_SESSION which fires before code exchange).
+      if (event !== "INITIAL_SESSION" || codeExchangeHandled) {
+        codeExchangeHandled = true;
+        setLoading(false);
       }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      setLoading(false);
+      // Only stop loading from getSession if there's no pending code exchange
+      if (codeExchangeHandled) {
+        setLoading(false);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    // Safety timeout: if code exchange never fires (expired/invalid token),
+    // stop loading after 5 seconds to avoid infinite spinner.
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    if (hasRecoveryMarkers) {
+      timeout = setTimeout(() => {
+        codeExchangeHandled = true;
+        setLoading(false);
+      }, 5000);
+    }
+
+    return () => {
+      subscription.unsubscribe();
+      if (timeout) clearTimeout(timeout);
+    };
   }, []);
 
   const clearPasswordRecovery = useCallback(() => {
