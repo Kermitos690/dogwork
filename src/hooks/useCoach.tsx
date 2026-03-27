@@ -142,7 +142,7 @@ export function useCoachDogs() {
       const clientIds = links.map((l) => l.client_user_id);
       const { data: dogs } = await supabase
         .from("dogs")
-        .select("id, name, breed, photo_url, user_id, bite_history, muzzle_required, created_at")
+        .select("id, name, breed, photo_url, user_id, bite_history, muzzle_required, created_at, weight_kg, size, vet_restrictions, physical_limitations, joint_pain, heart_problems, epilepsy, obedience_level, sociability_dogs, sociability_humans, excitement_level, frustration_level, recovery_capacity")
         .in("user_id", clientIds)
         .order("created_at", { ascending: false });
 
