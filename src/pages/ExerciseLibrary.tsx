@@ -1,13 +1,16 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, ArrowLeft, BookOpen, SlidersHorizontal } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Search, ArrowLeft, BookOpen, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
 import { ExerciseCoverFallback } from "@/components/ExerciseCoverFallback";
+
+const PAGE_SIZE = 40;
 
 const levelColors: Record<string, string> = {
   "débutant": "bg-success/15 text-success border-success/20",
@@ -26,6 +29,7 @@ export default function ExerciseLibrary() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const { data: categories } = useQuery({
     queryKey: ["exercise_categories"],
@@ -38,7 +42,10 @@ export default function ExerciseLibrary() {
   const { data: exercises, isLoading } = useQuery({
     queryKey: ["exercises_library"],
     queryFn: async () => {
-      const { data } = await supabase.from("exercises").select("*, exercise_categories(name, icon, slug)").order("sort_order");
+      const { data } = await supabase
+        .from("exercises")
+        .select("id, slug, name, objective, level, exercise_type, cover_image, is_professional, tags, sort_order, exercise_categories(name, icon, slug)")
+        .order("sort_order");
       return data || [];
     },
   });
@@ -57,6 +64,17 @@ export default function ExerciseLibrary() {
     }
     return list;
   }, [search, selectedCategory, selectedLevel, exercises]);
+
+  // Reset visible count when filters change
+  const resetAndFilter = useCallback(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, []);
+
+  // Reset on filter change
+  useMemo(() => { resetAndFilter(); }, [selectedCategory, selectedLevel, search, resetAndFilter]);
+
+  const visible = filtered.slice(0, visibleCount);
+  const hasMore = visibleCount < filtered.length;
 
   return (
     <AppLayout>
@@ -91,18 +109,6 @@ export default function ExerciseLibrary() {
                 </button>
               ))}
             </div>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-2">Type</p>
-            <div className="flex flex-wrap gap-1.5">
-              {(exercises || []).some((e: any) => e.is_professional) && (
-                <button onClick={() => {
-                  // Toggle professional filter via category
-                  setSelectedCategory(selectedCategory === "__pro" ? null : "__pro");
-                }}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition-all ${selectedCategory === "__pro" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
-                  🛡️ Pro uniquement
-                </button>
-              )}
-            </div>
           </motion.div>
         )}
 
@@ -119,7 +125,7 @@ export default function ExerciseLibrary() {
           ))}
         </div>
 
-        <p className="text-[10px] text-muted-foreground">{filtered.length} exercice(s)</p>
+        <p className="text-[10px] text-muted-foreground">{filtered.length} exercice(s){hasMore ? ` · ${visibleCount} affichés` : ""}</p>
 
         {isLoading ? (
           <div className="space-y-2">
@@ -127,7 +133,7 @@ export default function ExerciseLibrary() {
           </div>
         ) : (
           <div className="space-y-2">
-            {filtered.map((exercise: any, i: number) => (
+            {visible.map((exercise: any, i: number) => (
               <motion.button key={exercise.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: Math.min(i * 0.02, 0.3), duration: 0.2 }}
                 whileTap={{ scale: 0.97 }}
@@ -151,6 +157,12 @@ export default function ExerciseLibrary() {
                 </div>
               </motion.button>
             ))}
+
+            {hasMore && (
+              <Button variant="outline" className="w-full gap-2" onClick={() => setVisibleCount(c => c + PAGE_SIZE)}>
+                <ChevronDown className="h-4 w-4" /> Voir plus ({filtered.length - visibleCount} restants)
+              </Button>
+            )}
           </div>
         )}
 

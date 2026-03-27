@@ -19,13 +19,14 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  // P0-1: Block in production — dev-login must NEVER be callable in prod
-  // Default to "development" so test/preview works; set ENVIRONMENT=production in Live
-  const environment = Deno.env.get("ENVIRONMENT") || "development";
-  if (environment === "production") {
+  // Safe by default: dev-login is BLOCKED unless ENVIRONMENT is explicitly "development"
+  // If ENVIRONMENT is not set at all, treat as production (secure by default)
+  const environment = Deno.env.get("ENVIRONMENT") || "production";
+  if (environment !== "development") {
     return new Response(
-      JSON.stringify({ error: "Not available in production" }),
+      JSON.stringify({ error: "Not available in this environment" }),
       { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
     );
   }
 
