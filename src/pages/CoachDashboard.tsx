@@ -34,7 +34,7 @@ export default function CoachDashboard() {
 
   return (
     <CoachLayout>
-      <div className="space-y-5 pt-14 pb-24">
+      <div className="space-y-5 pb-24">
         {/* Hero */}
         <motion.div {...fadeUp} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/20 via-card to-accent/10 border border-primary/20 p-5">
           <div className="relative z-10">

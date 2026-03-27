@@ -255,7 +255,7 @@ export default function ShelterMessages() {
   if (selectedUser) {
     return (
       <ShelterLayout>
-        <div className="pt-14 pb-24 flex flex-col h-[calc(100vh-4rem)]">
+        <div className="pb-24 flex flex-col h-[calc(100vh-4rem)]">
           <div className="flex items-center gap-2 mb-3">
             <Button variant="ghost" size="icon" onClick={() => setSelectedUser(null)}>
               <ArrowLeft className="h-5 w-5" />
@@ -305,7 +305,7 @@ export default function ShelterMessages() {
   // Conversation list with contacts
   return (
     <ShelterLayout>
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pt-14 pb-8 space-y-4">
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pb-8 space-y-4">
         <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
           <MessageSquare className="h-5 w-5 text-primary" />
           Messages
