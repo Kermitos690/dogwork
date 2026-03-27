@@ -27,7 +27,6 @@ Deno.serve(async (req) => {
       JSON.stringify({ error: "Not available in this environment" }),
       { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-    );
   }
 
   try {
