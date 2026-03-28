@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCreateDog } from "@/hooks/useDogs";
 import { supabase } from "@/integrations/supabase/client";
 import { generatePersonalizedPlan, type DogProfile } from "@/lib/planGenerator";
+import { BreedCombobox } from "@/components/BreedCombobox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -585,7 +586,7 @@ export default function Onboarding() {
       {/* Floating logout — always visible */}
       {user && (
         <button
-          onClick={() => { clearOnboardingState(); signOut(); }}
+          onClick={() => { signOut(); }}
           className="fixed bottom-6 right-6 z-50 p-3 rounded-full bg-card border border-border shadow-lg hover:bg-muted transition-colors"
           title="Se déconnecter"
         >
@@ -868,8 +869,7 @@ export default function Onboarding() {
 
                   <div className="space-y-1.5">
                     <Label className="text-sm">Race</Label>
-                    <Input value={breed} onChange={(e) => setBreed(e.target.value)} placeholder="Ex: Berger allemand"
-                      className="h-12 rounded-xl" />
+                    <BreedCombobox value={breed} onChange={setBreed} placeholder="Rechercher une race…" />
                   </div>
 
                   <div className="flex items-center justify-between p-3 rounded-xl bg-card border border-border">
