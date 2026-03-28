@@ -83,6 +83,8 @@ const EmployeeAnimals = lazy(() => import("./pages/EmployeeAnimals"));
 const EmployeeActivity = lazy(() => import("./pages/EmployeeActivity"));
 const EmployeeProfile = lazy(() => import("./pages/EmployeeProfile"));
 const EmployeeAnimalDetail = lazy(() => import("./pages/EmployeeAnimalDetail"));
+const AdoptionCheckins = lazy(() => import("./pages/AdoptionCheckins"));
+const ShelterAdoptionCheckins = lazy(() => import("./pages/ShelterAdoptionCheckins"));
 
 const queryClient = new QueryClient();
 
