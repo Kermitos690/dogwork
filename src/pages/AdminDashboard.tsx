@@ -745,3 +745,71 @@ function SheltersList() {
     </Collapsible>
   );
 }
+
+/* ───────── ADMIN CREATE USER ───────── */
+function AdminCreateUser({ onCreated }: { onCreated: () => void }) {
+  const { toast } = useToast();
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState("owner");
+  const [creating, setCreating] = useState(false);
+
+  const handleCreate = async () => {
+    if (!email || !password) return;
+    setCreating(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Session expirée");
+      const { data, error } = await supabase.functions.invoke("create-user", {
+        body: { email, password, displayName: name || email.split("@")[0], role: role === "owner" ? undefined : role },
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: "Compte créé ✅", description: `${email} peut maintenant se connecter directement.` });
+      setEmail(""); setName(""); setPassword(""); setRole("owner");
+      onCreated();
+    } catch (err: any) {
+      toast({ title: "Erreur", description: err.message || "Impossible de créer le compte", variant: "destructive" });
+    }
+    setCreating(false);
+  };
+
+  return (
+    <Card className="border-primary/30">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2"><UserCog className="h-4 w-4 text-primary" /> Créer un compte utilisateur</CardTitle>
+        <p className="text-[10px] text-muted-foreground">Le compte est activé immédiatement, sans confirmation par email.</p>
+      </CardHeader>
+      <CardContent className="space-y-2.5">
+        <div className="space-y-1">
+          <Label className="text-xs">Email *</Label>
+          <Input value={email} onChange={e => setEmail(e.target.value)} placeholder="utilisateur@email.com" type="email" />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Nom</Label>
+          <Input value={name} onChange={e => setName(e.target.value)} placeholder="Prénom Nom" />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Mot de passe *</Label>
+          <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 6 caractères" />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Rôle</Label>
+          <Select value={role} onValueChange={setRole}>
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="owner">🐕 Propriétaire</SelectItem>
+              <SelectItem value="educator">🎓 Éducateur</SelectItem>
+              <SelectItem value="shelter">🏠 Refuge</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <Button onClick={handleCreate} disabled={creating || !email || !password} className="w-full gap-2" size="sm">
+          <Plus className="h-4 w-4" /> {creating ? "Création..." : "Créer le compte"}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
