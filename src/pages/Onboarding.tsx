@@ -230,7 +230,7 @@ function PhotoUpload({ photoPreview, onPhotoSelect, onPhotoRemove, uploading }: 
 // ===== Main Component =====
 export default function Onboarding() {
   const navigate = useNavigate();
-  const { user, signIn, signUp, loading: authLoading } = useAuth();
+  const { user, signIn, signUp, signOut, loading: authLoading } = useAuth();
   const createDog = useCreateDog();
   const { toast } = useToast();
 
