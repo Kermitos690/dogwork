@@ -356,10 +356,10 @@ export default function Onboarding() {
         muzzleRequired, biteHistory, weightKg, birthDate, isMixed, isNeutered,
         hasChildren, hasOtherAnimals, jointPain, heartProblems, epilepsy,
         overweight, dailyMinutes, daysPerWeek, intensity, aloneHours,
-        healthNotes, adoptionDate,
+        healthNotes, adoptionDate, adoptedFromShelter, selectedShelterId, chipId,
       });
     }
-  }, [step, dogName, breed, sex, size, activityLevel, origin, environment, evaluation, selectedProblems, selectedObjectives, primaryObjective, muzzleRequired, biteHistory, weightKg, birthDate, isMixed, isNeutered, hasChildren, hasOtherAnimals, jointPain, heartProblems, epilepsy, overweight, dailyMinutes, daysPerWeek, intensity, aloneHours, healthNotes, adoptionDate]);
+  }, [step, dogName, breed, sex, size, activityLevel, origin, environment, evaluation, selectedProblems, selectedObjectives, primaryObjective, muzzleRequired, biteHistory, weightKg, birthDate, isMixed, isNeutered, hasChildren, hasOtherAnimals, jointPain, heartProblems, epilepsy, overweight, dailyMinutes, daysPerWeek, intensity, aloneHours, healthNotes, adoptionDate, adoptedFromShelter, selectedShelterId, chipId]);
 
   // Skip auth if logged in
   useEffect(() => {
