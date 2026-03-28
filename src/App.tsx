@@ -188,6 +188,7 @@ function ProtectedRoutes() {
           <Route path="/shelter/stats" element={<ShelterGuard><ShelterStats /></ShelterGuard>} />
           <Route path="/shelter/subscription" element={<ShelterGuard><ShelterSubscription /></ShelterGuard>} />
           <Route path="/shelter/coaches" element={<ShelterGuard><ShelterCoaches /></ShelterGuard>} />
+          <Route path="/shelter/adoption-checkins" element={<ShelterGuard><ShelterAdoptionCheckins /></ShelterGuard>} />
           <Route path="*" element={<Navigate to="/shelter" replace />} />
         </Routes>
       </Suspense>
@@ -227,6 +228,7 @@ function ProtectedRoutes() {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/support" element={<Suspense fallback={<PageLoader />}><SupportTickets /></Suspense>} />
         <Route path="/preferences" element={<PreferencesPage />} />
+        <Route path="/adoption-checkins" element={<AdoptionCheckins />} />
         <Route path="/program" element={<Navigate to="/plan" replace />} />
         {/* Coach / Educator routes */}
         <Route path="/coach" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachDashboard /></CoachGuard></Suspense>} />
