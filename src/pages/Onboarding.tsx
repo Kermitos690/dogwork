@@ -567,6 +567,7 @@ export default function Onboarding() {
         joint_pain: jointPain, heart_problems: heartProblems, epilepsy,
         overweight, muzzle_required: muzzleRequired, bite_history: biteHistory,
         health_notes: healthNotes,
+        chip_id: chipId.replace(/\s/g, "").trim() || null,
       };
       const createdDog = await createDog.mutateAsync(dogData);
       setCreatedDogId(createdDog.id);

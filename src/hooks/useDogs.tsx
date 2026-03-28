@@ -43,6 +43,7 @@ export type Dog = {
   separation_sensitivity: number | null;
   is_active: boolean;
   created_at: string;
+  chip_id: string | null;
   updated_at: string;
 };
 
