@@ -61,7 +61,16 @@ export default function AdminTreasury() {
         body: { action: "create_login_link", educator_user_id: educatorUserId },
       });
       if (error) throw error;
-      if (result?.url) window.open(result.url, "_blank");
+      if (result?.error) throw new Error(result.error);
+      if (result?.url) {
+        if (result.onboarding_incomplete) {
+          toast({ title: "Onboarding incomplet", description: "Redirection vers la page d'onboarding Stripe…" });
+        }
+        const w = window.open(result.url, "_blank");
+        if (!w) window.location.href = result.url;
+      } else {
+        toast({ title: "Erreur", description: "Aucune URL retournée", variant: "destructive" });
+      }
     } catch (e: any) {
       toast({ title: "Erreur", description: e.message, variant: "destructive" });
     }
