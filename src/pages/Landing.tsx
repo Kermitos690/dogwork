@@ -3,7 +3,8 @@ import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { 
   Brain, Calendar, ShieldCheck, Users, PawPrint, BarChart3, 
-  Building2, GraduationCap, Star, ArrowRight, CheckCircle2
+  Building2, GraduationCap, Star, ArrowRight, CheckCircle2,
+  Zap, Sparkles, Crown, Heart, Mail
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -303,59 +304,221 @@ export default function Landing() {
 
       {/* ========== PRICING ========== */}
       <section id="pricing" className="py-20 md:py-28 px-4">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }}
             variants={fadeUp} custom={0} className="text-center mb-16">
             <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">
-              {t("landing.pricingTitle").replace(".", "")}<span className="text-primary">.</span>
+              Transparence totale sur nos prix<span className="text-primary">.</span>
             </h2>
-            <p className="text-muted-foreground text-lg">
-              {t("landing.pricingDesc")}
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              Pas de surprise, pas de frais cachés. Choisissez le plan adapté à vos besoins.
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Free */}
+          {/* Owner tiers */}
+          <div className="text-center mb-6">
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground bg-muted/50 rounded-full px-4 py-1.5">
+              <PawPrint className="w-4 h-4" /> Propriétaires de chiens
+            </span>
+          </div>
+          <div className="grid md:grid-cols-3 gap-5 mb-14">
+            {/* Starter */}
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }}
               variants={fadeUp} custom={0}
-              className="p-8 rounded-2xl bg-card/60 border border-border/40">
-              <div className="text-sm text-muted-foreground font-medium mb-2">{t("landing.priceFree")}</div>
-              <div className="text-4xl font-black mb-1">0 CHF</div>
-              <div className="text-sm text-muted-foreground mb-6">{t("landing.priceForever")}</div>
-              <ul className="space-y-3 mb-8">
-                {[t("landing.priceFeat1"), t("landing.priceFeat2"), t("landing.priceFeat3"), t("landing.priceFeat4")].map((f, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="w-4 h-4 text-[hsl(var(--success))]" />
-                    {f}
+              className="p-6 rounded-2xl bg-card/60 border border-border/40 flex flex-col">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="rounded-lg p-2 bg-muted text-muted-foreground">
+                  <Zap className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">Starter</h3>
+                  <p className="text-xs text-muted-foreground">Gratuit, pour toujours</p>
+                </div>
+              </div>
+              <div className="text-3xl font-black mb-1">0 CHF</div>
+              <div className="text-sm text-muted-foreground mb-5">Aucun engagement</div>
+              <ul className="space-y-2.5 mb-6 flex-1">
+                {[
+                  "15 programmes pré-construits (7–21 jours)",
+                  "Suivi de progression quotidien",
+                  "Journal d'entraînement",
+                  "Bibliothèque d'exercices complète",
+                  "Statistiques de base",
+                  "Profil de chien détaillé",
+                ].map((f, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm">
+                    <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 text-[hsl(var(--success))]" />
+                    <span className="text-muted-foreground">{f}</span>
                   </li>
                 ))}
               </ul>
               <Button onClick={() => navigate("/auth")} variant="outline" className="w-full rounded-full">
-                {t("landing.priceSignup")}
+                Commencer gratuitement
               </Button>
             </motion.div>
 
             {/* Pro */}
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }}
               variants={fadeUp} custom={1}
-              className="relative p-8 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/30 shadow-lg shadow-primary/10">
-              <div className="absolute top-4 right-4 bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full">
-                {t("landing.pricePopular")}
+              className="p-6 rounded-2xl bg-card/60 border border-primary/30 flex flex-col">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="rounded-lg p-2 bg-primary/20 text-primary">
+                  <Sparkles className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">Pro</h3>
+                  <p className="text-xs text-muted-foreground">Pour aller plus loin</p>
+                </div>
               </div>
-              <div className="text-sm text-primary font-medium mb-2">{t("landing.priceExpert")}</div>
-              <div className="text-4xl font-black mb-1">9.90 CHF</div>
-              <div className="text-sm text-muted-foreground mb-6">{t("landing.pricePerMonth")}</div>
-              <ul className="space-y-3 mb-8">
-                {[t("landing.priceExpertFeat1"), t("landing.priceExpertFeat2"), t("landing.priceExpertFeat3"), t("landing.priceExpertFeat4"), t("landing.priceExpertFeat5"), t("landing.priceExpertFeat6")].map((f, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="w-4 h-4 text-primary" />
-                    {f}
+              <div className="text-3xl font-black mb-1">7.90 <span className="text-lg font-semibold text-muted-foreground">CHF/mois</span></div>
+              <div className="text-sm text-muted-foreground mb-5">Annulable à tout moment</div>
+              <ul className="space-y-2.5 mb-6 flex-1">
+                {[
+                  "Tout le plan Starter, plus :",
+                  "50 programmes pré-construits",
+                  "Plans personnalisés par IA",
+                  "Adaptation au profil & race du chien",
+                  "Évaluation comportementale complète",
+                  "Objectifs personnalisés",
+                ].map((f, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm">
+                    <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
+                    <span className="text-muted-foreground">{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <Button onClick={() => navigate("/auth")}
+                className="w-full rounded-full">
+                S'abonner – 7.90 CHF/mois
+              </Button>
+            </motion.div>
+
+            {/* Expert */}
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }}
+              variants={fadeUp} custom={2}
+              className="relative p-6 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 border border-accent/30 shadow-lg shadow-primary/10 flex flex-col">
+              <div className="absolute top-4 right-4 bg-accent text-accent-foreground text-xs font-bold px-3 py-1 rounded-full">
+                Populaire
+              </div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="rounded-lg p-2 bg-accent/20 text-accent">
+                  <Crown className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">Expert</h3>
+                  <p className="text-xs text-muted-foreground">L'expérience complète</p>
+                </div>
+              </div>
+              <div className="text-3xl font-black mb-1">12.90 <span className="text-lg font-semibold text-muted-foreground">CHF/mois</span></div>
+              <div className="text-sm text-muted-foreground mb-5">Annulable à tout moment</div>
+              <ul className="space-y-2.5 mb-6 flex-1">
+                {[
+                  "Tout le plan Pro, plus :",
+                  "Chatbot IA d'assistance 24/7",
+                  "Conseils personnalisés en temps réel",
+                  "Analyse comportementale avancée",
+                  "Génération illimitée de plans IA",
+                  "Support prioritaire",
+                ].map((f, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm">
+                    <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 text-accent" />
+                    <span className="text-muted-foreground">{f}</span>
                   </li>
                 ))}
               </ul>
               <Button onClick={() => navigate("/auth")}
                 className="w-full rounded-full bg-gradient-to-r from-primary to-accent hover:opacity-90">
-                {t("landing.priceTryNow")}
+                S'abonner – 12.90 CHF/mois
+              </Button>
+            </motion.div>
+          </div>
+
+          {/* Professional tiers */}
+          <div className="text-center mb-6">
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground bg-muted/50 rounded-full px-4 py-1.5">
+              <GraduationCap className="w-4 h-4" /> Professionnels
+            </span>
+          </div>
+          <div className="grid md:grid-cols-2 gap-5">
+            {/* Éducateur */}
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }}
+              variants={fadeUp} custom={0}
+              className="p-6 rounded-2xl bg-card/60 border border-border/40 flex flex-col">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="rounded-lg p-2 bg-primary/20 text-primary">
+                  <GraduationCap className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">Éducateur canin</h3>
+                  <p className="text-xs text-muted-foreground">Pour les professionnels de l'éducation</p>
+                </div>
+              </div>
+              <div className="text-3xl font-black mb-1">200 <span className="text-lg font-semibold text-muted-foreground">CHF/an</span></div>
+              <div className="text-sm text-muted-foreground mb-5">Facturation annuelle</div>
+              <ul className="space-y-2.5 mb-6 flex-1">
+                {[
+                  "Gestion complète de vos clients",
+                  "Suivi de tous les chiens clients",
+                  "Notes & plans d'entraînement par chien",
+                  "Calendrier de rendez-vous intégré",
+                  "Alertes professionnelles automatiques",
+                  "Publication de cours & réservations",
+                  "Paiements via Stripe Connect",
+                  "Tableau de bord & statistiques coach",
+                ].map((f, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm">
+                    <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
+                    <span className="text-muted-foreground">{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <Button onClick={() => navigate("/auth")}
+                className="w-full rounded-full">
+                S'inscrire – 200 CHF/an
+              </Button>
+            </motion.div>
+
+            {/* Refuge / Chenil */}
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }}
+              variants={fadeUp} custom={1}
+              className="p-6 rounded-2xl bg-gradient-to-br from-rose-500/5 to-primary/5 border border-rose-500/20 flex flex-col">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="rounded-lg p-2 bg-rose-500/20 text-rose-400">
+                  <Heart className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">Refuge & Chenil</h3>
+                  <p className="text-xs text-muted-foreground">Pour les associations & structures d'accueil</p>
+                </div>
+              </div>
+              <div className="text-3xl font-black mb-1">Sur mesure</div>
+              <div className="text-sm text-muted-foreground mb-5">Prix annuel adapté à votre structure</div>
+              <ul className="space-y-2.5 mb-6 flex-1">
+                {[
+                  "Gestion complète des animaux",
+                  "Fiches par animal & suivi santé",
+                  "Gestion des espaces & enclos",
+                  "Équipe d'employés avec rôles & accès",
+                  "Journal d'activités & observations",
+                  "Évaluations comportementales",
+                  "Collaboration avec éducateurs externes",
+                  "Messagerie intégrée",
+                ].map((f, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm">
+                    <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 text-rose-400" />
+                    <span className="text-muted-foreground">{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-muted-foreground text-center mb-4 leading-relaxed">
+                Notre mission est de soutenir les refuges et associations, pas de les facturer lourdement.
+                Le prix est adapté à chaque structure. Contactez-nous pour en discuter.
+              </p>
+              <Button onClick={() => window.location.href = "mailto:contact@dogwork.ch?subject=Demande%20refuge%20/%20chenil"}
+                variant="outline"
+                className="w-full rounded-full border-rose-500/30 hover:bg-rose-500/10">
+                <Mail className="w-4 h-4 mr-2" />
+                Nous contacter
               </Button>
             </motion.div>
           </div>
