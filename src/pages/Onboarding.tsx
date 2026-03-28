@@ -581,8 +581,17 @@ export default function Onboarding() {
 
   // ===== RENDER =====
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Progress header — steps 2–9 */}
+    <div className="min-h-screen bg-background flex flex-col relative">
+      {/* Floating logout — always visible */}
+      {user && (
+        <button
+          onClick={() => { clearOnboardingState(); signOut(); }}
+          className="fixed bottom-6 right-6 z-50 p-3 rounded-full bg-card border border-border shadow-lg hover:bg-muted transition-colors"
+          title="Se déconnecter"
+        >
+          <LogOut className="h-5 w-5 text-muted-foreground" />
+        </button>
+      )}
       {step >= 2 && step <= 9 && (
         <motion.div
           initial={{ y: -20, opacity: 0 }}
