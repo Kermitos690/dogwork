@@ -585,7 +585,7 @@ export default function Onboarding() {
       {/* Floating logout — always visible */}
       {user && (
         <button
-          onClick={() => { clearOnboardingState(); signOut(); }}
+          onClick={() => { signOut(); }}
           className="fixed bottom-6 right-6 z-50 p-3 rounded-full bg-card border border-border shadow-lg hover:bg-muted transition-colors"
           title="Se déconnecter"
         >
@@ -868,8 +868,7 @@ export default function Onboarding() {
 
                   <div className="space-y-1.5">
                     <Label className="text-sm">Race</Label>
-                    <Input value={breed} onChange={(e) => setBreed(e.target.value)} placeholder="Ex: Berger allemand"
-                      className="h-12 rounded-xl" />
+                    <BreedCombobox value={breed} onChange={setBreed} placeholder="Rechercher une race…" />
                   </div>
 
                   <div className="flex items-center justify-between p-3 rounded-xl bg-card border border-border">
