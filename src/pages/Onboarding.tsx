@@ -1093,6 +1093,21 @@ export default function Onboarding() {
                       className="h-12 rounded-xl text-base" autoFocus />
                   </div>
 
+                  {/* Chip ID for non-shelter users */}
+                  {!adoptedFromShelter && (
+                    <div className="space-y-1.5">
+                      <Label className="text-sm">N° de puce AMICUS <span className="text-muted-foreground">(optionnel)</span></Label>
+                      <Input value={chipId} onChange={(e) => {
+                        const raw = e.target.value.replace(/[^\d\s]/g, "");
+                        setChipId(raw);
+                      }} placeholder="756 0000 0000 000" maxLength={18}
+                        className="h-12 rounded-xl font-mono tracking-wider" />
+                      {chipId.replace(/\s/g, "").length > 0 && !chipId.replace(/\s/g, "").match(/^\d{15}$/) && (
+                        <p className="text-[11px] text-warning">Le numéro doit contenir exactement 15 chiffres.</p>
+                      )}
+                    </div>
+                  )}
+
                   <div className="space-y-1.5">
                     <Label className="text-sm">Race</Label>
                     <BreedCombobox value={breed} onChange={setBreed} placeholder="Rechercher une race…" />
