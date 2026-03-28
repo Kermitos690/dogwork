@@ -616,6 +616,45 @@ export default function Onboarding() {
         is_active: true,
       });
 
+      // === Post-adoption: create adopter_link + weekly check-ins ===
+      if (adoptedFromShelter && matchedAnimal && selectedShelterId) {
+        // Create adopter link
+        await supabase.from("adopter_links").insert({
+          adopter_user_id: user.id,
+          shelter_user_id: selectedShelterId,
+          animal_id: matchedAnimal.id,
+          animal_name: matchedAnimal.name,
+        }).throwOnError();
+
+        // Fetch shelter checkin config
+        const { data: shelterConfig } = await supabase
+          .from("shelter_profiles")
+          .select("checkin_frequency_weeks, checkin_total_weeks")
+          .eq("user_id", selectedShelterId)
+          .single();
+
+        const freqWeeks = shelterConfig?.checkin_frequency_weeks || 1;
+        const totalWeeks = shelterConfig?.checkin_total_weeks || 8;
+        const now = new Date();
+
+        // Generate weekly check-in schedule
+        const checkinRows = [];
+        for (let week = 1; week <= totalWeeks; week++) {
+          const dueDate = new Date(now);
+          dueDate.setDate(dueDate.getDate() + week * freqWeeks * 7);
+          checkinRows.push({
+            adopter_user_id: user.id,
+            animal_id: matchedAnimal.id,
+            shelter_user_id: selectedShelterId,
+            checkin_week: week,
+            due_date: dueDate.toISOString().split("T")[0],
+          });
+        }
+        if (checkinRows.length > 0) {
+          await supabase.from("adoption_checkins").insert(checkinRows);
+        }
+      }
+
       clearInterval(interval);
       setGenPhase(GEN_MESSAGES.length - 1);
       await new Promise((r) => setTimeout(r, 600));
@@ -626,7 +665,7 @@ export default function Onboarding() {
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
       goTo(9);
     }
-  }, [user, dogName, breed, isMixed, sex, isNeutered, birthDate, weightKg, size, activityLevel, origin, adoptionDate, environment, hasChildren, hasOtherAnimals, aloneHours, jointPain, heartProblems, epilepsy, overweight, muzzleRequired, biteHistory, healthNotes, evaluation, selectedProblems, selectedObjectives, primaryObjective, createDog, toast, photoFile]);
+  }, [user, dogName, breed, isMixed, sex, isNeutered, birthDate, weightKg, size, activityLevel, origin, adoptionDate, environment, hasChildren, hasOtherAnimals, aloneHours, jointPain, heartProblems, epilepsy, overweight, muzzleRequired, biteHistory, healthNotes, evaluation, selectedProblems, selectedObjectives, primaryObjective, createDog, toast, photoFile, adoptedFromShelter, matchedAnimal, selectedShelterId]);
 
   const finishOnboarding = () => {
     clearOnboardingState();
@@ -903,6 +942,77 @@ export default function Onboarding() {
                 <div className="text-center space-y-1">
                   <h2 className="text-xl font-bold text-foreground">Créons le profil de votre chien</h2>
                   <p className="text-sm text-muted-foreground">Commençons par les bases</p>
+                </div>
+
+                {/* Adoption refuge detection */}
+                <div className="p-4 rounded-2xl bg-card border border-border space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <Building2 className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">Adopté en refuge / chenil ?</span>
+                    </div>
+                    <Switch checked={adoptedFromShelter} onCheckedChange={(v) => {
+                      setAdoptedFromShelter(v);
+                      if (!v) { setMatchedAnimal(null); setChipError(""); setSelectedShelterId(""); setChipId(""); }
+                    }} />
+                  </div>
+
+                  {adoptedFromShelter && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      className="space-y-3"
+                    >
+                      <div className="space-y-1.5">
+                        <Label className="text-sm">Refuge / Chenil</Label>
+                        <Select value={selectedShelterId} onValueChange={setSelectedShelterId}>
+                          <SelectTrigger className="h-12 rounded-xl">
+                            <SelectValue placeholder="Sélectionner un refuge…" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {shelterList.map((s) => (
+                              <SelectItem key={s.user_id} value={s.user_id}>{s.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-sm">Numéro de puce</Label>
+                        <div className="flex gap-2">
+                          <Input value={chipId} onChange={(e) => setChipId(e.target.value)}
+                            placeholder="Ex: 756 0000 0000 000"
+                            className="h-12 rounded-xl flex-1" />
+                          <Button type="button" onClick={searchByChip} disabled={!chipId.trim() || chipSearching}
+                            className="h-12 rounded-xl px-4" variant="secondary">
+                            {chipSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                      </div>
+                      {chipError && (
+                        <p className="text-xs text-destructive bg-destructive/10 rounded-lg px-3 py-2">{chipError}</p>
+                      )}
+                      {matchedAnimal && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="flex items-center gap-3 p-3 rounded-xl bg-primary/5 border border-primary/20"
+                        >
+                          <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
+                          <div>
+                            <p className="text-sm font-semibold text-foreground">{matchedAnimal.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {matchedAnimal.breed || "Race inconnue"} · {matchedAnimal.sex === "male" ? "Mâle" : matchedAnimal.sex === "female" ? "Femelle" : "—"}
+                              {matchedAnimal.weight_kg ? ` · ${matchedAnimal.weight_kg} kg` : ""}
+                            </p>
+                          </div>
+                        </motion.div>
+                      )}
+                      {!matchedAnimal && (
+                        <HintBanner icon={<Info className="h-3.5 w-3.5" />}
+                          text="Le numéro de puce permet de lier votre chien à son dossier refuge et d'activer le suivi post-adoption." />
+                      )}
+                    </motion.div>
+                  )}
                 </div>
 
                 {/* Photo upload */}
