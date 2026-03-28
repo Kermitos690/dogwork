@@ -454,7 +454,8 @@ export default function Landing() {
                 </div>
               </div>
               <div className="text-3xl font-black mb-1">200 <span className="text-lg font-semibold text-muted-foreground">CHF/an</span></div>
-              <div className="text-sm text-muted-foreground mb-5">Facturation annuelle</div>
+              <div className="text-sm text-muted-foreground mb-1">Facturation annuelle</div>
+              <div className="text-xs text-muted-foreground/70 mb-5 italic">-30 % si rattaché à un refuge partenaire (140 CHF/an)</div>
               <ul className="space-y-2.5 mb-6 flex-1">
                 {[
                   "Gestion complète de vos clients",
@@ -472,9 +473,14 @@ export default function Landing() {
                   </li>
                 ))}
               </ul>
-              <p className="text-xs text-muted-foreground text-center mb-4 leading-relaxed">
-                16,8 % de frais sur les transactions cours — couvre les frais bancaires (Stripe) et l'écosystème DogWork.
-              </p>
+              <div className="bg-muted/40 rounded-xl p-3 mb-4 space-y-1.5">
+                <p className="text-xs font-semibold text-foreground">Transparence sur les frais</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  <strong>16,8 %</strong> de commission sur chaque transaction cours payée par un propriétaire.
+                  Ce taux unique couvre les frais bancaires Stripe <em>et</em> finance l'écosystème DogWork.
+                  C'est le seul modèle de monétisation de la plateforme.
+                </p>
+              </div>
               <Button onClick={() => navigate("/auth")}
                 className="w-full rounded-full">
                 S'inscrire – 200 CHF/an
