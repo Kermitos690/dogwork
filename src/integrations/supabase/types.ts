@@ -854,6 +854,7 @@ export type Database = {
           birth_date: string | null
           bite_history: boolean | null
           breed: string | null
+          chip_id: string | null
           created_at: string
           current_treatments: string | null
           environment: string | null
@@ -897,6 +898,7 @@ export type Database = {
           birth_date?: string | null
           bite_history?: boolean | null
           breed?: string | null
+          chip_id?: string | null
           created_at?: string
           current_treatments?: string | null
           environment?: string | null
@@ -940,6 +942,7 @@ export type Database = {
           birth_date?: string | null
           bite_history?: boolean | null
           breed?: string | null
+          chip_id?: string | null
           created_at?: string
           current_treatments?: string | null
           environment?: string | null

@@ -381,7 +381,7 @@ export default function Onboarding() {
     setChipError("");
     setMatchedAnimal(null);
     try {
-      let query = supabase.from("shelter_animals").select("*").eq("chip_id", chipId.trim());
+      let query = supabase.from("shelter_animals").select("*").eq("chip_id", chipId.replace(/\s/g, "").trim());
       if (selectedShelterId) query = query.eq("user_id", selectedShelterId);
       const { data, error } = await query.limit(1).maybeSingle();
       if (error) throw error;
@@ -567,6 +567,7 @@ export default function Onboarding() {
         joint_pain: jointPain, heart_problems: heartProblems, epilepsy,
         overweight, muzzle_required: muzzleRequired, bite_history: biteHistory,
         health_notes: healthNotes,
+        chip_id: chipId.replace(/\s/g, "").trim() || null,
       };
       const createdDog = await createDog.mutateAsync(dogData);
       setCreatedDogId(createdDog.id);
@@ -977,16 +978,24 @@ export default function Onboarding() {
                         </Select>
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="text-sm">Numéro de puce</Label>
+                        <Label className="text-sm">Numéro de puce AMICUS (15 chiffres)</Label>
                         <div className="flex gap-2">
-                          <Input value={chipId} onChange={(e) => setChipId(e.target.value)}
-                            placeholder="Ex: 756 0000 0000 000"
-                            className="h-12 rounded-xl flex-1" />
-                          <Button type="button" onClick={searchByChip} disabled={!chipId.trim() || chipSearching}
+                          <Input value={chipId} onChange={(e) => {
+                            const raw = e.target.value.replace(/[^\d\s]/g, "");
+                            setChipId(raw);
+                          }}
+                            placeholder="756 0000 0000 000"
+                            maxLength={18}
+                            className="h-12 rounded-xl flex-1 font-mono tracking-wider" />
+                          <Button type="button" onClick={searchByChip}
+                            disabled={!chipId.replace(/\s/g, "").match(/^\d{15}$/) || chipSearching}
                             className="h-12 rounded-xl px-4" variant="secondary">
                             {chipSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                           </Button>
                         </div>
+                        {chipId.replace(/\s/g, "").length > 0 && !chipId.replace(/\s/g, "").match(/^\d{15}$/) && (
+                          <p className="text-[11px] text-warning">Le numéro doit contenir exactement 15 chiffres (format ISO).</p>
+                        )}
                       </div>
                       {chipError && (
                         <p className="text-xs text-destructive bg-destructive/10 rounded-lg px-3 py-2">{chipError}</p>
@@ -1015,6 +1024,60 @@ export default function Onboarding() {
                   )}
                 </div>
 
+                {/* ePetCard PDF import */}
+                {!matchedAnimal && (
+                  <div className="p-4 rounded-2xl bg-card border border-border space-y-3">
+                    <div className="flex items-center gap-2.5">
+                      <Upload className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">Importer une ePetCard / PetCard PDF</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Uploadez votre carte AMICUS pour pré-remplir automatiquement le profil.
+                    </p>
+                    <div>
+                      <input
+                        type="file"
+                        accept=".pdf"
+                        className="hidden"
+                        id="epetcard-upload"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file || file.size > 5 * 1024 * 1024) {
+                            toast({ title: "Fichier trop volumineux", description: "Max 5 Mo", variant: "destructive" });
+                            return;
+                          }
+                          toast({ title: "Analyse en cours…" });
+                          try {
+                            const reader = new FileReader();
+                            reader.onload = async () => {
+                              const base64 = (reader.result as string).split(",")[1];
+                              const { data, error } = await supabase.functions.invoke("parse-epetcard", {
+                                body: { pdf_base64: base64 },
+                              });
+                              if (error) throw error;
+                              if (data?.chip_id) setChipId(data.chip_id);
+                              if (data?.name) setDogName(data.name);
+                              if (data?.breed) setBreed(data.breed);
+                              if (data?.sex) setSex(data.sex === "M" || data.sex === "mâle" || data.sex === "male" ? "male" : data.sex === "F" || data.sex === "femelle" || data.sex === "female" ? "female" : "");
+                              if (data?.birth_date) setBirthDate(data.birth_date);
+                              if (data?.is_neutered !== undefined) setIsNeutered(data.is_neutered);
+                              toast({ title: "Données importées ✓", description: `${data?.name || "Chien"} — puce ${data?.chip_id || "non trouvée"}` });
+                            };
+                            reader.readAsDataURL(file);
+                          } catch (err: any) {
+                            toast({ title: "Erreur d'import", description: err.message, variant: "destructive" });
+                          }
+                        }}
+                      />
+                      <label htmlFor="epetcard-upload">
+                        <Button type="button" variant="outline" className="w-full h-11 rounded-xl gap-2 cursor-pointer" asChild>
+                          <span><Upload className="h-4 w-4" /> Choisir un fichier PDF</span>
+                        </Button>
+                      </label>
+                    </div>
+                  </div>
+                )}
+
                 {/* Photo upload */}
                 <PhotoUpload
                   photoPreview={photoPreview}
@@ -1029,6 +1092,21 @@ export default function Onboarding() {
                     <Input value={dogName} onChange={(e) => setDogName(e.target.value)} placeholder="Ex: Luna, Rex…"
                       className="h-12 rounded-xl text-base" autoFocus />
                   </div>
+
+                  {/* Chip ID for non-shelter users */}
+                  {!adoptedFromShelter && (
+                    <div className="space-y-1.5">
+                      <Label className="text-sm">N° de puce AMICUS <span className="text-muted-foreground">(optionnel)</span></Label>
+                      <Input value={chipId} onChange={(e) => {
+                        const raw = e.target.value.replace(/[^\d\s]/g, "");
+                        setChipId(raw);
+                      }} placeholder="756 0000 0000 000" maxLength={18}
+                        className="h-12 rounded-xl font-mono tracking-wider" />
+                      {chipId.replace(/\s/g, "").length > 0 && !chipId.replace(/\s/g, "").match(/^\d{15}$/) && (
+                        <p className="text-[11px] text-warning">Le numéro doit contenir exactement 15 chiffres.</p>
+                      )}
+                    </div>
+                  )}
 
                   <div className="space-y-1.5">
                     <Label className="text-sm">Race</Label>
