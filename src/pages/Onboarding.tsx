@@ -268,6 +268,15 @@ export default function Onboarding() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
 
+  // Shelter adoption
+  const [adoptedFromShelter, setAdoptedFromShelter] = useState(false);
+  const [selectedShelterId, setSelectedShelterId] = useState("");
+  const [chipId, setChipId] = useState("");
+  const [shelterList, setShelterList] = useState<{ user_id: string; name: string }[]>([]);
+  const [matchedAnimal, setMatchedAnimal] = useState<any>(null);
+  const [chipSearching, setChipSearching] = useState(false);
+  const [chipError, setChipError] = useState("");
+
   // Health
   const [jointPain, setJointPain] = useState(false);
   const [heartProblems, setHeartProblems] = useState(false);
