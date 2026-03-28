@@ -16,7 +16,7 @@ import {
   Dog, Shield, ChevronRight, ChevronLeft, PartyPopper, Sparkles, Heart,
   Target, Clock, Mail, Lock, User, AlertTriangle, CheckCircle2, Loader2,
   Zap, Brain, PawPrint, Activity, Home, Baby, Users, Weight, Ruler, Calendar,
-  Save, Info, Camera, Upload, X
+  Save, Info, Camera, Upload, X, LogOut
 } from "lucide-react";
 import type { Dog as DogType } from "@/hooks/useDogs";
 
