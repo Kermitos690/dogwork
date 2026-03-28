@@ -119,11 +119,24 @@ serve(async (req) => {
     if (action === "create_login_link" && educator_user_id) {
       const { data: sd } = await supabaseAdmin
         .from("coach_stripe_data")
-        .select("stripe_account_id")
+        .select("stripe_account_id, stripe_onboarding_complete")
         .eq("user_id", educator_user_id)
         .single();
 
       if (!sd?.stripe_account_id) throw new Error("Éducateur sans compte Connect");
+
+      // If onboarding is not complete, return an onboarding link instead
+      if (!sd.stripe_onboarding_complete) {
+        const accountLink = await stripe.accountLinks.create({
+          account: sd.stripe_account_id,
+          refresh_url: `${req.headers.get("origin") || "https://dogwork.lovable.app"}/admin/treasury`,
+          return_url: `${req.headers.get("origin") || "https://dogwork.lovable.app"}/admin/treasury`,
+          type: "account_onboarding",
+        });
+        return new Response(JSON.stringify({ url: accountLink.url, onboarding_incomplete: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
       const loginLink = await stripe.accounts.createLoginLink(sd.stripe_account_id);
       return new Response(JSON.stringify({ url: loginLink.url }), {
