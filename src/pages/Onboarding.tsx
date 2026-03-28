@@ -381,7 +381,7 @@ export default function Onboarding() {
     setChipError("");
     setMatchedAnimal(null);
     try {
-      let query = supabase.from("shelter_animals").select("*").eq("chip_id", chipId.trim());
+      let query = supabase.from("shelter_animals").select("*").eq("chip_id", chipId.replace(/\s/g, "").trim());
       if (selectedShelterId) query = query.eq("user_id", selectedShelterId);
       const { data, error } = await query.limit(1).maybeSingle();
       if (error) throw error;
