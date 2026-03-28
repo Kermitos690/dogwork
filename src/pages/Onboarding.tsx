@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCreateDog } from "@/hooks/useDogs";
 import { supabase } from "@/integrations/supabase/client";
 import { generatePersonalizedPlan, type DogProfile } from "@/lib/planGenerator";
+import { BreedCombobox } from "@/components/BreedCombobox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
