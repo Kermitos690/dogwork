@@ -341,6 +341,9 @@ export default function Onboarding() {
       if (saved.aloneHours) setAloneHours(saved.aloneHours);
       if (saved.healthNotes) setHealthNotes(saved.healthNotes);
       if (saved.adoptionDate) setAdoptionDate(saved.adoptionDate);
+      if (saved.adoptedFromShelter) setAdoptedFromShelter(saved.adoptedFromShelter);
+      if (saved.selectedShelterId) setSelectedShelterId(saved.selectedShelterId);
+      if (saved.chipId) setChipId(saved.chipId);
     }
   }, []);
 
