@@ -366,6 +366,46 @@ export default function Onboarding() {
     if (user && step <= 1) setStep(2);
   }, [user, step]);
 
+  // Fetch shelter list for adoption dropdown
+  useEffect(() => {
+    if (!adoptedFromShelter) return;
+    supabase.from("shelter_profiles").select("user_id, name").order("name").then(({ data }) => {
+      if (data) setShelterList(data);
+    });
+  }, [adoptedFromShelter]);
+
+  // Search animal by chip_id
+  const searchByChip = useCallback(async () => {
+    if (!chipId.trim()) return;
+    setChipSearching(true);
+    setChipError("");
+    setMatchedAnimal(null);
+    try {
+      let query = supabase.from("shelter_animals").select("*").eq("chip_id", chipId.trim());
+      if (selectedShelterId) query = query.eq("user_id", selectedShelterId);
+      const { data, error } = await query.limit(1).maybeSingle();
+      if (error) throw error;
+      if (!data) {
+        setChipError("Aucun animal trouvé avec ce numéro de puce.");
+        return;
+      }
+      setMatchedAnimal(data);
+      // Pre-fill dog data from shelter animal
+      if (data.name) setDogName(data.name);
+      if (data.breed) setBreed(data.breed);
+      if (data.sex) setSex(data.sex);
+      if (data.weight_kg) setWeightKg(String(data.weight_kg));
+      if (data.is_sterilized) setIsNeutered(data.is_sterilized);
+      setOrigin("refuge");
+      if (!selectedShelterId) setSelectedShelterId(data.user_id);
+      toast({ title: "Animal trouvé !", description: `${data.name} — ${data.breed || "Race inconnue"}` });
+    } catch (err: any) {
+      setChipError(err.message);
+    } finally {
+      setChipSearching(false);
+    }
+  }, [chipId, selectedShelterId, toast]);
+
   // === Derived state ===
   const stepsInRange = PROGRESS_STEPS.last - PROGRESS_STEPS.first + 1;
   const currentProgress = step >= PROGRESS_STEPS.first && step <= PROGRESS_STEPS.last
