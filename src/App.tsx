@@ -51,6 +51,9 @@ const AdminGuard = lazy(() => import("./components/AdminGuard").then(m => ({ def
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const AdminTreasury = lazy(() => import("./pages/AdminTreasury"));
 const AdminLaunchChecklist = lazy(() => import("./pages/AdminLaunchChecklist"));
+const AdminSubscriptions = lazy(() => import("./pages/AdminSubscriptions"));
+const AdminTickets = lazy(() => import("./pages/AdminTickets"));
+const SupportTickets = lazy(() => import("./pages/SupportTickets"));
 const HelpPage = lazy(() => import("./pages/Help"));
 const SubscriptionPage = lazy(() => import("./pages/Subscription"));
 const CoursesPage = lazy(() => import("./pages/Courses"));
@@ -220,6 +223,7 @@ function ProtectedRoutes() {
         <Route path="/courses" element={<CoursesPage />} />
         <Route path="/messages" element={<MessagesPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/support" element={<Suspense fallback={<PageLoader />}><SupportTickets /></Suspense>} />
         <Route path="/preferences" element={<PreferencesPage />} />
         <Route path="/program" element={<Navigate to="/plan" replace />} />
         {/* Coach / Educator routes */}
@@ -238,6 +242,8 @@ function ProtectedRoutes() {
         <Route path="/admin" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminDashboard /></AdminGuard></Suspense>} />
         <Route path="/admin/treasury" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminTreasury /></AdminGuard></Suspense>} />
         <Route path="/admin/launch" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminLaunchChecklist /></AdminGuard></Suspense>} />
+        <Route path="/admin/subscriptions" element={<Suspense fallback={<PageLoader />}><AdminSubscriptions /></Suspense>} />
+        <Route path="/admin/tickets" element={<Suspense fallback={<PageLoader />}><AdminTickets /></Suspense>} />
         {/* Shelter routes for admin access (ShelterGuard allows admin) */}
         <Route path="/shelter" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterDashboard /></ShelterGuard></Suspense>} />
         <Route path="/shelter/animals" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterAnimals /></ShelterGuard></Suspense>} />

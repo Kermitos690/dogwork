@@ -12,6 +12,14 @@ const logStep = (step: string, details?: any) => {
   console.log(`[CHECK-SUBSCRIPTION] ${step}${d}`);
 };
 
+// Tier → product/price mapping for admin overrides
+const TIER_MAP: Record<string, { product_id: string; price_id: string }> = {
+  pro: { product_id: "prod_U83i1wbeLdd3EI", price_id: "price_1T9nakPshPrEibTgfEAogTJY" },
+  expert: { product_id: "prod_U83inCbv8JMMgf", price_id: "price_1T9nbAPshPrEibTgo3JA1m5S" },
+  educator: { product_id: "prod_U8CxlV7PMpHAgA", price_id: "price_1T9wXlPshPrEibTgEM0BNrSm" },
+  shelter: { product_id: "prod_UDKcjmnJnM7pBo", price_id: "price_1TEtxAPshPrEibTgsDFHr8Nw" },
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -31,7 +39,6 @@ serve(async (req) => {
       });
     }
 
-    // Use anon-key client with getClaims for ES256 JWT compatibility
     const userClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
@@ -58,7 +65,6 @@ serve(async (req) => {
       });
     }
 
-    // Service role client for admin queries
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
@@ -67,7 +73,40 @@ serve(async (req) => {
 
     logStep("User authenticated", { userId });
 
-    // Check roles for test account bypass (dev environment only)
+    // ── Check admin subscription overrides FIRST ──
+    const { data: adminOverrides } = await supabaseClient
+      .from("admin_subscriptions")
+      .select("tier")
+      .eq("user_id", userId)
+      .eq("is_active", true);
+
+    if (adminOverrides && adminOverrides.length > 0) {
+      // Pick the highest tier override
+      const tierPriority = ["shelter", "educator", "expert", "pro"];
+      let bestTier = adminOverrides[0].tier;
+      for (const ov of adminOverrides) {
+        if (tierPriority.indexOf(ov.tier) < tierPriority.indexOf(bestTier)) {
+          bestTier = ov.tier;
+        }
+      }
+
+      const mapped = TIER_MAP[bestTier];
+      if (mapped) {
+        logStep("Admin override active", { tier: bestTier, userId });
+        return new Response(JSON.stringify({
+          subscribed: true,
+          product_id: mapped.product_id,
+          price_id: mapped.price_id,
+          subscription_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+          admin_override: true,
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
+    }
+
+    // ── Check roles for test account bypass ──
     const { data: userRoles } = await supabaseClient
       .from("user_roles")
       .select("role")
@@ -78,8 +117,6 @@ serve(async (req) => {
     const isEducator = roles.includes("educator");
     const isShelter = roles.includes("shelter");
 
-    // Only bypass for test accounts in non-production environments
-    // Safe by default: if ENVIRONMENT is not set, treat as production (no test bypass)
     const environment = Deno.env.get("ENVIRONMENT") || "production";
     const TEST_EMAILS = [
       "test-owner@pawplan.dev",

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Download, LogOut, Info, User, Shield, CreditCard, Palette } from "lucide-react";
+import { ArrowLeft, Download, LogOut, Info, User, Shield, CreditCard, Palette, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppLayout } from "@/components/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
@@ -111,6 +111,20 @@ export default function Settings() {
           </p>
           <Button variant="outline" size="sm" className="w-full" onClick={() => navigate("/preferences")}>
             <Palette className="h-4 w-4" /> Personnaliser
+          </Button>
+        </div>
+
+        {/* Support */}
+        <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Support & Feedback</h3>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Signalez un bug ou proposez une amélioration.
+          </p>
+          <Button variant="outline" size="sm" className="w-full" onClick={() => navigate("/support")}>
+            <MessageSquare className="h-4 w-4" /> Créer un ticket
           </Button>
         </div>
 
