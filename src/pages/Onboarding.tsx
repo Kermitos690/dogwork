@@ -1024,6 +1024,60 @@ export default function Onboarding() {
                   )}
                 </div>
 
+                {/* ePetCard PDF import */}
+                {!matchedAnimal && (
+                  <div className="p-4 rounded-2xl bg-card border border-border space-y-3">
+                    <div className="flex items-center gap-2.5">
+                      <Upload className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">Importer une ePetCard / PetCard PDF</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Uploadez votre carte AMICUS pour pré-remplir automatiquement le profil.
+                    </p>
+                    <div>
+                      <input
+                        type="file"
+                        accept=".pdf"
+                        className="hidden"
+                        id="epetcard-upload"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file || file.size > 5 * 1024 * 1024) {
+                            toast({ title: "Fichier trop volumineux", description: "Max 5 Mo", variant: "destructive" });
+                            return;
+                          }
+                          toast({ title: "Analyse en cours…" });
+                          try {
+                            const reader = new FileReader();
+                            reader.onload = async () => {
+                              const base64 = (reader.result as string).split(",")[1];
+                              const { data, error } = await supabase.functions.invoke("parse-epetcard", {
+                                body: { pdf_base64: base64 },
+                              });
+                              if (error) throw error;
+                              if (data?.chip_id) setChipId(data.chip_id);
+                              if (data?.name) setDogName(data.name);
+                              if (data?.breed) setBreed(data.breed);
+                              if (data?.sex) setSex(data.sex === "M" || data.sex === "mâle" || data.sex === "male" ? "male" : data.sex === "F" || data.sex === "femelle" || data.sex === "female" ? "female" : "");
+                              if (data?.birth_date) setBirthDate(data.birth_date);
+                              if (data?.is_neutered !== undefined) setIsNeutered(data.is_neutered);
+                              toast({ title: "Données importées ✓", description: `${data?.name || "Chien"} — puce ${data?.chip_id || "non trouvée"}` });
+                            };
+                            reader.readAsDataURL(file);
+                          } catch (err: any) {
+                            toast({ title: "Erreur d'import", description: err.message, variant: "destructive" });
+                          }
+                        }}
+                      />
+                      <label htmlFor="epetcard-upload">
+                        <Button type="button" variant="outline" className="w-full h-11 rounded-xl gap-2 cursor-pointer" asChild>
+                          <span><Upload className="h-4 w-4" /> Choisir un fichier PDF</span>
+                        </Button>
+                      </label>
+                    </div>
+                  </div>
+                )}
+
                 {/* Photo upload */}
                 <PhotoUpload
                   photoPreview={photoPreview}
