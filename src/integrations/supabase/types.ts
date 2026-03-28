@@ -89,6 +89,78 @@ export type Database = {
           },
         ]
       }
+      adoption_checkins: {
+        Row: {
+          adopter_user_id: string
+          animal_id: string
+          behavior_notes: string | null
+          checkin_week: number
+          concerns: string | null
+          created_at: string
+          due_date: string
+          general_mood: string | null
+          health_status: string | null
+          highlights: string | null
+          id: string
+          photos: string[] | null
+          shelter_user_id: string
+          submitted_at: string | null
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          adopter_user_id: string
+          animal_id: string
+          behavior_notes?: string | null
+          checkin_week: number
+          concerns?: string | null
+          created_at?: string
+          due_date: string
+          general_mood?: string | null
+          health_status?: string | null
+          highlights?: string | null
+          id?: string
+          photos?: string[] | null
+          shelter_user_id: string
+          submitted_at?: string | null
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          adopter_user_id?: string
+          animal_id?: string
+          behavior_notes?: string | null
+          checkin_week?: number
+          concerns?: string | null
+          created_at?: string
+          due_date?: string
+          general_mood?: string | null
+          health_status?: string | null
+          highlights?: string | null
+          id?: string
+          photos?: string[] | null
+          shelter_user_id?: string
+          submitted_at?: string | null
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "adoption_checkins_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_animals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "adoption_checkins_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_animals_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       adoption_updates: {
         Row: {
           adopter_email: string | null
@@ -1769,6 +1841,8 @@ export type Database = {
       shelter_profiles: {
         Row: {
           address: string | null
+          checkin_frequency_weeks: number | null
+          checkin_total_weeks: number | null
           created_at: string
           description: string | null
           id: string
@@ -1780,6 +1854,8 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          checkin_frequency_weeks?: number | null
+          checkin_total_weeks?: number | null
           created_at?: string
           description?: string | null
           id?: string
@@ -1791,6 +1867,8 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          checkin_frequency_weeks?: number | null
+          checkin_total_weeks?: number | null
           created_at?: string
           description?: string | null
           id?: string
