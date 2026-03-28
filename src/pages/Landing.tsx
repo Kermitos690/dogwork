@@ -472,6 +472,9 @@ export default function Landing() {
                   </li>
                 ))}
               </ul>
+              <p className="text-xs text-muted-foreground text-center mb-4 leading-relaxed">
+                16,8 % de frais sur les transactions cours — couvre les frais bancaires (Stripe) et l'écosystème DogWork.
+              </p>
               <Button onClick={() => navigate("/auth")}
                 className="w-full rounded-full">
                 S'inscrire – 200 CHF/an
