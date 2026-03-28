@@ -17,8 +17,9 @@ import {
   Dog, Shield, ChevronRight, ChevronLeft, PartyPopper, Sparkles, Heart,
   Target, Clock, Mail, Lock, User, AlertTriangle, CheckCircle2, Loader2,
   Zap, Brain, PawPrint, Activity, Home, Baby, Users, Weight, Ruler, Calendar,
-  Save, Info, Camera, Upload, X, LogOut
+  Save, Info, Camera, Upload, X, LogOut, Building2, Search
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Dog as DogType } from "@/hooks/useDogs";
 
 // ===== Constants =====
