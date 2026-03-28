@@ -978,16 +978,24 @@ export default function Onboarding() {
                         </Select>
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="text-sm">Numéro de puce</Label>
+                        <Label className="text-sm">Numéro de puce AMICUS (15 chiffres)</Label>
                         <div className="flex gap-2">
-                          <Input value={chipId} onChange={(e) => setChipId(e.target.value)}
-                            placeholder="Ex: 756 0000 0000 000"
-                            className="h-12 rounded-xl flex-1" />
-                          <Button type="button" onClick={searchByChip} disabled={!chipId.trim() || chipSearching}
+                          <Input value={chipId} onChange={(e) => {
+                            const raw = e.target.value.replace(/[^\d\s]/g, "");
+                            setChipId(raw);
+                          }}
+                            placeholder="756 0000 0000 000"
+                            maxLength={18}
+                            className="h-12 rounded-xl flex-1 font-mono tracking-wider" />
+                          <Button type="button" onClick={searchByChip}
+                            disabled={!chipId.replace(/\s/g, "").match(/^\d{15}$/) || chipSearching}
                             className="h-12 rounded-xl px-4" variant="secondary">
                             {chipSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                           </Button>
                         </div>
+                        {chipId.replace(/\s/g, "").length > 0 && !chipId.replace(/\s/g, "").match(/^\d{15}$/) && (
+                          <p className="text-[11px] text-warning">Le numéro doit contenir exactement 15 chiffres (format ISO).</p>
+                        )}
                       </div>
                       {chipError && (
                         <p className="text-xs text-destructive bg-destructive/10 rounded-lg px-3 py-2">{chipError}</p>

@@ -165,6 +165,16 @@ export default function DogProfile() {
             <Input value={form.name || ""} onChange={(e) => update("name", e.target.value)} placeholder="Nom du chien" />
           </div>
           <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">N° puce AMICUS</Label>
+            <Input value={form.chip_id || ""} onChange={(e) => {
+              const raw = e.target.value.replace(/[^\d\s]/g, "");
+              update("chip_id", raw.replace(/\s/g, "").trim() || null);
+            }} placeholder="756 0000 0000 000" maxLength={18} className="font-mono tracking-wider" />
+            {form.chip_id && !String(form.chip_id).match(/^\d{15}$/) && (
+              <p className="text-[11px] text-warning">Format ISO : 15 chiffres exactement.</p>
+            )}
+          </div>
+          <div className="space-y-1">
             <Label className="text-xs text-muted-foreground">Race</Label>
             <BreedCombobox value={form.breed || ""} onChange={(v) => update("breed", v)} />
           </div>
