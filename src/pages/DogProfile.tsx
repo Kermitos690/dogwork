@@ -98,6 +98,47 @@ export default function DogProfile() {
 
   const update = (key: string, value: any) => setForm((f) => ({ ...f, [key]: value }));
 
+  // Fetch shelter list when adoption toggle is on
+  useEffect(() => {
+    if (!adoptedFromShelter) return;
+    supabase.from("shelter_profiles_public" as any).select("user_id, name").order("name").then(({ data }) => {
+      if (data) setShelterList(data as unknown as { user_id: string; name: string }[]);
+    });
+  }, [adoptedFromShelter]);
+
+  // Search animal by chip_id
+  const searchByChip = useCallback(async () => {
+    const chipVal = form.chip_id?.replace(/\s/g, "").trim();
+    if (!chipVal) return;
+    setChipSearching(true);
+    setChipError("");
+    setMatchedAnimal(null);
+    try {
+      const { data: results, error } = await supabase.rpc("search_animal_by_chip", { _chip_id: chipVal });
+      if (error) throw error;
+      let data = results?.[0] ?? null;
+      if (data && selectedShelterId && data.shelter_user_id !== selectedShelterId) data = null;
+      if (!data) {
+        setChipError("Aucun animal trouvé avec ce numéro de puce.");
+        return;
+      }
+      setMatchedAnimal(data);
+      // Pre-fill dog data from shelter animal
+      const prefill: Partial<Dog> = {};
+      if (data.name) prefill.name = data.name;
+      if (data.breed) prefill.breed = data.breed;
+      if (data.sex) prefill.sex = data.sex;
+      prefill.origin = "refuge";
+      if (!selectedShelterId) setSelectedShelterId(data.shelter_user_id);
+      setForm(f => ({ ...f, ...prefill }));
+      toast({ title: "Animal trouvé !", description: `${data.name} — ${data.breed || "Race inconnue"}` });
+    } catch (err: any) {
+      setChipError(err.message);
+    } finally {
+      setChipSearching(false);
+    }
+  }, [form.chip_id, selectedShelterId, toast]);
+
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
