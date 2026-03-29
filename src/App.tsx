@@ -240,6 +240,7 @@ function ProtectedRoutes() {
         <Route path="/preferences" element={<PreferencesPage />} />
         <Route path="/adoption-checkins" element={<AdoptionCheckins />} />
         <Route path="/adoption-followup" element={<AdoptionFollowup />} />
+        <Route path="/force-password-change" element={<ForcePasswordChange />} />
         <Route path="/program" element={<Navigate to="/plan" replace />} />
         {/* Coach / Educator routes */}
         <Route path="/coach" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachDashboard /></CoachGuard></Suspense>} />
