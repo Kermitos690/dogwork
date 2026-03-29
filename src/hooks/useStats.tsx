@@ -75,7 +75,7 @@ const getDistanceTrend = (recent: number[], older: number[]): "improving" | "wor
   return diff < 0 ? "improving" : "worsening";
 };
 
-export function useStats(period: "7" | "14" | "30" | "all" = "all") {
+export function useStats(period: "7" | "14" | "30" | "all" = "all", loadAdvanced = true) {
   const activeDog = useActiveDog();
 
   const { data: progressData } = useQuery({
@@ -89,6 +89,7 @@ export function useStats(period: "7" | "14" | "30" | "all" = "all") {
     enabled: !!activeDog,
   });
 
+  // Only load behavior logs for advanced stats (Pro+)
   const { data: behaviorData } = useQuery({
     queryKey: ["stats_behavior", activeDog?.id],
     queryFn: async () => {
@@ -98,7 +99,7 @@ export function useStats(period: "7" | "14" | "30" | "all" = "all") {
         .order("created_at");
       return data || [];
     },
-    enabled: !!activeDog,
+    enabled: !!activeDog && loadAdvanced,
   });
 
   const { data: sessionsData } = useQuery({
@@ -112,6 +113,7 @@ export function useStats(period: "7" | "14" | "30" | "all" = "all") {
     enabled: !!activeDog,
   });
 
+  // Only load journal for advanced stats (Pro+)
   const { data: journalData } = useQuery({
     queryKey: ["stats_journal", activeDog?.id],
     queryFn: async () => {
@@ -121,7 +123,7 @@ export function useStats(period: "7" | "14" | "30" | "all" = "all") {
         .order("created_at");
       return data || [];
     },
-    enabled: !!activeDog,
+    enabled: !!activeDog && loadAdvanced,
   });
 
   return useMemo((): StatsSummary | null => {
