@@ -9,14 +9,7 @@ const corsHeaders = {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  // Safe by default: block unless ENVIRONMENT is explicitly "development"
-  const environment = Deno.env.get("ENVIRONMENT") || "production";
-  if (environment !== "development") {
-    return new Response(JSON.stringify({ error: "Not available in this environment" }), {
-      status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+  // Security: admin-only auth check below is the protection layer
 
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
