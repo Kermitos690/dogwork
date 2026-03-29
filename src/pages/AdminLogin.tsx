@@ -35,14 +35,27 @@ export default function AdminLogin() {
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password: password.trim(),
-    });
-    setLoading(false);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password: password.trim(),
+      });
 
-    if (error) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      if (error) {
+        toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erreur inconnue";
+      toast({
+        title: "Erreur de connexion",
+        description:
+          message === "Load failed"
+            ? "Impossible de joindre le serveur pour le moment. Vérifiez votre connexion puis réessayez."
+            : message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
