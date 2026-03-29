@@ -95,15 +95,16 @@ export default function AdoptionFollowup() {
       if (!user || !selectedPlan) throw new Error("Non authentifié");
       const form = entryForm[taskId] || {};
       const existingEntry = entries?.find(e => e.task_id === taskId);
-      const photos = form.photos ? form.photos.split(",").map(s => s.trim()).filter(Boolean) : [];
+      const photosStr = (form as any).photos as string | undefined;
+      const photos = photosStr ? photosStr.split(",").map(s => s.trim()).filter(Boolean) : [];
 
       if (existingEntry) {
         const { error } = await supabase.from("adoption_plan_entries").update({
           completed,
-          notes: form.notes || existingEntry.notes || "",
-          mood: form.mood || existingEntry.mood,
+          notes: (form as any).notes || existingEntry.notes || "",
+          mood: (form as any).mood || existingEntry.mood,
           photos: photos.length ? photos : existingEntry.photos,
-          video_url: form.video_url || existingEntry.video_url,
+          video_url: (form as any).video_url || existingEntry.video_url,
         }).eq("id", existingEntry.id);
         if (error) throw error;
       } else {
@@ -112,10 +113,10 @@ export default function AdoptionFollowup() {
           plan_id: selectedPlan,
           adopter_user_id: user.id,
           completed,
-          notes: form.notes || "",
-          mood: form.mood || null,
+          notes: (form as any).notes || "",
+          mood: (form as any).mood || null,
           photos,
-          video_url: form.video_url || null,
+          video_url: (form as any).video_url || null,
         });
         if (error) throw error;
       }
