@@ -12,10 +12,10 @@ export default function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, resetPassword } = useAuth();
 
-  // If already logged in, redirect to admin
   useEffect(() => {
     if (user) {
       navigate("/admin", { replace: true });
@@ -24,13 +24,52 @@ export default function AdminLogin() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (/\s/.test(password)) {
+      toast({
+        title: "Erreur",
+        description: "Le mot de passe ne doit pas contenir d'espace.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password: password.trim(),
+    });
     setLoading(false);
+
     if (error) {
       toast({ title: "Erreur", description: error.message, variant: "destructive" });
     }
-    // Navigation is handled by the useEffect above once user state updates
+  };
+
+  const handleResetPassword = async () => {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      toast({
+        title: "Email requis",
+        description: "Entrez d'abord l'email admin.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setResetting(true);
+    const { error } = await resetPassword(normalizedEmail);
+    setResetting(false);
+
+    if (error) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      return;
+    }
+
+    toast({
+      title: "Email envoyé",
+      description: "Lien de réinitialisation envoyé. Vérifiez votre boîte mail.",
+    });
   };
 
   return (
@@ -41,6 +80,7 @@ export default function AdminLogin() {
             <Shield className="h-8 w-8 text-primary mx-auto" />
             <h1 className="text-lg font-bold text-foreground">Accès administrateur</h1>
           </div>
+
           <form onSubmit={handleLogin} className="space-y-3">
             <Input
               type="email"
@@ -49,6 +89,9 @@ export default function AdminLogin() {
               onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
             />
             <Input
               type="password"
@@ -57,11 +100,27 @@ export default function AdminLogin() {
               onChange={(e) => setPassword(e.target.value)}
               required
               autoComplete="current-password"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
             />
+            <p className="text-xs text-muted-foreground">
+              Vérifiez qu'il n'y a aucun espace dans le mot de passe.
+            </p>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Connexion…" : "Se connecter"}
             </Button>
           </form>
+
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full"
+            onClick={handleResetPassword}
+            disabled={resetting}
+          >
+            {resetting ? "Envoi en cours…" : "Mot de passe oublié"}
+          </Button>
         </CardContent>
       </Card>
     </div>
