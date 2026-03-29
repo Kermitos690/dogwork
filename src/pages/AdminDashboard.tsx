@@ -685,6 +685,8 @@ function AdminUsersManager() {
     }
     setGeneratingPdf(null);
   };
+
+  return (
     <>
       <Card>
         <CardHeader className="pb-2">
