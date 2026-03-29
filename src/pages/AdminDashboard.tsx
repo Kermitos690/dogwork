@@ -41,12 +41,11 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const [newEducatorEmail, setNewEducatorEmail] = useState("");
   const [newEducatorName, setNewEducatorName] = useState("");
-  const [newEducatorPassword, setNewEducatorPassword] = useState("");
   const [creating, setCreating] = useState(false);
   const [newShelterEmail, setNewShelterEmail] = useState("");
   const [newShelterName, setNewShelterName] = useState("");
-  const [newShelterPassword, setNewShelterPassword] = useState("");
   const [creatingShelter, setCreatingShelter] = useState(false);
+  const [tempPasswordDialog, setTempPasswordDialog] = useState<{ email: string; password: string } | null>(null);
   const [enriching, setEnriching] = useState(false);
   const [enrichProgress, setEnrichProgress] = useState<{ processed: number; total: number; success: number; failed: number; done: boolean } | null>(null);
   const [generatingImages, setGeneratingImages] = useState(false);
