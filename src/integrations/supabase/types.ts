@@ -2547,6 +2547,16 @@ export type Database = {
       }
     }
     Functions: {
+      admin_list_users: {
+        Args: never
+        Returns: {
+          created_at: string
+          display_name: string
+          email: string
+          roles: string[]
+          user_id: string
+        }[]
+      }
       get_coach_profile_safe: {
         Args: { target_user_id: string }
         Returns: {
