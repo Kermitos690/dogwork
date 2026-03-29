@@ -468,6 +468,17 @@ function AdminUsersManager() {
   const [saving, setSaving] = useState(false);
 
   // Fetch ALL users with roles
+  const { user } = useAuth();
+
+  const { data: isAdmin } = useQuery({
+    queryKey: ["is_admin", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("is_admin");
+      return data === true;
+    },
+    enabled: !!user,
+  });
+
   const { data: allUsers = [], isLoading, refetch } = useQuery({
     queryKey: ["admin_all_users"],
     queryFn: async () => {
@@ -486,6 +497,8 @@ function AdminUsersManager() {
         createdAt: p.created_at,
       }));
     },
+    enabled: isAdmin === true,
+    refetchOnMount: "always",
   });
 
   const filtered = allUsers.filter((u: any) => {
