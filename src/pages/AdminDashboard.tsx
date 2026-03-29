@@ -525,6 +525,8 @@ function AdminUsersManager() {
   const [editRoleToAdd, setEditRoleToAdd] = useState("");
   const [saving, setSaving] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
+  const [resettingPassword, setResettingPassword] = useState<string | null>(null);
+  const [generatedCredentials, setGeneratedCredentials] = useState<Record<string, { email: string; tempPassword: string }>>({});
 
   // Fetch ALL users with roles
   const { user } = useAuth();
@@ -638,17 +640,11 @@ function AdminUsersManager() {
     }
   };
 
-  const handleDownloadGuide = async (userId: string, userName: string, roles: string[]) => {
-    setGeneratingPdf(userId);
+  const handleResetPassword = async (userId: string, userName: string) => {
+    setResettingPassword(userId);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Session expirée");
-
-      const primaryRole = roles.includes("shelter") ? "shelter" 
-        : roles.includes("educator") ? "educator"
-        : roles.includes("shelter_employee") ? "shelter_employee"
-        : roles.includes("admin") ? "admin" 
-        : "owner";
 
       const { data, error } = await supabase.functions.invoke("create-user", {
         body: { userId, resetOnly: true },
@@ -658,19 +654,40 @@ function AdminUsersManager() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      const doc = generateConnectionGuidePDF({
-        name: userName,
-        email: data.email,
-        role: primaryRole,
-        tempPassword: data.temporaryPassword,
-      });
+      setGeneratedCredentials(prev => ({
+        ...prev,
+        [userId]: { email: data.email, tempPassword: data.temporaryPassword },
+      }));
 
-      doc.save(`DogWork_Guide_Connexion_${userName.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`);
-      toast({ title: "Guide téléchargé ✅", description: `MDP temporaire généré pour ${userName}.` });
+      toast({ title: "Mot de passe réinitialisé ✅", description: `Nouveau MDP temporaire généré pour ${userName}. Vous pouvez maintenant télécharger la fiche PDF.` });
     } catch (err: any) {
-      toast({ title: "Erreur", description: err.message || "Impossible de générer le guide", variant: "destructive" });
+      toast({ title: "Erreur", description: err.message || "Impossible de réinitialiser le mot de passe", variant: "destructive" });
     }
-    setGeneratingPdf(null);
+    setResettingPassword(null);
+  };
+
+  const handleDownloadGuide = (userId: string, userName: string, roles: string[]) => {
+    const creds = generatedCredentials[userId];
+    if (!creds) {
+      toast({ title: "MDP non généré", description: "Cliquez d'abord sur 🔑 pour générer un nouveau mot de passe temporaire.", variant: "destructive" });
+      return;
+    }
+
+    const primaryRole = roles.includes("shelter") ? "shelter"
+      : roles.includes("educator") ? "educator"
+      : roles.includes("shelter_employee") ? "shelter_employee"
+      : roles.includes("admin") ? "admin"
+      : "owner";
+
+    const doc = generateConnectionGuidePDF({
+      name: userName,
+      email: creds.email,
+      role: primaryRole,
+      tempPassword: creds.tempPassword,
+    });
+
+    doc.save(`DogWork_Guide_Connexion_${userName.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`);
+    toast({ title: "Guide téléchargé ✅" });
   };
 
   return (
@@ -721,12 +738,20 @@ function AdminUsersManager() {
                   </div>
                   <div className="flex gap-1 shrink-0">
                     <Button
-                      variant="ghost" size="icon" className="h-7 w-7 text-primary hover:text-primary"
-                      disabled={generatingPdf === u.userId}
-                      onClick={() => handleDownloadGuide(u.userId, u.name, u.roles)}
-                      title="Télécharger le guide de connexion"
+                      variant="ghost" size="icon" className="h-7 w-7 text-amber-500 hover:text-amber-400"
+                      disabled={resettingPassword === u.userId}
+                      onClick={() => handleResetPassword(u.userId, u.name)}
+                      title="Générer un nouveau mot de passe temporaire"
                     >
-                      {generatingPdf === u.userId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+                      {resettingPassword === u.userId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
+                    </Button>
+                    <Button
+                      variant="ghost" size="icon" className={`h-7 w-7 ${generatedCredentials[u.userId] ? "text-primary hover:text-primary" : "text-muted-foreground"}`}
+                      disabled={!generatedCredentials[u.userId]}
+                      onClick={() => handleDownloadGuide(u.userId, u.name, u.roles)}
+                      title={generatedCredentials[u.userId] ? "Télécharger la fiche PDF" : "Générez d'abord un MDP (🔑)"}
+                    >
+                      <FileDown className="h-3.5 w-3.5" />
                     </Button>
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditTarget(u); setEditName(u.name); }}>
                       <Edit2 className="h-3.5 w-3.5" />

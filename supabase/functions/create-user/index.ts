@@ -38,39 +38,39 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    console.log("[create-user] Auth header present:", !!authHeader, authHeader?.substring(0, 20));
     if (!authHeader?.startsWith("Bearer ")) {
-      console.log("[create-user] No valid Bearer header");
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    console.log("[create-user] Env vars present:", { hasUrl: !!supabaseUrl, hasKey: !!serviceRoleKey });
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    const supabaseAdmin = createClient(supabaseUrl!, serviceRoleKey!);
+    // Use anon client with user's token to validate identity
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
 
     const token = authHeader.replace("Bearer ", "");
-    const {
-      data: { user: caller },
-      error: authError,
-    } = await supabaseAdmin.auth.getUser(token);
+    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
 
-    console.log("[create-user] getUser result:", { callerId: caller?.id, authError: authError?.message });
-
-    if (authError || !caller) {
-      console.log("[create-user] Auth failed:", authError?.message);
+    if (claimsError || !claimsData?.claims?.sub) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    const callerId = claimsData.claims.sub as string;
+
+    // Service role client for admin operations
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+
     const { data: isAdmin } = await supabaseAdmin.rpc("has_role", {
-      _user_id: caller.id,
+      _user_id: callerId,
       _role: "admin",
     });
 
