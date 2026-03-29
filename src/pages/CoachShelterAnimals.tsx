@@ -125,7 +125,7 @@ export default function CoachShelterAnimals() {
             <>
               <div className="flex gap-2 mb-3">
               {shelterProfiles.map((sp) => (
-                  <Badge key={sp.id} variant="secondary" className="text-xs">
+                  <Badge key={sp.user_id} variant="secondary" className="text-xs">
                     {sp.name}
                   </Badge>
                 ))}
