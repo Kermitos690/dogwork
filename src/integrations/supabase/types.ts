@@ -2329,6 +2329,21 @@ export type Database = {
       is_educator: { Args: never; Returns: boolean }
       is_shelter: { Args: never; Returns: boolean }
       is_shelter_employee: { Args: never; Returns: boolean }
+      search_animal_by_chip: {
+        Args: { _chip_id: string }
+        Returns: {
+          breed: string
+          chip_id: string
+          estimated_age: string
+          id: string
+          name: string
+          photo_url: string
+          sex: string
+          shelter_user_id: string
+          species: string
+          status: string
+        }[]
+      }
       search_linkable_users: {
         Args: { _query: string }
         Returns: {

@@ -381,23 +381,22 @@ export default function Onboarding() {
     setChipError("");
     setMatchedAnimal(null);
     try {
-      let query = supabase.from("shelter_animals").select("*").eq("chip_id", chipId.replace(/\s/g, "").trim());
-      if (selectedShelterId) query = query.eq("user_id", selectedShelterId);
-      const { data, error } = await query.limit(1).maybeSingle();
+      const cleanChip = chipId.replace(/\s/g, "").trim();
+      const { data: results, error } = await supabase.rpc("search_animal_by_chip", { _chip_id: cleanChip });
       if (error) throw error;
+      let data = results?.[0] ?? null;
+      if (data && selectedShelterId && data.shelter_user_id !== selectedShelterId) data = null;
       if (!data) {
         setChipError("Aucun animal trouvé avec ce numéro de puce.");
         return;
       }
       setMatchedAnimal(data);
-      // Pre-fill dog data from shelter animal
+      // Pre-fill dog data from shelter animal (safe fields only)
       if (data.name) setDogName(data.name);
       if (data.breed) setBreed(data.breed);
       if (data.sex) setSex(data.sex);
-      if (data.weight_kg) setWeightKg(String(data.weight_kg));
-      if (data.is_sterilized) setIsNeutered(data.is_sterilized);
       setOrigin("refuge");
-      if (!selectedShelterId) setSelectedShelterId(data.user_id);
+      if (!selectedShelterId) setSelectedShelterId(data.shelter_user_id);
       toast({ title: "Animal trouvé !", description: `${data.name} — ${data.breed || "Race inconnue"}` });
     } catch (err: any) {
       setChipError(err.message);
