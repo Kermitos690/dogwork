@@ -12,9 +12,11 @@ import {
 import {
   TrendingUp, TrendingDown, Minus, ArrowLeft, Activity,
   Target, Shield, Zap, Clock, ChevronDown, ChevronUp,
-  AlertTriangle, CheckCircle2, Flame, BarChart3,
+  AlertTriangle, CheckCircle2, Flame, BarChart3, Lock,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useFeatureGate } from "@/hooks/useFeatureGate";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
 
 // ─── Sub-components ──────
 
@@ -116,8 +118,8 @@ function PlanScoreGauge({ score, label, level, description }: {
   );
 }
 
-function SectionToggle({ title, icon: Icon, children, defaultOpen = true, delay = 0 }: {
-  title: string; icon: any; children: React.ReactNode; defaultOpen?: boolean; delay?: number;
+function SectionToggle({ title, icon: Icon, children, defaultOpen = true, delay = 0, locked = false }: {
+  title: string; icon: any; children: React.ReactNode; defaultOpen?: boolean; delay?: number; locked?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
@@ -125,15 +127,19 @@ function SectionToggle({ title, icon: Icon, children, defaultOpen = true, delay 
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
-      className="rounded-2xl border border-border/30 bg-card/60 backdrop-blur-sm overflow-hidden"
+      className={`rounded-2xl border border-border/30 bg-card/60 backdrop-blur-sm overflow-hidden ${locked ? "opacity-60" : ""}`}
     >
-      <button onClick={() => setOpen(!open)} className="w-full flex items-center gap-2 p-4">
+      <button onClick={() => !locked && setOpen(!open)} className="w-full flex items-center gap-2 p-4">
         <Icon className="h-4 w-4 text-primary" />
         <span className="text-sm font-semibold text-foreground flex-1 text-left">{title}</span>
-        {open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+        {locked ? (
+          <Lock className="h-4 w-4 text-muted-foreground" />
+        ) : (
+          open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        )}
       </button>
       <AnimatePresence>
-        {open && (
+        {open && !locked && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
@@ -172,6 +178,8 @@ export default function Stats() {
   const activeDog = useActiveDog();
   const [period, setPeriod] = useState<"7" | "14" | "30" | "all">("all");
   const stats = useStats(period);
+  const advStatsGate = useFeatureGate("advanced_stats");
+  const hasAdvanced = advStatsGate.allowed;
 
   if (!activeDog) {
     return (
@@ -222,7 +230,7 @@ export default function Stats() {
           ))}
         </motion.div>
 
-        {/* Plan Score */}
+        {/* Plan Score — always visible */}
         <PlanScoreGauge
           score={stats.planScore.score}
           label={stats.planScore.label}
@@ -230,20 +238,29 @@ export default function Stats() {
           description={stats.planScore.description}
         />
 
-        {/* KPIs */}
+        {/* Basic KPIs — always visible */}
         <div className="grid grid-cols-3 gap-2">
           <KPICard label="Jours validés" value={stats.completedDays} delay={0.1} />
           <KPICard label="Séances" value={stats.totalSessions} delay={0.15} />
           <KPICard label="Série" value={`${stats.streakDays}j`} delay={0.2} />
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
-          <KPICard label="Tension moy." value={stats.avgTension} unit="/5" trend={stats.tensionTrend} delay={0.25} />
-          <KPICard label="Réact. chiens" value={stats.avgDogReaction} unit="/5" trend={stats.reactionTrend} delay={0.3} />
-          <KPICard label="Réact. humains" value={stats.avgHumanReaction} unit="/5" delay={0.35} />
-        </div>
+        {/* Advanced KPIs — gated */}
+        {hasAdvanced ? (
+          <div className="grid grid-cols-3 gap-2">
+            <KPICard label="Tension moy." value={stats.avgTension} unit="/5" trend={stats.tensionTrend} delay={0.25} />
+            <KPICard label="Réact. chiens" value={stats.avgDogReaction} unit="/5" trend={stats.reactionTrend} delay={0.3} />
+            <KPICard label="Réact. humains" value={stats.avgHumanReaction} unit="/5" delay={0.35} />
+          </div>
+        ) : (
+          <UpgradePrompt
+            compact
+            requiredTier={advStatsGate.requiredTier}
+            title="Statistiques avancées"
+          />
+        )}
 
-        {/* Highlights */}
+        {/* Highlights — always visible */}
         {stats.recentHighlights.length > 0 && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
             className="space-y-2"
@@ -263,17 +280,17 @@ export default function Stats() {
           </motion.div>
         )}
 
-        {/* Scores comportementaux */}
-        <SectionToggle title="Scores comportementaux" icon={Target} delay={0.3}>
+        {/* Scores comportementaux — gated */}
+        <SectionToggle title="Scores comportementaux" icon={Target} delay={0.3} locked={!hasAdvanced}>
           <ScoreBar label="Focus" value={stats.focusScore} delay={0.35} />
           <ScoreBar label="Stop" value={stats.stopScore} delay={0.4} />
           <ScoreBar label="Non / renoncement" value={stats.noScore} delay={0.45} />
           <ScoreBar label="Marche en laisse" value={stats.leashScore} delay={0.5} />
         </SectionToggle>
 
-        {/* Tension chart */}
+        {/* Tension chart — gated */}
         {stats.tensionChart.length > 0 && (
-          <SectionToggle title="Évolution tension & réactivité" icon={Activity} delay={0.4}>
+          <SectionToggle title="Évolution tension & réactivité" icon={Activity} delay={0.4} locked={!hasAdvanced}>
             <ResponsiveContainer width="100%" height={180}>
               <AreaChart data={stats.tensionChart}>
                 <defs>
@@ -302,9 +319,9 @@ export default function Stats() {
           </SectionToggle>
         )}
 
-        {/* Distance chart */}
+        {/* Distance chart — gated */}
         {stats.distanceChart.length > 0 && stats.distanceChart.some(d => d.distance != null) && (
-          <SectionToggle title="Distance de confort" icon={Shield} defaultOpen={false} delay={0.5}>
+          <SectionToggle title="Distance de confort" icon={Shield} defaultOpen={false} delay={0.5} locked={!hasAdvanced}>
             <KPICard label="Distance moyenne" value={stats.avgComfortDistance} unit="m" trend={stats.distanceTrend} />
             <ResponsiveContainer width="100%" height={140}>
               <AreaChart data={stats.distanceChart}>
@@ -323,7 +340,7 @@ export default function Stats() {
           </SectionToggle>
         )}
 
-        {/* Weekly progress */}
+        {/* Weekly progress — always visible */}
         {stats.weeklyData.length > 0 && (
           <SectionToggle title="Progression par semaine" icon={BarChart3} defaultOpen={false} delay={0.6}>
             <ResponsiveContainer width="100%" height={140}>
@@ -337,9 +354,9 @@ export default function Stats() {
           </SectionToggle>
         )}
 
-        {/* Recommendations */}
+        {/* Recommendations — gated */}
         {stats.recommendations.length > 0 && (
-          <SectionToggle title="Recommandations" icon={Zap} delay={0.7}>
+          <SectionToggle title="Recommandations" icon={Zap} delay={0.7} locked={!hasAdvanced}>
             <div className="space-y-2">
               {stats.recommendations.map((rec, i) => (
                 <motion.div
@@ -365,24 +382,35 @@ export default function Stats() {
           </SectionToggle>
         )}
 
-        {/* Additional info */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-          className="grid grid-cols-2 gap-2"
-        >
-          <div className="rounded-2xl border border-border/30 bg-card/60 p-3">
-            <p className="text-[10px] text-muted-foreground mb-1">Récupération</p>
-            <p className="text-sm font-semibold text-foreground capitalize">{stats.avgRecovery}</p>
-          </div>
-          <div className="rounded-2xl border border-border/30 bg-card/60 p-3">
-            <p className="text-[10px] text-muted-foreground mb-1">Taux d'incidents</p>
-            <p className={`text-sm font-semibold ${stats.incidentRate > 40 ? "text-red-400" : stats.incidentRate > 20 ? "text-amber-400" : "text-emerald-400"}`}>
-              {stats.incidentRate}%
-            </p>
-          </div>
-        </motion.div>
+        {/* Additional info — gated */}
+        {hasAdvanced ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.8 }}
+            className="grid grid-cols-2 gap-2"
+          >
+            <div className="rounded-2xl border border-border/30 bg-card/60 p-3">
+              <p className="text-[10px] text-muted-foreground mb-1">Récupération</p>
+              <p className="text-sm font-semibold text-foreground capitalize">{stats.avgRecovery}</p>
+            </div>
+            <div className="rounded-2xl border border-border/30 bg-card/60 p-3">
+              <p className="text-[10px] text-muted-foreground mb-1">Taux d'incidents</p>
+              <p className={`text-sm font-semibold ${stats.incidentRate > 40 ? "text-red-400" : stats.incidentRate > 20 ? "text-amber-400" : "text-emerald-400"}`}>
+                {stats.incidentRate}%
+              </p>
+            </div>
+          </motion.div>
+        ) : null}
+
+        {/* Upsell for advanced stats if not available */}
+        {!hasAdvanced && (
+          <UpgradePrompt
+            requiredTier={advStatsGate.requiredTier}
+            title="Débloquez les analyses avancées"
+            description="Accédez aux scores comportementaux, graphiques de tension, distance de confort, recommandations personnalisées et bien plus."
+          />
+        )}
 
         {/* Empty state */}
         {stats.tensionChart.length === 0 && stats.completedDays === 0 && (

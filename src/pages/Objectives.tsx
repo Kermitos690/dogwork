@@ -8,8 +8,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Save, Star, Target } from "lucide-react";
+import { ArrowLeft, Save, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useFeatureGate } from "@/hooks/useFeatureGate";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
 
 const OBJECTIVES = [
   { key: "marcher_sans_tirer", label: "Marcher sans tirer" },
@@ -34,6 +36,8 @@ export default function ObjectivesPage() {
   const activeDog = useActiveDog();
   const { toast } = useToast();
   const [objectives, setObjectives] = useState<Record<string, ObjState>>({});
+
+  const advObjGate = useFeatureGate("advanced_objectives");
 
   useEffect(() => {
     const init: Record<string, ObjState> = {};
@@ -85,6 +89,27 @@ export default function ObjectivesPage() {
   };
 
   if (!activeDog) return <AppLayout><p className="pt-4 text-center text-muted-foreground">Ajoutez d'abord un chien.</p></AppLayout>;
+
+  // Feature gate: advanced_objectives required
+  if (!advObjGate.allowed) {
+    return (
+      <AppLayout>
+        <div className="pb-8 space-y-4 animate-fade-in">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-xl font-bold text-foreground">Objectifs</h1>
+          </div>
+          <UpgradePrompt
+            requiredTier={advObjGate.requiredTier}
+            title="Objectifs personnalisés"
+            description="Définissez des objectifs éducatifs précis pour votre chien, priorisez-les et suivez leur progression dans le temps."
+          />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>

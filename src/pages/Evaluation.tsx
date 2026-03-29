@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { ArrowLeft, ArrowRight, CheckCircle2, ChevronLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useFeatureGate } from "@/hooks/useFeatureGate";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
 
 type EvalForm = Record<string, any>;
 
@@ -97,6 +99,8 @@ export default function Evaluation() {
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
 
+  const evalGate = useFeatureGate("behavior_evaluation");
+
   useEffect(() => {
     if (activeDog) {
       supabase.from("dog_evaluations").select("*").eq("dog_id", activeDog.id)
@@ -133,6 +137,27 @@ export default function Evaluation() {
 
   if (!activeDog) {
     return <AppLayout><p className="pt-4 text-center text-muted-foreground">Ajoutez d'abord un chien.</p></AppLayout>;
+  }
+
+  // Feature gate: behavior_evaluation requires Pro+
+  if (!evalGate.allowed) {
+    return (
+      <AppLayout>
+        <div className="pb-8 space-y-5 animate-fade-in">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" className="rounded-xl" onClick={() => navigate(-1)}>
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-lg font-bold text-foreground">Évaluation comportementale</h1>
+          </div>
+          <UpgradePrompt
+            requiredTier={evalGate.requiredTier}
+            title="Évaluation comportementale"
+            description="Analysez en profondeur le comportement de votre chien avec notre outil d'évaluation complet. Identifiez ses forces, ses points à travailler et obtenez des recommandations personnalisées."
+          />
+        </div>
+      </AppLayout>
+    );
   }
 
   const currentStep = STEPS[step];

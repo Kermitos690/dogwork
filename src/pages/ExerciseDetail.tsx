@@ -10,6 +10,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { ReadAloudButton } from "@/components/ReadAloudButton";
 import { ExerciseCoverFallback } from "@/components/ExerciseCoverFallback";
+import { useExerciseAccess } from "@/hooks/useFeatureGate";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
+import type { OwnerTier } from "@/lib/plans";
 
 const levelColors: Record<string, string> = {
   "débutant": "bg-success/15 text-success",
@@ -57,6 +60,9 @@ export default function ExerciseDetail() {
     enabled: !!slug,
   });
 
+  // Check access based on exercise min_tier
+  const accessGate = useExerciseAccess(exercise?.min_tier || "starter");
+
   if (isLoading) {
     return <AppLayout><div className="pt-4 text-center"><div className="animate-pulse text-muted-foreground">{t("common.loading")}</div></div></AppLayout>;
   }
@@ -68,6 +74,43 @@ export default function ExerciseDetail() {
           <p className="text-muted-foreground">{t("exerciseDetail.notFound")}</p>
           <Button variant="outline" onClick={() => navigate("/exercises")} className="mt-4">{t("common.back")}</Button>
         </div>
+      </AppLayout>
+    );
+  }
+
+  // Gate: if exercise is locked for this user's tier
+  if (!accessGate.allowed) {
+    return (
+      <AppLayout>
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pb-8 space-y-4">
+          <div className="flex items-center gap-3">
+            <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate("/exercises")} className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center shrink-0">
+              <ArrowLeft className="h-4 w-4 text-foreground" />
+            </motion.button>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{exercise.exercise_categories?.icon} {exercise.exercise_categories?.name}</p>
+              <h1 className="text-lg font-bold text-foreground break-words">{exercise.name}</h1>
+            </div>
+          </div>
+
+          {/* Show cover but blurred */}
+          {exercise.cover_image && (
+            <div className="w-full rounded-2xl overflow-hidden border border-border relative">
+              <img src={exercise.cover_image} alt={exercise.name} className="w-full h-auto max-w-full object-contain blur-sm opacity-50" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Badge className="text-sm bg-background/80 backdrop-blur-sm">
+                  Contenu {(exercise.min_tier as string) === "expert" ? "Expert" : "Pro"}
+                </Badge>
+              </div>
+            </div>
+          )}
+
+          <UpgradePrompt
+            requiredTier={exercise.min_tier as OwnerTier}
+            title={exercise.name}
+            description={exercise.objective || `Cet exercice nécessite le plan ${(exercise.min_tier as string) === "expert" ? "Expert" : "Pro"} pour être consulté.`}
+          />
+        </motion.div>
       </AppLayout>
     );
   }
@@ -85,7 +128,6 @@ export default function ExerciseDetail() {
   const troubleshooting = Array.isArray((exercise as any).troubleshooting) ? (exercise as any).troubleshooting : [];
   const validationProtocol = (exercise as any).validation_protocol || "";
 
-  // Mistakes can be a JSON-encoded string array
   const parsedMistakes = (() => {
     if (Array.isArray(exercise.mistakes)) {
       const first = exercise.mistakes[0];
@@ -110,7 +152,6 @@ export default function ExerciseDetail() {
           </div>
         </div>
 
-        {/* Cover image */}
         {exercise.cover_image ? (
           <div className="w-full rounded-2xl overflow-hidden border border-border">
             <img src={exercise.cover_image} alt={exercise.name} className="w-full h-auto max-w-full object-contain" />
@@ -119,7 +160,6 @@ export default function ExerciseDetail() {
           <ExerciseCoverFallback name={exercise.name} categoryIcon={exercise.exercise_categories?.icon} size="lg" />
         )}
 
-        {/* Badges */}
         <div className="flex flex-wrap gap-1.5">
           <Badge className={`text-[10px] ${levelColors[exercise.level] || ""}`}>{exercise.level}</Badge>
           <Badge variant="secondary" className="text-[10px] gap-1"><Clock className="h-2.5 w-2.5" />{exercise.duration}</Badge>
@@ -130,7 +170,6 @@ export default function ExerciseDetail() {
           ))}
         </div>
 
-        {/* Objective + description */}
         <div className="space-y-2">
           <p className="text-sm font-semibold text-foreground break-words">{exercise.objective}</p>
           {exercise.description && <p className="text-xs text-muted-foreground break-words">{exercise.description}</p>}
@@ -148,7 +187,6 @@ export default function ExerciseDetail() {
           label={t("exerciseDetail.listen")}
         />
 
-        {/* Tutorial steps */}
         {tutorialSteps.length > 0 && (
           <Section title={t("exerciseDetail.tutorialSteps")} icon={<Play className="h-3.5 w-3.5 text-primary" />} defaultOpen={true}>
             {tutorialSteps.map((ts: any, i: number) => (
@@ -178,7 +216,6 @@ export default function ExerciseDetail() {
           </Section>
         )}
 
-        {/* Voice commands summary */}
         {voiceCommands.length > 0 && (
           <Section title={t("exerciseDetail.voiceCommands")} icon={<Mic className="h-3.5 w-3.5 text-primary" />}>
             {voiceCommands.map((vc: any, i: number) => (
@@ -192,7 +229,6 @@ export default function ExerciseDetail() {
           </Section>
         )}
 
-        {/* Body positioning */}
         {bodyPositioning && (
           <Section title={t("exerciseDetail.bodyPositioning")} icon={<User className="h-3.5 w-3.5 text-accent-foreground" />}>
             <div className="space-y-2">
@@ -224,7 +260,6 @@ export default function ExerciseDetail() {
           </Section>
         )}
 
-        {/* Troubleshooting */}
         {troubleshooting.length > 0 && (
           <Section title={t("exerciseDetail.troubleshooting")} icon={<HelpCircle className="h-3.5 w-3.5 text-warning" />}>
             {troubleshooting.map((ts: any, i: number) => (
@@ -237,7 +272,6 @@ export default function ExerciseDetail() {
           </Section>
         )}
 
-        {/* Mistakes */}
         {parsedMistakes.length > 0 && (
           <Section title={t("exerciseDetail.mistakes")} icon={<XCircle className="h-3.5 w-3.5 text-destructive" />}>
             {parsedMistakes.map((m: any, i: number) => (
@@ -256,7 +290,6 @@ export default function ExerciseDetail() {
           </Section>
         )}
 
-        {/* Validation protocol */}
         {validationProtocol && (
           <Section title={t("exerciseDetail.validationProtocol")} icon={<ShieldCheck className="h-3.5 w-3.5 text-primary" />}>
             <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
@@ -265,14 +298,12 @@ export default function ExerciseDetail() {
           </Section>
         )}
 
-        {/* Success criteria */}
         {exercise.success_criteria && (
           <Section title={t("exerciseDetail.successCriteria")} icon={<CheckCircle2 className="h-3.5 w-3.5 text-success" />}>
             <p className="text-xs text-foreground break-words">{exercise.success_criteria}</p>
           </Section>
         )}
 
-        {/* Stop criteria */}
         {exercise.stop_criteria && (
           <Section title={t("exerciseDetail.stopCriteria")} icon={<StopCircle className="h-3.5 w-3.5 text-destructive" />}>
             <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3">
@@ -281,7 +312,6 @@ export default function ExerciseDetail() {
           </Section>
         )}
 
-        {/* Vigilance & safety */}
         {(precautions.length > 0 || contraindications.length > 0 || exercise.vigilance) && (
           <Section title={t("exerciseDetail.vigilance")} icon={<AlertTriangle className="h-3.5 w-3.5 text-warning" />}>
             {exercise.vigilance && <p className="text-xs text-foreground break-words">{exercise.vigilance}</p>}
@@ -300,7 +330,6 @@ export default function ExerciseDetail() {
           </Section>
         )}
 
-        {/* Adaptations */}
         {adaptations.length > 0 && (
           <Section title={t("exerciseDetail.adaptations")} icon={<Heart className="h-3.5 w-3.5 text-primary" />}>
             {adaptations.map((a: any, i: number) => (
@@ -318,7 +347,6 @@ export default function ExerciseDetail() {
           </Section>
         )}
 
-        {/* Equipment */}
         {equipment.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             <span className="text-[10px] text-muted-foreground mr-1">{t("exerciseDetail.equipment")} :</span>
@@ -328,7 +356,6 @@ export default function ExerciseDetail() {
           </div>
         )}
 
-        {/* Actions */}
         <div className="flex gap-2 pt-2">
           <motion.div whileTap={{ scale: 0.95 }} className="flex-1">
             <Button className="w-full gap-2 rounded-xl h-11" onClick={() => navigate(`/training/1?source=exercise&exercise=${exercise.slug}`)}>
