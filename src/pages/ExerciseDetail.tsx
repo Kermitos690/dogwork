@@ -145,7 +145,7 @@ export default function ExerciseDetail() {
             <ArrowLeft className="h-4 w-4 text-foreground" />
           </motion.button>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{exercise.exercise_categories?.icon} {exercise.exercise_categories?.name}</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{exercise.category_icon} {exercise.category_name}</p>
             <h1 className="text-lg font-bold text-foreground break-words">{exercise.name}</h1>
           </div>
         </div>
@@ -155,7 +155,7 @@ export default function ExerciseDetail() {
             <img src={exercise.cover_image} alt={exercise.name} className="w-full h-auto max-w-full object-contain" />
           </div>
         ) : (
-          <ExerciseCoverFallback name={exercise.name} categoryIcon={exercise.exercise_categories?.icon} size="lg" />
+          <ExerciseCoverFallback name={exercise.name} categoryIcon={exercise.category_icon} size="lg" />
         )}
 
         <div className="flex flex-wrap gap-1.5">
