@@ -686,22 +686,20 @@ function AdminUsersManager() {
       tempPassword: creds.tempPassword,
     });
 
-    const dataUri = doc.output("datauristring") as unknown as string;
-    const w = window.open("");
-    if (w) {
-      w.document.write(`<html><head><title>Guide DogWork</title></head><body style="margin:0"><iframe src="${dataUri}" style="width:100%;height:100%;border:none"></iframe></body></html>`);
-      w.document.close();
-    } else {
-      // Fallback: direct link click
-      const blob = doc.output("blob");
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `DogWork_Guide_${userName.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 500);
-    }
-    toast({ title: "Guide ouvert ✅", description: "Sauvegardez via le bouton de partage de votre navigateur." });
+    const fileName = `DogWork_Guide_${userName.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
+    
+    // Use blob + link click — most reliable across iOS Safari, Chrome, etc.
+    const blob = doc.output("blob");
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    
+    toast({ title: "Téléchargement lancé ✅", description: `Fichier : ${fileName}` });
   };
 
   return (
