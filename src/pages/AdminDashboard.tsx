@@ -543,27 +543,30 @@ function AdminUsersManager() {
   const { data: allUsers = [], isLoading, refetch } = useQuery({
     queryKey: ["admin_all_users"],
     queryFn: async () => {
-      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, created_at").order("created_at", { ascending: false });
-      if (!profiles) return [];
-      const { data: allRoles } = await supabase.from("user_roles").select("user_id, role");
-      const roleMap: Record<string, string[]> = {};
-      (allRoles || []).forEach((r: any) => {
-        if (!roleMap[r.user_id]) roleMap[r.user_id] = [];
-        roleMap[r.user_id].push(r.role);
+      const { data, error } = await supabase.rpc("admin_list_users");
+      if (error) throw error;
+
+      return (data || []).map((u: any) => {
+        const roles = Array.isArray(u.roles) && u.roles.length > 0 ? u.roles : ["owner"];
+        return {
+          userId: u.user_id,
+          email: u.email || "",
+          name: u.display_name || "Sans nom",
+          roles,
+          createdAt: u.created_at,
+        };
       });
-      return profiles.map((p: any) => ({
-        userId: p.user_id,
-        name: p.display_name || "Sans nom",
-        roles: roleMap[p.user_id] || [],
-        createdAt: p.created_at,
-      }));
     },
     enabled: isAdmin === true,
     refetchOnMount: "always",
   });
 
   const filtered = allUsers.filter((u: any) => {
-    const matchSearch = searchQuery.length < 2 || u.name.toLowerCase().includes(searchQuery.toLowerCase()) || u.userId.includes(searchQuery);
+    const query = searchQuery.toLowerCase();
+    const matchSearch = searchQuery.length < 2
+      || u.name.toLowerCase().includes(query)
+      || u.email.toLowerCase().includes(query)
+      || u.userId.includes(searchQuery);
     const matchRole = roleFilter === "all" || u.roles.includes(roleFilter);
     return matchSearch && matchRole;
   });
@@ -778,6 +781,7 @@ function AdminUsersManager() {
                 <div key={u.userId} className="flex items-center gap-2 p-2.5 rounded-lg bg-secondary/30">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{u.name}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{u.email || "Email indisponible"}</p>
                     <div className="flex flex-wrap gap-1 mt-0.5">
                       {u.roles.map((r: string) => (
                         <Badge key={r} className={`text-[8px] px-1.5 py-0 border-0 ${ROLE_LABELS[r]?.color || "bg-muted text-muted-foreground"}`}>
