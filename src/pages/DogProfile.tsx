@@ -76,6 +76,14 @@ export default function DogProfile() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
+  // Shelter adoption flow (only for new dogs)
+  const [adoptedFromShelter, setAdoptedFromShelter] = useState(false);
+  const [selectedShelterId, setSelectedShelterId] = useState("");
+  const [shelterList, setShelterList] = useState<{ user_id: string; name: string }[]>([]);
+  const [matchedAnimal, setMatchedAnimal] = useState<any>(null);
+  const [chipSearching, setChipSearching] = useState(false);
+  const [chipError, setChipError] = useState("");
+
   useEffect(() => {
     if (!isNew && dogId) {
       supabase.from("dogs").select("*").eq("id", dogId).maybeSingle().then(({ data }) => {
