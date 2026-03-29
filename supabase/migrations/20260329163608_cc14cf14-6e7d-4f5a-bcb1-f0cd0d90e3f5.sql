@@ -1,0 +1,1 @@
+UPDATE public.profiles SET display_name = 'Gaëtan Teba' WHERE user_id = '5ae79f02-178c-44c6-a0c2-52928bfa9240';
