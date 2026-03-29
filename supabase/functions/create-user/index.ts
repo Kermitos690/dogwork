@@ -70,7 +70,34 @@ Deno.serve(async (req) => {
 
     if (!isAdmin) throw new Error("Seul un administrateur peut créer des comptes");
 
-    const { email, displayName, role } = await req.json();
+    const { email, displayName, role, userId: targetUserId, resetOnly } = await req.json();
+
+    // ── Reset-only mode: just reset password for existing user by ID
+    if (resetOnly && targetUserId) {
+      const { data: { user: targetUser }, error: fetchErr } = await supabaseAdmin.auth.admin.getUserById(targetUserId);
+      if (fetchErr || !targetUser) throw new Error("Utilisateur introuvable");
+
+      const tempPassword = generateStrongPassword(20);
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
+        password: tempPassword,
+        user_metadata: {
+          ...(targetUser.user_metadata || {}),
+          must_change_password: true,
+        },
+      });
+      if (updateError) throw updateError;
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          userId: targetUserId,
+          email: targetUser.email,
+          temporaryPassword: tempPassword,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     if (!email) throw new Error("Email requis");
 
     const normalizedEmail = String(email).trim().toLowerCase();

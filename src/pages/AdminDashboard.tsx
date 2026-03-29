@@ -11,8 +11,9 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
   Shield, Users, GraduationCap, BookOpen, DollarSign, Plus, ArrowLeft, Trash2, Check, X, Eye, ChevronDown, Home, Sparkles, Image, Wallet, CreditCard,
-  Search, Dog, FileText, MessageSquare, AlertTriangle, Edit2, UserCog, Mail, Rocket, Lock,
+  Search, Dog, FileText, MessageSquare, AlertTriangle, Edit2, UserCog, Mail, Rocket, Lock, FileDown, Loader2,
 } from "lucide-react";
+import { generateConnectionGuidePDF } from "@/lib/generateConnectionGuide";
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
@@ -523,6 +524,7 @@ function AdminUsersManager() {
   const [editName, setEditName] = useState("");
   const [editRoleToAdd, setEditRoleToAdd] = useState("");
   const [saving, setSaving] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
 
   // Fetch ALL users with roles
   const { user } = useAuth();
@@ -636,6 +638,41 @@ function AdminUsersManager() {
     }
   };
 
+  const handleDownloadGuide = async (userId: string, userName: string, roles: string[]) => {
+    setGeneratingPdf(userId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Session expirée");
+
+      const primaryRole = roles.includes("shelter") ? "shelter" 
+        : roles.includes("educator") ? "educator"
+        : roles.includes("shelter_employee") ? "shelter_employee"
+        : roles.includes("admin") ? "admin" 
+        : "owner";
+
+      const { data, error } = await supabase.functions.invoke("create-user", {
+        body: { userId, resetOnly: true },
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const doc = generateConnectionGuidePDF({
+        name: userName,
+        email: data.email,
+        role: primaryRole,
+        tempPassword: data.temporaryPassword,
+      });
+
+      doc.save(`DogWork_Guide_Connexion_${userName.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`);
+      toast({ title: "Guide téléchargé ✅", description: `MDP temporaire généré pour ${userName}.` });
+    } catch (err: any) {
+      toast({ title: "Erreur", description: err.message || "Impossible de générer le guide", variant: "destructive" });
+    }
+    setGeneratingPdf(null);
+  };
+
   return (
     <>
       <Card>
@@ -683,6 +720,14 @@ function AdminUsersManager() {
                     <p className="text-[9px] text-muted-foreground mt-0.5">{new Date(u.createdAt).toLocaleDateString("fr-FR")}</p>
                   </div>
                   <div className="flex gap-1 shrink-0">
+                    <Button
+                      variant="ghost" size="icon" className="h-7 w-7 text-primary hover:text-primary"
+                      disabled={generatingPdf === u.userId}
+                      onClick={() => handleDownloadGuide(u.userId, u.name, u.roles)}
+                      title="Télécharger le guide de connexion"
+                    >
+                      {generatingPdf === u.userId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+                    </Button>
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditTarget(u); setEditName(u.name); }}>
                       <Edit2 className="h-3.5 w-3.5" />
                     </Button>
