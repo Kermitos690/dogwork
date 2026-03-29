@@ -433,7 +433,7 @@ export default function AdminDashboard() {
                       if (error) throw error;
                       if (data?.error) throw new Error(data.error);
                       toast({ title: "Nettoyage terminé ✅", description: `${data.deleted} comptes supprimés. ${data.logs?.length || 0} opérations.` });
-                      refetch();
+                      queryClient.invalidateQueries({ queryKey: ["admin_users"] });
                     } catch (err: any) {
                       toast({ title: "Erreur", description: err.message, variant: "destructive" });
                     }
