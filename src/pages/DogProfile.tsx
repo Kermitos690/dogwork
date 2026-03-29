@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useCreateDog, useUpdateDog, type Dog } from "@/hooks/useDogs";
@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { ArrowLeft, Save, ChevronDown, ChevronUp, Camera } from "lucide-react";
+import { ArrowLeft, Save, ChevronDown, ChevronUp, Camera, Search, Building2, CheckCircle2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { BreedCombobox } from "@/components/BreedCombobox";
 import { motion, AnimatePresence } from "framer-motion";
@@ -76,6 +76,14 @@ export default function DogProfile() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
+  // Shelter adoption flow (only for new dogs)
+  const [adoptedFromShelter, setAdoptedFromShelter] = useState(false);
+  const [selectedShelterId, setSelectedShelterId] = useState("");
+  const [shelterList, setShelterList] = useState<{ user_id: string; name: string }[]>([]);
+  const [matchedAnimal, setMatchedAnimal] = useState<any>(null);
+  const [chipSearching, setChipSearching] = useState(false);
+  const [chipError, setChipError] = useState("");
+
   useEffect(() => {
     if (!isNew && dogId) {
       supabase.from("dogs").select("*").eq("id", dogId).maybeSingle().then(({ data }) => {
@@ -89,6 +97,47 @@ export default function DogProfile() {
   }, [dogId, isNew]);
 
   const update = (key: string, value: any) => setForm((f) => ({ ...f, [key]: value }));
+
+  // Fetch shelter list when adoption toggle is on
+  useEffect(() => {
+    if (!adoptedFromShelter) return;
+    supabase.from("shelter_profiles_public" as any).select("user_id, name").order("name").then(({ data }) => {
+      if (data) setShelterList(data as unknown as { user_id: string; name: string }[]);
+    });
+  }, [adoptedFromShelter]);
+
+  // Search animal by chip_id
+  const searchByChip = useCallback(async () => {
+    const chipVal = form.chip_id?.replace(/\s/g, "").trim();
+    if (!chipVal) return;
+    setChipSearching(true);
+    setChipError("");
+    setMatchedAnimal(null);
+    try {
+      const { data: results, error } = await supabase.rpc("search_animal_by_chip", { _chip_id: chipVal });
+      if (error) throw error;
+      let data = results?.[0] ?? null;
+      if (data && selectedShelterId && data.shelter_user_id !== selectedShelterId) data = null;
+      if (!data) {
+        setChipError("Aucun animal trouvé avec ce numéro de puce.");
+        return;
+      }
+      setMatchedAnimal(data);
+      // Pre-fill dog data from shelter animal
+      const prefill: Partial<Dog> = {};
+      if (data.name) prefill.name = data.name;
+      if (data.breed) prefill.breed = data.breed;
+      if (data.sex) prefill.sex = data.sex;
+      prefill.origin = "refuge";
+      if (!selectedShelterId) setSelectedShelterId(data.shelter_user_id);
+      setForm(f => ({ ...f, ...prefill }));
+      toast({ title: "Animal trouvé !", description: `${data.name} — ${data.breed || "Race inconnue"}` });
+    } catch (err: any) {
+      setChipError(err.message);
+    } finally {
+      setChipSearching(false);
+    }
+  }, [form.chip_id, selectedShelterId, toast]);
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -111,7 +160,43 @@ export default function DogProfile() {
       }
 
       if (isNew) {
-        await createDog.mutateAsync({ ...form, photo_url });
+        const created = await createDog.mutateAsync({ ...form, photo_url });
+        
+        // Create adopter link + check-ins if shelter adoption matched
+        if (adoptedFromShelter && matchedAnimal && selectedShelterId && user) {
+          await supabase.from("adopter_links").insert({
+            adopter_user_id: user.id,
+            shelter_user_id: selectedShelterId,
+            animal_id: matchedAnimal.id,
+            animal_name: matchedAnimal.name,
+          }).throwOnError();
+
+          const { data: shelterConfig } = await supabase
+            .from("shelter_profiles")
+            .select("checkin_frequency_weeks, checkin_total_weeks")
+            .eq("user_id", selectedShelterId)
+            .single();
+
+          const freqWeeks = shelterConfig?.checkin_frequency_weeks || 1;
+          const totalWeeks = shelterConfig?.checkin_total_weeks || 8;
+          const now = new Date();
+          const checkinRows = [];
+          for (let week = 1; week <= totalWeeks; week++) {
+            const dueDate = new Date(now);
+            dueDate.setDate(dueDate.getDate() + week * freqWeeks * 7);
+            checkinRows.push({
+              adopter_user_id: user.id,
+              animal_id: matchedAnimal.id,
+              shelter_user_id: selectedShelterId,
+              checkin_week: week,
+              due_date: dueDate.toISOString().split("T")[0],
+            });
+          }
+          if (checkinRows.length > 0) {
+            await supabase.from("adoption_checkins").insert(checkinRows);
+          }
+        }
+        
         toast({ title: "Chien ajouté ✓" });
       } else {
         await updateDog.mutateAsync({ id: dogId!, ...form, photo_url });
@@ -237,6 +322,85 @@ export default function DogProfile() {
             </div>
           </div>
         </Section>
+
+        {/* Shelter adoption — only for new dogs */}
+        {isNew && (
+          <Section title="Adoption refuge" defaultOpen={false}>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Adopté d'un refuge partenaire ?</Label>
+              <Switch checked={adoptedFromShelter} onCheckedChange={(v) => {
+                setAdoptedFromShelter(v);
+                if (v) update("origin", "refuge");
+              }} />
+            </div>
+            {adoptedFromShelter && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="space-y-3"
+              >
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Refuge</Label>
+                  <Select value={selectedShelterId} onValueChange={setSelectedShelterId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un refuge" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {shelterList.map((s) => (
+                        <SelectItem key={s.user_id} value={s.user_id}>
+                          <span className="flex items-center gap-1.5">
+                            <Building2 className="h-3.5 w-3.5" /> {s.name}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Rechercher par N° puce</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={form.chip_id || ""}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/[^\d\s]/g, "");
+                        update("chip_id", raw.replace(/\s/g, "").trim() || null);
+                      }}
+                      placeholder="756 0000 0000 000"
+                      maxLength={18}
+                      className="font-mono tracking-wider flex-1"
+                    />
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      onClick={searchByChip}
+                      disabled={chipSearching || !form.chip_id || !String(form.chip_id).match(/^\d{15}$/)}
+                      className="rounded-xl shrink-0"
+                    >
+                      {chipSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  {chipError && <p className="text-[11px] text-destructive">{chipError}</p>}
+                </div>
+                {matchedAnimal && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-start gap-2.5 p-3 rounded-xl border border-success/20 bg-success/5"
+                  >
+                    <CheckCircle2 className="h-4 w-4 text-success shrink-0 mt-0.5" />
+                    <div className="text-xs">
+                      <p className="font-semibold text-foreground">{matchedAnimal.name}</p>
+                      <p className="text-muted-foreground">{matchedAnimal.breed || "Race inconnue"} · {matchedAnimal.sex || "?"} · {matchedAnimal.status}</p>
+                      <p className="text-success font-medium mt-1">Profil pré-rempli automatiquement ✓</p>
+                    </div>
+                  </motion.div>
+                )}
+              </motion.div>
+            )}
+          </Section>
+        )}
 
         {/* Context */}
         <Section title="Origine et contexte">
