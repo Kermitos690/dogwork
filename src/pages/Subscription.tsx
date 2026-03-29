@@ -1,36 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Check, Crown, Sparkles, Zap, Loader2, ExternalLink } from "lucide-react";
+import { ArrowLeft, Check, Crown, Sparkles, Zap, Loader2, ExternalLink, BarChart3, BookOpen, Dog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppLayout } from "@/components/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
-import { useSubscription, TIERS, type TierKey } from "@/hooks/useSubscription";
+import { useSubscription, type TierKey } from "@/hooks/useSubscription";
+import { PLANS, PLAN_ORDER, type OwnerTier } from "@/lib/plans";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-
-const tierFeatures: Record<TierKey, string[]> = {
-  starter: [
-    "Programme standard 28 jours",
-    "Suivi de progression",
-    "Journal quotidien",
-    "Bibliothèque d'exercices",
-    "Statistiques de base",
-  ],
-  pro: [
-    "Tout Starter, plus :",
-    "Plans personnalisés par IA",
-    "Adaptation au profil du chien",
-    "Évaluation comportementale",
-    "Objectifs personnalisés",
-  ],
-  expert: [
-    "Tout Pro, plus :",
-    "Chatbot IA d'assistance",
-    "Conseils en temps réel",
-    "Analyse avancée",
-    "Support prioritaire",
-  ],
-};
 
 const tierIcons: Record<TierKey, React.ReactNode> = {
   starter: <Zap className="h-6 w-6" />,
@@ -52,7 +29,6 @@ export default function Subscription() {
   const [checkoutLoading, setCheckoutLoading] = useState<TierKey | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
 
-  // Handle success/cancel from Stripe
   useEffect(() => {
     if (searchParams.get("success") === "true") {
       toast({ title: "Abonnement activé ! 🎉", description: "Bienvenue dans votre nouveau plan." });
@@ -63,20 +39,18 @@ export default function Subscription() {
   }, [searchParams, checkSubscription]);
 
   const handleCheckout = async (tierKey: TierKey) => {
-    const tier = TIERS[tierKey];
-    if (!tier.price_id || !session?.access_token) return;
+    const plan = PLANS[tierKey];
+    if (!plan.price_id || !session?.access_token) return;
 
     setCheckoutLoading(tierKey);
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { priceId: tier.price_id },
+        body: { priceId: plan.price_id },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
 
       if (error) throw error;
-      if (data?.url) {
-        window.open(data.url, "_blank");
-      }
+      if (data?.url) window.open(data.url, "_blank");
     } catch (e: any) {
       toast({ title: "Erreur", description: e.message || "Impossible de lancer le paiement.", variant: "destructive" });
     } finally {
@@ -93,7 +67,7 @@ export default function Subscription() {
       });
       if (error) throw error;
       if (data?.error === "no_customer") {
-        toast({ title: "Aucun abonnement", description: "Veuillez d'abord souscrire à un plan pour accéder au portail de gestion.", variant: "destructive" });
+        toast({ title: "Aucun abonnement", description: "Veuillez d'abord souscrire à un plan.", variant: "destructive" });
         return;
       }
       if (data?.url) window.open(data.url, "_blank");
@@ -114,22 +88,51 @@ export default function Subscription() {
         <div className="text-center space-y-2">
           <h1 className="text-2xl font-bold">Choisissez votre plan</h1>
           <p className="text-sm text-muted-foreground">
-            Débloquez des fonctionnalités avancées pour l'éducation de votre chien
+            Accédez à plus d'exercices, d'outils et de fonctionnalités pour l'éducation de votre chien
           </p>
         </div>
 
+        {/* Current plan status */}
+        {subscribed && (
+          <div className="rounded-xl bg-primary/5 border border-primary/20 p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold">Plan actuel : {PLANS[currentTier].name}</p>
+                {subscriptionEnd && (
+                  <p className="text-xs text-muted-foreground">
+                    Prochain renouvellement : {new Date(subscriptionEnd).toLocaleDateString("fr-CH")}
+                  </p>
+                )}
+              </div>
+              <Button variant="outline" size="sm" onClick={handlePortal} disabled={portalLoading} className="gap-1.5 text-xs">
+                {portalLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <ExternalLink className="h-3 w-3" />}
+                Gérer
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-4">
-          {(Object.keys(TIERS) as TierKey[]).map((tierKey) => {
-            const tier = TIERS[tierKey];
+          {PLAN_ORDER.map((tierKey) => {
+            const plan = PLANS[tierKey];
             const isCurrentTier = currentTier === tierKey;
             const isLoading = checkoutLoading === tierKey;
+            const isBelowCurrent = plan.order < PLANS[currentTier].order;
 
             return (
               <div
                 key={tierKey}
                 className={`relative rounded-xl border bg-card p-5 space-y-4 transition-all ${tierColors[tierKey]} ${isCurrentTier ? "shadow-lg" : ""}`}
               >
-                {isCurrentTier && subscribed && (
+                {plan.badge && (
+                  <div className={`absolute -top-3 right-4 rounded-full px-3 py-0.5 text-xs font-semibold ${
+                    tierKey === "expert" ? "bg-accent text-accent-foreground" : "bg-primary text-primary-foreground"
+                  }`}>
+                    {isCurrentTier && subscribed ? "Votre plan" : plan.badge}
+                  </div>
+                )}
+
+                {isCurrentTier && !plan.badge && subscribed && (
                   <div className="absolute -top-3 right-4 rounded-full bg-primary px-3 py-0.5 text-xs font-semibold text-primary-foreground">
                     Votre plan
                   </div>
@@ -141,55 +144,63 @@ export default function Subscription() {
                       {tierIcons[tierKey]}
                     </div>
                     <div>
-                      <h3 className="font-bold text-lg">{tier.name}</h3>
-                      <p className="text-sm font-semibold text-muted-foreground">{tier.label}</p>
+                      <h3 className="font-bold text-lg">{plan.name}</h3>
+                      <p className="text-sm font-semibold text-muted-foreground">{plan.label}</p>
                     </div>
                   </div>
                 </div>
 
+                <p className="text-xs text-muted-foreground italic">{plan.marketing.tagline}</p>
+
                 <ul className="space-y-2">
-                  {tierFeatures[tierKey].map((feature, i) => (
+                  {plan.marketing.highlights.map((feature, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm">
-                      <Check className={`h-4 w-4 mt-0.5 shrink-0 ${tierKey === "expert" ? "text-accent" : tierKey === "pro" ? "text-primary" : "text-success"}`} />
+                      <Check className={`h-4 w-4 mt-0.5 shrink-0 ${tierKey === "expert" ? "text-accent" : tierKey === "pro" ? "text-primary" : "text-[hsl(var(--success))]"}`} />
                       <span className="text-muted-foreground">{feature}</span>
                     </li>
                   ))}
                 </ul>
+
+                {/* Key limits */}
+                <div className="flex gap-2 flex-wrap">
+                  <div className="flex items-center gap-1 text-[10px] bg-secondary rounded-full px-2 py-1">
+                    <Dog className="h-3 w-3" />
+                    {plan.features.dogs_limit === Infinity ? "∞" : plan.features.dogs_limit} chien{plan.features.dogs_limit > 1 ? "s" : ""}
+                  </div>
+                  <div className="flex items-center gap-1 text-[10px] bg-secondary rounded-full px-2 py-1">
+                    <BookOpen className="h-3 w-3" />
+                    {plan.features.exercise_library_limit === Infinity ? "480+" : plan.features.exercise_library_limit} exercices
+                  </div>
+                  {plan.features.ai_chat && (
+                    <div className="flex items-center gap-1 text-[10px] bg-accent/10 text-accent rounded-full px-2 py-1">
+                      IA incluse
+                    </div>
+                  )}
+                </div>
 
                 {tierKey === "starter" ? (
                   isCurrentTier && !subscribed ? (
                     <div className="text-center text-sm text-muted-foreground py-1">Plan actuel</div>
                   ) : null
                 ) : isCurrentTier && subscribed ? (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={handlePortal}
-                    disabled={portalLoading}
-                  >
+                  <Button variant="outline" className="w-full" onClick={handlePortal} disabled={portalLoading}>
                     {portalLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
                     Gérer l'abonnement
                   </Button>
-                ) : (
+                ) : isBelowCurrent ? null : (
                   <Button
-                    className={`w-full ${tierKey === "expert" ? "bg-accent hover:bg-accent/90 text-accent-foreground" : ""}`}
+                    className={`w-full ${tierKey === "expert" ? "bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white" : ""}`}
                     onClick={() => handleCheckout(tierKey)}
                     disabled={isLoading || subLoading}
                   >
                     {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                    {subscribed && currentTier !== "starter" ? "Changer de plan" : "S'abonner"}
+                    {subscribed && currentTier !== "starter" ? `Passer au ${plan.name}` : `S'abonner — ${plan.label}`}
                   </Button>
                 )}
               </div>
             );
           })}
         </div>
-
-        {subscribed && subscriptionEnd && (
-          <div className="text-center text-xs text-muted-foreground">
-            Prochain renouvellement : {new Date(subscriptionEnd).toLocaleDateString("fr-CH")}
-          </div>
-        )}
 
         <div className="text-center">
           <Button variant="ghost" size="sm" onClick={checkSubscription} className="text-xs text-muted-foreground">
