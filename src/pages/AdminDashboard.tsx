@@ -453,6 +453,37 @@ export default function AdminDashboard() {
             <Home className="h-4 w-4" /> Refuge
           </Button>
         </div>
+
+        {/* Temporary password dialog */}
+        <Dialog open={!!tempPasswordDialog} onOpenChange={(o) => !o && setTempPasswordDialog(null)}>
+          <DialogContent className="max-w-[90vw] sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2"><Lock className="h-4 w-4 text-primary" /> Mot de passe temporaire</DialogTitle>
+            </DialogHeader>
+            {tempPasswordDialog && (
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Compte créé pour <strong className="text-foreground">{tempPasswordDialog.email}</strong>. Communiquez ce mot de passe temporaire à l'utilisateur :
+                </p>
+                <div className="p-3 rounded-lg bg-secondary/50 border border-border">
+                  <p className="text-base font-mono font-bold text-foreground text-center select-all break-all">{tempPasswordDialog.password}</p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  ⚠️ L'utilisateur devra créer son propre mot de passe à sa première connexion. Ce mot de passe temporaire ne sera plus affiché.
+                </p>
+                <Button className="w-full" onClick={() => {
+                  navigator.clipboard.writeText(tempPasswordDialog.password);
+                  toast({ title: "Copié ✅", description: "Mot de passe copié dans le presse-papier." });
+                }}>
+                  Copier le mot de passe
+                </Button>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setTempPasswordDialog(null)}>Fermer</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </motion.div>
     </AppLayout>
   );
