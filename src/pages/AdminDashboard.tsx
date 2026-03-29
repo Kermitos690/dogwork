@@ -40,6 +40,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [newEducatorEmail, setNewEducatorEmail] = useState("");
   const [newEducatorName, setNewEducatorName] = useState("");
   const [creating, setCreating] = useState(false);
@@ -412,6 +413,35 @@ export default function AdminDashboard() {
                   disabled={generatingImages} className="w-full gap-2" size="sm"
                 >
                   <Image className="h-4 w-4" /> {generatingImages ? "En cours..." : "Générer illustrations IA"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2"><UserCog className="h-4 w-4 text-primary" /> Nettoyage comptes</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <p className="text-xs text-muted-foreground">Supprime les comptes test/doublons et corrige les profils/rôles manquants.</p>
+                <Button
+                  onClick={async () => {
+                    try {
+                      const { data: { session } } = await supabase.auth.getSession();
+                      if (!session?.access_token) throw new Error("Session expirée");
+                      const { data, error } = await supabase.functions.invoke("cleanup-accounts", {
+                        headers: { Authorization: `Bearer ${session.access_token}` },
+                      });
+                      if (error) throw error;
+                      if (data?.error) throw new Error(data.error);
+                      toast({ title: "Nettoyage terminé ✅", description: `${data.deleted} comptes supprimés. ${data.logs?.length || 0} opérations.` });
+                      queryClient.invalidateQueries({ queryKey: ["admin_users"] });
+                    } catch (err: any) {
+                      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+                    }
+                  }}
+                  variant="outline" size="sm" className="w-full gap-2"
+                >
+                  <Trash2 className="h-4 w-4" /> Nettoyer comptes test/doublons
                 </Button>
               </CardContent>
             </Card>
