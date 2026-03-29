@@ -2,13 +2,17 @@
 
 Plateforme digitale premium pour l'écosystème canin professionnel — propriétaires, éducateurs, refuges, chenils et administration.
 
+🌐 **Production** : [www.dogwork-at-home.com](https://www.dogwork-at-home.com)
+
 ## Stack technique
 
-- **Frontend** : React 18 · TypeScript · Vite · Tailwind CSS · shadcn/ui · Framer Motion
-- **Backend** : Supabase (PostgreSQL, Auth, Edge Functions, Storage)
-- **Paiements** : Stripe (Billing + Connect)
-- **Emails** : Resend
-- **Internationalisation** : i18next (FR / EN)
+| Couche | Technologies |
+|--------|-------------|
+| **Frontend** | React 18 · TypeScript · Vite · Tailwind CSS · shadcn/ui · Framer Motion |
+| **Backend** | Lovable Cloud (PostgreSQL, Auth, Edge Functions, Storage) |
+| **Paiements** | Stripe (Billing + Connect) |
+| **Emails** | Resend |
+| **i18n** | i18next (FR / EN) |
 
 ## Structure du projet
 
@@ -23,7 +27,7 @@ remotion/         → Génération vidéo promotionnelle (projet séparé)
 ## Démarrage local
 
 ```bash
-# 1. Installer les dépendances
+# 1. Installer les dépendances (npm recommandé)
 npm install
 
 # 2. Copier le fichier d'environnement
@@ -34,11 +38,24 @@ cp .env.example .env
 npm run dev
 ```
 
+> **Gestionnaire de paquets** : `npm` est le gestionnaire recommandé. Les lockfiles `bun.lock` / `bun.lockb` sont générés par l'environnement Lovable et peuvent être ignorés.
+
 ## Variables d'environnement
 
-Voir [`.env.example`](.env.example) pour la liste complète des variables nécessaires.
+Voir [`.env.example`](.env.example) pour la liste complète.
 
-> **⚠️ Sécurité** : les secrets (clés Stripe, service role Supabase, clés Resend, etc.) ne sont **jamais** versionnés. Ils sont gérés via les secrets Supabase / Lovable Cloud pour les Edge Functions.
+| Variable | Contexte | Description |
+|----------|----------|-------------|
+| `VITE_SUPABASE_URL` | Frontend | URL du projet backend |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Frontend | Clé publique (anon) |
+| `VITE_SUPABASE_PROJECT_ID` | Frontend | ID du projet |
+| `VITE_ENVIRONMENT` | Frontend | `production` ou `development` |
+| `STRIPE_SECRET_KEY` | Edge Functions | Clé API Stripe |
+| `STRIPE_WEBHOOK_SECRET` | Edge Functions | Secret webhook Stripe |
+| `RESEND_API_KEY` | Edge Functions | Clé API Resend |
+| `ENVIRONMENT` | Edge Functions | `production` ou `development` |
+
+> **⚠️ Sécurité** : les secrets (clés Stripe, service role, clés Resend, etc.) ne sont **jamais** versionnés. Ils sont gérés via les secrets Lovable Cloud pour les Edge Functions.
 
 ## Rôles utilisateur
 
@@ -58,7 +75,7 @@ npm run test
 
 ## Statut
 
-🟢 Pré-lancement — en préparation pour mise en production.
+🟢 **Production** — plateforme en ligne.
 
 ## Licence
 
