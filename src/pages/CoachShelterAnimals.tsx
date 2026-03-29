@@ -48,8 +48,8 @@ export default function CoachShelterAnimals() {
     queryFn: async () => {
       if (!shelterIds.length) return [];
       const { data } = await supabase
-        .from("shelter_profiles")
-        .select("id, user_id, name")
+        .from("shelter_profiles_public" as any)
+        .select("user_id, name")
         .in("user_id", shelterIds);
       return data ?? [];
     },
