@@ -154,12 +154,12 @@ Style: Modern flat illustration with clean lines, soft muted colors (sage green,
   }
 
   // Check if more pending items remain — if so, re-trigger self
-  const { data: remaining } = await supabase
+  const { count: remainingCount } = await supabase
     .from("image_generation_queue")
-    .select("id", { count: "exact", head: true })
+    .select("*", { count: "exact", head: true })
     .eq("status", "pending");
 
-  if (remaining && (remaining as any).length > 0) {
+  if (remainingCount && remainingCount > 0) {
     // Re-trigger self (fire and forget)
     fetch(`${SUPABASE_URL}/functions/v1/process-image-queue`, {
       method: "POST",
