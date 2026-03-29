@@ -189,6 +189,20 @@ serve(async (req) => {
       logStep("No active subscription");
     }
 
+    // Sync current_tier in stripe_customers for backend enforcement
+    const tierFromProduct: Record<string, string> = {
+      "prod_U83i1wbeLdd3EI": "pro",
+      "prod_U83inCbv8JMMgf": "expert",
+    };
+    const resolvedTier = hasActiveSub && productId ? (tierFromProduct[productId as string] || "starter") : "starter";
+    
+    await supabaseClient.from("stripe_customers").upsert({
+      user_id: userId,
+      stripe_customer_id: customerId,
+      email: userEmail,
+      current_tier: resolvedTier,
+    }, { onConflict: "user_id" });
+
     return new Response(JSON.stringify({
       subscribed: hasActiveSub,
       product_id: productId,
