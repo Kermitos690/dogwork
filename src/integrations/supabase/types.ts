@@ -1400,6 +1400,50 @@ export type Database = {
           },
         ]
       }
+      image_generation_queue: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          exercise_id: string
+          exercise_name: string
+          exercise_objective: string | null
+          exercise_slug: string
+          id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          exercise_id: string
+          exercise_name: string
+          exercise_objective?: string | null
+          exercise_slug: string
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          exercise_id?: string
+          exercise_name?: string
+          exercise_objective?: string | null
+          exercise_slug?: string
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "image_generation_queue_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       journal_entries: {
         Row: {
           completed: boolean
