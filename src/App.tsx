@@ -308,6 +308,7 @@ const App = () => {
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/privacy" element={<PrivacyPage />} />
                 <Route path="/legal" element={<LegalPage />} />
+                <Route path="/gate-k9x" element={<Suspense fallback={<PageLoader />}><AdminLogin /></Suspense>} />
                 <Route path="/*" element={<ProtectedRoutes />} />
               </Routes>
             </Suspense>
