@@ -92,7 +92,7 @@ export default function Messages() {
           .from("shelter_profiles_public" as any)
           .select("user_id, name")
           .in("user_id", shelterIds);
-        for (const sp of shelterProfiles || []) {
+        for (const sp of (shelterProfiles as any[]) || []) {
           const animals = (adopterLinks as any[])
             .filter((l: any) => l.shelter_user_id === sp.user_id)
             .map((l: any) => l.animal_name)

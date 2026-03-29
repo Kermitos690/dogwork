@@ -51,7 +51,7 @@ export default function CoachShelterAnimals() {
         .from("shelter_profiles_public" as any)
         .select("user_id, name")
         .in("user_id", shelterIds);
-      return data ?? [];
+      return (data as { user_id: string; name: string }[]) ?? [];
     },
     enabled: shelterIds.length > 0,
   });

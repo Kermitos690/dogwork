@@ -370,7 +370,7 @@ export default function Onboarding() {
   useEffect(() => {
     if (!adoptedFromShelter) return;
     supabase.from("shelter_profiles_public" as any).select("user_id, name").order("name").then(({ data }) => {
-      if (data) setShelterList(data);
+      if (data) setShelterList(data as { user_id: string; name: string }[]);
     });
   }, [adoptedFromShelter]);
 
