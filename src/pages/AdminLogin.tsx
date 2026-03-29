@@ -35,11 +35,22 @@ export default function AdminLogin() {
     }
 
     setLoading(true);
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const loginPromise = supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password: password.trim(),
       });
+
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error("AUTH_TIMEOUT")), 12000);
+      });
+
+      const { error } = await Promise.race([loginPromise, timeoutPromise]);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
 
       if (error) {
         toast({ title: "Erreur", description: error.message, variant: "destructive" });
@@ -49,12 +60,15 @@ export default function AdminLogin() {
       toast({
         title: "Erreur de connexion",
         description:
-          message === "Load failed"
+          message === "AUTH_TIMEOUT"
+            ? "La connexion prend trop de temps. Vérifiez votre réseau puis réessayez."
+            : message === "Load failed"
             ? "Impossible de joindre le serveur pour le moment. Vérifiez votre connexion puis réessayez."
             : message,
         variant: "destructive",
       });
     } finally {
+      if (timeoutId) clearTimeout(timeoutId);
       setLoading(false);
     }
   };
