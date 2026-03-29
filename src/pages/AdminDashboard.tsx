@@ -111,18 +111,20 @@ export default function AdminDashboard() {
   const totalCommission = allBookings.reduce((s: number, b: any) => s + (b.commission_cents || 0), 0);
 
   const handleCreateEducator = async () => {
-    if (!newEducatorEmail || !newEducatorPassword) return;
+    if (!newEducatorEmail) return;
     setCreating(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Session expirée");
-      const { data, error } = await supabase.functions.invoke("create-educator", {
-        body: { email: newEducatorEmail, password: newEducatorPassword, displayName: newEducatorName || newEducatorEmail.split("@")[0] },
+      const { data, error } = await supabase.functions.invoke("create-user", {
+        body: { email: newEducatorEmail, displayName: newEducatorName || newEducatorEmail.split("@")[0], role: "educator" },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (error) throw error;
-      toast({ title: "Éducateur créé", description: `${newEducatorEmail} a été ajouté comme éducateur.` });
-      setNewEducatorEmail(""); setNewEducatorName(""); setNewEducatorPassword("");
+      if (data?.error) throw new Error(data.error);
+      setTempPasswordDialog({ email: newEducatorEmail, password: data.temporaryPassword });
+      toast({ title: "Éducateur créé ✅", description: `${newEducatorEmail} a été ajouté.` });
+      setNewEducatorEmail(""); setNewEducatorName("");
       refetchEducators();
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message || "Impossible de créer l'éducateur", variant: "destructive" });
@@ -131,18 +133,20 @@ export default function AdminDashboard() {
   };
 
   const handleCreateShelter = async () => {
-    if (!newShelterEmail || !newShelterPassword) return;
+    if (!newShelterEmail) return;
     setCreatingShelter(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Session expirée");
-      const { data, error } = await supabase.functions.invoke("create-shelter", {
-        body: { email: newShelterEmail, password: newShelterPassword, displayName: newShelterName || newShelterEmail.split("@")[0] },
+      const { data, error } = await supabase.functions.invoke("create-user", {
+        body: { email: newShelterEmail, displayName: newShelterName || newShelterEmail.split("@")[0], role: "shelter" },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (error) throw error;
-      toast({ title: "Refuge créé", description: `${newShelterEmail} a été ajouté comme refuge.` });
-      setNewShelterEmail(""); setNewShelterName(""); setNewShelterPassword("");
+      if (data?.error) throw new Error(data.error);
+      setTempPasswordDialog({ email: newShelterEmail, password: data.temporaryPassword });
+      toast({ title: "Refuge créé ✅", description: `${newShelterEmail} a été ajouté.` });
+      setNewShelterEmail(""); setNewShelterName("");
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message || "Impossible de créer le refuge", variant: "destructive" });
     }
