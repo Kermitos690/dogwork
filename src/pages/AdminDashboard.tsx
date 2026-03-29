@@ -687,19 +687,36 @@ function AdminUsersManager() {
     });
 
     const fileName = `DogWork_Guide_${userName.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
-    
-    // Use blob + link click — most reliable across iOS Safari, Chrome, etc.
-    const blob = doc.output("blob");
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    
-    toast({ title: "Téléchargement lancé ✅", description: `Fichier : ${fileName}` });
+
+    // iOS Safari does not support the `download` attribute on blob URLs.
+    // Detect iOS and open the PDF in a new tab so the user can share/save it.
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+    if (isIOS) {
+      // On iOS, open as data URI in new tab — blob URLs get revoked too fast
+      const dataUri = doc.output("datauristring", { filename: fileName });
+      const w = window.open();
+      if (w) {
+        w.document.write(`<html><head><title>${fileName}</title></head><body style="margin:0"><iframe src="${dataUri}" style="border:none;width:100%;height:100vh"></iframe></body></html>`);
+        w.document.close();
+      } else {
+        // Fallback: direct save via jsPDF
+        doc.save(fileName);
+      }
+      toast({ title: "PDF ouvert ✅", description: "Utilisez le bouton de partage pour enregistrer le fichier." });
+    } else {
+      // Desktop / Android: standard blob download
+      const blob = doc.output("blob");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      toast({ title: "Téléchargement lancé ✅", description: `Fichier : ${fileName}` });
+    }
   };
 
   return (
