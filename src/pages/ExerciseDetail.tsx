@@ -76,8 +76,8 @@ export default function ExerciseDetail() {
     );
   }
 
-  // Gate: if exercise is locked for this user's tier
-  if (!accessGate.allowed) {
+  // Gate: if exercise is locked for this user's tier (server-side enforced)
+  if (isLocked || !accessGate.allowed) {
     return (
       <AppLayout>
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pb-8 space-y-4">
@@ -86,7 +86,7 @@ export default function ExerciseDetail() {
               <ArrowLeft className="h-4 w-4 text-foreground" />
             </motion.button>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{exercise.exercise_categories?.icon} {exercise.exercise_categories?.name}</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{exercise.category_icon} {exercise.category_name}</p>
               <h1 className="text-lg font-bold text-foreground break-words">{exercise.name}</h1>
             </div>
           </div>
