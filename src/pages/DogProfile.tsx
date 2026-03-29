@@ -160,7 +160,43 @@ export default function DogProfile() {
       }
 
       if (isNew) {
-        await createDog.mutateAsync({ ...form, photo_url });
+        const created = await createDog.mutateAsync({ ...form, photo_url });
+        
+        // Create adopter link + check-ins if shelter adoption matched
+        if (adoptedFromShelter && matchedAnimal && selectedShelterId && user) {
+          await supabase.from("adopter_links").insert({
+            adopter_user_id: user.id,
+            shelter_user_id: selectedShelterId,
+            animal_id: matchedAnimal.id,
+            animal_name: matchedAnimal.name,
+          }).throwOnError();
+
+          const { data: shelterConfig } = await supabase
+            .from("shelter_profiles")
+            .select("checkin_frequency_weeks, checkin_total_weeks")
+            .eq("user_id", selectedShelterId)
+            .single();
+
+          const freqWeeks = shelterConfig?.checkin_frequency_weeks || 1;
+          const totalWeeks = shelterConfig?.checkin_total_weeks || 8;
+          const now = new Date();
+          const checkinRows = [];
+          for (let week = 1; week <= totalWeeks; week++) {
+            const dueDate = new Date(now);
+            dueDate.setDate(dueDate.getDate() + week * freqWeeks * 7);
+            checkinRows.push({
+              adopter_user_id: user.id,
+              animal_id: matchedAnimal.id,
+              shelter_user_id: selectedShelterId,
+              checkin_week: week,
+              due_date: dueDate.toISOString().split("T")[0],
+            });
+          }
+          if (checkinRows.length > 0) {
+            await supabase.from("adoption_checkins").insert(checkinRows);
+          }
+        }
+        
         toast({ title: "Chien ajouté ✓" });
       } else {
         await updateDog.mutateAsync({ id: dogId!, ...form, photo_url });
