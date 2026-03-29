@@ -88,6 +88,9 @@ const ShelterAdoptionCheckins = lazy(() => import("./pages/ShelterAdoptionChecki
 const ShelterAdoptionPlans = lazy(() => import("./pages/ShelterAdoptionPlans"));
 const AdoptionFollowup = lazy(() => import("./pages/AdoptionFollowup"));
 const ForcePasswordChange = lazy(() => import("./pages/ForcePasswordChange"));
+const TermsPage = lazy(() => import("./pages/Terms"));
+const PrivacyPage = lazy(() => import("./pages/Privacy"));
+const LegalPage = lazy(() => import("./pages/Legal"));
 
 const queryClient = new QueryClient();
 
@@ -300,6 +303,9 @@ const App = () => {
                 <Route path="/landing" element={<Landing />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/terms" element={<TermsPage />} />
+                <Route path="/privacy" element={<PrivacyPage />} />
+                <Route path="/legal" element={<LegalPage />} />
                 <Route path="/*" element={<ProtectedRoutes />} />
               </Routes>
             </Suspense>

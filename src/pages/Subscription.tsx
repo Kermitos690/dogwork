@@ -207,6 +207,15 @@ export default function Subscription() {
             Actualiser le statut
           </Button>
         </div>
+
+        <div className="text-center text-xs text-muted-foreground space-y-1 pb-2">
+          <p>
+            En souscrivant, vous acceptez nos{" "}
+            <a href="/terms" className="underline hover:text-foreground">conditions d'abonnement</a>
+            {" "}et notre{" "}
+            <a href="/privacy" className="underline hover:text-foreground">politique de confidentialité</a>.
+          </p>
+        </div>
       </div>
     </AppLayout>
   );
