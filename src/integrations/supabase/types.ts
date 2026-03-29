@@ -161,6 +161,164 @@ export type Database = {
           },
         ]
       }
+      adoption_plan_entries: {
+        Row: {
+          adopter_user_id: string
+          completed: boolean
+          created_at: string
+          id: string
+          mood: string | null
+          notes: string | null
+          photos: string[] | null
+          plan_id: string
+          task_id: string
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          adopter_user_id: string
+          completed?: boolean
+          created_at?: string
+          id?: string
+          mood?: string | null
+          notes?: string | null
+          photos?: string[] | null
+          plan_id: string
+          task_id: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          adopter_user_id?: string
+          completed?: boolean
+          created_at?: string
+          id?: string
+          mood?: string | null
+          notes?: string | null
+          photos?: string[] | null
+          plan_id?: string
+          task_id?: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "adoption_plan_entries_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "adoption_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "adoption_plan_entries_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "adoption_plan_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      adoption_plan_tasks: {
+        Row: {
+          created_at: string
+          description: string | null
+          exercise_slug: string | null
+          id: string
+          plan_id: string
+          sort_order: number
+          task_type: string
+          title: string
+          week_number: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          exercise_slug?: string | null
+          id?: string
+          plan_id: string
+          sort_order?: number
+          task_type?: string
+          title?: string
+          week_number: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          exercise_slug?: string | null
+          id?: string
+          plan_id?: string
+          sort_order?: number
+          task_type?: string
+          title?: string
+          week_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "adoption_plan_tasks_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "adoption_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      adoption_plans: {
+        Row: {
+          adopter_user_id: string
+          animal_id: string
+          created_at: string
+          description: string | null
+          duration_weeks: number
+          id: string
+          objectives: Json
+          shelter_user_id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          adopter_user_id: string
+          animal_id: string
+          created_at?: string
+          description?: string | null
+          duration_weeks?: number
+          id?: string
+          objectives?: Json
+          shelter_user_id: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          adopter_user_id?: string
+          animal_id?: string
+          created_at?: string
+          description?: string | null
+          duration_weeks?: number
+          id?: string
+          objectives?: Json
+          shelter_user_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "adoption_plans_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_animals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "adoption_plans_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_animals_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       adoption_updates: {
         Row: {
           adopter_email: string | null
