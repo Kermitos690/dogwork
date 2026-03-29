@@ -49,6 +49,7 @@ const CoachCourses = lazy(() => import("./pages/CoachCourses"));
 const CoachGuard = lazy(() => import("./components/CoachGuard").then(m => ({ default: m.CoachGuard })));
 const AdminGuard = lazy(() => import("./components/AdminGuard").then(m => ({ default: m.AdminGuard })));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminTreasury = lazy(() => import("./pages/AdminTreasury"));
 const AdminLaunchChecklist = lazy(() => import("./pages/AdminLaunchChecklist"));
 const AdminSubscriptions = lazy(() => import("./pages/AdminSubscriptions"));
