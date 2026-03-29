@@ -44,34 +44,63 @@ Deno.serve(async (req) => {
     const { email, password, displayName, role } = await req.json();
     if (!email || !password) throw new Error("Email et mot de passe requis");
 
-    // Create user with email auto-confirmed
-    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: { display_name: displayName || email.split("@")[0] },
-    });
-    if (createError) throw createError;
+    // Check if user already exists
+    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+    const existingUser = existingUsers?.users?.find(
+      (u) => u.email?.toLowerCase() === email.toLowerCase()
+    );
 
-    // Assign role if specified (owner is default, no role entry needed)
+    let userId: string;
+
+    if (existingUser) {
+      // User exists — just assign role if needed
+      userId = existingUser.id;
+    } else {
+      // Create user with email auto-confirmed
+      const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { display_name: displayName || email.split("@")[0] },
+      });
+      if (createError) throw createError;
+      userId = newUser.user!.id;
+    }
+
     if (role && role !== "owner") {
-      await supabaseAdmin.from("user_roles").insert({ user_id: newUser.user!.id, role });
+      // Upsert role to avoid duplicates
+      const { data: existingRole } = await supabaseAdmin
+        .from("user_roles")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("role", role)
+        .maybeSingle();
 
-      // Create role-specific profiles
+      if (!existingRole) {
+        await supabaseAdmin.from("user_roles").insert({ user_id: userId, role });
+      }
+
+      // Create role-specific profiles if missing
       if (role === "educator") {
-        await supabaseAdmin.from("coach_profiles").insert({
-          user_id: newUser.user!.id,
-          display_name: displayName || email.split("@")[0],
-        });
+        const { data: ep } = await supabaseAdmin.from("coach_profiles").select("id").eq("user_id", userId).maybeSingle();
+        if (!ep) {
+          await supabaseAdmin.from("coach_profiles").insert({
+            user_id: userId,
+            display_name: displayName || email.split("@")[0],
+          });
+        }
       } else if (role === "shelter") {
-        await supabaseAdmin.from("shelter_profiles").insert({
-          user_id: newUser.user!.id,
-          name: displayName || email.split("@")[0],
-        });
+        const { data: sp } = await supabaseAdmin.from("shelter_profiles").select("id").eq("user_id", userId).maybeSingle();
+        if (!sp) {
+          await supabaseAdmin.from("shelter_profiles").insert({
+            user_id: userId,
+            name: displayName || email.split("@")[0],
+          });
+        }
       }
     }
 
-    return new Response(JSON.stringify({ success: true, userId: newUser.user!.id }), {
+    return new Response(JSON.stringify({ success: true, userId, alreadyExisted: !!existingUser }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err: any) {
