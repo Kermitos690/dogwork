@@ -44,14 +44,28 @@ Deno.serve(async (req) => {
     const { email, password, displayName, role } = await req.json();
     if (!email || !password) throw new Error("Email et mot de passe requis");
 
-    // Create user with email auto-confirmed
-    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: { display_name: displayName || email.split("@")[0] },
-    });
-    if (createError) throw createError;
+    // Check if user already exists
+    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+    const existingUser = existingUsers?.users?.find(
+      (u) => u.email?.toLowerCase() === email.toLowerCase()
+    );
+
+    let userId: string;
+
+    if (existingUser) {
+      // User exists — just assign role if needed
+      userId = existingUser.id;
+    } else {
+      // Create user with email auto-confirmed
+      const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { display_name: displayName || email.split("@")[0] },
+      });
+      if (createError) throw createError;
+      userId = newUser.user!.id;
+    }
 
     // Assign role if specified (owner is default, no role entry needed)
     if (role && role !== "owner") {
