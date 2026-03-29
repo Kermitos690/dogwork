@@ -41,10 +41,10 @@ export default function Landing() {
   ];
 
   const STATS = [
-    { num: "200+", label: t("landing.statsExercises") },
+    { num: "480+", label: t("landing.statsExercises") },
     { num: "28", label: t("landing.statsDays") },
     { num: "4", label: t("landing.statsRoles") },
-    { num: "100%", label: t("landing.statsFree") },
+    { num: "Freemium", label: "Plan Starter gratuit" },
   ];
 
   return (
@@ -339,12 +339,11 @@ export default function Landing() {
               <div className="text-sm text-muted-foreground mb-5">Aucun engagement</div>
               <ul className="space-y-2.5 mb-6 flex-1">
                 {[
-                  "15 programmes pré-construits (7–21 jours)",
-                  "Suivi de progression quotidien",
+                  "1 profil chien",
+                  "15 exercices fondamentaux",
                   "Journal d'entraînement",
-                  "Bibliothèque d'exercices complète",
-                  "Statistiques de base",
-                  "Profil de chien détaillé",
+                  "Suivi de progression basique",
+                  "Statistiques essentielles",
                 ].map((f, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm">
                     <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 text-[hsl(var(--success))]" />
@@ -375,11 +374,11 @@ export default function Landing() {
               <ul className="space-y-2.5 mb-6 flex-1">
                 {[
                   "Tout le plan Starter, plus :",
-                  "50 programmes pré-construits",
-                  "Plans personnalisés par IA",
-                  "Adaptation au profil & race du chien",
+                  "Jusqu'à 3 chiens",
+                  "150 exercices (basiques + intermédiaires)",
                   "Évaluation comportementale complète",
-                  "Objectifs personnalisés",
+                  "Objectifs & problèmes personnalisés",
+                  "Statistiques avancées",
                 ].map((f, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm">
                     <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
@@ -414,10 +413,10 @@ export default function Landing() {
               <ul className="space-y-2.5 mb-6 flex-1">
                 {[
                   "Tout le plan Pro, plus :",
-                  "Chatbot IA d'assistance 24/7",
-                  "Conseils personnalisés en temps réel",
-                  "Analyse comportementale avancée",
-                  "Génération illimitée de plans IA",
+                  "Chiens illimités",
+                  "480+ exercices (toute la bibliothèque)",
+                  "Plans IA personnalisés",
+                  "Chatbot IA 24/7",
                   "Support prioritaire",
                 ].map((f, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm">
@@ -476,9 +475,8 @@ export default function Landing() {
               <div className="bg-muted/40 rounded-xl p-3 mb-4 space-y-1.5">
                 <p className="text-xs font-semibold text-foreground">Transparence sur les frais</p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  <strong>16,8 %</strong> de commission sur chaque transaction cours payée par un propriétaire.
+                  <strong>15,8 %</strong> de commission sur chaque transaction cours payée par un propriétaire.
                   Ce taux unique couvre les frais bancaires Stripe <em>et</em> finance l'écosystème DogWork.
-                  C'est le seul modèle de monétisation de la plateforme.
                 </p>
               </div>
               <Button onClick={() => navigate("/auth")}
