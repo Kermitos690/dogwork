@@ -12,7 +12,8 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -21,51 +22,90 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Verify caller identity via token
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user: caller }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const {
+      data: { user: caller },
+      error: authError,
+    } = await supabaseAdmin.auth.getUser(token);
+
     if (authError || !caller) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Verify caller is admin
-    const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: caller.id, _role: "admin" });
+    const { data: isAdmin } = await supabaseAdmin.rpc("has_role", {
+      _user_id: caller.id,
+      _role: "admin",
+    });
+
     if (!isAdmin) throw new Error("Seul un administrateur peut créer des comptes");
 
     const { email, password, displayName, role } = await req.json();
     if (!email || !password) throw new Error("Email et mot de passe requis");
 
-    // Check if user already exists
-    const { data: { users: existingUsers } } = await supabaseAdmin.auth.admin.listUsers();
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const effectiveDisplayName = (displayName || normalizedEmail.split("@")[0]).trim();
+
+    const {
+      data: { users: existingUsers },
+      error: listUsersError,
+    } = await supabaseAdmin.auth.admin.listUsers();
+
+    if (listUsersError) throw listUsersError;
+
     const existingUser = (existingUsers || []).find(
-      (u: any) => u.email?.toLowerCase() === email.toLowerCase()
+      (u: any) => u.email?.toLowerCase() === normalizedEmail
     );
 
     let userId: string;
 
     if (existingUser) {
-      // User exists — update password so admin can reset it
       userId = existingUser.id;
-      await supabaseAdmin.auth.admin.updateUserById(userId, {
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
         password,
-        user_metadata: { display_name: displayName || existingUser.user_metadata?.display_name },
+        user_metadata: {
+          ...(existingUser.user_metadata || {}),
+          display_name: effectiveDisplayName,
+        },
       });
+      if (updateError) throw updateError;
     } else {
-      // Create user with email auto-confirmed
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-        email,
+        email: normalizedEmail,
         password,
         email_confirm: true,
-        user_metadata: { display_name: displayName || email.split("@")[0] },
+        user_metadata: { display_name: effectiveDisplayName },
       });
       if (createError) throw createError;
       userId = newUser.user!.id;
     }
 
+    const { error: profileError } = await supabaseAdmin.from("profiles").upsert(
+      {
+        user_id: userId,
+        display_name: effectiveDisplayName,
+      },
+      { onConflict: "user_id" }
+    );
+    if (profileError) throw profileError;
+
+    const { data: ownerRole } = await supabaseAdmin
+      .from("user_roles")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("role", "owner")
+      .maybeSingle();
+
+    if (!ownerRole) {
+      const { error: ownerRoleError } = await supabaseAdmin
+        .from("user_roles")
+        .insert({ user_id: userId, role: "owner" });
+      if (ownerRoleError) throw ownerRoleError;
+    }
+
     if (role && role !== "owner") {
-      // Upsert role to avoid duplicates
       const { data: existingRole } = await supabaseAdmin
         .from("user_roles")
         .select("id")
@@ -74,25 +114,39 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (!existingRole) {
-        await supabaseAdmin.from("user_roles").insert({ user_id: userId, role });
+        const { error: roleError } = await supabaseAdmin
+          .from("user_roles")
+          .insert({ user_id: userId, role });
+        if (roleError) throw roleError;
       }
 
-      // Create role-specific profiles if missing
       if (role === "educator") {
-        const { data: ep } = await supabaseAdmin.from("coach_profiles").select("id").eq("user_id", userId).maybeSingle();
-        if (!ep) {
-          await supabaseAdmin.from("coach_profiles").insert({
+        const { data: coachProfile } = await supabaseAdmin
+          .from("coach_profiles")
+          .select("id")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if (!coachProfile) {
+          const { error: coachProfileError } = await supabaseAdmin.from("coach_profiles").insert({
             user_id: userId,
-            display_name: displayName || email.split("@")[0],
+            display_name: effectiveDisplayName,
           });
+          if (coachProfileError) throw coachProfileError;
         }
       } else if (role === "shelter") {
-        const { data: sp } = await supabaseAdmin.from("shelter_profiles").select("id").eq("user_id", userId).maybeSingle();
-        if (!sp) {
-          await supabaseAdmin.from("shelter_profiles").insert({
+        const { data: shelterProfile } = await supabaseAdmin
+          .from("shelter_profiles")
+          .select("id")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if (!shelterProfile) {
+          const { error: shelterProfileError } = await supabaseAdmin.from("shelter_profiles").insert({
             user_id: userId,
-            name: displayName || email.split("@")[0],
+            name: effectiveDisplayName,
           });
+          if (shelterProfileError) throw shelterProfileError;
         }
       }
     }
@@ -101,7 +155,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    return new Response(JSON.stringify({ error: err.message || "Erreur inattendue" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
