@@ -49,7 +49,7 @@ export default function AdminDashboard() {
   const [enriching, setEnriching] = useState(false);
   const [enrichProgress, setEnrichProgress] = useState<{ processed: number; total: number; success: number; failed: number; done: boolean } | null>(null);
   const [generatingImages, setGeneratingImages] = useState(false);
-  const [imageProgress, setImageProgress] = useState<{ processed: number; total: number; success: number; failed: number; done: boolean } | null>(null);
+  const [imageProgress, setImageProgress] = useState<{ total: number; success: number; failed: number; pending: number; processing: number; done: boolean } | null>(null);
 
   const { data: isAdmin, isLoading: adminLoading } = useQuery({
     queryKey: ["is_admin", user?.id],
