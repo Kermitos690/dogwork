@@ -2,10 +2,53 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
+const PRODUCT_TIER_MAP: Record<string, string> = {
+  "prod_U83i1wbeLdd3EI": "pro",
+  "prod_U83inCbv8JMMgf": "expert",
+};
+
 const logStep = (step: string, details?: any) => {
   const d = details ? ` - ${JSON.stringify(details)}` : "";
   console.log(`[STRIPE-WEBHOOK] ${step}${d}`);
 };
+
+async function syncTierFromStripe(
+  stripe: Stripe,
+  supabaseAdmin: any,
+  customerId: string,
+  userId: string
+) {
+  try {
+    const subs = await stripe.subscriptions.list({
+      customer: customerId,
+      status: "active",
+      limit: 10,
+    });
+
+    let tier = "starter";
+    for (const sub of subs.data) {
+      for (const item of sub.items.data) {
+        const productId = typeof item.price.product === "string"
+          ? item.price.product
+          : (item.price.product as any)?.id;
+        const mapped = PRODUCT_TIER_MAP[productId];
+        if (mapped === "expert") { tier = "expert"; break; }
+        if (mapped === "pro" && tier !== "expert") tier = "pro";
+      }
+      if (tier === "expert") break;
+    }
+
+    await supabaseAdmin.from("stripe_customers").upsert({
+      user_id: userId,
+      stripe_customer_id: customerId,
+      current_tier: tier,
+    }, { onConflict: "user_id" });
+
+    logStep("Tier synced", { userId, tier });
+  } catch (e) {
+    logStep("Tier sync error", { error: (e as Error).message });
+  }
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -54,24 +97,25 @@ serve(async (req) => {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         if (session.mode === "subscription" && session.customer_email) {
-          // Cache stripe customer
           const { data: users } = await supabaseAdmin.auth.admin.listUsers();
           const user = users?.users?.find(
             (u: any) => u.email?.toLowerCase() === session.customer_email?.toLowerCase()
           );
           if (user && session.customer) {
+            const customerId = session.customer as string;
             await supabaseAdmin.from("stripe_customers").upsert({
               user_id: user.id,
-              stripe_customer_id: session.customer as string,
+              stripe_customer_id: customerId,
               email: session.customer_email,
             }, { onConflict: "user_id" });
 
-            // Update billing_events with user_id
             await supabaseAdmin.from("billing_events")
               .update({ user_id: user.id })
               .eq("stripe_event_id", event.id);
 
-            logStep("Customer cached", { userId: user.id, customerId: session.customer });
+            // Sync tier
+            await syncTierFromStripe(stripe, supabaseAdmin, customerId, user.id);
+            logStep("Customer cached + tier synced", { userId: user.id, customerId });
           }
         }
         break;
@@ -82,7 +126,6 @@ serve(async (req) => {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
 
-        // Find user by stripe customer cache
         const { data: cached } = await supabaseAdmin
           .from("stripe_customers")
           .select("user_id")
@@ -93,9 +136,12 @@ serve(async (req) => {
           await supabaseAdmin.from("billing_events")
             .update({ user_id: cached.user_id })
             .eq("stripe_event_id", event.id);
+
+          // Sync tier on every subscription change
+          await syncTierFromStripe(stripe, supabaseAdmin, customerId, cached.user_id);
         }
 
-        logStep("Subscription updated", {
+        logStep("Subscription updated + tier synced", {
           status: subscription.status,
           customerId,
           userId: cached?.user_id,
@@ -117,9 +163,14 @@ serve(async (req) => {
           await supabaseAdmin.from("billing_events")
             .update({ user_id: cached.user_id })
             .eq("stripe_event_id", event.id);
+
+          // Reset tier to starter on deletion
+          await supabaseAdmin.from("stripe_customers")
+            .update({ current_tier: "starter" })
+            .eq("user_id", cached.user_id);
         }
 
-        logStep("Subscription deleted", { customerId, userId: cached?.user_id });
+        logStep("Subscription deleted, tier reset", { customerId, userId: cached?.user_id });
         break;
       }
 
@@ -137,9 +188,11 @@ serve(async (req) => {
           await supabaseAdmin.from("billing_events")
             .update({ user_id: cached.user_id })
             .eq("stripe_event_id", event.id);
+          // Re-sync tier on successful payment
+          await syncTierFromStripe(stripe, supabaseAdmin, customerId, cached.user_id);
         }
 
-        logStep("Invoice paid", { customerId, userId: cached?.user_id });
+        logStep("Invoice paid, tier synced", { customerId, userId: cached?.user_id });
         break;
       }
 

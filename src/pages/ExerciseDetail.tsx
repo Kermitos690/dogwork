@@ -48,19 +48,17 @@ export default function ExerciseDetail() {
   const { t } = useTranslation();
 
   const { data: exercise, isLoading } = useQuery({
-    queryKey: ["exercise_detail", slug],
+    queryKey: ["exercise_detail_rpc", slug],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("exercises")
-        .select("*, exercise_categories(name, icon, slug)")
-        .eq("slug", slug!)
-        .maybeSingle();
-      return data;
+      const { data, error } = await supabase.rpc("get_exercise_for_user", { _slug: slug! });
+      if (error) throw error;
+      return data as any;
     },
     enabled: !!slug,
   });
 
-  // Check access based on exercise min_tier
+  // If the RPC returned a locked flag, the content is already filtered server-side
+  const isLocked = exercise?.locked === true;
   const accessGate = useExerciseAccess(exercise?.min_tier || "starter");
 
   if (isLoading) {
@@ -78,8 +76,8 @@ export default function ExerciseDetail() {
     );
   }
 
-  // Gate: if exercise is locked for this user's tier
-  if (!accessGate.allowed) {
+  // Gate: if exercise is locked for this user's tier (server-side enforced)
+  if (isLocked || !accessGate.allowed) {
     return (
       <AppLayout>
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pb-8 space-y-4">
@@ -88,7 +86,7 @@ export default function ExerciseDetail() {
               <ArrowLeft className="h-4 w-4 text-foreground" />
             </motion.button>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{exercise.exercise_categories?.icon} {exercise.exercise_categories?.name}</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{exercise.category_icon} {exercise.category_name}</p>
               <h1 className="text-lg font-bold text-foreground break-words">{exercise.name}</h1>
             </div>
           </div>
@@ -147,7 +145,7 @@ export default function ExerciseDetail() {
             <ArrowLeft className="h-4 w-4 text-foreground" />
           </motion.button>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{exercise.exercise_categories?.icon} {exercise.exercise_categories?.name}</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{exercise.category_icon} {exercise.category_name}</p>
             <h1 className="text-lg font-bold text-foreground break-words">{exercise.name}</h1>
           </div>
         </div>
@@ -157,7 +155,7 @@ export default function ExerciseDetail() {
             <img src={exercise.cover_image} alt={exercise.name} className="w-full h-auto max-w-full object-contain" />
           </div>
         ) : (
-          <ExerciseCoverFallback name={exercise.name} categoryIcon={exercise.exercise_categories?.icon} size="lg" />
+          <ExerciseCoverFallback name={exercise.name} categoryIcon={exercise.category_icon} size="lg" />
         )}
 
         <div className="flex flex-wrap gap-1.5">

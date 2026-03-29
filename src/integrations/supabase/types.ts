@@ -2184,6 +2184,7 @@ export type Database = {
       stripe_customers: {
         Row: {
           created_at: string
+          current_tier: string
           email: string | null
           id: string
           stripe_customer_id: string
@@ -2192,6 +2193,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          current_tier?: string
           email?: string | null
           id?: string
           stripe_customer_id: string
@@ -2200,6 +2202,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          current_tier?: string
           email?: string | null
           id?: string
           stripe_customer_id?: string
@@ -2546,6 +2549,7 @@ export type Database = {
         }[]
       }
       get_employee_shelter_id: { Args: { _user_id: string }; Returns: string }
+      get_exercise_for_user: { Args: { _slug: string }; Returns: Json }
       get_unenriched_exercises: {
         Args: { batch_limit?: number; batch_offset?: number }
         Returns: {
@@ -2611,6 +2615,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_user_tier: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2643,6 +2648,10 @@ export type Database = {
           display_name: string
           user_id: string
         }[]
+      }
+      tier_meets_minimum: {
+        Args: { _min_tier: string; _user_tier: string }
+        Returns: boolean
       }
     }
     Enums: {
