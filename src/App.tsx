@@ -87,6 +87,7 @@ const AdoptionCheckins = lazy(() => import("./pages/AdoptionCheckins"));
 const ShelterAdoptionCheckins = lazy(() => import("./pages/ShelterAdoptionCheckins"));
 const ShelterAdoptionPlans = lazy(() => import("./pages/ShelterAdoptionPlans"));
 const AdoptionFollowup = lazy(() => import("./pages/AdoptionFollowup"));
+const ForcePasswordChange = lazy(() => import("./pages/ForcePasswordChange"));
 
 const queryClient = new QueryClient();
 
