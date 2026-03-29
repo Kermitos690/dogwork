@@ -13,7 +13,7 @@ import {
   Menu, Home, Dog, BookOpen, Play, BarChart3, ClipboardList,
   Calendar, User, HelpCircle, CreditCard, GraduationCap, Shield,
   MessageSquare, FileText, Users, LayoutDashboard, CalendarDays,
-  Target, AlertTriangle, Dumbbell, LogOut, Settings, Star, X
+  Target, AlertTriangle, Dumbbell, LogOut, Settings, Star, X, Heart
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -124,6 +124,7 @@ export function SlideMenu() {
       title: t("menu.communication"),
       items: [
         { label: t("nav.messages"), icon: MessageSquare, path: "/messages", badge: unreadCount },
+        { label: "Suivi post-adoption", icon: Heart, path: "/adoption-followup" },
       ],
     },
     {
@@ -167,6 +168,7 @@ export function SlideMenu() {
       items: [
         { label: t("menu.shelterDashboard"), icon: LayoutDashboard, path: "/shelter" },
         { label: t("menu.animals"), icon: Dog, path: "/shelter/animals" },
+        { label: "Plans post-adoption", icon: Heart, path: "/shelter/adoption-plans" },
       ],
     },
   ];
