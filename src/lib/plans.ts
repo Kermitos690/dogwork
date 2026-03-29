@@ -1,0 +1,174 @@
+/**
+ * Centralized plan configuration for DogWork monetization.
+ * Single source of truth for all plan definitions, features, and limits.
+ */
+
+export type OwnerTier = "starter" | "pro" | "expert";
+
+export interface PlanFeatures {
+  dogs_limit: number;
+  exercise_library_limit: number;
+  behavior_evaluation: boolean;
+  advanced_objectives: boolean;
+  advanced_stats: boolean;
+  ai_plan: boolean;
+  ai_chat: boolean;
+  pdf_export: boolean;
+  allowed_exercise_tiers: OwnerTier[];
+}
+
+export interface PlanConfig {
+  slug: OwnerTier;
+  name: string;
+  label: string;
+  price: number;
+  price_id: string | null;
+  product_id: string | null;
+  order: number;
+  badge?: string;
+  features: PlanFeatures;
+  marketing: {
+    tagline: string;
+    highlights: string[];
+  };
+}
+
+export const PLANS: Record<OwnerTier, PlanConfig> = {
+  starter: {
+    slug: "starter",
+    name: "Starter",
+    label: "Gratuit",
+    price: 0,
+    price_id: null,
+    product_id: null,
+    order: 0,
+    features: {
+      dogs_limit: 1,
+      exercise_library_limit: 15,
+      behavior_evaluation: false,
+      advanced_objectives: false,
+      advanced_stats: false,
+      ai_plan: false,
+      ai_chat: false,
+      pdf_export: false,
+      allowed_exercise_tiers: ["starter"],
+    },
+    marketing: {
+      tagline: "Découvrez DogWork gratuitement",
+      highlights: [
+        "1 profil chien",
+        "15 exercices fondamentaux",
+        "Journal d'entraînement",
+        "Suivi de progression basique",
+        "Statistiques essentielles",
+      ],
+    },
+  },
+  pro: {
+    slug: "pro",
+    name: "Pro",
+    label: "7.90 CHF/mois",
+    price: 7.9,
+    price_id: "price_1T9nakPshPrEibTgfEAogTJY",
+    product_id: "prod_U83i1wbeLdd3EI",
+    order: 1,
+    badge: "Le plus populaire",
+    features: {
+      dogs_limit: 3,
+      exercise_library_limit: 150,
+      behavior_evaluation: true,
+      advanced_objectives: true,
+      advanced_stats: true,
+      ai_plan: false,
+      ai_chat: false,
+      pdf_export: true,
+      allowed_exercise_tiers: ["starter", "pro"],
+    },
+    marketing: {
+      tagline: "L'essentiel pour éduquer sérieusement",
+      highlights: [
+        "Jusqu'à 3 chiens",
+        "150 exercices (basiques + intermédiaires)",
+        "Évaluation comportementale complète",
+        "Objectifs & problèmes personnalisés",
+        "Statistiques avancées",
+        "Tout le plan Starter inclus",
+      ],
+    },
+  },
+  expert: {
+    slug: "expert",
+    name: "Expert",
+    label: "12.90 CHF/mois",
+    price: 12.9,
+    price_id: "price_1T9nbAPshPrEibTgo3JA1m5S",
+    product_id: "prod_U83inCbv8JMMgf",
+    order: 2,
+    badge: "Accès complet",
+    features: {
+      dogs_limit: Infinity,
+      exercise_library_limit: Infinity,
+      behavior_evaluation: true,
+      advanced_objectives: true,
+      advanced_stats: true,
+      ai_plan: true,
+      ai_chat: true,
+      pdf_export: true,
+      allowed_exercise_tiers: ["starter", "pro", "expert"],
+    },
+    marketing: {
+      tagline: "Toute la puissance DogWork",
+      highlights: [
+        "Chiens illimités",
+        "480+ exercices (toute la bibliothèque)",
+        "Plans IA personnalisés",
+        "Chatbot IA 24/7",
+        "Analyse comportementale avancée",
+        "Tout le plan Pro inclus",
+      ],
+    },
+  },
+};
+
+export const PLAN_ORDER: OwnerTier[] = ["starter", "pro", "expert"];
+
+export function getTierByProductId(productId: string | null): OwnerTier {
+  if (!productId) return "starter";
+  for (const plan of Object.values(PLANS)) {
+    if (plan.product_id === productId) return plan.slug;
+  }
+  return "starter";
+}
+
+export function getTierByPriceId(priceId: string | null): OwnerTier {
+  if (!priceId) return "starter";
+  for (const plan of Object.values(PLANS)) {
+    if (plan.price_id === priceId) return plan.slug;
+  }
+  return "starter";
+}
+
+export function canAccessFeature(tier: OwnerTier, feature: keyof PlanFeatures): boolean {
+  return !!PLANS[tier].features[feature];
+}
+
+export function getFeatureLimit(tier: OwnerTier, feature: "dogs_limit" | "exercise_library_limit"): number {
+  return PLANS[tier].features[feature];
+}
+
+export function isExerciseTierAccessible(exerciseTier: string, userTier: OwnerTier): boolean {
+  const allowedTiers = PLANS[userTier].features.allowed_exercise_tiers;
+  return allowedTiers.includes(exerciseTier as OwnerTier);
+}
+
+/** Educator constants */
+export const EDUCATOR_PRODUCT_ID = "prod_U8CxlV7PMpHAgA";
+export const EDUCATOR_PRICE_ID = "price_1T9wXlPshPrEibTgEM0BNrSm";
+
+/** Shelter constants */
+export const SHELTER_PRODUCT_ID = "prod_UDKcjmnJnM7pBo";
+export const SHELTER_PRICE_ID = "price_1TEtxAPshPrEibTgsDFHr8Nw";
+
+/** Commission rate */
+export const COMMISSION_RATE = 0.158;
+export const COMMISSION_DISPLAY = "15,8 %";

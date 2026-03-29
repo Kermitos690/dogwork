@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Dog, Check, Trash2, Edit, AlertTriangle, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
+import { useDogsLimit } from "@/hooks/useFeatureGate";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
 
 export default function Dogs() {
   const navigate = useNavigate();
@@ -14,6 +16,7 @@ export default function Dogs() {
   const setActive = useSetActiveDog();
   const deleteDog = useDeleteDog();
   const { toast } = useToast();
+  const dogsGate = useDogsLimit();
 
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Supprimer ${name} ? Cette action est irréversible.`)) return;
@@ -24,6 +27,8 @@ export default function Dogs() {
       toast({ title: "Erreur", variant: "destructive" });
     }
   };
+
+  const canAddDog = dogsGate.allowed;
 
   return (
     <AppLayout>
@@ -36,14 +41,32 @@ export default function Dogs() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Mes chiens</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">Gérez vos compagnons</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {dogsGate.limit !== undefined && dogsGate.limit !== Infinity
+                ? `${dogsGate.dogsCount}/${dogsGate.limit} chien${dogsGate.limit > 1 ? "s" : ""}`
+                : "Gérez vos compagnons"}
+            </p>
           </div>
           <motion.div whileTap={{ scale: 0.93 }}>
-            <Button onClick={() => navigate("/dogs/new")} size="sm" className="gap-1.5 rounded-xl neon-glow">
+            <Button
+              onClick={() => canAddDog ? navigate("/dogs/new") : navigate("/subscription")}
+              size="sm"
+              className="gap-1.5 rounded-xl neon-glow"
+              variant={canAddDog ? "default" : "outline"}
+            >
               <Plus className="h-4 w-4" /> Ajouter
             </Button>
           </motion.div>
         </div>
+
+        {/* Dog limit warning */}
+        {!canAddDog && (
+          <UpgradePrompt
+            compact
+            requiredTier={dogsGate.requiredTier}
+            title={`Limite de ${dogsGate.limit} chien${(dogsGate.limit || 0) > 1 ? "s" : ""} atteinte`}
+          />
+        )}
 
         {isLoading && (
           <div className="space-y-3">
@@ -82,7 +105,6 @@ export default function Dogs() {
               <Card className={`glass-card overflow-hidden transition-all ${dog.is_active ? "neon-border ring-1 ring-primary/20" : ""}`}>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">
-                    {/* Avatar */}
                     <div className="w-14 h-14 rounded-xl overflow-hidden bg-card border border-border flex-shrink-0">
                       {dog.photo_url ? (
                         <img src={dog.photo_url} alt={dog.name} className="w-full h-full object-cover" />
@@ -92,8 +114,6 @@ export default function Dogs() {
                         </div>
                       )}
                     </div>
-
-                    {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <h3 className="font-semibold text-foreground truncate">{dog.name}</h3>
@@ -110,7 +130,6 @@ export default function Dogs() {
                     </div>
                   </div>
 
-                  {/* Badges */}
                   {(dog.muzzle_required || dog.bite_history || dog.obedience_level) && (
                     <div className="flex flex-wrap gap-1.5 mt-3">
                       {dog.muzzle_required && (
@@ -129,27 +148,16 @@ export default function Dogs() {
                     </div>
                   )}
 
-                  {/* Actions */}
                   <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
                     {!dog.is_active && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setActive.mutate(dog.id)}
-                        className="gap-1 text-xs rounded-lg h-8"
-                      >
+                      <Button variant="outline" size="sm" onClick={() => setActive.mutate(dog.id)} className="gap-1 text-xs rounded-lg h-8">
                         <Check className="h-3 w-3" /> Activer
                       </Button>
                     )}
                     <Button variant="outline" size="sm" onClick={() => navigate(`/dogs/${dog.id}`)} className="gap-1 text-xs rounded-lg h-8">
                       <Edit className="h-3 w-3" /> Modifier
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(dog.id, dog.name)}
-                      className="text-destructive hover:text-destructive gap-1 ml-auto text-xs h-8"
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => handleDelete(dog.id, dog.name)} className="text-destructive hover:text-destructive gap-1 ml-auto text-xs h-8">
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>

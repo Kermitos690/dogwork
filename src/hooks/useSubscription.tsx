@@ -2,40 +2,17 @@ import { useState, useEffect, useCallback, createContext, useContext } from "rea
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
+import { PLANS, getTierByProductId, type OwnerTier } from "@/lib/plans";
 
+export { PLANS, getTierByProductId, type OwnerTier };
+export type TierKey = OwnerTier;
+
+// Re-export for backward compat
 export const TIERS = {
-  starter: {
-    name: "Starter",
-    price_id: null,
-    product_id: null,
-    price: 0,
-    label: "Gratuit",
-  },
-  pro: {
-    name: "Pro",
-    price_id: "price_1T9nakPshPrEibTgfEAogTJY",
-    product_id: "prod_U83i1wbeLdd3EI",
-    price: 7.9,
-    label: "7.90 CHF/mois",
-  },
-  expert: {
-    name: "Expert",
-    price_id: "price_1T9nbAPshPrEibTgo3JA1m5S",
-    product_id: "prod_U83inCbv8JMMgf",
-    price: 12.9,
-    label: "12.90 CHF/mois",
-  },
+  starter: { name: "Starter", price_id: null, product_id: null, price: 0, label: "Gratuit" },
+  pro: { name: "Pro", price_id: PLANS.pro.price_id, product_id: PLANS.pro.product_id, price: 7.9, label: "7.90 CHF/mois" },
+  expert: { name: "Expert", price_id: PLANS.expert.price_id, product_id: PLANS.expert.product_id, price: 12.9, label: "12.90 CHF/mois" },
 } as const;
-
-export type TierKey = keyof typeof TIERS;
-
-export function getTierByProductId(productId: string | null): TierKey {
-  if (!productId) return "starter";
-  for (const [key, tier] of Object.entries(TIERS)) {
-    if (tier.product_id === productId) return key as TierKey;
-  }
-  return "starter";
-}
 
 export function getTierByPriceId(priceId: string | null): TierKey {
   if (!priceId) return "starter";
@@ -94,12 +71,10 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   }, [session?.access_token]);
 
-  // Check on mount and auth change
   useEffect(() => {
     checkSubscription();
   }, [checkSubscription]);
 
-  // Auto-refresh every 5 minutes (was 60s — too aggressive)
   useEffect(() => {
     if (!session) return;
     const interval = setInterval(checkSubscription, 5 * 60_000);
@@ -121,7 +96,6 @@ export function useHasFeature(feature: "ai_plan" | "ai_chat"): boolean {
   const { tier } = useSubscription();
   const { user } = useAuth();
 
-  // Admin and educator bypass: full access to all features
   const { data: hasPrivilegedRole } = useQuery({
     queryKey: ["privileged-role", user?.id],
     queryFn: async () => {
@@ -137,7 +111,7 @@ export function useHasFeature(feature: "ai_plan" | "ai_chat"): boolean {
 
   if (hasPrivilegedRole) return true;
 
-  if (feature === "ai_plan") return tier === "pro" || tier === "expert";
+  if (feature === "ai_plan") return tier === "expert";
   if (feature === "ai_chat") return tier === "expert";
   return false;
 }

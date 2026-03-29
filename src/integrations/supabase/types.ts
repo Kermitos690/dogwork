@@ -435,6 +435,33 @@ export type Database = {
           },
         ]
       }
+      billing_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          payload: Json
+          stripe_event_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          payload?: Json
+          stripe_event_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          payload?: Json
+          stripe_event_id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       client_links: {
         Row: {
           client_user_id: string
@@ -1251,6 +1278,7 @@ export type Database = {
           intensity_level: number | null
           is_professional: boolean | null
           level: string | null
+          min_tier: string
           mistakes: Json | null
           name: string
           objective: string | null
@@ -1306,6 +1334,7 @@ export type Database = {
           intensity_level?: number | null
           is_professional?: boolean | null
           level?: string | null
+          min_tier?: string
           mistakes?: Json | null
           name: string
           objective?: string | null
@@ -1361,6 +1390,7 @@ export type Database = {
           intensity_level?: number | null
           is_professional?: boolean | null
           level?: string | null
+          min_tier?: string
           mistakes?: Json | null
           name?: string
           objective?: string | null
@@ -2151,6 +2181,33 @@ export type Database = {
           },
         ]
       }
+      stripe_customers: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          stripe_customer_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          stripe_customer_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          stripe_customer_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       support_tickets: {
         Row: {
           admin_response: string | null
@@ -2269,6 +2326,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      usage_tracking: {
+        Row: {
+          created_at: string
+          feature_key: string
+          id: string
+          period_end: string
+          period_start: string
+          updated_at: string
+          usage_count: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          feature_key: string
+          id?: string
+          period_end?: string
+          period_start?: string
+          updated_at?: string
+          usage_count?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          feature_key?: string
+          id?: string
+          period_end?: string
+          period_start?: string
+          updated_at?: string
+          usage_count?: number
+          user_id?: string
+        }
+        Relationships: []
       }
       user_preferences: {
         Row: {
@@ -2484,6 +2574,7 @@ export type Database = {
           intensity_level: number | null
           is_professional: boolean | null
           level: string | null
+          min_tier: string
           mistakes: Json | null
           name: string
           objective: string | null
