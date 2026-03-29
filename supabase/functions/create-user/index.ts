@@ -38,17 +38,20 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
+    console.log("[create-user] Auth header present:", !!authHeader, authHeader?.substring(0, 20));
     if (!authHeader?.startsWith("Bearer ")) {
+      console.log("[create-user] No valid Bearer header");
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    console.log("[create-user] Env vars present:", { hasUrl: !!supabaseUrl, hasKey: !!serviceRoleKey });
+
+    const supabaseAdmin = createClient(supabaseUrl!, serviceRoleKey!);
 
     const token = authHeader.replace("Bearer ", "");
     const {
@@ -56,7 +59,10 @@ Deno.serve(async (req) => {
       error: authError,
     } = await supabaseAdmin.auth.getUser(token);
 
+    console.log("[create-user] getUser result:", { callerId: caller?.id, authError: authError?.message });
+
     if (authError || !caller) {
+      console.log("[create-user] Auth failed:", authError?.message);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
