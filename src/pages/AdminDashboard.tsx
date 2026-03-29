@@ -640,17 +640,11 @@ function AdminUsersManager() {
     }
   };
 
-  const handleDownloadGuide = async (userId: string, userName: string, roles: string[]) => {
-    setGeneratingPdf(userId);
+  const handleResetPassword = async (userId: string, userName: string) => {
+    setResettingPassword(userId);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Session expirée");
-
-      const primaryRole = roles.includes("shelter") ? "shelter" 
-        : roles.includes("educator") ? "educator"
-        : roles.includes("shelter_employee") ? "shelter_employee"
-        : roles.includes("admin") ? "admin" 
-        : "owner";
 
       const { data, error } = await supabase.functions.invoke("create-user", {
         body: { userId, resetOnly: true },
@@ -660,19 +654,40 @@ function AdminUsersManager() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      const doc = generateConnectionGuidePDF({
-        name: userName,
-        email: data.email,
-        role: primaryRole,
-        tempPassword: data.temporaryPassword,
-      });
+      setGeneratedCredentials(prev => ({
+        ...prev,
+        [userId]: { email: data.email, tempPassword: data.temporaryPassword },
+      }));
 
-      doc.save(`DogWork_Guide_Connexion_${userName.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`);
-      toast({ title: "Guide téléchargé ✅", description: `MDP temporaire généré pour ${userName}.` });
+      toast({ title: "Mot de passe réinitialisé ✅", description: `Nouveau MDP temporaire généré pour ${userName}. Vous pouvez maintenant télécharger la fiche PDF.` });
     } catch (err: any) {
-      toast({ title: "Erreur", description: err.message || "Impossible de générer le guide", variant: "destructive" });
+      toast({ title: "Erreur", description: err.message || "Impossible de réinitialiser le mot de passe", variant: "destructive" });
     }
-    setGeneratingPdf(null);
+    setResettingPassword(null);
+  };
+
+  const handleDownloadGuide = (userId: string, userName: string, roles: string[]) => {
+    const creds = generatedCredentials[userId];
+    if (!creds) {
+      toast({ title: "MDP non généré", description: "Cliquez d'abord sur 🔑 pour générer un nouveau mot de passe temporaire.", variant: "destructive" });
+      return;
+    }
+
+    const primaryRole = roles.includes("shelter") ? "shelter"
+      : roles.includes("educator") ? "educator"
+      : roles.includes("shelter_employee") ? "shelter_employee"
+      : roles.includes("admin") ? "admin"
+      : "owner";
+
+    const doc = generateConnectionGuidePDF({
+      name: userName,
+      email: creds.email,
+      role: primaryRole,
+      tempPassword: creds.tempPassword,
+    });
+
+    doc.save(`DogWork_Guide_Connexion_${userName.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`);
+    toast({ title: "Guide téléchargé ✅" });
   };
 
   return (
