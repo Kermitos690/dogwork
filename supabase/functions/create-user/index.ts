@@ -84,6 +84,7 @@ Deno.serve(async (req) => {
       const tempPassword = generateStrongPassword(20);
       const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
         password: tempPassword,
+        email_confirm: true,
         user_metadata: {
           ...(targetUser.user_metadata || {}),
           must_change_password: true,
@@ -127,6 +128,7 @@ Deno.serve(async (req) => {
       userId = existingUser.id;
       const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
         password: tempPassword,
+        email_confirm: true,
         user_metadata: {
           ...(existingUser.user_metadata || {}),
           display_name: effectiveDisplayName,
