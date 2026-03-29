@@ -1,7 +1,8 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "dogwork",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "Plateforme digitale premium pour l'écosystème canin professionnel",
   "type": "module",
   "scripts": {
     "dev": "vite",
