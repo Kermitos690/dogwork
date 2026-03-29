@@ -498,6 +498,7 @@ function AdminUsersManager() {
       }));
     },
     enabled: isAdmin === true,
+    refetchOnMount: "always",
   });
 
   const filtered = allUsers.filter((u: any) => {
