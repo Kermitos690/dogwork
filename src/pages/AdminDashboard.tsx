@@ -666,47 +666,51 @@ function AdminUsersManager() {
     setResettingPassword(null);
   };
 
-  const handleDownloadGuide = (userId: string, userName: string, roles: string[]) => {
+  const handleDownloadGuide = async (userId: string, userName: string, roles: string[]) => {
     const creds = generatedCredentials[userId];
     if (!creds) {
       toast({ title: "MDP non généré", description: "Cliquez d'abord sur 🔑 pour générer un nouveau mot de passe temporaire.", variant: "destructive" });
       return;
     }
 
-    const primaryRole = roles.includes("shelter") ? "shelter"
-      : roles.includes("educator") ? "educator"
-      : roles.includes("shelter_employee") ? "shelter_employee"
-      : roles.includes("admin") ? "admin"
-      : "owner";
+    setGeneratingPdf(userId);
+    try {
+      const primaryRole = roles.includes("shelter") ? "shelter"
+        : roles.includes("educator") ? "educator"
+        : roles.includes("shelter_employee") ? "shelter_employee"
+        : roles.includes("admin") ? "admin"
+        : "owner";
 
-    const doc = generateConnectionGuidePDF({
-      name: userName,
-      email: creds.email,
-      role: primaryRole,
-      tempPassword: creds.tempPassword,
-    });
+      const doc = generateConnectionGuidePDF({
+        name: userName,
+        email: creds.email,
+        role: primaryRole,
+        tempPassword: creds.tempPassword,
+      });
 
-    const fileName = `DogWork_Guide_${userName.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
-
-    // iOS Safari does not support the `download` attribute on blob URLs.
-    // Detect iOS and open the PDF in a new tab so the user can share/save it.
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-
-    if (isIOS) {
-      // On iOS, open as data URI in new tab — blob URLs get revoked too fast
-      const dataUri = doc.output("datauristring", { filename: fileName });
-      const w = window.open();
-      if (w) {
-        w.document.write(`<html><head><title>${fileName}</title></head><body style="margin:0"><iframe src="${dataUri}" style="border:none;width:100%;height:100vh"></iframe></body></html>`);
-        w.document.close();
-      } else {
-        // Fallback: direct save via jsPDF
-        doc.save(fileName);
-      }
-      toast({ title: "PDF ouvert ✅", description: "Utilisez le bouton de partage pour enregistrer le fichier." });
-    } else {
-      // Desktop / Android: standard blob download
+      const fileName = `DogWork_Guide_${userName.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
       const blob = doc.output("blob");
+
+      // iOS: priorité au partage natif (fiable sur Safari mobile)
+      if (isIOS && "share" in navigator && "canShare" in navigator) {
+        const file = new File([blob], fileName, { type: "application/pdf" });
+        const shareData: ShareData = { files: [file], title: fileName };
+        if ((navigator as Navigator & { canShare?: (data?: ShareData) => boolean }).canShare?.(shareData)) {
+          try {
+            await navigator.share(shareData);
+            toast({ title: "Fiche prête ✅", description: "Choisissez “Enregistrer dans Fichiers” dans le menu de partage." });
+            return;
+          } catch (shareError: any) {
+            if (shareError?.name === "AbortError") {
+              toast({ title: "Partage annulé", description: "Aucune action effectuée." });
+              return;
+            }
+          }
+        }
+      }
+
+      // Téléchargement standard (desktop/Android)
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -714,8 +718,27 @@ function AdminUsersManager() {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
-      toast({ title: "Téléchargement lancé ✅", description: `Fichier : ${fileName}` });
+
+      // Fallback iOS: ouvrir le PDF dans un nouvel onglet pour sauvegarde manuelle
+      if (isIOS) {
+        const popup = window.open(url, "_blank", "noopener,noreferrer");
+        if (!popup) {
+          window.location.assign(url);
+        }
+        toast({ title: "PDF ouvert ✅", description: "Utilisez Partager → Enregistrer dans Fichiers." });
+      } else {
+        toast({ title: "Téléchargement lancé ✅", description: `Fichier : ${fileName}` });
+      }
+
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (err: any) {
+      toast({
+        title: "Erreur",
+        description: err?.message || "Le PDF n'a pas pu être généré.",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingPdf(null);
     }
   };
 
@@ -776,11 +799,11 @@ function AdminUsersManager() {
                     </Button>
                     <Button
                       variant="ghost" size="icon" className={`h-7 w-7 ${generatedCredentials[u.userId] ? "text-primary hover:text-primary" : "text-muted-foreground"}`}
-                      disabled={!generatedCredentials[u.userId]}
+                      disabled={!generatedCredentials[u.userId] || generatingPdf === u.userId}
                       onClick={() => handleDownloadGuide(u.userId, u.name, u.roles)}
                       title={generatedCredentials[u.userId] ? "Télécharger la fiche PDF" : "Générez d'abord un MDP (🔑)"}
                     >
-                      <FileDown className="h-3.5 w-3.5" />
+                      {generatingPdf === u.userId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
                     </Button>
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditTarget(u); setEditName(u.name); }}>
                       <Edit2 className="h-3.5 w-3.5" />
