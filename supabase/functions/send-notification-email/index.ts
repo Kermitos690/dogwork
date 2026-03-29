@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
     const { type, data } = await req.json();
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     const FROM_EMAIL = "DogWork <onboarding@resend.dev>";
-    const ADMIN_EMAIL = "teba.gaetan@gmail.com";
+    const ADMIN_EMAIL = Deno.env.get("ADMIN_EMAIL") || "teba.gaetan@gmail.com";
 
     // --- Role checks for privileged notification types ---
     const privilegedTypes = ["course_approved", "course_rejected"];
