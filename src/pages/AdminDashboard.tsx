@@ -798,24 +798,25 @@ function AdminCreateUser({ onCreated }: { onCreated: () => void }) {
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  const [password, setPassword] = useState("");
   const [role, setRole] = useState("owner");
   const [creating, setCreating] = useState(false);
+  const [tempPwd, setTempPwd] = useState<{ email: string; password: string } | null>(null);
 
   const handleCreate = async () => {
-    if (!email || !password) return;
+    if (!email) return;
     setCreating(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Session expirée");
       const { data, error } = await supabase.functions.invoke("create-user", {
-        body: { email, password, displayName: name || email.split("@")[0], role: role === "owner" ? undefined : role },
+        body: { email, displayName: name || email.split("@")[0], role: role === "owner" ? undefined : role },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast({ title: "Compte créé ✅", description: `${email} peut maintenant se connecter directement.` });
-      setEmail(""); setName(""); setPassword(""); setRole("owner");
+      setTempPwd({ email, password: data.temporaryPassword });
+      toast({ title: "Compte créé ✅", description: `${email} devra changer son mot de passe à la première connexion.` });
+      setEmail(""); setName(""); setRole("owner");
       onCreated();
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message || "Impossible de créer le compte", variant: "destructive" });
@@ -824,39 +825,66 @@ function AdminCreateUser({ onCreated }: { onCreated: () => void }) {
   };
 
   return (
-    <Card className="border-primary/30">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm flex items-center gap-2"><UserCog className="h-4 w-4 text-primary" /> Créer un compte utilisateur</CardTitle>
-        <p className="text-[10px] text-muted-foreground">Le compte est activé immédiatement, sans confirmation par email.</p>
-      </CardHeader>
-      <CardContent className="space-y-2.5">
-        <div className="space-y-1">
-          <Label className="text-xs">Email *</Label>
-          <Input value={email} onChange={e => setEmail(e.target.value)} placeholder="utilisateur@email.com" type="email" />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Nom</Label>
-          <Input value={name} onChange={e => setName(e.target.value)} placeholder="Prénom Nom" />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Mot de passe *</Label>
-          <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 6 caractères" />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Rôle</Label>
-          <Select value={role} onValueChange={setRole}>
-            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="owner">🐕 Propriétaire</SelectItem>
-              <SelectItem value="educator">🎓 Éducateur</SelectItem>
-              <SelectItem value="shelter">🏠 Refuge</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <Button onClick={handleCreate} disabled={creating || !email || !password} className="w-full gap-2" size="sm">
-          <Plus className="h-4 w-4" /> {creating ? "Création..." : "Créer le compte"}
-        </Button>
-      </CardContent>
-    </Card>
+    <>
+      <Card className="border-primary/30">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2"><UserCog className="h-4 w-4 text-primary" /> Créer un compte utilisateur</CardTitle>
+          <p className="text-[10px] text-muted-foreground">Un mot de passe temporaire est généré. L'utilisateur le changera à sa première connexion.</p>
+        </CardHeader>
+        <CardContent className="space-y-2.5">
+          <div className="space-y-1">
+            <Label className="text-xs">Email *</Label>
+            <Input value={email} onChange={e => setEmail(e.target.value)} placeholder="utilisateur@email.com" type="email" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Nom</Label>
+            <Input value={name} onChange={e => setName(e.target.value)} placeholder="Prénom Nom" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Rôle</Label>
+            <Select value={role} onValueChange={setRole}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="owner">🐕 Propriétaire</SelectItem>
+                <SelectItem value="educator">🎓 Éducateur</SelectItem>
+                <SelectItem value="shelter">🏠 Refuge</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button onClick={handleCreate} disabled={creating || !email} className="w-full gap-2" size="sm">
+            <Plus className="h-4 w-4" /> {creating ? "Création..." : "Créer le compte"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Temp password dialog */}
+      <Dialog open={!!tempPwd} onOpenChange={(o) => !o && setTempPwd(null)}>
+        <DialogContent className="max-w-[90vw] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">🔑 Mot de passe temporaire</DialogTitle>
+          </DialogHeader>
+          {tempPwd && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Compte <strong className="text-foreground">{tempPwd.email}</strong> créé. Transmettez ce mot de passe temporaire :
+              </p>
+              <div className="p-3 rounded-lg bg-secondary/50 border border-border">
+                <p className="text-base font-mono font-bold text-foreground text-center select-all break-all">{tempPwd.password}</p>
+              </div>
+              <p className="text-xs text-muted-foreground">L'utilisateur devra créer son propre mot de passe à sa première connexion.</p>
+              <Button className="w-full" onClick={() => {
+                navigator.clipboard.writeText(tempPwd.password);
+                toast({ title: "Copié ✅" });
+              }}>
+                Copier le mot de passe
+              </Button>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTempPwd(null)}>Fermer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
