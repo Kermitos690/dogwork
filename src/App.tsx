@@ -85,6 +85,8 @@ const EmployeeProfile = lazy(() => import("./pages/EmployeeProfile"));
 const EmployeeAnimalDetail = lazy(() => import("./pages/EmployeeAnimalDetail"));
 const AdoptionCheckins = lazy(() => import("./pages/AdoptionCheckins"));
 const ShelterAdoptionCheckins = lazy(() => import("./pages/ShelterAdoptionCheckins"));
+const ShelterAdoptionPlans = lazy(() => import("./pages/ShelterAdoptionPlans"));
+const AdoptionFollowup = lazy(() => import("./pages/AdoptionFollowup"));
 
 const queryClient = new QueryClient();
 
@@ -189,6 +191,7 @@ function ProtectedRoutes() {
           <Route path="/shelter/subscription" element={<ShelterGuard><ShelterSubscription /></ShelterGuard>} />
           <Route path="/shelter/coaches" element={<ShelterGuard><ShelterCoaches /></ShelterGuard>} />
           <Route path="/shelter/adoption-checkins" element={<ShelterGuard><ShelterAdoptionCheckins /></ShelterGuard>} />
+          <Route path="/shelter/adoption-plans" element={<ShelterGuard><ShelterAdoptionPlans /></ShelterGuard>} />
           <Route path="*" element={<Navigate to="/shelter" replace />} />
         </Routes>
       </Suspense>
@@ -229,6 +232,7 @@ function ProtectedRoutes() {
         <Route path="/support" element={<Suspense fallback={<PageLoader />}><SupportTickets /></Suspense>} />
         <Route path="/preferences" element={<PreferencesPage />} />
         <Route path="/adoption-checkins" element={<AdoptionCheckins />} />
+        <Route path="/adoption-followup" element={<AdoptionFollowup />} />
         <Route path="/program" element={<Navigate to="/plan" replace />} />
         {/* Coach / Educator routes */}
         <Route path="/coach" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachDashboard /></CoachGuard></Suspense>} />
@@ -262,6 +266,7 @@ function ProtectedRoutes() {
         <Route path="/shelter/subscription" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterSubscription /></ShelterGuard></Suspense>} />
         <Route path="/shelter/coaches" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterCoaches /></ShelterGuard></Suspense>} />
         <Route path="/shelter/adoption-checkins" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterAdoptionCheckins /></ShelterGuard></Suspense>} />
+        <Route path="/shelter/adoption-plans" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterAdoptionPlans /></ShelterGuard></Suspense>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <AIChatBot />
