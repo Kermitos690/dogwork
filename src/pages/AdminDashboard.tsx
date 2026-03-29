@@ -40,6 +40,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [newEducatorEmail, setNewEducatorEmail] = useState("");
   const [newEducatorName, setNewEducatorName] = useState("");
   const [creating, setCreating] = useState(false);
