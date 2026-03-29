@@ -191,6 +191,7 @@ function ProtectedRoutes() {
           <Route path="/shelter/subscription" element={<ShelterGuard><ShelterSubscription /></ShelterGuard>} />
           <Route path="/shelter/coaches" element={<ShelterGuard><ShelterCoaches /></ShelterGuard>} />
           <Route path="/shelter/adoption-checkins" element={<ShelterGuard><ShelterAdoptionCheckins /></ShelterGuard>} />
+          <Route path="/shelter/adoption-plans" element={<ShelterGuard><ShelterAdoptionPlans /></ShelterGuard>} />
           <Route path="*" element={<Navigate to="/shelter" replace />} />
         </Routes>
       </Suspense>
