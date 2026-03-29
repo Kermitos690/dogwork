@@ -406,8 +406,8 @@ export default function AdminDashboard() {
               <CardContent className="space-y-2.5">
                 <div className="space-y-1"><Label className="text-xs">Email</Label><Input value={newEducatorEmail} onChange={e => setNewEducatorEmail(e.target.value)} placeholder="educateur@email.com" /></div>
                 <div className="space-y-1"><Label className="text-xs">Nom</Label><Input value={newEducatorName} onChange={e => setNewEducatorName(e.target.value)} placeholder="Nom" /></div>
-                <div className="space-y-1"><Label className="text-xs">Mot de passe</Label><Input type="password" value={newEducatorPassword} onChange={e => setNewEducatorPassword(e.target.value)} placeholder="Mot de passe" /></div>
-                <Button onClick={handleCreateEducator} disabled={creating || !newEducatorEmail || !newEducatorPassword} className="w-full gap-2" size="sm">
+                <p className="text-[10px] text-muted-foreground">Un mot de passe temporaire sera généré automatiquement. L'utilisateur devra le changer à sa première connexion.</p>
+                <Button onClick={handleCreateEducator} disabled={creating || !newEducatorEmail} className="w-full gap-2" size="sm">
                   <GraduationCap className="h-4 w-4" /> {creating ? "Création..." : "Créer l'éducateur"}
                 </Button>
               </CardContent>
@@ -420,8 +420,8 @@ export default function AdminDashboard() {
               <CardContent className="space-y-2.5">
                 <div className="space-y-1"><Label className="text-xs">Email</Label><Input value={newShelterEmail} onChange={e => setNewShelterEmail(e.target.value)} placeholder="refuge@email.com" /></div>
                 <div className="space-y-1"><Label className="text-xs">Nom du refuge</Label><Input value={newShelterName} onChange={e => setNewShelterName(e.target.value)} placeholder="SPA de Genève" /></div>
-                <div className="space-y-1"><Label className="text-xs">Mot de passe</Label><Input type="password" value={newShelterPassword} onChange={e => setNewShelterPassword(e.target.value)} placeholder="Mot de passe" /></div>
-                <Button onClick={handleCreateShelter} disabled={creatingShelter || !newShelterEmail || !newShelterPassword} className="w-full gap-2" size="sm">
+                <p className="text-[10px] text-muted-foreground">Un mot de passe temporaire sera généré automatiquement.</p>
+                <Button onClick={handleCreateShelter} disabled={creatingShelter || !newShelterEmail} className="w-full gap-2" size="sm">
                   <Home className="h-4 w-4" /> {creatingShelter ? "Création..." : "Créer le refuge"}
                 </Button>
               </CardContent>
