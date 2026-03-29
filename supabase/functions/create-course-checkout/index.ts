@@ -188,7 +188,7 @@ serve(async (req) => {
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     const customerId = customers.data.length > 0 ? customers.data[0].id : undefined;
 
-    const origin = req.headers.get("origin") || "https://dogwork.lovable.app";
+    const origin = req.headers.get("origin") || "https://www.dogwork-at-home.com";
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,

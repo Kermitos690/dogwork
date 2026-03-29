@@ -102,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resetPassword = useCallback(async (email: string) => {
     // Force production URL for redirect — Supabase URI Allow List only authorises the published domain
-    const redirectTo = "https://dogwork.lovable.app/reset-password";
+    const redirectTo = "https://www.dogwork-at-home.com/reset-password";
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo,
     });

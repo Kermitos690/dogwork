@@ -129,8 +129,8 @@ serve(async (req) => {
       if (!sd.stripe_onboarding_complete) {
         const accountLink = await stripe.accountLinks.create({
           account: sd.stripe_account_id,
-          refresh_url: `${req.headers.get("origin") || "https://dogwork.lovable.app"}/admin/treasury`,
-          return_url: `${req.headers.get("origin") || "https://dogwork.lovable.app"}/admin/treasury`,
+          refresh_url: `${req.headers.get("origin") || "https://www.dogwork-at-home.com"}/admin/treasury`,
+          return_url: `${req.headers.get("origin") || "https://www.dogwork-at-home.com"}/admin/treasury`,
           type: "account_onboarding",
         });
         return new Response(JSON.stringify({ url: accountLink.url, onboarding_incomplete: true }), {
