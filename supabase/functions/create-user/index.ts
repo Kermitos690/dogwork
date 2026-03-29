@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
     const { data: isAdmin } = await supabaseAdmin.rpc("has_role", {
-      _user_id: caller.id,
+      _user_id: callerId,
       _role: "admin",
     });
 
