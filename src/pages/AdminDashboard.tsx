@@ -354,11 +354,14 @@ export default function AdminDashboard() {
                 <CardTitle className="text-sm flex items-center gap-2"><Image className="h-4 w-4 text-primary" /> Illustrations (IA)</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <p className="text-xs text-muted-foreground">Génère les illustrations manquantes pour les exercices.</p>
+                <p className="text-xs text-muted-foreground">Génère les illustrations manquantes en arrière-plan. Vous pouvez quitter la page.</p>
                 {imageProgress && (
                   <div className="space-y-1">
-                    <Progress value={(imageProgress.processed / Math.max(imageProgress.total, 1)) * 100} className="h-2" />
-                    <p className="text-[10px] text-muted-foreground">{imageProgress.processed}/{imageProgress.total} — {imageProgress.success} ✓ — {imageProgress.failed} ✗{imageProgress.done && " — Terminé !"}</p>
+                    <Progress value={((imageProgress.success + imageProgress.failed) / Math.max(imageProgress.total, 1)) * 100} className="h-2" />
+                    <p className="text-[10px] text-muted-foreground">
+                      {imageProgress.success + imageProgress.failed}/{imageProgress.total} — {imageProgress.success} ✓ — {imageProgress.failed} ✗
+                      {imageProgress.done ? " — Terminé !" : ` — ${imageProgress.pending + imageProgress.processing} en attente`}
+                    </p>
                   </div>
                 )}
                 <Button
@@ -366,24 +369,44 @@ export default function AdminDashboard() {
                     setGeneratingImages(true);
                     const { data: { session } } = await supabase.auth.getSession();
                     if (!session?.access_token) { toast({ title: "Erreur", description: "Session expirée", variant: "destructive" }); setGeneratingImages(false); return; }
-                    const { count } = await supabase.from("exercises").select("*", { count: "exact", head: true }).is("cover_image", null);
-                    if (!count) { toast({ title: "✨", description: "Tous les exercices ont une illustration." }); setGeneratingImages(false); return; }
-                    let totalProcessed = 0, totalSuccess = 0, totalFailed = 0;
-                    while (totalProcessed < count) {
-                      try {
-                        const { data, error } = await supabase.functions.invoke("generate-exercise-images", { body: { batch_size: 5, offset: 0 }, headers: { Authorization: `Bearer ${session.access_token}` } });
-                        if (error) throw error;
-                        if (data?.processed === 0) break;
-                        totalProcessed += data.processed || 0; totalSuccess += data.success || 0; totalFailed += data.failed || 0;
-                        setImageProgress({ processed: totalProcessed, total: count, success: totalSuccess, failed: totalFailed, done: totalProcessed >= count || data.processed === 0 });
-                      } catch (err) {
-                        totalFailed += 5; totalProcessed += 5;
-                        setImageProgress({ processed: totalProcessed, total: count, success: totalSuccess, failed: totalFailed, done: false });
-                        await new Promise(r => setTimeout(r, 10000));
+                    try {
+                      const { data, error } = await supabase.functions.invoke("generate-exercise-images", {
+                        body: { action: "enqueue" },
+                        headers: { Authorization: `Bearer ${session.access_token}` },
+                      });
+                      if (error) throw error;
+                      if (data?.queued === 0) {
+                        toast({ title: "✨", description: data.message || "Tous les exercices ont une illustration." });
+                        setGeneratingImages(false);
+                        return;
                       }
+                      toast({ title: "File d'attente créée 🎨", description: `${data.queued} illustrations lancées en arrière-plan.` });
+                      // Start polling for status
+                      const pollInterval = setInterval(async () => {
+                        try {
+                          const { data: { session: s } } = await supabase.auth.getSession();
+                          if (!s?.access_token) return;
+                          const { data: status } = await supabase.functions.invoke("generate-exercise-images", {
+                            body: { action: "status" },
+                            headers: { Authorization: `Bearer ${s.access_token}` },
+                          });
+                          if (status) {
+                            setImageProgress({
+                              total: status.total, success: status.done, failed: status.failed,
+                              pending: status.pending, processing: status.processing, done: status.finished,
+                            });
+                            if (status.finished) {
+                              clearInterval(pollInterval);
+                              setGeneratingImages(false);
+                              toast({ title: "Illustrations terminées 🎨", description: `${status.done} images générées, ${status.failed} erreurs.` });
+                            }
+                          }
+                        } catch { /* ignore polling errors */ }
+                      }, 5000);
+                    } catch (err: any) {
+                      toast({ title: "Erreur", description: err.message || "Impossible de lancer la génération", variant: "destructive" });
+                      setGeneratingImages(false);
                     }
-                    setGeneratingImages(false);
-                    toast({ title: "Illustrations terminées 🎨", description: `${totalSuccess} images générées.` });
                   }}
                   disabled={generatingImages} className="w-full gap-2" size="sm"
                 >
