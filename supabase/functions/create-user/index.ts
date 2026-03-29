@@ -69,10 +69,8 @@ Deno.serve(async (req) => {
     // Service role client for admin operations
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: isAdmin } = await supabaseAdmin.rpc("has_role", {
-      _user_id: callerId,
-      _role: "admin",
-    });
+    const { data: isAdmin, error: isAdminError } = await userClient.rpc("is_admin");
+    if (isAdminError) throw isAdminError;
 
     if (!isAdmin) throw new Error("Seul un administrateur peut créer des comptes");
 
