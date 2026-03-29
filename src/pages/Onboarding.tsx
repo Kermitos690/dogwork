@@ -391,14 +391,12 @@ export default function Onboarding() {
         return;
       }
       setMatchedAnimal(data);
-      // Pre-fill dog data from shelter animal
+      // Pre-fill dog data from shelter animal (safe fields only)
       if (data.name) setDogName(data.name);
       if (data.breed) setBreed(data.breed);
       if (data.sex) setSex(data.sex);
-      if (data.weight_kg) setWeightKg(String(data.weight_kg));
-      if (data.is_sterilized) setIsNeutered(data.is_sterilized);
       setOrigin("refuge");
-      if (!selectedShelterId) setSelectedShelterId(data.user_id);
+      if (!selectedShelterId) setSelectedShelterId(data.shelter_user_id);
       toast({ title: "Animal trouvé !", description: `${data.name} — ${data.breed || "Race inconnue"}` });
     } catch (err: any) {
       setChipError(err.message);
