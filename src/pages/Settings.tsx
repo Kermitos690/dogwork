@@ -158,7 +158,12 @@ export default function Settings() {
           <LogOut className="h-4 w-4" /> Se déconnecter
         </Button>
 
-        <div className="text-center text-xs text-muted-foreground pb-4">
+        <div className="text-center text-xs text-muted-foreground pb-4 space-y-2">
+          <div className="flex justify-center gap-3">
+            <a href="/terms" className="underline hover:text-foreground">Conditions</a>
+            <a href="/privacy" className="underline hover:text-foreground">Confidentialité</a>
+            <a href="/legal" className="underline hover:text-foreground">Mentions légales</a>
+          </div>
           <p>DogWork — v2.0</p>
         </div>
       </div>
