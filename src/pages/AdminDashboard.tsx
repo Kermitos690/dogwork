@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
   Shield, Users, GraduationCap, BookOpen, DollarSign, Plus, ArrowLeft, Trash2, Check, X, Eye, ChevronDown, Home, Sparkles, Image, Wallet, CreditCard,
-  Search, Dog, FileText, MessageSquare, AlertTriangle, Edit2, UserCog, Mail, Rocket,
+  Search, Dog, FileText, MessageSquare, AlertTriangle, Edit2, UserCog, Mail, Rocket, Lock,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
@@ -41,12 +41,11 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const [newEducatorEmail, setNewEducatorEmail] = useState("");
   const [newEducatorName, setNewEducatorName] = useState("");
-  const [newEducatorPassword, setNewEducatorPassword] = useState("");
   const [creating, setCreating] = useState(false);
   const [newShelterEmail, setNewShelterEmail] = useState("");
   const [newShelterName, setNewShelterName] = useState("");
-  const [newShelterPassword, setNewShelterPassword] = useState("");
   const [creatingShelter, setCreatingShelter] = useState(false);
+  const [tempPasswordDialog, setTempPasswordDialog] = useState<{ email: string; password: string } | null>(null);
   const [enriching, setEnriching] = useState(false);
   const [enrichProgress, setEnrichProgress] = useState<{ processed: number; total: number; success: number; failed: number; done: boolean } | null>(null);
   const [generatingImages, setGeneratingImages] = useState(false);
@@ -112,18 +111,20 @@ export default function AdminDashboard() {
   const totalCommission = allBookings.reduce((s: number, b: any) => s + (b.commission_cents || 0), 0);
 
   const handleCreateEducator = async () => {
-    if (!newEducatorEmail || !newEducatorPassword) return;
+    if (!newEducatorEmail) return;
     setCreating(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Session expirée");
-      const { data, error } = await supabase.functions.invoke("create-educator", {
-        body: { email: newEducatorEmail, password: newEducatorPassword, displayName: newEducatorName || newEducatorEmail.split("@")[0] },
+      const { data, error } = await supabase.functions.invoke("create-user", {
+        body: { email: newEducatorEmail, displayName: newEducatorName || newEducatorEmail.split("@")[0], role: "educator" },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (error) throw error;
-      toast({ title: "Éducateur créé", description: `${newEducatorEmail} a été ajouté comme éducateur.` });
-      setNewEducatorEmail(""); setNewEducatorName(""); setNewEducatorPassword("");
+      if (data?.error) throw new Error(data.error);
+      setTempPasswordDialog({ email: newEducatorEmail, password: data.temporaryPassword });
+      toast({ title: "Éducateur créé ✅", description: `${newEducatorEmail} a été ajouté.` });
+      setNewEducatorEmail(""); setNewEducatorName("");
       refetchEducators();
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message || "Impossible de créer l'éducateur", variant: "destructive" });
@@ -132,18 +133,20 @@ export default function AdminDashboard() {
   };
 
   const handleCreateShelter = async () => {
-    if (!newShelterEmail || !newShelterPassword) return;
+    if (!newShelterEmail) return;
     setCreatingShelter(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Session expirée");
-      const { data, error } = await supabase.functions.invoke("create-shelter", {
-        body: { email: newShelterEmail, password: newShelterPassword, displayName: newShelterName || newShelterEmail.split("@")[0] },
+      const { data, error } = await supabase.functions.invoke("create-user", {
+        body: { email: newShelterEmail, displayName: newShelterName || newShelterEmail.split("@")[0], role: "shelter" },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (error) throw error;
-      toast({ title: "Refuge créé", description: `${newShelterEmail} a été ajouté comme refuge.` });
-      setNewShelterEmail(""); setNewShelterName(""); setNewShelterPassword("");
+      if (data?.error) throw new Error(data.error);
+      setTempPasswordDialog({ email: newShelterEmail, password: data.temporaryPassword });
+      toast({ title: "Refuge créé ✅", description: `${newShelterEmail} a été ajouté.` });
+      setNewShelterEmail(""); setNewShelterName("");
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message || "Impossible de créer le refuge", variant: "destructive" });
     }
@@ -403,8 +406,8 @@ export default function AdminDashboard() {
               <CardContent className="space-y-2.5">
                 <div className="space-y-1"><Label className="text-xs">Email</Label><Input value={newEducatorEmail} onChange={e => setNewEducatorEmail(e.target.value)} placeholder="educateur@email.com" /></div>
                 <div className="space-y-1"><Label className="text-xs">Nom</Label><Input value={newEducatorName} onChange={e => setNewEducatorName(e.target.value)} placeholder="Nom" /></div>
-                <div className="space-y-1"><Label className="text-xs">Mot de passe</Label><Input type="password" value={newEducatorPassword} onChange={e => setNewEducatorPassword(e.target.value)} placeholder="Mot de passe" /></div>
-                <Button onClick={handleCreateEducator} disabled={creating || !newEducatorEmail || !newEducatorPassword} className="w-full gap-2" size="sm">
+                <p className="text-[10px] text-muted-foreground">Un mot de passe temporaire sera généré automatiquement. L'utilisateur devra le changer à sa première connexion.</p>
+                <Button onClick={handleCreateEducator} disabled={creating || !newEducatorEmail} className="w-full gap-2" size="sm">
                   <GraduationCap className="h-4 w-4" /> {creating ? "Création..." : "Créer l'éducateur"}
                 </Button>
               </CardContent>
@@ -417,8 +420,8 @@ export default function AdminDashboard() {
               <CardContent className="space-y-2.5">
                 <div className="space-y-1"><Label className="text-xs">Email</Label><Input value={newShelterEmail} onChange={e => setNewShelterEmail(e.target.value)} placeholder="refuge@email.com" /></div>
                 <div className="space-y-1"><Label className="text-xs">Nom du refuge</Label><Input value={newShelterName} onChange={e => setNewShelterName(e.target.value)} placeholder="SPA de Genève" /></div>
-                <div className="space-y-1"><Label className="text-xs">Mot de passe</Label><Input type="password" value={newShelterPassword} onChange={e => setNewShelterPassword(e.target.value)} placeholder="Mot de passe" /></div>
-                <Button onClick={handleCreateShelter} disabled={creatingShelter || !newShelterEmail || !newShelterPassword} className="w-full gap-2" size="sm">
+                <p className="text-[10px] text-muted-foreground">Un mot de passe temporaire sera généré automatiquement.</p>
+                <Button onClick={handleCreateShelter} disabled={creatingShelter || !newShelterEmail} className="w-full gap-2" size="sm">
                   <Home className="h-4 w-4" /> {creatingShelter ? "Création..." : "Créer le refuge"}
                 </Button>
               </CardContent>
@@ -450,6 +453,37 @@ export default function AdminDashboard() {
             <Home className="h-4 w-4" /> Refuge
           </Button>
         </div>
+
+        {/* Temporary password dialog */}
+        <Dialog open={!!tempPasswordDialog} onOpenChange={(o) => !o && setTempPasswordDialog(null)}>
+          <DialogContent className="max-w-[90vw] sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2"><Lock className="h-4 w-4 text-primary" /> Mot de passe temporaire</DialogTitle>
+            </DialogHeader>
+            {tempPasswordDialog && (
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Compte créé pour <strong className="text-foreground">{tempPasswordDialog.email}</strong>. Communiquez ce mot de passe temporaire à l'utilisateur :
+                </p>
+                <div className="p-3 rounded-lg bg-secondary/50 border border-border">
+                  <p className="text-base font-mono font-bold text-foreground text-center select-all break-all">{tempPasswordDialog.password}</p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  ⚠️ L'utilisateur devra créer son propre mot de passe à sa première connexion. Ce mot de passe temporaire ne sera plus affiché.
+                </p>
+                <Button className="w-full" onClick={() => {
+                  navigator.clipboard.writeText(tempPasswordDialog.password);
+                  toast({ title: "Copié ✅", description: "Mot de passe copié dans le presse-papier." });
+                }}>
+                  Copier le mot de passe
+                </Button>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setTempPasswordDialog(null)}>Fermer</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </motion.div>
     </AppLayout>
   );
@@ -764,24 +798,25 @@ function AdminCreateUser({ onCreated }: { onCreated: () => void }) {
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
-  const [password, setPassword] = useState("");
   const [role, setRole] = useState("owner");
   const [creating, setCreating] = useState(false);
+  const [tempPwd, setTempPwd] = useState<{ email: string; password: string } | null>(null);
 
   const handleCreate = async () => {
-    if (!email || !password) return;
+    if (!email) return;
     setCreating(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Session expirée");
       const { data, error } = await supabase.functions.invoke("create-user", {
-        body: { email, password, displayName: name || email.split("@")[0], role: role === "owner" ? undefined : role },
+        body: { email, displayName: name || email.split("@")[0], role: role === "owner" ? undefined : role },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast({ title: "Compte créé ✅", description: `${email} peut maintenant se connecter directement.` });
-      setEmail(""); setName(""); setPassword(""); setRole("owner");
+      setTempPwd({ email, password: data.temporaryPassword });
+      toast({ title: "Compte créé ✅", description: `${email} devra changer son mot de passe à la première connexion.` });
+      setEmail(""); setName(""); setRole("owner");
       onCreated();
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message || "Impossible de créer le compte", variant: "destructive" });
@@ -790,39 +825,66 @@ function AdminCreateUser({ onCreated }: { onCreated: () => void }) {
   };
 
   return (
-    <Card className="border-primary/30">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm flex items-center gap-2"><UserCog className="h-4 w-4 text-primary" /> Créer un compte utilisateur</CardTitle>
-        <p className="text-[10px] text-muted-foreground">Le compte est activé immédiatement, sans confirmation par email.</p>
-      </CardHeader>
-      <CardContent className="space-y-2.5">
-        <div className="space-y-1">
-          <Label className="text-xs">Email *</Label>
-          <Input value={email} onChange={e => setEmail(e.target.value)} placeholder="utilisateur@email.com" type="email" />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Nom</Label>
-          <Input value={name} onChange={e => setName(e.target.value)} placeholder="Prénom Nom" />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Mot de passe *</Label>
-          <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 6 caractères" />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs">Rôle</Label>
-          <Select value={role} onValueChange={setRole}>
-            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="owner">🐕 Propriétaire</SelectItem>
-              <SelectItem value="educator">🎓 Éducateur</SelectItem>
-              <SelectItem value="shelter">🏠 Refuge</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <Button onClick={handleCreate} disabled={creating || !email || !password} className="w-full gap-2" size="sm">
-          <Plus className="h-4 w-4" /> {creating ? "Création..." : "Créer le compte"}
-        </Button>
-      </CardContent>
-    </Card>
+    <>
+      <Card className="border-primary/30">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2"><UserCog className="h-4 w-4 text-primary" /> Créer un compte utilisateur</CardTitle>
+          <p className="text-[10px] text-muted-foreground">Un mot de passe temporaire est généré. L'utilisateur le changera à sa première connexion.</p>
+        </CardHeader>
+        <CardContent className="space-y-2.5">
+          <div className="space-y-1">
+            <Label className="text-xs">Email *</Label>
+            <Input value={email} onChange={e => setEmail(e.target.value)} placeholder="utilisateur@email.com" type="email" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Nom</Label>
+            <Input value={name} onChange={e => setName(e.target.value)} placeholder="Prénom Nom" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Rôle</Label>
+            <Select value={role} onValueChange={setRole}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="owner">🐕 Propriétaire</SelectItem>
+                <SelectItem value="educator">🎓 Éducateur</SelectItem>
+                <SelectItem value="shelter">🏠 Refuge</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button onClick={handleCreate} disabled={creating || !email} className="w-full gap-2" size="sm">
+            <Plus className="h-4 w-4" /> {creating ? "Création..." : "Créer le compte"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Temp password dialog */}
+      <Dialog open={!!tempPwd} onOpenChange={(o) => !o && setTempPwd(null)}>
+        <DialogContent className="max-w-[90vw] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">🔑 Mot de passe temporaire</DialogTitle>
+          </DialogHeader>
+          {tempPwd && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Compte <strong className="text-foreground">{tempPwd.email}</strong> créé. Transmettez ce mot de passe temporaire :
+              </p>
+              <div className="p-3 rounded-lg bg-secondary/50 border border-border">
+                <p className="text-base font-mono font-bold text-foreground text-center select-all break-all">{tempPwd.password}</p>
+              </div>
+              <p className="text-xs text-muted-foreground">L'utilisateur devra créer son propre mot de passe à sa première connexion.</p>
+              <Button className="w-full" onClick={() => {
+                navigator.clipboard.writeText(tempPwd.password);
+                toast({ title: "Copié ✅" });
+              }}>
+                Copier le mot de passe
+              </Button>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTempPwd(null)}>Fermer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

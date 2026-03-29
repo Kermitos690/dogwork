@@ -87,6 +87,7 @@ const AdoptionCheckins = lazy(() => import("./pages/AdoptionCheckins"));
 const ShelterAdoptionCheckins = lazy(() => import("./pages/ShelterAdoptionCheckins"));
 const ShelterAdoptionPlans = lazy(() => import("./pages/ShelterAdoptionPlans"));
 const AdoptionFollowup = lazy(() => import("./pages/AdoptionFollowup"));
+const ForcePasswordChange = lazy(() => import("./pages/ForcePasswordChange"));
 
 const queryClient = new QueryClient();
 
@@ -152,6 +153,12 @@ function ProtectedRoutes() {
   // If the auth system flagged this as a password recovery session, redirect to reset-password
   if (isPasswordRecovery) {
     return <Navigate to="/reset-password" replace />;
+  }
+
+  // If admin created this account, force password change on first login
+  const mustChangePassword = user?.user_metadata?.must_change_password === true;
+  if (mustChangePassword && location.pathname !== "/force-password-change") {
+    return <Navigate to="/force-password-change" replace />;
   }
 
   const hasDogs = dogs && dogs.length > 0;
@@ -233,6 +240,7 @@ function ProtectedRoutes() {
         <Route path="/preferences" element={<PreferencesPage />} />
         <Route path="/adoption-checkins" element={<AdoptionCheckins />} />
         <Route path="/adoption-followup" element={<AdoptionFollowup />} />
+        <Route path="/force-password-change" element={<ForcePasswordChange />} />
         <Route path="/program" element={<Navigate to="/plan" replace />} />
         {/* Coach / Educator routes */}
         <Route path="/coach" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachDashboard /></CoachGuard></Suspense>} />

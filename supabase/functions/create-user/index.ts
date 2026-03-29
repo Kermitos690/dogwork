@@ -5,6 +5,34 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function generateStrongPassword(length = 16): string {
+  const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const lower = "abcdefghijklmnopqrstuvwxyz";
+  const digits = "0123456789";
+  const special = "!@#$%&*_+-=";
+  const all = upper + lower + digits + special;
+
+  // Ensure at least one of each category
+  const mandatory = [
+    upper[Math.floor(Math.random() * upper.length)],
+    lower[Math.floor(Math.random() * lower.length)],
+    digits[Math.floor(Math.random() * digits.length)],
+    special[Math.floor(Math.random() * special.length)],
+  ];
+
+  const remaining = Array.from({ length: length - mandatory.length }, () =>
+    all[Math.floor(Math.random() * all.length)]
+  );
+
+  // Shuffle
+  const chars = [...mandatory, ...remaining];
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+  return chars.join("");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -42,11 +70,14 @@ Deno.serve(async (req) => {
 
     if (!isAdmin) throw new Error("Seul un administrateur peut créer des comptes");
 
-    const { email, password, displayName, role } = await req.json();
-    if (!email || !password) throw new Error("Email et mot de passe requis");
+    const { email, displayName, role } = await req.json();
+    if (!email) throw new Error("Email requis");
 
     const normalizedEmail = String(email).trim().toLowerCase();
     const effectiveDisplayName = (displayName || normalizedEmail.split("@")[0]).trim();
+
+    // Auto-generate a strong temporary password
+    const tempPassword = generateStrongPassword(20);
 
     const {
       data: { users: existingUsers },
@@ -64,19 +95,23 @@ Deno.serve(async (req) => {
     if (existingUser) {
       userId = existingUser.id;
       const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-        password,
+        password: tempPassword,
         user_metadata: {
           ...(existingUser.user_metadata || {}),
           display_name: effectiveDisplayName,
+          must_change_password: true,
         },
       });
       if (updateError) throw updateError;
     } else {
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email: normalizedEmail,
-        password,
+        password: tempPassword,
         email_confirm: true,
-        user_metadata: { display_name: effectiveDisplayName },
+        user_metadata: {
+          display_name: effectiveDisplayName,
+          must_change_password: true,
+        },
       });
       if (createError) throw createError;
       userId = newUser.user!.id;
@@ -151,9 +186,17 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ success: true, userId, alreadyExisted: !!existingUser }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        userId,
+        alreadyExisted: !!existingUser,
+        temporaryPassword: tempPassword,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   } catch (err: any) {
     return new Response(JSON.stringify({ error: err.message || "Erreur inattendue" }), {
       status: 400,
