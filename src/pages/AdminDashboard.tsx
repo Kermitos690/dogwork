@@ -497,6 +497,7 @@ function AdminUsersManager() {
         createdAt: p.created_at,
       }));
     },
+    enabled: isAdmin === true,
   });
 
   const filtered = allUsers.filter((u: any) => {
