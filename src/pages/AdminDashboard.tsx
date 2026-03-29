@@ -738,12 +738,20 @@ function AdminUsersManager() {
                   </div>
                   <div className="flex gap-1 shrink-0">
                     <Button
-                      variant="ghost" size="icon" className="h-7 w-7 text-primary hover:text-primary"
-                      disabled={generatingPdf === u.userId}
-                      onClick={() => handleDownloadGuide(u.userId, u.name, u.roles)}
-                      title="Télécharger le guide de connexion"
+                      variant="ghost" size="icon" className="h-7 w-7 text-amber-500 hover:text-amber-400"
+                      disabled={resettingPassword === u.userId}
+                      onClick={() => handleResetPassword(u.userId, u.name)}
+                      title="Générer un nouveau mot de passe temporaire"
                     >
-                      {generatingPdf === u.userId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+                      {resettingPassword === u.userId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Lock className="h-3.5 w-3.5" />}
+                    </Button>
+                    <Button
+                      variant="ghost" size="icon" className={`h-7 w-7 ${generatedCredentials[u.userId] ? "text-primary hover:text-primary" : "text-muted-foreground"}`}
+                      disabled={!generatedCredentials[u.userId]}
+                      onClick={() => handleDownloadGuide(u.userId, u.name, u.roles)}
+                      title={generatedCredentials[u.userId] ? "Télécharger la fiche PDF" : "Générez d'abord un MDP (🔑)"}
+                    >
+                      <FileDown className="h-3.5 w-3.5" />
                     </Button>
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditTarget(u); setEditName(u.name); }}>
                       <Edit2 className="h-3.5 w-3.5" />
