@@ -287,6 +287,85 @@ export default function DogProfile() {
           </div>
         </Section>
 
+        {/* Shelter adoption — only for new dogs */}
+        {isNew && (
+          <Section title="Adoption refuge" defaultOpen={false}>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">Adopté d'un refuge partenaire ?</Label>
+              <Switch checked={adoptedFromShelter} onCheckedChange={(v) => {
+                setAdoptedFromShelter(v);
+                if (v) update("origin", "refuge");
+              }} />
+            </div>
+            {adoptedFromShelter && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="space-y-3"
+              >
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Refuge</Label>
+                  <Select value={selectedShelterId} onValueChange={setSelectedShelterId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un refuge" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {shelterList.map((s) => (
+                        <SelectItem key={s.user_id} value={s.user_id}>
+                          <span className="flex items-center gap-1.5">
+                            <Building2 className="h-3.5 w-3.5" /> {s.name}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Rechercher par N° puce</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={form.chip_id || ""}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/[^\d\s]/g, "");
+                        update("chip_id", raw.replace(/\s/g, "").trim() || null);
+                      }}
+                      placeholder="756 0000 0000 000"
+                      maxLength={18}
+                      className="font-mono tracking-wider flex-1"
+                    />
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      onClick={searchByChip}
+                      disabled={chipSearching || !form.chip_id || !String(form.chip_id).match(/^\d{15}$/)}
+                      className="rounded-xl shrink-0"
+                    >
+                      {chipSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  {chipError && <p className="text-[11px] text-destructive">{chipError}</p>}
+                </div>
+                {matchedAnimal && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-start gap-2.5 p-3 rounded-xl border border-success/20 bg-success/5"
+                  >
+                    <CheckCircle2 className="h-4 w-4 text-success shrink-0 mt-0.5" />
+                    <div className="text-xs">
+                      <p className="font-semibold text-foreground">{matchedAnimal.name}</p>
+                      <p className="text-muted-foreground">{matchedAnimal.breed || "Race inconnue"} · {matchedAnimal.sex || "?"} · {matchedAnimal.status}</p>
+                      <p className="text-success font-medium mt-1">Profil pré-rempli automatiquement ✓</p>
+                    </div>
+                  </motion.div>
+                )}
+              </motion.div>
+            )}
+          </Section>
+        )}
+
         {/* Context */}
         <Section title="Origine et contexte">
           <div className="grid grid-cols-2 gap-3">
