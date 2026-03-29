@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useActiveDog } from "@/hooks/useDogs";
 import { supabase } from "@/integrations/supabase/client";
 import { AppLayout } from "@/components/AppLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useFeatureGate } from "@/hooks/useFeatureGate";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
 
 const PROBLEMS = [
   "saute_sur_gens", "tire_en_laisse", "rappel_faible", "ignore_non", "ignore_stop",
@@ -61,6 +63,8 @@ export default function Problems() {
   const { toast } = useToast();
   const [problems, setProblems] = useState<Record<string, ProblemEntry>>({});
 
+  const advObjGate = useFeatureGate("advanced_objectives");
+
   useEffect(() => {
     const init: Record<string, ProblemEntry> = {};
     PROBLEMS.forEach((key) => {
@@ -98,9 +102,7 @@ export default function Problems() {
   const handleSave = async () => {
     if (!activeDog || !user) return;
     try {
-      // Delete existing
       await supabase.from("dog_problems").delete().eq("dog_id", activeDog.id);
-      // Insert selected
       const selected = Object.values(problems).filter((p) => p.selected);
       if (selected.length > 0) {
         await supabase.from("dog_problems").insert(
@@ -122,6 +124,27 @@ export default function Problems() {
   };
 
   if (!activeDog) return <AppLayout><p className="pt-4 text-center text-muted-foreground">Ajoutez d'abord un chien.</p></AppLayout>;
+
+  // Feature gate: advanced_objectives required for problems page
+  if (!advObjGate.allowed) {
+    return (
+      <AppLayout>
+        <div className="pb-8 space-y-4 animate-fade-in">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-xl font-bold text-foreground">Problématiques</h1>
+          </div>
+          <UpgradePrompt
+            requiredTier={advObjGate.requiredTier}
+            title="Analyse des problématiques"
+            description="Identifiez et suivez les problèmes comportementaux de votre chien avec des outils de diagnostic avancés. Intensité, fréquence et suivi personnalisé."
+          />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>

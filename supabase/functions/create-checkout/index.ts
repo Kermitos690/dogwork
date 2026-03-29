@@ -12,6 +12,12 @@ const logStep = (step: string, details?: any) => {
   console.log(`[CREATE-CHECKOUT] ${step}${d}`);
 };
 
+// Owner product IDs — used to detect existing owner subscriptions
+const OWNER_PRODUCT_IDS = [
+  "prod_U83i1wbeLdd3EI",  // Pro
+  "prod_U83inCbv8JMMgf",  // Expert
+];
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -30,7 +36,6 @@ serve(async (req) => {
       });
     }
 
-    // Use anon-key client with getClaims for ES256 JWT compatibility
     const userClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
@@ -64,6 +69,32 @@ serve(async (req) => {
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
       logStep("Existing customer found", { customerId });
+
+      // Check for existing active owner subscription — redirect to portal for upgrade/downgrade
+      const subs = await stripe.subscriptions.list({
+        customer: customerId,
+        status: "active",
+        limit: 10,
+      });
+
+      const existingOwnerSub = subs.data.find(sub =>
+        sub.items.data.some(item =>
+          OWNER_PRODUCT_IDS.includes(item.price.product as string)
+        )
+      );
+
+      if (existingOwnerSub) {
+        logStep("Existing owner subscription found — redirecting to portal", { subId: existingOwnerSub.id });
+        const origin = req.headers.get("origin") || "https://dogwork.lovable.app";
+        const portalSession = await stripe.billingPortal.sessions.create({
+          customer: customerId,
+          return_url: `${origin}/subscription`,
+        });
+        return new Response(JSON.stringify({ url: portalSession.url, via: "portal" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
     }
 
     const origin = req.headers.get("origin") || "https://dogwork.lovable.app";
