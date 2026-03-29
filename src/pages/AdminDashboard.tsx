@@ -524,6 +524,7 @@ function AdminUsersManager() {
   const [editName, setEditName] = useState("");
   const [editRoleToAdd, setEditRoleToAdd] = useState("");
   const [saving, setSaving] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
 
   // Fetch ALL users with roles
   const { user } = useAuth();
