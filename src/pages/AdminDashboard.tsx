@@ -544,18 +544,37 @@ function AdminUsersManager() {
     queryKey: ["admin_all_users"],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("admin_list_users");
-      if (error) throw error;
 
-      return (data || []).map((u: any) => {
-        const roles = Array.isArray(u.roles) && u.roles.length > 0 ? u.roles : ["owner"];
-        return {
-          userId: u.user_id,
-          email: u.email || "",
-          name: u.display_name || "Sans nom",
-          roles,
-          createdAt: u.created_at,
-        };
+      if (!error && Array.isArray(data)) {
+        return data.map((u: any) => {
+          const roles = Array.isArray(u.roles) && u.roles.length > 0 ? u.roles : ["owner"];
+          return {
+            userId: u.user_id,
+            email: u.email || "",
+            name: u.display_name || "Sans nom",
+            roles,
+            createdAt: u.created_at,
+          };
+        });
+      }
+
+      // Fallback legacy (si la fonction SQL n'est pas encore déployée)
+      const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, created_at").order("created_at", { ascending: false });
+      if (!profiles) return [];
+      const { data: allRoles } = await supabase.from("user_roles").select("user_id, role");
+      const roleMap: Record<string, string[]> = {};
+      (allRoles || []).forEach((r: any) => {
+        if (!roleMap[r.user_id]) roleMap[r.user_id] = [];
+        roleMap[r.user_id].push(r.role);
       });
+
+      return profiles.map((p: any) => ({
+        userId: p.user_id,
+        email: "",
+        name: p.display_name || "Sans nom",
+        roles: roleMap[p.user_id] || ["owner"],
+        createdAt: p.created_at,
+      }));
     },
     enabled: isAdmin === true,
     refetchOnMount: "always",
