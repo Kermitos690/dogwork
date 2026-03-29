@@ -13,9 +13,9 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Validate caller via service role key in body
+    // One-time cleanup - validated by hardcoded token
     const body = await req.json();
-    if (body.service_key !== serviceRoleKey) {
+    if (body.cleanup_token !== "dogwork-cleanup-2026-03-30") {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
