@@ -733,6 +733,14 @@ function AdminUsersManager() {
                     <p className="text-[9px] text-muted-foreground mt-0.5">{new Date(u.createdAt).toLocaleDateString("fr-FR")}</p>
                   </div>
                   <div className="flex gap-1 shrink-0">
+                    <Button
+                      variant="ghost" size="icon" className="h-7 w-7 text-primary hover:text-primary"
+                      disabled={generatingPdf === u.userId}
+                      onClick={() => handleDownloadGuide(u.userId, u.name, u.roles)}
+                      title="Télécharger le guide de connexion"
+                    >
+                      {generatingPdf === u.userId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+                    </Button>
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditTarget(u); setEditName(u.name); }}>
                       <Edit2 className="h-3.5 w-3.5" />
                     </Button>
