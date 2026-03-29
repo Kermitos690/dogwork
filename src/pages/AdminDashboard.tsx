@@ -525,6 +525,8 @@ function AdminUsersManager() {
   const [editRoleToAdd, setEditRoleToAdd] = useState("");
   const [saving, setSaving] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
+  const [resettingPassword, setResettingPassword] = useState<string | null>(null);
+  const [generatedCredentials, setGeneratedCredentials] = useState<Record<string, { email: string; tempPassword: string }>>({});
 
   // Fetch ALL users with roles
   const { user } = useAuth();
