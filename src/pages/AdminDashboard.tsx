@@ -686,7 +686,7 @@ function AdminUsersManager() {
       tempPassword: creds.tempPassword,
     });
 
-    const blobUrl = doc.output("bloburl") as string;
+    const blobUrl = doc.output("bloburl") as unknown as string;
     window.open(blobUrl, "_blank");
     toast({ title: "Guide ouvert ✅", description: "Utilisez le bouton de partage/sauvegarde de votre navigateur pour enregistrer le PDF." });
   };
