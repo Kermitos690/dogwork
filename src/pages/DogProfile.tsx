@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useCreateDog, useUpdateDog, type Dog } from "@/hooks/useDogs";
@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { ArrowLeft, Save, ChevronDown, ChevronUp, Camera } from "lucide-react";
+import { ArrowLeft, Save, ChevronDown, ChevronUp, Camera, Search, Building2, CheckCircle2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { BreedCombobox } from "@/components/BreedCombobox";
 import { motion, AnimatePresence } from "framer-motion";
