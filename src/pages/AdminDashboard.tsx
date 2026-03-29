@@ -686,7 +686,18 @@ function AdminUsersManager() {
       tempPassword: creds.tempPassword,
     });
 
-    doc.save(`DogWork_Guide_Connexion_${userName.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`);
+    const filename = `DogWork_Guide_Connexion_${userName.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
+    const blob = doc.output("blob");
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 200);
     toast({ title: "Guide téléchargé ✅" });
   };
 
