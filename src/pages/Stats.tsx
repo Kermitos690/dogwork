@@ -177,8 +177,8 @@ export default function Stats() {
   const navigate = useNavigate();
   const activeDog = useActiveDog();
   const [period, setPeriod] = useState<"7" | "14" | "30" | "all">("all");
-  const stats = useStats(period);
   const advStatsGate = useFeatureGate("advanced_stats");
+  const stats = useStats(period, advStatsGate.allowed);
   const hasAdvanced = advStatsGate.allowed;
 
   if (!activeDog) {
