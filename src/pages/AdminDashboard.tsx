@@ -723,7 +723,7 @@ function AdminUsersManager() {
       if (isIOS) {
         const popup = window.open(url, "_blank", "noopener,noreferrer");
         if (!popup) {
-          window.location.assign(url);
+          doc.save(fileName);
         }
         toast({ title: "PDF ouvert ✅", description: "Utilisez Partager → Enregistrer dans Fichiers." });
       } else {
