@@ -2427,13 +2427,11 @@ export type Database = {
           arrival_date: string | null
           behavior_notes: string | null
           breed: string | null
-          chip_id: string | null
           created_at: string | null
           departure_date: string | null
           departure_reason: string | null
           description: string | null
           estimated_age: string | null
-          health_notes: string | null
           id: string | null
           is_sterilized: boolean | null
           name: string | null
@@ -2449,13 +2447,11 @@ export type Database = {
           arrival_date?: string | null
           behavior_notes?: string | null
           breed?: string | null
-          chip_id?: string | null
           created_at?: string | null
           departure_date?: string | null
           departure_reason?: string | null
           description?: string | null
           estimated_age?: string | null
-          health_notes?: string | null
           id?: string | null
           is_sterilized?: boolean | null
           name?: string | null
@@ -2471,13 +2467,11 @@ export type Database = {
           arrival_date?: string | null
           behavior_notes?: string | null
           breed?: string | null
-          chip_id?: string | null
           created_at?: string | null
           departure_date?: string | null
           departure_reason?: string | null
           description?: string | null
           estimated_age?: string | null
-          health_notes?: string | null
           id?: string | null
           is_sterilized?: boolean | null
           name?: string | null
@@ -2495,12 +2489,10 @@ export type Database = {
         Row: {
           auth_user_id: string | null
           created_at: string | null
-          email: string | null
           id: string | null
           is_active: boolean | null
           job_title: string | null
           name: string | null
-          phone: string | null
           role: string | null
           shelter_user_id: string | null
           updated_at: string | null
@@ -2508,12 +2500,10 @@ export type Database = {
         Insert: {
           auth_user_id?: string | null
           created_at?: string | null
-          email?: string | null
           id?: string | null
           is_active?: boolean | null
           job_title?: string | null
           name?: string | null
-          phone?: string | null
           role?: string | null
           shelter_user_id?: string | null
           updated_at?: string | null
@@ -2521,15 +2511,37 @@ export type Database = {
         Update: {
           auth_user_id?: string | null
           created_at?: string | null
-          email?: string | null
           id?: string | null
           is_active?: boolean | null
           job_title?: string | null
           name?: string | null
-          phone?: string | null
           role?: string | null
           shelter_user_id?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      shelter_profiles_public: {
+        Row: {
+          description: string | null
+          id: string | null
+          name: string | null
+          organization_type: string | null
+          user_id: string | null
+        }
+        Insert: {
+          description?: string | null
+          id?: string | null
+          name?: string | null
+          organization_type?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          description?: string | null
+          id?: string | null
+          name?: string | null
+          organization_type?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }

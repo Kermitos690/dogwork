@@ -50,7 +50,7 @@ export function useShelterEmployeeInfo() {
     queryFn: async () => {
       if (!user) return null;
       const { data } = await supabase
-        .from("shelter_employees_safe")
+        .from("shelter_employees")
         .select("id, name, role, job_title, email, phone, shelter_user_id, auth_user_id, is_active, created_at, updated_at")
         .eq("auth_user_id", user.id)
         .eq("is_active", true)

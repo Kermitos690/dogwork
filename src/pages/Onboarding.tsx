@@ -369,8 +369,8 @@ export default function Onboarding() {
   // Fetch shelter list for adoption dropdown
   useEffect(() => {
     if (!adoptedFromShelter) return;
-    supabase.from("shelter_profiles").select("user_id, name").order("name").then(({ data }) => {
-      if (data) setShelterList(data);
+    supabase.from("shelter_profiles_public" as any).select("user_id, name").order("name").then(({ data }) => {
+      if (data) setShelterList(data as unknown as { user_id: string; name: string }[]);
     });
   }, [adoptedFromShelter]);
 

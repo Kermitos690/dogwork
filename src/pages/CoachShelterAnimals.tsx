@@ -48,10 +48,10 @@ export default function CoachShelterAnimals() {
     queryFn: async () => {
       if (!shelterIds.length) return [];
       const { data } = await supabase
-        .from("shelter_profiles")
-        .select("id, user_id, name")
+        .from("shelter_profiles_public" as any)
+        .select("user_id, name")
         .in("user_id", shelterIds);
-      return data ?? [];
+      return (data as unknown as { user_id: string; name: string }[]) ?? [];
     },
     enabled: shelterIds.length > 0,
   });
@@ -125,7 +125,7 @@ export default function CoachShelterAnimals() {
             <>
               <div className="flex gap-2 mb-3">
               {shelterProfiles.map((sp) => (
-                  <Badge key={sp.id} variant="secondary" className="text-xs">
+                  <Badge key={sp.user_id} variant="secondary" className="text-xs">
                     {sp.name}
                   </Badge>
                 ))}
