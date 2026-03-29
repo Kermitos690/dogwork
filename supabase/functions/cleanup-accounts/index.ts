@@ -13,95 +13,107 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // One-time cleanup - validated by hardcoded token
-    const body = await req.json();
-    if (body.cleanup_token !== "dogwork-cleanup-2026-03-30") {
+    // Validate caller is admin
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const token = authHeader.replace("Bearer ", "");
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+    const { data: isAdmin } = await userClient.rpc("is_admin");
+    if (!isAdmin) {
+      return new Response(JSON.stringify({ error: "Admin only" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const admin = createClient(supabaseUrl, serviceRoleKey);
     const logs: string[] = [];
 
-    const ADMIN_ID = "46478b2b-8eea-40f9-87b6-42d5e0c8dd90";
-    const PRESCIGLIA_ID = "4454dff8-1144-4650-8ca5-6767b83f2c12";
-    const DUPLICATE_GAETAN = "b3bb014e-6c63-4df9-ae4d-0d7485d13e79";
+    // Get admin email
+    const ADMIN_EMAIL = "teba.gaetan@gmail.com";
 
-    const TO_DELETE = [
-      "f29c0d64-97b2-4c33-8730-75e3dc9b437f", // Apple relay
-      "b3bb014e-6c63-4df9-ae4d-0d7485d13e79", // lareklam79 (duplicate Gaetan)
-      "db025729-03fd-446d-8f85-360293fcda4e", // test-shelter
-      "34af32ab-28f1-438b-87c0-a3c2d56c56fe", // test-admin
-      "5391a2e6-6392-40be-a8d8-b8c680562202", // bdkdl@fkkf.com junk
+    // List all auth users
+    const { data: { users }, error: listErr } = await admin.auth.admin.listUsers();
+    if (listErr) throw listErr;
+
+    // Find duplicates and junk
+    const KEEP_EMAILS = [
+      ADMIN_EMAIL,
+      "presciglia@hotmail.com",
+      "ms.brandenberger@gmail.com",
+      "niels.legoux@gmail.com",
     ];
 
-    // 1. Create profile for admin if missing
-    const { error: profileErr } = await admin.from("profiles").upsert(
-      { user_id: ADMIN_ID, display_name: "Gaetan" },
-      { onConflict: "user_id" }
-    );
-    logs.push(profileErr ? `Profile admin error: ${profileErr.message}` : "Profile admin OK");
-
-    // 2. Create roles for admin
-    for (const role of ["admin", "owner", "educator"]) {
-      const { error } = await admin.from("user_roles").upsert(
-        { user_id: ADMIN_ID, role },
-        { onConflict: "user_id,role" }
+    const toDelete = users.filter(u => !KEEP_EMAILS.includes(u.email?.toLowerCase() || ""));
+    
+    // Clean up public data and delete junk users
+    for (const user of toDelete) {
+      // Clean public tables
+      for (const table of ["profiles", "user_roles", "admin_subscriptions", "coach_profiles", "shelter_profiles", "coach_stripe_data"]) {
+        await admin.from(table).delete().eq("user_id", user.id);
+      }
+      
+      // Delete auth user
+      const { error } = await admin.auth.admin.deleteUser(user.id);
+      logs.push(error 
+        ? `Delete ${user.email} (${user.id}) error: ${error.message}` 
+        : `Deleted ${user.email} (${user.id})`
       );
-      logs.push(error ? `Role ${role} error: ${error.message}` : `Role ${role} OK`);
     }
 
-    // 3. Move coach_profile from duplicate to admin
-    const { data: dupCoach } = await admin.from("coach_profiles")
-      .select("id").eq("user_id", DUPLICATE_GAETAN).maybeSingle();
-    if (dupCoach) {
-      // Check if admin already has one
-      const { data: adminCoach } = await admin.from("coach_profiles")
-        .select("id").eq("user_id", ADMIN_ID).maybeSingle();
-      if (adminCoach) {
-        // Delete duplicate
-        await admin.from("coach_profiles").delete().eq("user_id", DUPLICATE_GAETAN);
-        logs.push("Duplicate coach_profile deleted (admin already has one)");
-      } else {
-        const { error } = await admin.from("coach_profiles")
-          .update({ user_id: ADMIN_ID }).eq("user_id", DUPLICATE_GAETAN);
-        logs.push(error ? `Move coach error: ${error.message}` : "Coach profile moved to admin");
+    // Now ensure admin has proper profile and roles
+    const adminUser = users.find(u => u.email?.toLowerCase() === ADMIN_EMAIL);
+    if (adminUser) {
+      // Ensure profile
+      await admin.from("profiles").upsert(
+        { user_id: adminUser.id, display_name: "Gaetan" },
+        { onConflict: "user_id" }
+      );
+      logs.push("Admin profile ensured");
+
+      // Ensure roles
+      for (const role of ["admin", "owner", "educator"]) {
+        await admin.from("user_roles").upsert(
+          { user_id: adminUser.id, role },
+          { onConflict: "user_id,role" }
+        );
+      }
+      logs.push("Admin roles ensured (admin, owner, educator)");
+
+      // Ensure coach_profile
+      const { data: cp } = await admin.from("coach_profiles")
+        .select("id").eq("user_id", adminUser.id).maybeSingle();
+      if (!cp) {
+        await admin.from("coach_profiles").insert({
+          user_id: adminUser.id,
+          display_name: "Gaetan",
+        });
+        logs.push("Coach profile created for admin");
+      }
+
+      // Ensure presciglia has profile and owner role
+      const presUser = users.find(u => u.email?.toLowerCase() === "presciglia@hotmail.com");
+      if (presUser) {
+        await admin.from("profiles").upsert(
+          { user_id: presUser.id, display_name: "Preshiba" },
+          { onConflict: "user_id" }
+        );
+        await admin.from("user_roles").upsert(
+          { user_id: presUser.id, role: "owner" },
+          { onConflict: "user_id,role" }
+        );
+        // Confirm email
+        await admin.auth.admin.updateUserById(presUser.id, { email_confirm: true });
+        logs.push("Presciglia profile/role/email fixed");
       }
     }
 
-    // 4. Create profile + role for presciglia
-    const { error: pProfileErr } = await admin.from("profiles").upsert(
-      { user_id: PRESCIGLIA_ID, display_name: "Preshiba" },
-      { onConflict: "user_id" }
-    );
-    logs.push(pProfileErr ? `Presciglia profile error: ${pProfileErr.message}` : "Presciglia profile OK");
-
-    const { error: pRoleErr } = await admin.from("user_roles").upsert(
-      { user_id: PRESCIGLIA_ID, role: "owner" },
-      { onConflict: "user_id,role" }
-    );
-    logs.push(pRoleErr ? `Presciglia role error: ${pRoleErr.message}` : "Presciglia role OK");
-
-    // 5. Confirm presciglia email
-    const { error: confirmErr } = await admin.auth.admin.updateUserById(PRESCIGLIA_ID, {
-      email_confirm: true,
-    });
-    logs.push(confirmErr ? `Presciglia confirm error: ${confirmErr.message}` : "Presciglia email confirmed");
-
-    // 6. Clean up public data for accounts to delete
-    for (const table of ["profiles", "user_roles", "admin_subscriptions", "coach_profiles", "shelter_profiles"]) {
-      const { error } = await admin.from(table).delete().in("user_id", TO_DELETE);
-      logs.push(error ? `Clean ${table} error: ${error.message}` : `Clean ${table} OK`);
-    }
-
-    // 7. Delete auth users
-    for (const userId of TO_DELETE) {
-      const { error } = await admin.auth.admin.deleteUser(userId);
-      logs.push(error ? `Delete user ${userId} error: ${error.message}` : `Deleted user ${userId}`);
-    }
-
-    return new Response(JSON.stringify({ success: true, logs }), {
+    return new Response(JSON.stringify({ success: true, logs, deleted: toDelete.length }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err: any) {
