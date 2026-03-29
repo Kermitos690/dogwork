@@ -638,7 +638,53 @@ function AdminUsersManager() {
     }
   };
 
-  return (
+  const handleDownloadGuide = async (userId: string, userName: string, roles: string[]) => {
+    setGeneratingPdf(userId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Session expirée");
+
+      // Get primary role for the guide
+      const primaryRole = roles.includes("shelter") ? "shelter" 
+        : roles.includes("educator") ? "educator"
+        : roles.includes("shelter_employee") ? "shelter_employee"
+        : roles.includes("admin") ? "admin" 
+        : "owner";
+
+      // Call create-user to reset password (idempotent)
+      const { data, error } = await supabase.functions.invoke("create-user", {
+        body: { email: "__fetch_only__", displayName: userName, role: primaryRole === "owner" ? undefined : primaryRole },
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      // We need the email — fetch it via a dedicated approach
+      // Actually, create-user requires email. Let's use a simpler edge function call.
+      // Instead, we'll call the admin API via an edge function to get email + reset pwd.
+      
+      const resetRes = await supabase.functions.invoke("create-user", {
+        body: { userId, resetOnly: true },
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (resetRes.error) throw resetRes.error;
+      if (resetRes.data?.error) throw new Error(resetRes.data.error);
+
+      const { email, temporaryPassword } = resetRes.data;
+
+      const doc = generateConnectionGuidePDF({
+        name: userName,
+        email,
+        role: primaryRole,
+        tempPassword: temporaryPassword,
+      });
+
+      doc.save(`DogWork_Guide_Connexion_${userName.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`);
+      toast({ title: "Guide téléchargé ✅", description: `MDP temporaire généré pour ${userName}.` });
+    } catch (err: any) {
+      toast({ title: "Erreur", description: err.message || "Impossible de générer le guide", variant: "destructive" });
+    }
+    setGeneratingPdf(null);
+  };
     <>
       <Card>
         <CardHeader className="pb-2">
