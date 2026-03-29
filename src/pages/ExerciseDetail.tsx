@@ -48,19 +48,17 @@ export default function ExerciseDetail() {
   const { t } = useTranslation();
 
   const { data: exercise, isLoading } = useQuery({
-    queryKey: ["exercise_detail", slug],
+    queryKey: ["exercise_detail_rpc", slug],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("exercises")
-        .select("*, exercise_categories(name, icon, slug)")
-        .eq("slug", slug!)
-        .maybeSingle();
-      return data;
+      const { data, error } = await supabase.rpc("get_exercise_for_user", { _slug: slug! });
+      if (error) throw error;
+      return data as any;
     },
     enabled: !!slug,
   });
 
-  // Check access based on exercise min_tier
+  // If the RPC returned a locked flag, the content is already filtered server-side
+  const isLocked = exercise?.locked === true;
   const accessGate = useExerciseAccess(exercise?.min_tier || "starter");
 
   if (isLoading) {
