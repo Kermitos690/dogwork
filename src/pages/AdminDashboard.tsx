@@ -623,27 +623,17 @@ function AdminUsersManager() {
   const handleDeleteUser = async () => {
     if (!deleteTarget) return;
     try {
-      // Delete all user data cascading
-      await Promise.all([
-        supabase.from("dogs").delete().eq("user_id", deleteTarget.userId),
-        supabase.from("training_plans").delete().eq("user_id", deleteTarget.userId),
-        supabase.from("day_progress").delete().eq("user_id", deleteTarget.userId),
-        supabase.from("journal_entries").delete().eq("user_id", deleteTarget.userId),
-        supabase.from("behavior_logs").delete().eq("user_id", deleteTarget.userId),
-        supabase.from("dog_evaluations").delete().eq("user_id", deleteTarget.userId),
-        supabase.from("dog_objectives").delete().eq("user_id", deleteTarget.userId),
-        supabase.from("dog_problems").delete().eq("user_id", deleteTarget.userId),
-        supabase.from("exercise_sessions").delete().eq("user_id", deleteTarget.userId),
-        supabase.from("messages").delete().eq("sender_id", deleteTarget.userId),
-        supabase.from("messages").delete().eq("recipient_id", deleteTarget.userId),
-        supabase.from("user_preferences").delete().eq("user_id", deleteTarget.userId),
-        supabase.from("client_links").delete().eq("client_user_id", deleteTarget.userId),
-        supabase.from("client_links").delete().eq("coach_user_id", deleteTarget.userId),
-        supabase.from("user_roles").delete().eq("user_id", deleteTarget.userId),
-        supabase.from("profiles").delete().eq("user_id", deleteTarget.userId),
-      ]);
-      toast({ title: "Utilisateur supprimé ✅", description: `${deleteTarget.name} et toutes ses données ont été supprimés.` });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Session expirée");
+      const { data, error } = await supabase.functions.invoke("delete-user", {
+        body: { userId: deleteTarget.userId },
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: "Utilisateur supprimé ✅", description: `${deleteTarget.name} et toutes ses données (y compris le compte auth) ont été définitivement supprimés.` });
       refetch();
+      queryClient.invalidateQueries({ queryKey: ["admin_stats"] });
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
     }
