@@ -1,12 +1,12 @@
 {
-  "name": "Défi Canin 28 Jours",
-  "short_name": "Défi Canin",
+  "name": "DogWork — Éducation canine intelligente",
+  "short_name": "DogWork",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f5f1ec",
-  "theme_color": "#3d6b5e",
+  "background_color": "#1a1a2e",
+  "theme_color": "#1a1a2e",
   "orientation": "portrait",
   "icons": [
-    { "src": "/favicon.ico", "sizes": "64x64", "type": "image/x-icon" }
+    { "src": "/favicon.png", "sizes": "512x512", "type": "image/png" }
   ]
 }
