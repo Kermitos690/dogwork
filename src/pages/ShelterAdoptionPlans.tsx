@@ -282,10 +282,70 @@ export default function ShelterAdoptionPlans() {
                     </Button>
                   </div>
                 </div>
-                <Button className="w-full" onClick={() => createPlan.mutate()}
-                  disabled={!form.animal_id || createPlan.isPending}>
-                  Créer le plan
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" className="flex-1 gap-1.5" disabled={!form.animal_id || generatingAI}
+                    onClick={async () => {
+                      if (!form.animal_id) return;
+                      setGeneratingAI(true);
+                      try {
+                        const { data: { session } } = await supabase.auth.getSession();
+                        if (!session?.access_token) throw new Error("Session expirée");
+                        const { data, error } = await supabase.functions.invoke("generate-adoption-plan", {
+                          body: { animal_id: form.animal_id },
+                          headers: { Authorization: `Bearer ${session.access_token}` },
+                        });
+                        if (error) throw error;
+                        if (data?.error) throw new Error(data.error);
+                        const plan = data.plan;
+                        setForm(f => ({
+                          ...f,
+                          title: plan.title || f.title,
+                          description: plan.description || f.description,
+                          duration_weeks: plan.duration_weeks || f.duration_weeks,
+                          objectives: plan.objectives?.length ? plan.objectives : f.objectives,
+                        }));
+                        // Store AI tasks for creation after plan is saved
+                        (window as any).__aiPlanTasks = plan.tasks || [];
+                        toast({ title: "Plan IA généré ✨", description: `${plan.tasks?.length || 0} tâches proposées sur ${plan.duration_weeks} semaines.` });
+                      } catch (err: any) {
+                        toast({ title: "Erreur IA", description: err.message, variant: "destructive" });
+                      }
+                      setGeneratingAI(false);
+                    }}>
+                    {generatingAI ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    {generatingAI ? "Génération..." : "Générer avec IA"}
+                  </Button>
+                  <Button className="flex-1" onClick={async () => {
+                    await createPlan.mutateAsync();
+                    // If AI tasks were generated, insert them
+                    const aiTasks = (window as any).__aiPlanTasks;
+                    if (aiTasks?.length) {
+                      const { data: plans } = await supabase
+                        .from("adoption_plans")
+                        .select("id")
+                        .eq("shelter_user_id", user!.id)
+                        .eq("animal_id", form.animal_id)
+                        .order("created_at", { ascending: false })
+                        .limit(1);
+                      if (plans?.[0]) {
+                        for (const task of aiTasks) {
+                          await supabase.from("adoption_plan_tasks").insert({
+                            plan_id: plans[0].id,
+                            week_number: task.week_number,
+                            title: task.title,
+                            description: task.description,
+                            task_type: task.task_type || "observation",
+                            sort_order: task.sort_order || 0,
+                          });
+                        }
+                      }
+                      delete (window as any).__aiPlanTasks;
+                    }
+                  }}
+                    disabled={!form.animal_id || createPlan.isPending}>
+                    Créer le plan
+                  </Button>
+                </div>
               </div>
             </DialogContent>
           </Dialog>
