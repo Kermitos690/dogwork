@@ -34,83 +34,124 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceRoleKey);
     const logs: string[] = [];
 
-    // Get admin email
     const ADMIN_EMAIL = "teba.gaetan@gmail.com";
+    const KEEP_EMAILS = [
+      ADMIN_EMAIL,
+      "presciglia@hotmail.com",
+      "ms.brandenberger@gmail.com",
+    ];
 
     // List all auth users
     const { data: { users }, error: listErr } = await admin.auth.admin.listUsers();
     if (listErr) throw listErr;
 
-    // Find duplicates and junk
-    const KEEP_EMAILS = [
-      ADMIN_EMAIL,
-      "presciglia@hotmail.com",
-      "ms.brandenberger@gmail.com",
-      "niels.legoux@gmail.com",
+    const toDelete = users.filter(u => !KEEP_EMAILS.includes(u.email?.toLowerCase() || ""));
+
+    // Tables to cascade-delete for each user
+    const CASCADE_TABLES = [
+      { table: "exercise_sessions", col: "user_id" },
+      { table: "behavior_logs", col: "user_id" },
+      { table: "journal_entries", col: "user_id" },
+      { table: "day_progress", col: "user_id" },
+      { table: "dog_evaluations", col: "user_id" },
+      { table: "dog_objectives", col: "user_id" },
+      { table: "dog_problems", col: "user_id" },
+      { table: "dogs", col: "user_id" },
+      { table: "training_plans", col: "user_id" },
+      { table: "messages", col: "sender_id" },
+      { table: "messages", col: "recipient_id" },
+      { table: "client_links", col: "client_user_id" },
+      { table: "client_links", col: "coach_user_id" },
+      { table: "coach_notes", col: "coach_user_id" },
+      { table: "coach_calendar_events", col: "coach_user_id" },
+      { table: "coach_profiles", col: "user_id" },
+      { table: "coach_stripe_data", col: "user_id" },
+      { table: "course_bookings", col: "user_id" },
+      { table: "course_reviews", col: "user_id" },
+      { table: "courses", col: "educator_user_id" },
+      { table: "adopter_links", col: "adopter_user_id" },
+      { table: "adopter_links", col: "shelter_user_id" },
+      { table: "adoption_checkins", col: "adopter_user_id" },
+      { table: "adoption_updates", col: "shelter_user_id" },
+      { table: "adoption_plan_entries", col: "adopter_user_id" },
+      { table: "adoption_plans", col: "adopter_user_id" },
+      { table: "adoption_plans", col: "shelter_user_id" },
+      { table: "professional_alerts", col: "client_user_id" },
+      { table: "plan_adjustments", col: "coach_user_id" },
+      { table: "admin_subscriptions", col: "user_id" },
+      { table: "billing_events", col: "user_id" },
+      { table: "user_roles", col: "user_id" },
+      { table: "profiles", col: "user_id" },
     ];
 
-    const toDelete = users.filter(u => !KEEP_EMAILS.includes(u.email?.toLowerCase() || ""));
-    
-    // Clean up public data and delete junk users
     for (const user of toDelete) {
-      // Clean public tables
-      for (const table of ["profiles", "user_roles", "admin_subscriptions", "coach_profiles", "shelter_profiles", "coach_stripe_data"]) {
-        await admin.from(table).delete().eq("user_id", user.id);
+      for (const { table, col } of CASCADE_TABLES) {
+        try { await admin.from(table).delete().eq(col, user.id); } catch {}
       }
-      
-      // Delete auth user
       const { error } = await admin.auth.admin.deleteUser(user.id);
-      logs.push(error 
-        ? `Delete ${user.email} (${user.id}) error: ${error.message}` 
-        : `Deleted ${user.email} (${user.id})`
+      logs.push(error
+        ? `❌ Delete ${user.email} error: ${error.message}`
+        : `✅ Deleted ${user.email}`
       );
     }
 
-    // Now ensure admin has proper profile and roles
+    // Ensure admin has full setup
     const adminUser = users.find(u => u.email?.toLowerCase() === ADMIN_EMAIL);
     if (adminUser) {
-      // Ensure profile
-      await admin.from("profiles").upsert(
-        { user_id: adminUser.id, display_name: "Gaetan" },
-        { onConflict: "user_id" }
-      );
-      logs.push("Admin profile ensured");
+      // Clean existing roles/profile to rebuild cleanly
+      await admin.from("user_roles").delete().eq("user_id", adminUser.id);
+      await admin.from("profiles").delete().eq("user_id", adminUser.id);
 
-      // Ensure roles
-      for (const role of ["admin", "owner", "educator"]) {
-        await admin.from("user_roles").upsert(
-          { user_id: adminUser.id, role },
-          { onConflict: "user_id,role" }
-        );
+      // Recreate profile
+      await admin.from("profiles").insert({ user_id: adminUser.id, display_name: "Gaëtan Teba" });
+      logs.push("✅ Admin profile recreated");
+
+      // Recreate ALL roles
+      for (const role of ["admin", "owner", "educator", "shelter", "shelter_employee"]) {
+        await admin.from("user_roles").insert({ user_id: adminUser.id, role });
       }
-      logs.push("Admin roles ensured (admin, owner, educator)");
+      logs.push("✅ Admin roles: admin, owner, educator, shelter, shelter_employee");
 
       // Ensure coach_profile
-      const { data: cp } = await admin.from("coach_profiles")
-        .select("id").eq("user_id", adminUser.id).maybeSingle();
-      if (!cp) {
-        await admin.from("coach_profiles").insert({
-          user_id: adminUser.id,
-          display_name: "Gaetan",
-        });
-        logs.push("Coach profile created for admin");
-      }
+      await admin.from("coach_profiles").delete().eq("user_id", adminUser.id);
+      await admin.from("coach_profiles").insert({
+        user_id: adminUser.id,
+        display_name: "Gaëtan Teba",
+      });
+      logs.push("✅ Coach profile recreated");
 
-      // Ensure presciglia has profile and owner role
-      const presUser = users.find(u => u.email?.toLowerCase() === "presciglia@hotmail.com");
-      if (presUser) {
-        await admin.from("profiles").upsert(
-          { user_id: presUser.id, display_name: "Preshiba" },
-          { onConflict: "user_id" }
-        );
-        await admin.from("user_roles").upsert(
-          { user_id: presUser.id, role: "owner" },
-          { onConflict: "user_id,role" }
-        );
-        // Confirm email
-        await admin.auth.admin.updateUserById(presUser.id, { email_confirm: true });
-        logs.push("Presciglia profile/role/email fixed");
-      }
+      // Confirm email
+      await admin.auth.admin.updateUserById(adminUser.id, { email_confirm: true });
+    }
+
+    // Ensure Presciglia
+    const presUser = users.find(u => u.email?.toLowerCase() === "presciglia@hotmail.com");
+    if (presUser) {
+      await admin.from("profiles").upsert(
+        { user_id: presUser.id, display_name: "Preshiba" },
+        { onConflict: "user_id" }
+      );
+      await admin.from("user_roles").upsert(
+        { user_id: presUser.id, role: "owner" },
+        { onConflict: "user_id,role" }
+      );
+      await admin.auth.admin.updateUserById(presUser.id, { email_confirm: true });
+      logs.push("✅ Presciglia preserved");
+    }
+
+    // Ensure Mel/Micup
+    const melUser = users.find(u => u.email?.toLowerCase() === "ms.brandenberger@gmail.com");
+    if (melUser) {
+      await admin.from("profiles").upsert(
+        { user_id: melUser.id, display_name: "Mel" },
+        { onConflict: "user_id" }
+      );
+      await admin.from("user_roles").upsert(
+        { user_id: melUser.id, role: "owner" },
+        { onConflict: "user_id,role" }
+      );
+      await admin.auth.admin.updateUserById(melUser.id, { email_confirm: true });
+      logs.push("✅ Mel preserved");
     }
 
     return new Response(JSON.stringify({ success: true, logs, deleted: toDelete.length }), {
