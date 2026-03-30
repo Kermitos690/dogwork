@@ -59,6 +59,7 @@ export default function ShelterAdoptionPlans() {
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [newTask, setNewTask] = useState({ title: "", description: "", type: "observation", week: 1 });
+  const [generatingAI, setGeneratingAI] = useState(false);
 
   // Form state for new plan
   const [form, setForm] = useState({
