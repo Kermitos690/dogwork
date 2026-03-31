@@ -6,9 +6,10 @@ const corsHeaders = {
 };
 
 function generateStrongPassword(length = 16): string {
-  const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  const lower = "abcdefghijklmnopqrstuvwxyz";
-  const digits = "0123456789";
+  // Exclude ambiguous characters: 0/O, 1/l/I to avoid PDF readability issues
+  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const lower = "abcdefghjkmnpqrstuvwxyz";
+  const digits = "23456789";
   const special = "!@#$%&*_+-=";
   const all = upper + lower + digits + special;
 
