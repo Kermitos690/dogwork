@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { BreedCombobox } from "@/components/BreedCombobox";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
