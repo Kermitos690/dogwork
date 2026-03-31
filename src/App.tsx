@@ -161,8 +161,8 @@ function ProtectedRoutes() {
 
   // If admin created this account, force password change on first login
   const mustChangePassword = user?.user_metadata?.must_change_password === true;
-  if (mustChangePassword && location.pathname !== "/force-password-change") {
-    return <Navigate to="/force-password-change" replace />;
+  if (mustChangePassword) {
+    return <ForcePasswordChange />;
   }
 
   const hasDogs = dogs && dogs.length > 0;
