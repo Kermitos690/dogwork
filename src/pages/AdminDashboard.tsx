@@ -473,12 +473,20 @@ export default function AdminDashboard() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2"><Home className="h-4 w-4" /> Créer un refuge</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2.5">
-                <div className="space-y-1"><Label className="text-xs">Email</Label><Input value={newShelterEmail} onChange={e => setNewShelterEmail(e.target.value)} placeholder="refuge@email.com" /></div>
-                <div className="space-y-1"><Label className="text-xs">Nom du refuge</Label><Input value={newShelterName} onChange={e => setNewShelterName(e.target.value)} placeholder="SPA de Genève" /></div>
-                <p className="text-[10px] text-muted-foreground">Un mot de passe temporaire sera généré automatiquement.</p>
-                <Button onClick={handleCreateShelter} disabled={creatingShelter || !newShelterEmail} className="w-full gap-2" size="sm">
-                  <Home className="h-4 w-4" /> {creatingShelter ? "Création..." : "Créer le refuge"}
+              <CardContent className="space-y-3">
+                <div className="space-y-2 p-2.5 rounded-lg bg-muted/50 border border-border/50">
+                  <p className="text-[11px] font-semibold text-foreground flex items-center gap-1.5"><Home className="h-3 w-3" /> Informations du refuge</p>
+                  <div className="space-y-1"><Label className="text-xs">Nom du refuge</Label><Input value={newShelterName} onChange={e => setNewShelterName(e.target.value)} placeholder="SPA de Genève" /></div>
+                </div>
+                <div className="space-y-2 p-2.5 rounded-lg bg-muted/50 border border-border/50">
+                  <p className="text-[11px] font-semibold text-foreground flex items-center gap-1.5"><UserCog className="h-3 w-3" /> Administrateur du refuge</p>
+                  <p className="text-[10px] text-muted-foreground">Ce compte aura un accès complet à la gestion du refuge (animaux, employés, espaces, etc.) ainsi qu'aux fonctionnalités propriétaire.</p>
+                  <div className="space-y-1"><Label className="text-xs">Email de l'administrateur</Label><Input value={newShelterEmail} onChange={e => setNewShelterEmail(e.target.value)} placeholder="admin@refuge.com" /></div>
+                  <div className="space-y-1"><Label className="text-xs">Nom de l'administrateur</Label><Input value={newShelterAdminName} onChange={e => setNewShelterAdminName(e.target.value)} placeholder="Jean Dupont" /></div>
+                </div>
+                <p className="text-[10px] text-muted-foreground">Un mot de passe temporaire sera généré. L'administrateur devra le changer à la première connexion.</p>
+                <Button onClick={handleCreateShelter} disabled={creatingShelter || !newShelterEmail || !newShelterName} className="w-full gap-2" size="sm">
+                  <Home className="h-4 w-4" /> {creatingShelter ? "Création..." : "Créer le refuge et son administrateur"}
                 </Button>
               </CardContent>
             </Card>
