@@ -2,24 +2,19 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-sync-key",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-one-time-key",
 };
+
+// One-time sync key - function will be deleted after use
+const ONE_TIME_KEY = "dw-sync-2026-03-31-x9k2m";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    // Auth: compare x-sync-key header with last 20 chars of service role key
-    const syncKey = req.headers.get("x-sync-key") ?? "";
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    const expectedKey = serviceRoleKey.slice(-20);
-    
-    // Debug log
-    console.log(`syncKey length: ${syncKey.length}, expected length: ${expectedKey.length}`);
-    console.log(`syncKey last5: ${syncKey.slice(-5)}, expected last5: ${expectedKey.slice(-5)}`);
-    
-    if (!syncKey || syncKey !== expectedKey) {
-      return new Response(JSON.stringify({ error: "Unauthorized", debug: `got=${syncKey.length}chars expected=${expectedKey.length}chars` }), {
+    const otk = req.headers.get("x-one-time-key") ?? "";
+    if (otk !== ONE_TIME_KEY) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -27,7 +22,7 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      serviceRoleKey
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
     const { exercises } = await req.json();
