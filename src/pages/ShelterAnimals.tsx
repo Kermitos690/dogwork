@@ -208,7 +208,11 @@ export default function ShelterAnimals() {
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <Label className="text-xs">Race</Label>
-                  <Input value={form.breed} onChange={e => setForm(f => ({ ...f, breed: e.target.value }))} placeholder="Ex: Labrador" />
+                  {form.species === "chien" ? (
+                    <BreedCombobox value={form.breed} onChange={v => setForm(f => ({ ...f, breed: v }))} placeholder="Sélectionner une race…" />
+                  ) : (
+                    <Input value={form.breed} onChange={e => setForm(f => ({ ...f, breed: e.target.value }))} placeholder="Ex: Siamois" />
+                  )}
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Âge estimé</Label>
