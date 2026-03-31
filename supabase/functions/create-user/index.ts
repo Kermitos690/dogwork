@@ -6,9 +6,10 @@ const corsHeaders = {
 };
 
 function generateStrongPassword(length = 16): string {
-  const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  const lower = "abcdefghijklmnopqrstuvwxyz";
-  const digits = "0123456789";
+  // Exclude ambiguous characters: 0/O, 1/l/I to avoid PDF readability issues
+  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const lower = "abcdefghjkmnpqrstuvwxyz";
+  const digits = "23456789";
   const special = "!@#$%&*_+-=";
   const all = upper + lower + digits + special;
 
@@ -111,16 +112,21 @@ Deno.serve(async (req) => {
     // Auto-generate a strong temporary password
     const tempPassword = generateStrongPassword(20);
 
-    const {
-      data: { users: existingUsers },
-      error: listUsersError,
-    } = await supabaseAdmin.auth.admin.listUsers();
-
-    if (listUsersError) throw listUsersError;
-
-    const existingUser = (existingUsers || []).find(
-      (u: any) => u.email?.toLowerCase() === normalizedEmail
-    );
+    // Paginate through all users to find existing one (listUsers defaults to 50/page)
+    let existingUser: any = null;
+    let page = 1;
+    const perPage = 100;
+    while (!existingUser) {
+      const { data: { users: pageUsers }, error: listErr } =
+        await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+      if (listErr) throw listErr;
+      if (!pageUsers || pageUsers.length === 0) break;
+      existingUser = pageUsers.find(
+        (u: any) => u.email?.toLowerCase() === normalizedEmail
+      );
+      if (pageUsers.length < perPage) break;
+      page++;
+    }
 
     let userId: string;
 
