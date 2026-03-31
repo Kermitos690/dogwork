@@ -7,6 +7,7 @@ import { generatePersonalizedPlan, type DogProfile } from "@/lib/planGenerator";
 import { BreedCombobox } from "@/components/BreedCombobox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/PasswordInput";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
