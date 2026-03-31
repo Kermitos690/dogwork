@@ -38,6 +38,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    console.log("[CREATE-USER] Function started");
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -76,6 +77,7 @@ Deno.serve(async (req) => {
     if (!isAdmin) throw new Error("Seul un administrateur peut créer des comptes");
 
     const { email, displayName, role, userId: targetUserId, resetOnly } = await req.json();
+    console.log("[CREATE-USER] Request params:", JSON.stringify({ email: email ? `${email.substring(0, 3)}***` : undefined, role, resetOnly: !!resetOnly, targetUserId: targetUserId ? "set" : undefined }));
 
     // ── Reset-only mode: just reset password for existing user by ID
     if (resetOnly && targetUserId) {
@@ -100,13 +102,14 @@ Deno.serve(async (req) => {
           email: targetUser.email,
           temporaryPassword: tempPassword,
         }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     if (!email) throw new Error("Email requis");
 
     const normalizedEmail = String(email).trim().toLowerCase();
+    console.log("[CREATE-USER] Normalized email:", normalizedEmail);
     const effectiveDisplayName = (displayName || normalizedEmail.split("@")[0]).trim();
 
     // Auto-generate a strong temporary password
@@ -127,6 +130,7 @@ Deno.serve(async (req) => {
       if (pageUsers.length < perPage) break;
       page++;
     }
+    console.log("[CREATE-USER] Existing user found:", !!existingUser, existingUser ? `id=${existingUser.id}` : "");
 
     let userId: string;
 
@@ -154,6 +158,7 @@ Deno.serve(async (req) => {
       });
       if (createError) throw createError;
       userId = newUser.user!.id;
+      console.log("[CREATE-USER] New user created:", userId);
     }
 
     const { error: profileError } = await supabaseAdmin.from("profiles").upsert(
@@ -164,6 +169,7 @@ Deno.serve(async (req) => {
       { onConflict: "user_id" }
     );
     if (profileError) throw profileError;
+    console.log("[CREATE-USER] Profile upserted for", userId);
 
     const { data: ownerRole } = await supabaseAdmin
       .from("user_roles")
@@ -237,6 +243,7 @@ Deno.serve(async (req) => {
       }
     );
   } catch (err: any) {
+    console.error("[CREATE-USER] ERROR:", err.message);
     return new Response(JSON.stringify({ error: err.message || "Erreur inattendue" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
