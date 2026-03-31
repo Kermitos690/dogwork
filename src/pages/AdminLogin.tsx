@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/PasswordInput";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { Shield } from "lucide-react";
@@ -120,8 +121,7 @@ export default function AdminLogin() {
               autoCorrect="off"
               spellCheck={false}
             />
-            <Input
-              type="password"
+            <PasswordInput
               placeholder="Mot de passe"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

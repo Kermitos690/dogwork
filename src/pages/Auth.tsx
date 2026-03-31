@@ -6,6 +6,7 @@ import { lovable } from "@/integrations/lovable/index";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/PasswordInput";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dog, Mail, Lock, User, ArrowLeft } from "lucide-react";
@@ -201,9 +202,8 @@ export default function Auth() {
                   <Label htmlFor="password">{mode === "employee" ? t("auth.pin") : t("auth.password")}</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
+                    <PasswordInput
                       id="password"
-                      type="password"
                       placeholder={mode === "employee" ? "123456" : "••••••••"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}

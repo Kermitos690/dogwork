@@ -7,6 +7,7 @@ import { generatePersonalizedPlan, type DogProfile } from "@/lib/planGenerator";
 import { BreedCombobox } from "@/components/BreedCombobox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/PasswordInput";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
@@ -856,7 +857,7 @@ export default function Onboarding() {
                     <Label className="text-sm">Mot de passe</Label>
                     <div className="relative">
                       <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground" />
-                      <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+                      <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••" required minLength={6} className="pl-10 h-12 rounded-xl" />
                     </div>
                   </div>
