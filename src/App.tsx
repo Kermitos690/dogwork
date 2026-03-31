@@ -184,11 +184,12 @@ function ProtectedRoutes() {
     );
   }
 
-  // Shelter users (but NOT admin) get a completely separate route set
+  // Shelter users (but NOT admin) get shelter routes + owner routes
   if (isShelter && !isAdmin) {
     return (
       <Suspense fallback={<PageLoader />}>
         <Routes>
+          {/* Shelter-specific routes */}
           <Route path="/shelter" element={<ShelterGuard><ShelterDashboard /></ShelterGuard>} />
           <Route path="/shelter/animals" element={<ShelterGuard><ShelterAnimals /></ShelterGuard>} />
           <Route path="/shelter/animals/:animalId" element={<ShelterGuard><ShelterAnimalDetail /></ShelterGuard>} />
@@ -203,6 +204,35 @@ function ProtectedRoutes() {
           <Route path="/shelter/coaches" element={<ShelterGuard><ShelterCoaches /></ShelterGuard>} />
           <Route path="/shelter/adoption-checkins" element={<ShelterGuard><ShelterAdoptionCheckins /></ShelterGuard>} />
           <Route path="/shelter/adoption-plans" element={<ShelterGuard><ShelterAdoptionPlans /></ShelterGuard>} />
+          {/* Owner / common routes accessible to shelter users too */}
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/dogs" element={<Dogs />} />
+          <Route path="/dogs/:dogId" element={<DogProfile />} />
+          <Route path="/evaluation" element={<Evaluation />} />
+          <Route path="/problems" element={<Problems />} />
+          <Route path="/objectives" element={<ObjectivesPage />} />
+          <Route path="/plan" element={<PlanPage />} />
+          <Route path="/day/:dayId" element={<DayDetail />} />
+          <Route path="/training" element={<Training />} />
+          <Route path="/training/:dayId" element={<Training />} />
+          <Route path="/behavior/:dayId" element={<BehaviorLog />} />
+          <Route path="/journal" element={<Journal />} />
+          <Route path="/stats" element={<Stats />} />
+          <Route path="/safety" element={<Safety />} />
+          <Route path="/exercises" element={<ExerciseLibrary />} />
+          <Route path="/exercises/:slug" element={<ExerciseDetail />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/help" element={<HelpPage />} />
+          <Route path="/subscription" element={<SubscriptionPage />} />
+          <Route path="/courses" element={<CoursesPage />} />
+          <Route path="/messages" element={<MessagesPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/support" element={<SupportTickets />} />
+          <Route path="/preferences" element={<PreferencesPage />} />
+          <Route path="/adoption-checkins" element={<AdoptionCheckins />} />
+          <Route path="/adoption-followup" element={<AdoptionFollowup />} />
+          <Route path="/program" element={<Navigate to="/plan" replace />} />
           <Route path="*" element={<Navigate to="/shelter" replace />} />
         </Routes>
       </Suspense>
