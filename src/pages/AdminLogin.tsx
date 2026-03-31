@@ -120,8 +120,7 @@ export default function AdminLogin() {
               autoCorrect="off"
               spellCheck={false}
             />
-            <Input
-              type="password"
+            <PasswordInput
               placeholder="Mot de passe"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

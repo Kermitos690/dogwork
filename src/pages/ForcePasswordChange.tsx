@@ -97,9 +97,8 @@ export default function ForcePasswordChange() {
               <Label htmlFor="confirm-password">Confirmer le mot de passe</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
+                <PasswordInput
                   id="confirm-password"
-                  type="password"
                   placeholder="••••••••"
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
