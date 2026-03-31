@@ -46,6 +46,7 @@ export default function AdminDashboard() {
   const [creating, setCreating] = useState(false);
   const [newShelterEmail, setNewShelterEmail] = useState("");
   const [newShelterName, setNewShelterName] = useState("");
+  const [newShelterAdminName, setNewShelterAdminName] = useState("");
   const [creatingShelter, setCreatingShelter] = useState(false);
   const [tempPasswordDialog, setTempPasswordDialog] = useState<{ email: string; password: string } | null>(null);
   const [enriching, setEnriching] = useState(false);
