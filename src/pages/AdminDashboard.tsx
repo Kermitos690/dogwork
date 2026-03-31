@@ -136,20 +136,21 @@ export default function AdminDashboard() {
   };
 
   const handleCreateShelter = async () => {
-    if (!newShelterEmail) return;
+    if (!newShelterEmail || !newShelterName) return;
     setCreatingShelter(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Session expirée");
+      const adminDisplayName = newShelterAdminName || newShelterEmail.split("@")[0];
       const { data, error } = await supabase.functions.invoke("create-user", {
-        body: { email: newShelterEmail, displayName: newShelterName || newShelterEmail.split("@")[0], role: "shelter" },
+        body: { email: newShelterEmail, displayName: newShelterName, role: "shelter", shelterAdminName: adminDisplayName },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setTempPasswordDialog({ email: newShelterEmail, password: data.temporaryPassword });
-      toast({ title: "Refuge créé ✅", description: `${newShelterEmail} a été ajouté.` });
-      setNewShelterEmail(""); setNewShelterName("");
+      toast({ title: "Refuge créé ✅", description: `Le refuge « ${newShelterName} » et son administrateur (${newShelterEmail}) ont été créés.` });
+      setNewShelterEmail(""); setNewShelterName(""); setNewShelterAdminName("");
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message || "Impossible de créer le refuge", variant: "destructive" });
     }
