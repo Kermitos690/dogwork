@@ -164,12 +164,19 @@ function AIChatBotInner() {
     };
 
     try {
-      await streamChat({
+      await streamChatWithCredits({
         messages: [...messages, userMsg],
         onDelta: upsert,
-        onDone: () => setLoading(false),
-        onError: (msg) => {
-          toast({ title: "Erreur IA", description: msg, variant: "destructive" });
+        onDone: () => {
+          setLoading(false);
+          queryClient.invalidateQueries({ queryKey: ["ai-balance"] });
+        },
+        onError: (msg, code) => {
+          if (code === "INSUFFICIENT_CREDITS") {
+            toast({ title: "Crédits insuffisants", description: "Achetez des crédits IA dans Paramètres.", variant: "destructive" });
+          } else {
+            toast({ title: "Erreur IA", description: msg, variant: "destructive" });
+          }
           setLoading(false);
         },
       });
