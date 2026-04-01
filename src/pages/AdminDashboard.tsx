@@ -554,6 +554,9 @@ export default function AdminDashboard() {
           <Button variant="outline" className="h-11 gap-2 text-sm" onClick={() => navigate("/shelter")}>
             <Home className="h-4 w-4" /> Refuge
           </Button>
+          <Button variant="outline" className="h-11 gap-2 text-sm col-span-2 border-primary/30 text-primary" onClick={() => navigate("/admin/ai-economy")}>
+            <BarChart3 className="h-4 w-4" /> Économie IA
+          </Button>
         </div>
 
         {/* Temporary password dialog */}
