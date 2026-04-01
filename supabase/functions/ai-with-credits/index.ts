@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 4. Check privileges (admin/educator bypass credits)
+    // 4. Check privileges (admin/educator get free access but are LOGGED)
     const { data: roles } = await admin
       .from("user_roles")
       .select("role")
@@ -90,7 +90,29 @@ Deno.serve(async (req) => {
 
     const creditsCost = feature.credits_cost;
 
-    if (!isPrivileged) {
+    if (isPrivileged) {
+      // C6: Log privileged calls for auditability (no debit)
+      const walletId = await admin.rpc("ensure_ai_wallet", { _user_id: userId });
+      const { data: wallet } = await admin
+        .from("ai_credit_wallets")
+        .select("id, balance")
+        .eq("user_id", userId)
+        .single();
+      if (wallet) {
+        await admin.from("ai_credit_ledger").insert({
+          user_id: userId,
+          wallet_id: wallet.id,
+          operation_type: "consumption",
+          credits_delta: 0,
+          balance_after: wallet.balance,
+          feature_code: feature_code,
+          provider_cost_usd: feature.cost_estimate_avg_usd,
+          status: "success",
+          metadata: { model: feature.model, privileged: true },
+          description: `Appel privilégié (${roles?.map((r: {role:string}) => r.role).join(",")})`,
+        });
+      }
+    } else {
       // Debit credits
       const { data: debited } = await admin.rpc("debit_ai_credits", {
         _user_id: userId,
