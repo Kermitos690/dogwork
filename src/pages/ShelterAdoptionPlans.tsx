@@ -295,6 +295,11 @@ export default function ShelterAdoptionPlans() {
                           headers: { Authorization: `Bearer ${session.access_token}` },
                         });
                         if (error) throw error;
+                        if (data?.code === "INSUFFICIENT_CREDITS") {
+                          toast({ title: "Crédits insuffisants", description: `Il vous faut ${data.required} crédits (solde : ${data.balance}). Rechargez vos crédits IA.`, variant: "destructive" });
+                          setGeneratingAI(false);
+                          return;
+                        }
                         if (data?.error) throw new Error(data.error);
                         const plan = data.plan;
                         setForm(f => ({
