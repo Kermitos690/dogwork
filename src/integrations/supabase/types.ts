@@ -2671,6 +2671,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      sync_exercises_from_catalog_data: {
+        Args: { _catalog: Json }
+        Returns: Json
+      }
       tier_meets_minimum: {
         Args: { _min_tier: string; _user_tier: string }
         Returns: boolean
