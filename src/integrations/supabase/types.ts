@@ -2816,30 +2816,18 @@ export type Database = {
           user_id: string
         }[]
       }
-      credit_ai_wallet:
-        | {
-            Args: {
-              _credits: number
-              _description?: string
-              _operation_type: Database["public"]["Enums"]["ai_ledger_type"]
-              _public_price_chf?: number
-              _stripe_payment_id?: string
-              _user_id: string
-            }
-            Returns: number
-          }
-        | {
-            Args: {
-              _credits: number
-              _description?: string
-              _metadata?: Json
-              _operation_type: Database["public"]["Enums"]["ai_ledger_type"]
-              _public_price_chf?: number
-              _stripe_payment_id?: string
-              _user_id: string
-            }
-            Returns: number
-          }
+      credit_ai_wallet: {
+        Args: {
+          _credits: number
+          _description?: string
+          _metadata?: Json
+          _operation_type: Database["public"]["Enums"]["ai_ledger_type"]
+          _public_price_chf?: number
+          _stripe_payment_id?: string
+          _user_id: string
+        }
+        Returns: number
+      }
       debit_ai_credits: {
         Args: {
           _credits: number
