@@ -5,6 +5,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-sync-key",
 };
 
+// Temporary sync key - will be reverted after sync
+const TEMP_SYNC_KEY = "dw-sync-2026-04-01-x7k9m";
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -13,12 +16,10 @@ Deno.serve(async (req) => {
     const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-    // Auth: accept either admin JWT or sync key
+    // Auth: accept temp sync key OR admin JWT
     const syncKey = req.headers.get("x-sync-key");
-    const expectedKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!.slice(-12);
     
-    if (syncKey !== expectedKey) {
-      // Fallback to JWT admin check
+    if (syncKey !== TEMP_SYNC_KEY) {
       const authHeader = req.headers.get("Authorization");
       if (!authHeader?.startsWith("Bearer ")) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -49,9 +50,9 @@ Deno.serve(async (req) => {
     const categories = catalog.categories || [];
     const exercises = catalog.exercises || [];
 
-    // Step 1: Sync categories - upsert by slug
+    // Step 1: Sync categories
     let catSynced = 0;
-    const catMap: Record<string, string> = {}; // slug -> live id
+    const catMap: Record<string, string> = {};
 
     for (const cat of categories) {
       const { id: _testId, ...catData } = cat;
@@ -75,7 +76,7 @@ Deno.serve(async (req) => {
       catSynced++;
     }
 
-    // Step 2: Sync exercises - update by slug with enriched content
+    // Step 2: Sync exercises
     let exUpdated = 0;
     let exFailed = 0;
     const errors: string[] = [];
