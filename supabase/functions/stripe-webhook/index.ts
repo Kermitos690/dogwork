@@ -86,12 +86,27 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
+    // Idempotence check: skip if already processed
+    const { data: existingEvent } = await supabaseAdmin
+      .from("billing_events")
+      .select("id")
+      .eq("stripe_event_id", event.id)
+      .maybeSingle();
+
+    if (existingEvent) {
+      logStep("Event already processed, skipping", { id: event.id });
+      return new Response(JSON.stringify({ received: true, skipped: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     // Log the event
     await supabaseAdmin.from("billing_events").insert({
       stripe_event_id: event.id,
       event_type: event.type,
       payload: event.data.object as any,
-    }).onConflict("stripe_event_id").ignore();
+    });
 
     switch (event.type) {
       case "checkout.session.completed": {
