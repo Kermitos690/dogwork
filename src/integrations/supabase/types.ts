@@ -2671,6 +2671,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      sync_exercise_stats: { Args: never; Returns: Json }
       sync_exercises_from_catalog_data: {
         Args: { _catalog: Json }
         Returns: Json
