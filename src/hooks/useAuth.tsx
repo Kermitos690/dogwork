@@ -106,6 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    queryClient.clear();
     await supabase.auth.signOut();
   }, []);
 
