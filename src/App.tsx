@@ -54,6 +54,7 @@ const AdminTreasury = lazy(() => import("./pages/AdminTreasury"));
 const AdminLaunchChecklist = lazy(() => import("./pages/AdminLaunchChecklist"));
 const AdminSubscriptions = lazy(() => import("./pages/AdminSubscriptions"));
 const AdminTickets = lazy(() => import("./pages/AdminTickets"));
+const AdminAIEconomy = lazy(() => import("./pages/AdminAIEconomy"));
 const SupportTickets = lazy(() => import("./pages/SupportTickets"));
 const HelpPage = lazy(() => import("./pages/Help"));
 const SubscriptionPage = lazy(() => import("./pages/Subscription"));
