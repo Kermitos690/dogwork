@@ -15,7 +15,7 @@ type Msg = { role: "user" | "assistant"; content: string };
 
 const AI_CREDITS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-with-credits`;
 
-async function streamChat({
+async function streamChatWithCredits({
   messages,
   onDelta,
   onDone,
@@ -24,7 +24,7 @@ async function streamChat({
   messages: Msg[];
   onDelta: (t: string) => void;
   onDone: () => void;
-  onError: (msg: string) => void;
+  onError: (msg: string, code?: string) => void;
 }) {
   const { data: { session } } = await supabase.auth.getSession();
   const token = session?.access_token;
@@ -33,14 +33,18 @@ async function streamChat({
     return;
   }
 
-  const resp = await fetch(CHAT_URL, {
+  const resp = await fetch(AI_CREDITS_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
       apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
     },
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify({
+      feature_code: "chat_general",
+      messages,
+      stream: true,
+    }),
   });
 
   if (resp.status === 429) {
