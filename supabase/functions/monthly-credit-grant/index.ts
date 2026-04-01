@@ -100,25 +100,13 @@ Deno.serve(async (req) => {
       if (!credits) continue;
 
       try {
-        // Call credit_ai_wallet, which inserts into the ledger
-        // We need the period_key in metadata, but credit_ai_wallet doesn't accept metadata.
-        // So we do a two-step: credit the wallet, then update the ledger entry with metadata.
-        const newBalance = await admin.rpc("credit_ai_wallet", {
+        await admin.rpc("credit_ai_wallet", {
           _user_id: uid,
           _credits: credits,
           _operation_type: "monthly_grant",
           _description: `Attribution mensuelle ${periodKey} — plan ${tier} (${credits} crédits)`,
+          _metadata: { period_key: periodKey, plan_slug: tier },
         });
-
-        // Tag the ledger entry with structured metadata for robust idempotency
-        await admin
-          .from("ai_credit_ledger")
-          .update({ metadata: { period_key: periodKey, plan_slug: tier } })
-          .eq("user_id", uid)
-          .eq("operation_type", "monthly_grant")
-          .eq("description", `Attribution mensuelle ${periodKey} — plan ${tier} (${credits} crédits)`)
-          .order("created_at", { ascending: false })
-          .limit(1);
 
         granted++;
       } catch (err: any) {
