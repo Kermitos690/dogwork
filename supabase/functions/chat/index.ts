@@ -41,7 +41,15 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
+  // DEPRECATED: This function is replaced by ai-with-credits.
+  // All AI chat calls must go through the centralized credit system.
+  return new Response(
+    JSON.stringify({
+      error: "Cette fonction est obsolète. Utilisez le système de crédits IA.",
+      redirect: "ai-with-credits",
+    }),
+    { status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
     // Authenticate the user via getClaims (ES256 compatible)
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
