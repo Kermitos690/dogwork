@@ -226,7 +226,7 @@ function AIChatBotInner() {
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-primary" />
                 <span className="font-semibold text-sm text-foreground">DogWork AI</span>
-                <span className="text-xs text-muted-foreground">Assistant canin</span>
+                <CreditBalanceBadge />
               </div>
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setOpen(false)} aria-label="Fermer le chat">
                 <X className="h-4 w-4" aria-hidden="true" />
