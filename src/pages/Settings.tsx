@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Download, LogOut, Info, User, Shield, CreditCard, Palette, MessageSquare } from "lucide-react";
+import { ArrowLeft, Download, LogOut, Info, User, Shield, CreditCard, Palette, MessageSquare, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppLayout } from "@/components/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
