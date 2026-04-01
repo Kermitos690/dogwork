@@ -45,18 +45,17 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      logStep("Auth failed", { message: claimsError?.message || "No claims" });
+    const { data: userData, error: userError } = await userClient.auth.getUser();
+    if (userError || !userData?.user) {
+      logStep("Auth failed", { message: userError?.message || "No user" });
       return new Response(JSON.stringify({ subscribed: false, error: "auth_error" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 401,
       });
     }
 
-    const userId = claimsData.claims.sub as string;
-    const userEmail = claimsData.claims.email as string;
+    const userId = userData.user.id;
+    const userEmail = userData.user.email!;
     if (!userEmail) {
       logStep("No email in claims");
       return new Response(JSON.stringify({ subscribed: false, error: "auth_error" }), {

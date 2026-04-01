@@ -32,9 +32,8 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsErr } = await supabaseAuth.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims) {
+    const { data: userData, error: userError } = await supabaseAuth.auth.getUser();
+    if (userError || !userData?.user) {
       return new Response(JSON.stringify({ error: "Invalid token" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -42,7 +41,7 @@ Deno.serve(async (req) => {
     }
 
     // Verify admin role
-    const userId = claimsData.claims.sub as string;
+    const userId = userData.user.id;
     const { data: isAdmin } = await supabaseAuth.rpc("has_role", {
       _user_id: userId,
       _role: "admin",
