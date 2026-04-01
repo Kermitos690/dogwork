@@ -28,7 +28,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Verify caller is shelter or admin via getClaims (ES256 compatible)
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) throw new Error("Non autorisé");
 
@@ -37,10 +36,9 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
     );
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) throw new Error("Non autorisé");
-    const caller = { id: claimsData.claims.sub as string };
+    const { data: userData, error: userError } = await userClient.auth.getUser();
+    if (userError || !userData?.user) throw new Error("Non autorisé");
+    const caller = { id: userData.user.id };
 
     const { data: isShelter } = await supabaseAdmin.rpc("has_role", { _user_id: caller.id, _role: "shelter" });
     const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: caller.id, _role: "admin" });
