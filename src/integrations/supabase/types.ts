@@ -695,26 +695,35 @@ export type Database = {
       }
       billing_events: {
         Row: {
+          connected_account_id: string | null
           created_at: string
           event_type: string
           id: string
           payload: Json
+          processing_error: string | null
+          processing_status: string
           stripe_event_id: string
           user_id: string | null
         }
         Insert: {
+          connected_account_id?: string | null
           created_at?: string
           event_type: string
           id?: string
           payload?: Json
+          processing_error?: string | null
+          processing_status?: string
           stripe_event_id: string
           user_id?: string | null
         }
         Update: {
+          connected_account_id?: string | null
           created_at?: string
           event_type?: string
           id?: string
           payload?: Json
+          processing_error?: string | null
+          processing_status?: string
           stripe_event_id?: string
           user_id?: string | null
         }
