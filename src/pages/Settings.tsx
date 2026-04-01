@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Download, LogOut, Info, User, Shield, CreditCard, Palette, MessageSquare } from "lucide-react";
+import { ArrowLeft, Download, LogOut, Info, User, Shield, CreditCard, Palette, MessageSquare, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppLayout } from "@/components/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,6 +8,7 @@ import { useActiveDog } from "@/hooks/useDogs";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { CreditBalanceCard, CreditPacksSection, CreditHistory } from "@/components/AICredits";
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -98,6 +99,17 @@ export default function Settings() {
           <Button variant="outline" size="sm" className="w-full" onClick={() => navigate("/subscription")}>
             Gérer mon abonnement
           </Button>
+        </div>
+
+        {/* AI Credits */}
+        <div className="rounded-2xl border border-border bg-card p-4 space-y-4">
+          <div className="flex items-center gap-2">
+            <Coins className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Crédits IA</h3>
+          </div>
+          <CreditBalanceCard />
+          <CreditPacksSection />
+          <CreditHistory />
         </div>
 
         {/* Preferences */}

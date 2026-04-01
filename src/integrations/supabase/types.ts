@@ -367,6 +367,264 @@ export type Database = {
           },
         ]
       }
+      ai_credit_ledger: {
+        Row: {
+          balance_after: number
+          created_at: string
+          credits_delta: number
+          description: string | null
+          feature_code: string | null
+          id: string
+          metadata: Json | null
+          operation_type: Database["public"]["Enums"]["ai_ledger_type"]
+          provider_cost_usd: number | null
+          public_price_chf: number | null
+          status: string
+          stripe_payment_id: string | null
+          user_id: string
+          wallet_id: string
+        }
+        Insert: {
+          balance_after: number
+          created_at?: string
+          credits_delta: number
+          description?: string | null
+          feature_code?: string | null
+          id?: string
+          metadata?: Json | null
+          operation_type: Database["public"]["Enums"]["ai_ledger_type"]
+          provider_cost_usd?: number | null
+          public_price_chf?: number | null
+          status?: string
+          stripe_payment_id?: string | null
+          user_id: string
+          wallet_id: string
+        }
+        Update: {
+          balance_after?: number
+          created_at?: string
+          credits_delta?: number
+          description?: string | null
+          feature_code?: string | null
+          id?: string
+          metadata?: Json | null
+          operation_type?: Database["public"]["Enums"]["ai_ledger_type"]
+          provider_cost_usd?: number | null
+          public_price_chf?: number | null
+          status?: string
+          stripe_payment_id?: string | null
+          user_id?: string
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_credit_ledger_feature_code_fkey"
+            columns: ["feature_code"]
+            isOneToOne: false
+            referencedRelation: "ai_feature_catalog"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "ai_credit_ledger_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "ai_credit_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_credit_packs: {
+        Row: {
+          cost_estimate_usd: number | null
+          created_at: string
+          credits: number
+          description: string | null
+          id: string
+          is_active: boolean
+          label: string
+          margin_estimate: number | null
+          price_chf: number
+          slug: string
+          sort_order: number
+          stripe_price_id: string | null
+          stripe_product_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          cost_estimate_usd?: number | null
+          created_at?: string
+          credits: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          margin_estimate?: number | null
+          price_chf: number
+          slug: string
+          sort_order?: number
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cost_estimate_usd?: number | null
+          created_at?: string
+          credits?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          margin_estimate?: number | null
+          price_chf?: number
+          slug?: string
+          sort_order?: number
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_credit_wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          lifetime_consumed: number
+          lifetime_purchased: number
+          lifetime_refunded: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          lifetime_consumed?: number
+          lifetime_purchased?: number
+          lifetime_refunded?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          lifetime_consumed?: number
+          lifetime_purchased?: number
+          lifetime_refunded?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ai_feature_catalog: {
+        Row: {
+          code: string
+          cost_estimate_avg_usd: number
+          cost_estimate_max_usd: number
+          cost_estimate_min_usd: number
+          created_at: string
+          credits_cost: number
+          description: string | null
+          id: string
+          is_active: boolean
+          label: string
+          margin_target: number
+          model: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          cost_estimate_avg_usd?: number
+          cost_estimate_max_usd?: number
+          cost_estimate_min_usd?: number
+          created_at?: string
+          credits_cost?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          margin_target?: number
+          model?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          cost_estimate_avg_usd?: number
+          cost_estimate_max_usd?: number
+          cost_estimate_min_usd?: number
+          created_at?: string
+          credits_cost?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          margin_target?: number
+          model?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_plan_quotas: {
+        Row: {
+          created_at: string
+          daily_limit: number | null
+          discount_percent: number
+          id: string
+          monthly_credits: number
+          per_action_limit: number | null
+          plan_slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          daily_limit?: number | null
+          discount_percent?: number
+          id?: string
+          monthly_credits?: number
+          per_action_limit?: number | null
+          plan_slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          daily_limit?: number | null
+          discount_percent?: number
+          id?: string
+          monthly_credits?: number
+          per_action_limit?: number | null
+          plan_slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_pricing_config: {
+        Row: {
+          description: string | null
+          id: string
+          key: string
+          label: string | null
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          key: string
+          label?: string | null
+          updated_at?: string
+          value: number
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          key?: string
+          label?: string | null
+          updated_at?: string
+          value?: number
+        }
+        Relationships: []
+      }
       behavior_logs: {
         Row: {
           barking: boolean | null
@@ -2547,6 +2805,7 @@ export type Database = {
       }
     }
     Functions: {
+      admin_ai_economy_summary: { Args: never; Returns: Json }
       admin_list_users: {
         Args: never
         Returns: {
@@ -2557,6 +2816,29 @@ export type Database = {
           user_id: string
         }[]
       }
+      credit_ai_wallet: {
+        Args: {
+          _credits: number
+          _description?: string
+          _operation_type: Database["public"]["Enums"]["ai_ledger_type"]
+          _public_price_chf?: number
+          _stripe_payment_id?: string
+          _user_id: string
+        }
+        Returns: number
+      }
+      debit_ai_credits: {
+        Args: {
+          _credits: number
+          _feature_code: string
+          _metadata?: Json
+          _provider_cost_usd?: number
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      ensure_ai_wallet: { Args: { _user_id: string }; Returns: string }
+      get_ai_balance: { Args: { _user_id: string }; Returns: number }
       get_coach_profile_safe: {
         Args: { target_user_id: string }
         Returns: {
@@ -2682,6 +2964,13 @@ export type Database = {
       }
     }
     Enums: {
+      ai_ledger_type:
+        | "consumption"
+        | "purchase"
+        | "bonus"
+        | "refund"
+        | "admin_adjustment"
+        | "monthly_grant"
       app_role: "owner" | "educator" | "admin" | "shelter" | "shelter_employee"
     }
     CompositeTypes: {
@@ -2810,6 +3099,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      ai_ledger_type: [
+        "consumption",
+        "purchase",
+        "bonus",
+        "refund",
+        "admin_adjustment",
+        "monthly_grant",
+      ],
       app_role: ["owner", "educator", "admin", "shelter", "shelter_employee"],
     },
   },

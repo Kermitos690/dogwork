@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, Send, X, Lock, Bot, Sparkles, Loader2 } from "lucide-react";
+import { MessageCircle, Send, X, Lock, Bot, Sparkles, Loader2, Coins } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -7,12 +7,15 @@ import { useNavigate } from "react-router-dom";
 import { useHasFeature } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { usePreferences } from "@/hooks/usePreferences";
+import { useAIBalance } from "@/hooks/useAICredits";
+import { CreditBalanceBadge } from "@/components/AICredits";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
-const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+const AI_CREDITS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-with-credits`;
 
-async function streamChat({
+async function streamChatWithCredits({
   messages,
   onDelta,
   onDone,
@@ -21,7 +24,7 @@ async function streamChat({
   messages: Msg[];
   onDelta: (t: string) => void;
   onDone: () => void;
-  onError: (msg: string) => void;
+  onError: (msg: string, code?: string) => void;
 }) {
   const { data: { session } } = await supabase.auth.getSession();
   const token = session?.access_token;
@@ -30,14 +33,18 @@ async function streamChat({
     return;
   }
 
-  const resp = await fetch(CHAT_URL, {
+  const resp = await fetch(AI_CREDITS_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
       apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
     },
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify({
+      feature_code: "chat_general",
+      messages,
+      stream: true,
+    }),
   });
 
   if (resp.status === 429) {
@@ -45,11 +52,17 @@ async function streamChat({
     return;
   }
   if (resp.status === 402) {
-    onError("Crédits IA insuffisants.");
+    const data = await resp.json().catch(() => ({}));
+    if (data.code === "INSUFFICIENT_CREDITS") {
+      onError(`Crédits insuffisants (${data.balance}/${data.required})`, "INSUFFICIENT_CREDITS");
+    } else {
+      onError("Crédits IA insuffisants.");
+    }
     return;
   }
   if (!resp.ok || !resp.body) {
-    onError("Erreur de connexion à l'IA.");
+    const data = await resp.json().catch(() => ({}));
+    onError(data.error || "Erreur de connexion à l'IA.");
     return;
   }
 
@@ -104,6 +117,7 @@ function AIChatBotInner() {
   const { toast } = useToast();
   const hasChat = useHasFeature("ai_chat");
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -151,12 +165,19 @@ function AIChatBotInner() {
     };
 
     try {
-      await streamChat({
+      await streamChatWithCredits({
         messages: [...messages, userMsg],
         onDelta: upsert,
-        onDone: () => setLoading(false),
-        onError: (msg) => {
-          toast({ title: "Erreur IA", description: msg, variant: "destructive" });
+        onDone: () => {
+          setLoading(false);
+          queryClient.invalidateQueries({ queryKey: ["ai-balance"] });
+        },
+        onError: (msg, code) => {
+          if (code === "INSUFFICIENT_CREDITS") {
+            toast({ title: "Crédits insuffisants", description: "Achetez des crédits IA dans Paramètres.", variant: "destructive" });
+          } else {
+            toast({ title: "Erreur IA", description: msg, variant: "destructive" });
+          }
           setLoading(false);
         },
       });
@@ -205,7 +226,7 @@ function AIChatBotInner() {
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-primary" />
                 <span className="font-semibold text-sm text-foreground">DogWork AI</span>
-                <span className="text-xs text-muted-foreground">Assistant canin</span>
+                <CreditBalanceBadge />
               </div>
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setOpen(false)} aria-label="Fermer le chat">
                 <X className="h-4 w-4" aria-hidden="true" />
