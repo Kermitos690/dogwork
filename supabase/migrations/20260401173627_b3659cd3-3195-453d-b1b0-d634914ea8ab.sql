@@ -1,0 +1,1 @@
+UPDATE exercises SET description = 'Migration test - cet exercice fonctionne' WHERE slug = '4-pattes-objet';
