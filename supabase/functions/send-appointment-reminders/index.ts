@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
             Authorization: `Bearer ${resendApiKey}`,
           },
           body: JSON.stringify({
-            from: "DogWork <onboarding@resend.dev>",
+            from: "DogWork <noreply@notify.dogwork-at-home.com>",
             to: [coachEmail],
             subject: `🔔 Rappel : ${eventTitle} demain`,
             html: `
