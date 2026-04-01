@@ -8,6 +8,7 @@ import { useActiveDog } from "@/hooks/useDogs";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { CreditBalanceCard, CreditPacksSection, CreditHistory } from "@/components/AICredits";
 
 export default function Settings() {
   const navigate = useNavigate();
