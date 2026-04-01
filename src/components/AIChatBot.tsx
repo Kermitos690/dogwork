@@ -117,6 +117,7 @@ function AIChatBotInner() {
   const { toast } = useToast();
   const hasChat = useHasFeature("ai_chat");
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (scrollRef.current) {
