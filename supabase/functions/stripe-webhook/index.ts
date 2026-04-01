@@ -96,6 +96,34 @@ serve(async (req) => {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
+
+        // ---- AI CREDIT PACK PURCHASE ----
+        if (session.mode === "payment" && session.metadata?.type === "ai_credits") {
+          const userId = session.metadata.user_id;
+          const credits = parseInt(session.metadata.credits || "0");
+          const packSlug = session.metadata.pack_slug;
+
+          if (userId && credits > 0) {
+            const pricePaid = (session.amount_total || 0) / 100;
+            await supabaseAdmin.rpc("credit_ai_wallet", {
+              _user_id: userId,
+              _credits: credits,
+              _operation_type: "purchase",
+              _description: `Achat pack ${packSlug} (${credits} crédits)`,
+              _stripe_payment_id: session.payment_intent as string,
+              _public_price_chf: pricePaid,
+            });
+
+            await supabaseAdmin.from("billing_events")
+              .update({ user_id: userId })
+              .eq("stripe_event_id", event.id);
+
+            logStep("AI credits purchased", { userId, credits, packSlug, pricePaid });
+          }
+          break;
+        }
+
+        // ---- SUBSCRIPTION CHECKOUT ----
         if (session.mode === "subscription" && session.customer_email) {
           const { data: users } = await supabaseAdmin.auth.admin.listUsers();
           const user = users?.users?.find(
