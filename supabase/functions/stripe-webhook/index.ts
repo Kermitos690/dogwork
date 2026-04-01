@@ -265,15 +265,21 @@ serve(async (req) => {
             session.customer_email ||
             session.customer_details?.email;
 
-          // Find user by email
+          // Find user by email — paginated to handle large user bases
           let userId: string | null = null;
           if (customerEmail) {
-            const { data: users } = await supabaseAdmin.auth.admin.listUsers();
-            const user = users?.users?.find(
-              (u: any) =>
-                u.email?.toLowerCase() === customerEmail.toLowerCase()
-            );
-            if (user) userId = user.id;
+            let page = 1;
+            const perPage = 100;
+            while (!userId) {
+              const { data: usersPage } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+              if (!usersPage?.users || usersPage.users.length === 0) break;
+              const found = usersPage.users.find(
+                (u: any) => u.email?.toLowerCase() === customerEmail.toLowerCase()
+              );
+              if (found) userId = found.id;
+              if (usersPage.users.length < perPage) break;
+              page++;
+            }
           }
 
           if (userId) {

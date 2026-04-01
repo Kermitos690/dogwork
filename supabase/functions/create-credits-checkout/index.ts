@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
         .eq("id", pack.id);
     }
 
-    const origin = req.headers.get("origin") || "https://dogwork-at-home.lovable.app";
+    const origin = req.headers.get("origin") || "https://www.dogwork-at-home.com";
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
