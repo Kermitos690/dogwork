@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, Send, X, Lock, Bot, Sparkles, Loader2 } from "lucide-react";
+import { MessageCircle, Send, X, Lock, Bot, Sparkles, Loader2, Coins } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -7,10 +7,13 @@ import { useNavigate } from "react-router-dom";
 import { useHasFeature } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { usePreferences } from "@/hooks/usePreferences";
+import { useAIBalance } from "@/hooks/useAICredits";
+import { CreditBalanceBadge } from "@/components/AICredits";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
-const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+const AI_CREDITS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-with-credits`;
 
 async function streamChat({
   messages,
