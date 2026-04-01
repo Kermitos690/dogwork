@@ -23,6 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+  const prevUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     // Check if URL contains recovery markers — if so, we must wait for the
