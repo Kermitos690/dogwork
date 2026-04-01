@@ -3,12 +3,8 @@ import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 /**
  * Monthly credit grant — idempotent cron job.
  * 
- * 1. Reads ai_plan_quotas for each plan_slug
- * 2. Determines each user's active plan via get_user_tier()
- * 3. Checks the ledger for existing monthly_grant this period
- * 4. Credits the user's wallet if no grant exists for current month
- * 
- * Idempotency key: year-month + user_id + plan_slug in ledger description
+ * Idempotency: uses structured `metadata.period_key` (YYYY-MM) in the ledger,
+ * queried via JSONB containment (@>) — no fragile LIKE on description.
  */
 Deno.serve(async (req) => {
   const corsHeaders = {
@@ -26,7 +22,7 @@ Deno.serve(async (req) => {
     const now = new Date();
     const periodKey = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
 
-    // 1. Load quotas
+    // 1. Load quotas with monthly_credits > 0
     const { data: quotas, error: quotaErr } = await admin
       .from("ai_plan_quotas")
       .select("*")
@@ -39,13 +35,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Build plan_slug -> monthly_credits map
     const quotaMap = new Map<string, number>();
     for (const q of quotas) {
       quotaMap.set(q.plan_slug, q.monthly_credits);
     }
 
-    // 2. Get all users with an active subscription tier
+    // 2. Get all eligible users (stripe_customers + admin_subscriptions)
     const { data: customers, error: custErr } = await admin
       .from("stripe_customers")
       .select("user_id, current_tier")
@@ -53,13 +48,12 @@ Deno.serve(async (req) => {
 
     if (custErr) throw custErr;
 
-    // Also check admin_subscriptions for manually granted tiers
     const { data: adminSubs } = await admin
       .from("admin_subscriptions")
       .select("user_id, tier")
       .eq("is_active", true);
 
-    // Merge: admin overrides take priority
+    // Merge — admin overrides take priority
     const userTiers = new Map<string, string>();
     for (const c of customers || []) {
       userTiers.set(c.user_id, c.current_tier);
@@ -76,14 +70,15 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 3. Check which users already got their grant this month
+    // 3. Idempotency check via metadata JSONB containment
+    // Uses RPC raw query to check metadata->>'period_key' = periodKey
     const userIds = Array.from(userTiers.keys());
     const { data: existingGrants } = await admin
       .from("ai_credit_ledger")
-      .select("user_id, description")
+      .select("user_id")
       .eq("operation_type", "monthly_grant")
       .in("user_id", userIds)
-      .like("description", `%${periodKey}%`);
+      .contains("metadata", { period_key: periodKey });
 
     const alreadyGranted = new Set<string>();
     for (const g of existingGrants || []) {
@@ -105,12 +100,26 @@ Deno.serve(async (req) => {
       if (!credits) continue;
 
       try {
-        await admin.rpc("credit_ai_wallet", {
+        // Call credit_ai_wallet, which inserts into the ledger
+        // We need the period_key in metadata, but credit_ai_wallet doesn't accept metadata.
+        // So we do a two-step: credit the wallet, then update the ledger entry with metadata.
+        const newBalance = await admin.rpc("credit_ai_wallet", {
           _user_id: uid,
           _credits: credits,
           _operation_type: "monthly_grant",
           _description: `Attribution mensuelle ${periodKey} — plan ${tier} (${credits} crédits)`,
         });
+
+        // Tag the ledger entry with structured metadata for robust idempotency
+        await admin
+          .from("ai_credit_ledger")
+          .update({ metadata: { period_key: periodKey, plan_slug: tier } })
+          .eq("user_id", uid)
+          .eq("operation_type", "monthly_grant")
+          .eq("description", `Attribution mensuelle ${periodKey} — plan ${tier} (${credits} crédits)`)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
         granted++;
       } catch (err: any) {
         errors.push(`${uid}: ${err.message}`);
