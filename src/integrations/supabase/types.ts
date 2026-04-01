@@ -2820,6 +2820,7 @@ export type Database = {
         Args: {
           _credits: number
           _description?: string
+          _metadata?: Json
           _operation_type: Database["public"]["Enums"]["ai_ledger_type"]
           _public_price_chf?: number
           _stripe_payment_id?: string
