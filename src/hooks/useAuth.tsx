@@ -39,6 +39,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let codeExchangeHandled = !hasRecoveryMarkers; // if no markers, no need to wait
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const newUserId = session?.user?.id ?? null;
+      // Clear all cached data when user changes (login as different user) or signs out
+      if (prevUserIdRef.current && prevUserIdRef.current !== newUserId) {
+        queryClient.clear();
+      }
+      prevUserIdRef.current = newUserId;
+
       setSession(session);
       setUser(session?.user ?? null);
       if (event === "PASSWORD_RECOVERY") {
