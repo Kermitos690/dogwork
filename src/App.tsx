@@ -93,7 +93,7 @@ const TermsPage = lazy(() => import("./pages/Terms"));
 const PrivacyPage = lazy(() => import("./pages/Privacy"));
 const LegalPage = lazy(() => import("./pages/Legal"));
 
-const queryClient = new QueryClient();
+export const queryClient = new QueryClient();
 
 const PageLoader = () => (
   <div className="min-h-screen bg-background flex items-center justify-center">

@@ -1,6 +1,7 @@
-import { useState, useEffect, createContext, useContext, useCallback } from "react";
+import { useState, useEffect, createContext, useContext, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
+import { queryClient } from "@/App";
 
 interface AuthContextType {
   user: User | null;
@@ -22,6 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+  const prevUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     // Check if URL contains recovery markers — if so, we must wait for the
@@ -37,6 +39,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let codeExchangeHandled = !hasRecoveryMarkers; // if no markers, no need to wait
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const newUserId = session?.user?.id ?? null;
+      // Clear all cached data when user changes (login as different user) or signs out
+      if (prevUserIdRef.current && prevUserIdRef.current !== newUserId) {
+        queryClient.clear();
+      }
+      prevUserIdRef.current = newUserId;
+
       setSession(session);
       setUser(session?.user ?? null);
       if (event === "PASSWORD_RECOVERY") {
@@ -97,6 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    queryClient.clear();
     await supabase.auth.signOut();
   }, []);
 
