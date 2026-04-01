@@ -58,9 +58,14 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Post-sync verification query
+    const { data: verif } = await supabase.rpc("sync_exercise_stats");
+
     return new Response(JSON.stringify({
       success: true,
       ...data,
+      verification: verif,
+      supabase_url_used: SUPABASE_URL,
       message: `Sync completed via DB function.`,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
