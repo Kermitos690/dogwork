@@ -52,11 +52,17 @@ async function streamChatWithCredits({
     return;
   }
   if (resp.status === 402) {
-    onError("Crédits IA insuffisants.");
+    const data = await resp.json().catch(() => ({}));
+    if (data.code === "INSUFFICIENT_CREDITS") {
+      onError(`Crédits insuffisants (${data.balance}/${data.required})`, "INSUFFICIENT_CREDITS");
+    } else {
+      onError("Crédits IA insuffisants.");
+    }
     return;
   }
   if (!resp.ok || !resp.body) {
-    onError("Erreur de connexion à l'IA.");
+    const data = await resp.json().catch(() => ({}));
+    onError(data.error || "Erreur de connexion à l'IA.");
     return;
   }
 
