@@ -53,6 +53,7 @@ export default function AdminDashboard() {
   const [enrichProgress, setEnrichProgress] = useState<{ processed: number; total: number; success: number; failed: number; done: boolean } | null>(null);
   const [generatingImages, setGeneratingImages] = useState(false);
   const [imageProgress, setImageProgress] = useState<{ total: number; success: number; failed: number; pending: number; processing: number; done: boolean } | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   const { data: isAdmin, isLoading: adminLoading } = useQuery({
     queryKey: ["is_admin", user?.id],
@@ -415,6 +416,43 @@ export default function AdminDashboard() {
                   disabled={generatingImages} className="w-full gap-2" size="sm"
                 >
                   <Image className="h-4 w-4" /> {generatingImages ? "En cours..." : "Générer illustrations IA"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2"><UserCog className="h-4 w-4 text-primary" /> Nettoyage comptes</CardTitle>
+              </CardHeader>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2"><FileDown className="h-4 w-4 text-primary" /> Synchroniser exercices enrichis</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <p className="text-xs text-muted-foreground">Injecte les 480 exercices enrichis (descriptions, tutoriels, images, commandes vocales) dans la base active.</p>
+                <Button
+                  onClick={async () => {
+                    setSyncing(true);
+                    try {
+                      const { data: { session } } = await supabase.auth.getSession();
+                      if (!session?.access_token) throw new Error("Session expirée");
+                      const { data, error } = await supabase.functions.invoke("sync-enriched-exercises", {
+                        headers: { Authorization: `Bearer ${session.access_token}` },
+                      });
+                      if (error) throw error;
+                      if (data?.error) throw new Error(data.error);
+                      toast({ title: "Synchronisation terminée ✅", description: data.message || `${data.exercises_updated} exercices mis à jour.` });
+                      queryClient.invalidateQueries({ queryKey: ["exercises_library"] });
+                    } catch (err: any) {
+                      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+                    }
+                    setSyncing(false);
+                  }}
+                  disabled={syncing} className="w-full gap-2" size="sm"
+                >
+                  <FileDown className="h-4 w-4" /> {syncing ? "Synchronisation en cours..." : "Synchroniser maintenant"}
                 </Button>
               </CardContent>
             </Card>
