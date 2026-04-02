@@ -16,25 +16,6 @@ export class ErrorBoundary extends React.Component<React.PropsWithChildren, Stat
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("[ErrorBoundary] Unhandled UI error:", error, errorInfo);
-
-    // Global error reporting — send to edge function or external service
-    try {
-      const payload = {
-        message: error.message,
-        stack: error.stack?.slice(0, 2000),
-        componentStack: errorInfo.componentStack?.slice(0, 2000),
-        url: window.location.href,
-        userAgent: navigator.userAgent,
-        timestamp: new Date().toISOString(),
-      };
-      // Best-effort beacon to avoid blocking
-      navigator.sendBeacon?.(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/log-error`,
-        new Blob([JSON.stringify(payload)], { type: "application/json" })
-      );
-    } catch {
-      // Silently fail — error reporting should never break the app
-    }
   }
 
   render() {
