@@ -106,7 +106,7 @@ export function useAIFeatures() {
     queryKey: ["ai-features"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("ai_feature_catalog")
+        .from("ai_feature_catalog_public" as any)
         .select("code, label, description, credits_cost, is_active")
         .eq("is_active", true)
         .order("credits_cost");
@@ -123,7 +123,7 @@ export function useAICreditPacks() {
     queryKey: ["ai-credit-packs"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("ai_credit_packs")
+        .from("ai_credit_packs_public" as any)
         .select("*")
         .eq("is_active", true)
         .order("sort_order");
