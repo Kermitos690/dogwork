@@ -88,7 +88,7 @@ export function useAILedger(limit = 20) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("ai_credit_ledger")
-        .select("*")
+        .select("id, created_at, credits_delta, operation_type, balance_after, feature_code, description, public_price_chf, status, metadata, user_id, wallet_id, stripe_payment_id")
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false })
         .limit(limit);
@@ -106,7 +106,7 @@ export function useAIFeatures() {
     queryKey: ["ai-features"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("ai_feature_catalog")
+        .from("ai_feature_catalog_public" as any)
         .select("code, label, description, credits_cost, is_active")
         .eq("is_active", true)
         .order("credits_cost");
@@ -123,7 +123,7 @@ export function useAICreditPacks() {
     queryKey: ["ai-credit-packs"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("ai_credit_packs")
+        .from("ai_credit_packs_public" as any)
         .select("*")
         .eq("is_active", true)
         .order("sort_order");

@@ -425,6 +425,13 @@ export type Database = {
             referencedColumns: ["code"]
           },
           {
+            foreignKeyName: "ai_credit_ledger_feature_code_fkey"
+            columns: ["feature_code"]
+            isOneToOne: false
+            referencedRelation: "ai_feature_catalog_public"
+            referencedColumns: ["code"]
+          },
+          {
             foreignKeyName: "ai_credit_ledger_wallet_id_fkey"
             columns: ["wallet_id"]
             isOneToOne: false
@@ -2689,6 +2696,75 @@ export type Database = {
       }
     }
     Views: {
+      ai_credit_packs_public: {
+        Row: {
+          credits: number | null
+          description: string | null
+          id: string | null
+          is_active: boolean | null
+          label: string | null
+          price_chf: number | null
+          slug: string | null
+          sort_order: number | null
+          stripe_price_id: string | null
+          stripe_product_id: string | null
+        }
+        Insert: {
+          credits?: number | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          label?: string | null
+          price_chf?: number | null
+          slug?: string | null
+          sort_order?: number | null
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+        }
+        Update: {
+          credits?: number | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          label?: string | null
+          price_chf?: number | null
+          slug?: string | null
+          sort_order?: number | null
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+        }
+        Relationships: []
+      }
+      ai_feature_catalog_public: {
+        Row: {
+          code: string | null
+          credits_cost: number | null
+          description: string | null
+          id: string | null
+          is_active: boolean | null
+          label: string | null
+          model: string | null
+        }
+        Insert: {
+          code?: string | null
+          credits_cost?: number | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          label?: string | null
+          model?: string | null
+        }
+        Update: {
+          code?: string | null
+          credits_cost?: number | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          label?: string | null
+          model?: string | null
+        }
+        Relationships: []
+      }
       shelter_animals_safe: {
         Row: {
           arrival_date: string | null
@@ -2937,6 +3013,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_usage: { Args: { p_feature_key: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
       is_educator: { Args: never; Returns: boolean }
       is_shelter: { Args: never; Returns: boolean }
