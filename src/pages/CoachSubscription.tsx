@@ -75,10 +75,16 @@ export default function CoachSubscription() {
 
   const handleCheckout = async () => {
     setLoading(true);
+    const newWindow = window.open("about:blank", "_blank");
     try {
       const { data, error } = await supabase.functions.invoke("create-educator-checkout");
       if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
+      if (data?.url) {
+        if (newWindow) newWindow.location.href = data.url;
+        else window.location.href = data.url;
+      } else {
+        newWindow?.close();
+      }
     } catch (e: any) {
       toast({ title: "Erreur", description: e.message, variant: "destructive" });
     } finally {
@@ -88,16 +94,22 @@ export default function CoachSubscription() {
 
   const handlePortal = async () => {
     setLoading(true);
+    const newWindow = window.open("about:blank", "_blank");
     try {
       const { data, error } = await supabase.functions.invoke("customer-portal");
       if (error) {
-        // If no Stripe customer exists, redirect to checkout instead
+        newWindow?.close();
         const errorBody = typeof error === "object" && "context" in error ? error : null;
         toast({ title: "Info", description: "Redirection vers la page de paiement...", });
         await handleCheckout();
         return;
       }
-      if (data?.url) window.open(data.url, "_blank");
+      if (data?.url) {
+        if (newWindow) newWindow.location.href = data.url;
+        else window.location.href = data.url;
+      } else {
+        newWindow?.close();
+      }
     } catch (e: any) {
       toast({ title: "Erreur", description: e.message, variant: "destructive" });
     } finally {

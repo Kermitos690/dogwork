@@ -43,6 +43,7 @@ export default function Subscription() {
     if (!plan.price_id || !session?.access_token) return;
 
     setCheckoutLoading(tierKey);
+    const newWindow = window.open("about:blank", "_blank");
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: { priceId: plan.price_id },
@@ -50,7 +51,12 @@ export default function Subscription() {
       });
 
       if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
+      if (data?.url) {
+        if (newWindow) newWindow.location.href = data.url;
+        else window.location.href = data.url;
+      } else {
+        newWindow?.close();
+      }
     } catch (e: any) {
       toast({ title: "Erreur", description: e.message || "Impossible de lancer le paiement.", variant: "destructive" });
     } finally {
@@ -61,16 +67,23 @@ export default function Subscription() {
   const handlePortal = async () => {
     if (!session?.access_token) return;
     setPortalLoading(true);
+    const newWindow = window.open("about:blank", "_blank");
     try {
       const { data, error } = await supabase.functions.invoke("customer-portal", {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (error) throw error;
       if (data?.error === "no_customer") {
+        newWindow?.close();
         toast({ title: "Aucun abonnement", description: "Veuillez d'abord souscrire à un plan.", variant: "destructive" });
         return;
       }
-      if (data?.url) window.open(data.url, "_blank");
+      if (data?.url) {
+        if (newWindow) newWindow.location.href = data.url;
+        else window.location.href = data.url;
+      } else {
+        newWindow?.close();
+      }
     } catch (e: any) {
       toast({ title: "Erreur", description: e.message || "Impossible d'ouvrir le portail.", variant: "destructive" });
     } finally {
