@@ -43,6 +43,7 @@ export default function Subscription() {
     if (!plan.price_id || !session?.access_token) return;
 
     setCheckoutLoading(tierKey);
+    const newWindow = window.open("about:blank", "_blank");
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: { priceId: plan.price_id },
@@ -50,7 +51,12 @@ export default function Subscription() {
       });
 
       if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
+      if (data?.url) {
+        if (newWindow) newWindow.location.href = data.url;
+        else window.location.href = data.url;
+      } else {
+        newWindow?.close();
+      }
     } catch (e: any) {
       toast({ title: "Erreur", description: e.message || "Impossible de lancer le paiement.", variant: "destructive" });
     } finally {

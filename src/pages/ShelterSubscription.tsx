@@ -36,6 +36,7 @@ export default function ShelterSubscription() {
 
   const handleCheckout = async () => {
     setLoading("checkout");
+    const newWindow = window.open("about:blank", "_blank");
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Non connecté");
@@ -44,7 +45,12 @@ export default function ShelterSubscription() {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
+      if (data?.url) {
+        if (newWindow) newWindow.location.href = data.url;
+        else window.location.href = data.url;
+      } else {
+        newWindow?.close();
+      }
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
     }
