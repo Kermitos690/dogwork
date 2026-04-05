@@ -88,7 +88,7 @@ export function useAILedger(limit = 20) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("ai_credit_ledger")
-        .select("*")
+        .select("id, created_at, credits_delta, operation_type, balance_after, feature_code, description, public_price_chf, status, metadata, user_id, wallet_id, stripe_payment_id")
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false })
         .limit(limit);
