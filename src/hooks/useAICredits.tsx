@@ -140,20 +140,29 @@ export function usePurchaseCreditPack() {
 
   return useMutation({
     mutationFn: async (packSlug: string) => {
+      // Pre-open window synchronously to keep user-gesture context
+      const newWindow = window.open("about:blank", "_blank");
+
       const session = (await supabase.auth.getSession()).data.session;
-      if (!session) throw new Error("Non connecté");
+      if (!session) {
+        newWindow?.close();
+        throw new Error("Non connecté");
+      }
 
       const { data, error } = await supabase.functions.invoke("create-credits-checkout", {
         body: { pack_slug: packSlug },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
 
-      if (error) throw error;
+      if (error) {
+        newWindow?.close();
+        throw error;
+      }
       if (data?.url) {
-        // Open in new tab (iframe compatible)
-        const w = window.open("about:blank", "_blank");
-        if (w) w.location.href = data.url;
+        if (newWindow) newWindow.location.href = data.url;
         else window.location.href = data.url;
+      } else {
+        newWindow?.close();
       }
     },
     onError: (err: any) => {
