@@ -11,13 +11,6 @@ const corsHeaders = {
  * Every AI call must go through this function.
  * 
  * Body: { feature_code: string, messages: Array<{role, content}>, stream?: boolean }
- * 
- * Flow:
- * 1. Authenticate user
- * 2. Look up feature in catalog
- * 3. Check/debit credits (admin/educator bypass)
- * 4. Call AI gateway
- * 5. Log usage
  */
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -32,6 +25,7 @@ Deno.serve(async (req) => {
     // 1. Authenticate
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
+      console.warn("[ai-with-credits] Missing or invalid Authorization header");
       return new Response(JSON.stringify({ error: "Non autorisé" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -43,22 +37,27 @@ Deno.serve(async (req) => {
 
     const { data: userData, error: userError } = await userClient.auth.getUser();
     if (userError || !userData?.user) {
+      console.warn("[ai-with-credits] Auth failed:", userError?.message || "no user");
       return new Response(JSON.stringify({ error: "Non autorisé" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const userId = userData.user.id;
+    console.log(`[ai-with-credits] User authenticated: ${userId.slice(0, 8)}...`);
 
     // 2. Parse body
     const body = await req.json();
     const { feature_code, messages, stream = true, system_prompt } = body;
 
     if (!feature_code || !messages) {
+      console.warn("[ai-with-credits] Missing feature_code or messages");
       return new Response(JSON.stringify({ error: "feature_code et messages requis" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    console.log(`[ai-with-credits] Feature: ${feature_code}, messages: ${messages.length}, stream: ${stream}`);
 
     // 3. Service role client for DB ops
     const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
@@ -72,10 +71,13 @@ Deno.serve(async (req) => {
       .single();
 
     if (featureErr || !feature) {
+      console.error(`[ai-with-credits] Feature "${feature_code}" not found:`, featureErr?.message);
       return new Response(JSON.stringify({ error: "Fonctionnalité IA non disponible" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    console.log(`[ai-with-credits] Feature found: ${feature.code}, cost=${feature.credits_cost}, model=${feature.model}`);
 
     // 4. Check privileges (admin/educator get free access but are LOGGED)
     const { data: roles } = await admin
@@ -83,20 +85,27 @@ Deno.serve(async (req) => {
       .select("role")
       .eq("user_id", userId);
 
-    const isPrivileged = roles?.some(
-      (r: { role: string }) => r.role === "admin" || r.role === "educator"
-    );
+    const roleList = roles?.map((r: { role: string }) => r.role) || [];
+    const isPrivileged = roleList.includes("admin") || roleList.includes("educator");
+
+    console.log(`[ai-with-credits] Roles: [${roleList.join(",")}], privileged: ${isPrivileged}`);
 
     const creditsCost = feature.credits_cost;
 
     if (isPrivileged) {
-      // C6: Log privileged calls for auditability (no debit)
-      const walletId = await admin.rpc("ensure_ai_wallet", { _user_id: userId });
+      // Ensure wallet exists for privileged users too (for audit trail)
+      try {
+        await admin.rpc("ensure_ai_wallet", { _user_id: userId });
+      } catch (e) {
+        console.error("[ai-with-credits] ensure_ai_wallet failed for privileged user:", e);
+      }
+
       const { data: wallet } = await admin
         .from("ai_credit_wallets")
         .select("id, balance")
         .eq("user_id", userId)
         .single();
+
       if (wallet) {
         await admin.from("ai_credit_ledger").insert({
           user_id: userId,
@@ -108,12 +117,17 @@ Deno.serve(async (req) => {
           provider_cost_usd: feature.cost_estimate_avg_usd,
           status: "success",
           metadata: { model: feature.model, privileged: true },
-          description: `Appel privilégié (${roles?.map((r: {role:string}) => r.role).join(",")})`,
+          description: `Appel privilégié (${roleList.join(",")})`,
         });
+        console.log(`[ai-with-credits] Privileged call logged, wallet balance: ${wallet.balance}`);
+      } else {
+        console.warn("[ai-with-credits] No wallet found for privileged user after ensure_ai_wallet");
       }
     } else {
-      // Debit credits
-      const { data: debited } = await admin.rpc("debit_ai_credits", {
+      // Debit credits (ensure_ai_wallet is called inside debit_ai_credits)
+      console.log(`[ai-with-credits] Debiting ${creditsCost} credits for user ${userId.slice(0, 8)}...`);
+
+      const { data: debited, error: debitErr } = await admin.rpc("debit_ai_credits", {
         _user_id: userId,
         _feature_code: feature_code,
         _credits: creditsCost,
@@ -121,9 +135,16 @@ Deno.serve(async (req) => {
         _metadata: { model: feature.model },
       });
 
+      if (debitErr) {
+        console.error("[ai-with-credits] debit_ai_credits RPC error:", debitErr.message);
+        return new Response(JSON.stringify({ error: "Erreur système de crédits" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       if (debited === false) {
-        // Get current balance for the error message
         const { data: balance } = await admin.rpc("get_ai_balance", { _user_id: userId });
+        console.log(`[ai-with-credits] Insufficient credits: balance=${balance}, required=${creditsCost}`);
         return new Response(JSON.stringify({
           error: "Crédits IA insuffisants",
           code: "INSUFFICIENT_CREDITS",
@@ -133,12 +154,14 @@ Deno.serve(async (req) => {
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      console.log(`[ai-with-credits] Credits debited successfully`);
     }
 
     // 5. Call AI gateway
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      // Refund credits if not privileged
+      console.error("[ai-with-credits] LOVABLE_API_KEY is not configured!");
       if (!isPrivileged) {
         await admin.rpc("credit_ai_wallet", {
           _user_id: userId,
@@ -154,6 +177,8 @@ Deno.serve(async (req) => {
       ? [{ role: "system", content: system_prompt }]
       : [];
 
+    console.log(`[ai-with-credits] Calling AI gateway: model=${feature.model}`);
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -168,6 +193,8 @@ Deno.serve(async (req) => {
     });
 
     if (!response.ok) {
+      console.error(`[ai-with-credits] AI gateway error: ${response.status}`);
+
       // Refund on AI gateway error
       if (!isPrivileged) {
         await admin.rpc("credit_ai_wallet", {
@@ -176,6 +203,7 @@ Deno.serve(async (req) => {
           _operation_type: "refund",
           _description: `Remboursement auto — erreur gateway (${response.status})`,
         });
+        console.log("[ai-with-credits] Credits refunded after gateway error");
       }
 
       if (response.status === 429) {
@@ -190,11 +218,13 @@ Deno.serve(async (req) => {
       }
 
       const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
+      console.error("[ai-with-credits] Gateway body:", t.slice(0, 500));
       return new Response(JSON.stringify({ error: "Erreur du service IA" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    console.log(`[ai-with-credits] AI gateway responded OK, stream=${stream}`);
 
     if (stream) {
       return new Response(response.body, {
@@ -207,7 +237,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("ai-with-credits error:", e);
+    console.error("[ai-with-credits] Unhandled error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Erreur inconnue" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
