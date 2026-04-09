@@ -2706,8 +2706,6 @@ export type Database = {
           price_chf: number | null
           slug: string | null
           sort_order: number | null
-          stripe_price_id: string | null
-          stripe_product_id: string | null
         }
         Insert: {
           credits?: number | null
@@ -2718,8 +2716,6 @@ export type Database = {
           price_chf?: number | null
           slug?: string | null
           sort_order?: number | null
-          stripe_price_id?: string | null
-          stripe_product_id?: string | null
         }
         Update: {
           credits?: number | null
@@ -2730,8 +2726,6 @@ export type Database = {
           price_chf?: number | null
           slug?: string | null
           sort_order?: number | null
-          stripe_price_id?: string | null
-          stripe_product_id?: string | null
         }
         Relationships: []
       }
@@ -2740,7 +2734,6 @@ export type Database = {
           code: string | null
           credits_cost: number | null
           description: string | null
-          id: string | null
           is_active: boolean | null
           label: string | null
           model: string | null
@@ -2749,7 +2742,6 @@ export type Database = {
           code?: string | null
           credits_cost?: number | null
           description?: string | null
-          id?: string | null
           is_active?: boolean | null
           label?: string | null
           model?: string | null
@@ -2758,7 +2750,6 @@ export type Database = {
           code?: string | null
           credits_cost?: number | null
           description?: string | null
-          id?: string | null
           is_active?: boolean | null
           label?: string | null
           model?: string | null
