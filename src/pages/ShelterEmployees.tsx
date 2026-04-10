@@ -46,7 +46,7 @@ export default function ShelterEmployees() {
     queryKey: ["shelter-employees", user?.id],
     queryFn: async () => {
       const { data } = await supabase
-        .from("shelter_employees")
+        .from("shelter_employees_safe" as any)
         .select("*")
         .eq("shelter_user_id", user!.id)
         .eq("is_active", true)
