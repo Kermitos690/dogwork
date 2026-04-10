@@ -55,7 +55,7 @@ export function useShelterEmployeeInfo() {
         .eq("auth_user_id", user.id)
         .eq("is_active", true)
         .maybeSingle();
-      return data as {
+      return data as unknown as {
         id: string;
         name: string;
         role: string;
