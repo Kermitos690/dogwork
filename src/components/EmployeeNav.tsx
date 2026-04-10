@@ -1,10 +1,11 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, PawPrint, ClipboardList, User } from "lucide-react";
+import { Home, PawPrint, ClipboardList, User, MessageSquare } from "lucide-react";
 
 const tabs = [
   { label: "Accueil", icon: Home, path: "/employee" },
   { label: "Animaux", icon: PawPrint, path: "/employee/animals" },
   { label: "Activités", icon: ClipboardList, path: "/employee/activity" },
+  { label: "Support", icon: MessageSquare, path: "/employee/support" },
   { label: "Profil", icon: User, path: "/employee/profile" },
 ];
 
