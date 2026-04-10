@@ -50,12 +50,24 @@ export function useShelterEmployeeInfo() {
     queryFn: async () => {
       if (!user) return null;
       const { data } = await supabase
-        .from("shelter_employees")
+        .from("shelter_employees_safe" as any)
         .select("id, name, role, job_title, email, phone, shelter_user_id, auth_user_id, is_active, created_at, updated_at")
         .eq("auth_user_id", user.id)
         .eq("is_active", true)
         .maybeSingle();
-      return data;
+      return data as unknown as {
+        id: string;
+        name: string;
+        role: string;
+        job_title: string | null;
+        email: string | null;
+        phone: string | null;
+        shelter_user_id: string;
+        auth_user_id: string;
+        is_active: boolean;
+        created_at: string;
+        updated_at: string;
+      } | null;
     },
     enabled: !!user,
   });
