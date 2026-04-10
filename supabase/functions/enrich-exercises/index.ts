@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -6,17 +5,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-
-  // Safe by default: block unless ENVIRONMENT is explicitly "development"
-  const environment = Deno.env.get("ENVIRONMENT") || "production";
-  if (environment !== "development") {
-    return new Response(JSON.stringify({ error: "Not available in this environment" }), {
-      status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -38,9 +28,111 @@ serve(async (req) => {
     if (!isAdmin) throw new Error("Accès refusé : admin requis");
 
     const body = await req.json().catch(() => ({}));
-    const batchSize = body.batchSize || 2;
+    const batchSize = Math.min(body.batchSize || 5, 10);
     const offset = body.offset || 0;
+    const mode = body.mode || "enrich"; // "enrich" | "fix-json" | "stats"
 
+    // ─── MODE: fix-json - Fix double-encoded JSON fields ───
+    if (mode === "fix-json") {
+      let fixed = 0;
+      // Get exercises with string-type steps/tutorial_steps
+      const { data: allExercises } = await supabase
+        .from("exercises")
+        .select("id, steps, tutorial_steps")
+        .limit(1000);
+
+      if (allExercises) {
+        for (const ex of allExercises) {
+          const updates: Record<string, any> = {};
+
+          // Fix steps if it's a string (double-encoded)
+          if (typeof ex.steps === 'string') {
+            try {
+              updates.steps = JSON.parse(ex.steps);
+              // Keep parsing if still a string
+              while (typeof updates.steps === 'string') {
+                updates.steps = JSON.parse(updates.steps);
+              }
+            } catch { /* keep original */ }
+          }
+
+          // Fix tutorial_steps if it's a string (double-encoded)
+          if (typeof ex.tutorial_steps === 'string') {
+            try {
+              updates.tutorial_steps = JSON.parse(ex.tutorial_steps);
+              while (typeof updates.tutorial_steps === 'string') {
+                updates.tutorial_steps = JSON.parse(updates.tutorial_steps);
+              }
+            } catch { /* keep original */ }
+          }
+
+          if (Object.keys(updates).length > 0) {
+            const { error } = await supabase.from("exercises").update(updates).eq("id", ex.id);
+            if (!error) fixed++;
+          }
+        }
+      }
+
+      return new Response(JSON.stringify({ mode: "fix-json", fixed, total: allExercises?.length || 0 }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── MODE: stats - Return enrichment statistics ───
+    if (mode === "stats") {
+      const { data: exercises } = await supabase
+        .from("exercises")
+        .select("id, description, short_instruction, summary, validation_protocol, voice_commands, troubleshooting, body_positioning, cover_image, steps, tutorial_steps")
+        .limit(1000);
+
+      const stats = {
+        total: exercises?.length || 0,
+        with_description: 0,
+        with_short_instruction: 0,
+        with_summary: 0,
+        with_validation_protocol: 0,
+        with_voice_commands: 0,
+        with_troubleshooting: 0,
+        with_body_positioning: 0,
+        with_cover_image: 0,
+        with_proper_steps: 0,
+        with_proper_tutorial: 0,
+        fully_premium: 0,
+      };
+
+      for (const ex of exercises || []) {
+        const hasDesc = !!ex.description && ex.description.length > 10;
+        const hasShort = !!ex.short_instruction && ex.short_instruction.length > 10;
+        const hasSummary = !!ex.summary && ex.summary.length > 5;
+        const hasValidation = !!ex.validation_protocol && ex.validation_protocol.length > 10;
+        const hasVoice = Array.isArray(ex.voice_commands) && ex.voice_commands.length > 0;
+        const hasTrouble = Array.isArray(ex.troubleshooting) && ex.troubleshooting.length > 0;
+        const hasBody = Array.isArray(ex.body_positioning) && ex.body_positioning.length > 0;
+        const hasCover = !!ex.cover_image && ex.cover_image.length > 10;
+        const hasSteps = Array.isArray(ex.steps) && ex.steps.length >= 3;
+        const hasTutorial = Array.isArray(ex.tutorial_steps) && ex.tutorial_steps.length >= 4;
+
+        if (hasDesc) stats.with_description++;
+        if (hasShort) stats.with_short_instruction++;
+        if (hasSummary) stats.with_summary++;
+        if (hasValidation) stats.with_validation_protocol++;
+        if (hasVoice) stats.with_voice_commands++;
+        if (hasTrouble) stats.with_troubleshooting++;
+        if (hasBody) stats.with_body_positioning++;
+        if (hasCover) stats.with_cover_image++;
+        if (hasSteps) stats.with_proper_steps++;
+        if (hasTutorial) stats.with_proper_tutorial++;
+        if (hasDesc && hasShort && hasSummary && hasValidation && hasVoice && hasTrouble && hasBody && hasSteps && hasTutorial) {
+          stats.fully_premium++;
+        }
+      }
+
+      return new Response(JSON.stringify(stats), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── MODE: enrich - AI enrichment ───
     const { data: exercises, error: fetchError } = await supabase.rpc("get_unenriched_exercises", {
       batch_limit: batchSize,
       batch_offset: offset,
@@ -59,37 +151,35 @@ serve(async (req) => {
 
     for (const exercise of exercises) {
       try {
-        const prompt = `Tu es un éducateur canin professionnel certifié et bienveillant. Tu rédiges des fiches d'exercices ULTRA-DÉTAILLÉES pour une application mobile destinée à TOUS les propriétaires de chiens, y compris les DÉBUTANTS COMPLETS qui n'ont AUCUNE expérience.
+        const prompt = `Tu es un éducateur canin professionnel certifié. Rédige une fiche COMPLÈTE et SPÉCIFIQUE pour cet exercice précis.
 
-EXERCICE À ENRICHIR :
+EXERCICE :
 - Nom : ${exercise.name}
+- Slug : ${exercise.slug}
 - Type : ${exercise.exercise_type || "fondation"}
 - Niveau : ${exercise.level || "débutant"}
+- Difficulté : ${exercise.difficulty || 1}/5
 - Durée : ${exercise.duration || "5 min"}
 - Répétitions : ${exercise.repetitions || "3-5 fois"}
 - Environnement : ${exercise.environment || "tous"}
 - Équipement : ${JSON.stringify(exercise.equipment || [])}
-- Objectif actuel : ${exercise.objective || "Non défini"}
-- Description actuelle : ${exercise.description || "Non définie"}
+- Objectif : ${exercise.objective || "Non défini"}
 - Tags : ${JSON.stringify(exercise.tags || [])}
 - Problèmes ciblés : ${JSON.stringify(exercise.target_problems || [])}
 - Compatible chiot : ${exercise.compatible_puppy ? "oui" : "non"}
 - Compatible senior : ${exercise.compatible_senior ? "oui" : "non"}
 - Compatible réactivité : ${exercise.compatible_reactivity ? "oui" : "non"}
 - Compatible muselière : ${exercise.compatible_muzzle ? "oui" : "non"}
+- Catégorie : ${exercise.category_slug || ""}
 
-CONSIGNES ABSOLUES DE RÉDACTION — CHAQUE FICHE DOIT ÊTRE UN GUIDE COMPLET :
-
-1. LANGAGE ULTRA-SIMPLE : phrases courtes, mots du quotidien, niveau collège. Pas de jargon cynophile.
-2. CONSIGNES VOCALES EXACTES : Écrire mot pour mot ce que le maître doit dire. Préciser le TON (calme, ferme, enjoué), le VOLUME (voix basse, normale), le TIMING (quand parler, quand se taire). Exemple : "Dites 'Assis' UNE SEULE FOIS, d'une voix calme et claire. Ne répétez PAS."
-3. POSITION DU CORPS : Décrire EXACTEMENT comment se tenir. Position des pieds, des mains, du regard, de la laisse. Exemple : "Tenez-vous droit, pieds écartés largeur d'épaules. Laisse dans la main droite, environ 1 mètre de mou. Bras gauche le long du corps."
-4. GESTION DE LA LAISSE : Longueur exacte, tension, quand tirer doucement, quand relâcher, comment tenir le mousqueton.
-5. QUE FAIRE EN CAS DE DIFFICULTÉ : Pour CHAQUE cas problématique possible, expliquer le protocole exact. "Si le chien tire → arrêtez-vous immédiatement, attendez 3 secondes qu'il vous regarde, puis reprenez."
-6. CRITÈRES DE VALIDATION CHIFFRÉS : "L'exercice est RÉUSSI quand le chien maintient la position pendant 5 secondes sans aide, 3 fois sur 5 tentatives consécutives."
-7. SIGNAUX D'ARRÊT : Lister les signes physiques du chien qui indiquent qu'il faut arrêter (halètement excessif, détournement de tête, bâillements répétés, queue basse, léchage de babines).
-8. ADAPTER selon le profil (chiot, senior, réactif, muselière) avec des instructions spécifiques.
-9. EXPLIQUER POURQUOI chaque étape est importante (le maître comprend mieux → il exécute mieux).
-10. Chaque étape du tutoriel doit inclure ce que le maître dit, comment il se tient, et ce qu'il fait avec la laisse/ses mains.`;
+RÈGLES IMPÉRATIVES :
+1. Tout le contenu doit être 100% SPÉCIFIQUE à "${exercise.name}". Aucun texte générique réutilisable sur un autre exercice.
+2. Langage simple, phrases courtes, accessible aux débutants complets.
+3. Les tutorial_steps doivent contenir 6-8 étapes détaillées avec pour chacune : titre, description précise de l'action, commande vocale exacte si applicable, position du corps du maître.
+4. Les voice_commands doivent lister les vrais mots/ordres utilisés dans cet exercice précis.
+5. Le troubleshooting doit couvrir 4-6 situations problématiques réalistes et spécifiques à cet exercice.
+6. Le body_positioning doit décrire les positions exactes du maître aux phases clés de cet exercice précis.
+7. Le validation_protocol doit donner des critères chiffrés et mesurables.`;
 
         const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
@@ -100,7 +190,7 @@ CONSIGNES ABSOLUES DE RÉDACTION — CHAQUE FICHE DOIT ÊTRE UN GUIDE COMPLET :
           body: JSON.stringify({
             model: "google/gemini-2.5-flash",
             messages: [
-              { role: "system", content: "Tu es un rédacteur expert en éducation canine positive. Tu retournes UNIQUEMENT du JSON valide via l'outil fourni. Chaque fiche doit être un guide complet permettant à un débutant total d'exécuter l'exercice parfaitement." },
+              { role: "system", content: "Tu es un rédacteur expert en éducation canine positive. Retourne UNIQUEMENT du JSON valide via l'outil fourni. Chaque contenu doit être entièrement spécifique à l'exercice demandé - jamais de texte générique réutilisable." },
               { role: "user", content: prompt },
             ],
             tools: [
@@ -108,109 +198,101 @@ CONSIGNES ABSOLUES DE RÉDACTION — CHAQUE FICHE DOIT ÊTRE UN GUIDE COMPLET :
                 type: "function",
                 function: {
                   name: "enrich_exercise",
-                  description: "Enrichit un exercice canin avec des instructions ultra-détaillées, consignes vocales, positionnement du corps et troubleshooting",
+                  description: "Enrichit un exercice canin avec du contenu premium spécifique",
                   parameters: {
                     type: "object",
                     properties: {
-                      description: { type: "string", description: "Description claire de l'exercice en 3-5 phrases simples et concrètes. 200-400 caractères." },
-                      objective: { type: "string", description: "L'objectif en 2-3 phrases très simples avec le résultat attendu. 150-250 caractères." },
-                      summary: { type: "string", description: "Résumé en 1 phrase courte et motivante. Max 100 caractères." },
-                      short_instruction: { type: "string", description: "L'instruction principale en 1 phrase d'action. Max 150 caractères." },
+                      description: { type: "string", description: "Description spécifique de l'exercice en 3-5 phrases. 200-400 caractères." },
+                      summary: { type: "string", description: "Résumé en 1 phrase motivante. Max 100 caractères." },
+                      short_instruction: { type: "string", description: "Instruction principale en 1 phrase d'action. Max 150 caractères." },
                       tutorial_steps: {
                         type: "array",
-                        description: "6-10 étapes ULTRA-DÉTAILLÉES du tutoriel. Chaque étape DOIT inclure ce que dire, comment se positionner, et quoi faire avec la laisse/mains.",
                         items: {
                           type: "object",
                           properties: {
-                            title: { type: "string", description: "Titre court de l'étape (ex: 'Positionnez-vous correctement')" },
-                            description: { type: "string", description: "Instructions DÉTAILLÉES : ce que faire avec le corps, les mains, la laisse. 100-300 caractères." },
-                            voice_command: { type: "string", description: "Ce que dire EXACTEMENT, avec le ton. Ex: \"Dites 'Assis' d'une voix calme, une seule fois\". Vide si aucune commande vocale." },
-                            body_position: { type: "string", description: "Position exacte du corps. Ex: 'Debout, pieds écartés, regard vers le chien, laisse courte dans la main droite'." },
-                            tip: { type: "string", description: "Conseil pratique pour cette étape." },
+                            title: { type: "string" },
+                            description: { type: "string" },
+                            voice_command: { type: "string" },
+                            body_position: { type: "string" },
+                            tip: { type: "string" },
                           },
                           required: ["title", "description"],
                         },
                       },
                       voice_commands: {
                         type: "array",
-                        description: "Liste de TOUTES les commandes vocales de l'exercice avec ton et timing",
                         items: {
                           type: "object",
                           properties: {
-                            command: { type: "string", description: "Le mot/phrase exact à dire. Ex: 'Assis'" },
-                            tone: { type: "string", description: "Le ton à utiliser. Ex: 'Voix calme et claire, volume normal'" },
-                            timing: { type: "string", description: "Quand le dire. Ex: 'Au moment où le chien commence à s'asseoir'" },
-                            warning: { type: "string", description: "Ce qu'il NE FAUT PAS faire. Ex: 'Ne répétez jamais deux fois de suite'" },
+                            command: { type: "string" },
+                            tone: { type: "string" },
+                            timing: { type: "string" },
+                            warning: { type: "string" },
                           },
                           required: ["command", "tone", "timing"],
                         },
                       },
                       body_positioning: {
                         type: "array",
-                        description: "Positionnement du corps du maître pour chaque phase de l'exercice",
                         items: {
                           type: "object",
                           properties: {
-                            phase: { type: "string", description: "Phase de l'exercice. Ex: 'Départ', 'Pendant', 'Récompense'" },
-                            position: { type: "string", description: "Position exacte : pieds, mains, regard, laisse, posture" },
-                            common_mistake: { type: "string", description: "Erreur fréquente de posture à éviter" },
+                            phase: { type: "string" },
+                            position: { type: "string" },
+                            common_mistake: { type: "string" },
                           },
                           required: ["phase", "position"],
                         },
                       },
                       troubleshooting: {
                         type: "array",
-                        description: "5-8 cas 'Si... alors...' pour gérer les difficultés",
                         items: {
                           type: "object",
                           properties: {
-                            situation: { type: "string", description: "Le problème. Ex: 'Le chien tire fort sur la laisse'" },
-                            solution: { type: "string", description: "La solution EXACTE pas à pas. Ex: 'Arrêtez-vous immédiatement. Restez immobile. Attendez que la laisse se détende. Dès qu'elle se détend, dites \"C'est bien\" et reprenez la marche.'" },
-                            prevention: { type: "string", description: "Comment éviter que ça arrive. Ex: 'Commencez dans un endroit calme sans distractions'" },
+                            situation: { type: "string" },
+                            solution: { type: "string" },
+                            prevention: { type: "string" },
                           },
                           required: ["situation", "solution"],
                         },
                       },
-                      validation_protocol: { type: "string", description: "Protocole de validation CHIFFRÉ et PRÉCIS. Ex: 'L'exercice est validé quand le chien maintient le assis pendant 5 secondes sans aide vocale ni gestuelle, réussi 3 fois sur 5 tentatives consécutives, dans 2 environnements différents.'" },
+                      validation_protocol: { type: "string" },
                       mistakes: {
                         type: "array",
-                        description: "4-6 erreurs fréquentes avec conséquence ET correction détaillée",
                         items: {
                           type: "object",
                           properties: {
-                            mistake: { type: "string", description: "L'erreur concrète du maître" },
-                            consequence: { type: "string", description: "Ce que ça provoque chez le chien" },
-                            correction: { type: "string", description: "Comment corriger, étape par étape" },
+                            mistake: { type: "string" },
+                            consequence: { type: "string" },
+                            correction: { type: "string" },
                           },
                           required: ["mistake", "consequence", "correction"],
                         },
                       },
                       precautions: {
                         type: "array",
-                        description: "3-5 précautions de sécurité importantes",
                         items: {
                           type: "object",
                           properties: { text: { type: "string" } },
                           required: ["text"],
                         },
                       },
-                      success_criteria: { type: "string", description: "Critère de réussite observable et mesurable" },
-                      stop_criteria: { type: "string", description: "Signes PRÉCIS du chien qui imposent l'arrêt immédiat : halètement excessif, bâillements, détournement, léchage de babines, queue basse, tremblements" },
-                      vigilance: { type: "string", description: "Points de vigilance spécifiques à cet exercice" },
+                      success_criteria: { type: "string" },
+                      stop_criteria: { type: "string" },
+                      vigilance: { type: "string" },
                       adaptations: {
                         type: "array",
-                        description: "4-6 adaptations détaillées par profil de chien",
                         items: {
                           type: "object",
                           properties: {
-                            profile: { type: "string", description: "Le profil (Chiot, Senior, Chien réactif, Chien muselé, Chien craintif, Grand chien)" },
-                            adaptation: { type: "string", description: "Instructions spécifiques détaillées pour ce profil" },
+                            profile: { type: "string" },
+                            adaptation: { type: "string" },
                           },
                           required: ["profile", "adaptation"],
                         },
                       },
                     },
-                    required: ["description", "objective", "summary", "short_instruction", "tutorial_steps", "voice_commands", "body_positioning", "troubleshooting", "validation_protocol", "mistakes", "precautions", "success_criteria", "stop_criteria", "vigilance", "adaptations"],
+                    required: ["description", "summary", "short_instruction", "tutorial_steps", "voice_commands", "body_positioning", "troubleshooting", "validation_protocol", "mistakes", "precautions", "success_criteria", "stop_criteria", "vigilance", "adaptations"],
                     additionalProperties: false,
                   },
                 },
@@ -224,10 +306,10 @@ CONSIGNES ABSOLUES DE RÉDACTION — CHAQUE FICHE DOIT ÊTRE UN GUIDE COMPLET :
           const errText = await response.text();
           if (response.status === 429) {
             results.push({ id: exercise.id, name: exercise.name, success: false, error: "Rate limited" });
-            await new Promise(r => setTimeout(r, 30000));
+            await new Promise(r => setTimeout(r, 15000));
             continue;
           }
-          throw new Error(`AI error ${response.status}: ${errText}`);
+          throw new Error(`AI error ${response.status}: ${errText.substring(0, 200)}`);
         }
 
         const aiResult = await response.json();
@@ -238,7 +320,6 @@ CONSIGNES ABSOLUES DE RÉDACTION — CHAQUE FICHE DOIT ÊTRE UN GUIDE COMPLET :
 
         const { error: updateError } = await supabase.from("exercises").update({
           description: enriched.description,
-          objective: enriched.objective,
           summary: enriched.summary,
           short_instruction: enriched.short_instruction,
           tutorial_steps: enriched.tutorial_steps,
@@ -257,8 +338,9 @@ CONSIGNES ABSOLUES DE RÉDACTION — CHAQUE FICHE DOIT ÊTRE UN GUIDE COMPLET :
         if (updateError) throw updateError;
         results.push({ id: exercise.id, name: exercise.name, success: true });
 
+        // Throttle between exercises
         if (exercises.indexOf(exercise) < exercises.length - 1) {
-          await new Promise(r => setTimeout(r, 1500));
+          await new Promise(r => setTimeout(r, 2000));
         }
       } catch (err: any) {
         results.push({ id: exercise.id, name: exercise.name, success: false, error: err.message });
