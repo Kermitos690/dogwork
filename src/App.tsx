@@ -207,6 +207,7 @@ function ProtectedRoutes() {
           <Route path="/shelter/coaches" element={<ShelterGuard><ShelterCoaches /></ShelterGuard>} />
           <Route path="/shelter/adoption-checkins" element={<ShelterGuard><ShelterAdoptionCheckins /></ShelterGuard>} />
           <Route path="/shelter/adoption-plans" element={<ShelterGuard><ShelterAdoptionPlans /></ShelterGuard>} />
+          <Route path="/shelter/support" element={<ShelterGuard><SupportTickets /></ShelterGuard>} />
           {/* Owner / common routes accessible to shelter users too */}
           <Route path="/" element={<Dashboard />} />
           <Route path="/onboarding" element={<Onboarding />} />
@@ -290,6 +291,7 @@ function ProtectedRoutes() {
         <Route path="/coach/courses" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachCourses /></CoachGuard></Suspense>} />
         <Route path="/coach/calendar" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachCalendar /></CoachGuard></Suspense>} />
         <Route path="/coach/subscription" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachSubscription /></CoachGuard></Suspense>} />
+        <Route path="/coach/support" element={<Suspense fallback={<PageLoader />}><CoachGuard><SupportTickets /></CoachGuard></Suspense>} />
         <Route path="/coach/shelter-animals" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachShelterAnimals /></CoachGuard></Suspense>} />
         <Route path="/coach/shelter-animal/:animalId" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachShelterAnimalEval /></CoachGuard></Suspense>} />
         

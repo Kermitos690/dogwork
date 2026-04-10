@@ -134,6 +134,7 @@ export function SlideMenu() {
         { label: t("nav.preferences"), icon: Settings, path: "/preferences" },
         { label: t("nav.subscription"), icon: CreditCard, path: "/subscription" },
         { label: t("nav.help"), icon: HelpCircle, path: "/help" },
+        { label: "Support", icon: MessageSquare, path: "/support" },
       ],
     },
   ];
