@@ -2936,6 +2936,7 @@ export type Database = {
         Returns: boolean
       }
       ensure_ai_wallet: { Args: { _user_id: string }; Returns: string }
+      fix_exercise_json_encoding: { Args: never; Returns: Json }
       get_ai_balance: { Args: { _user_id: string }; Returns: number }
       get_coach_profile_safe: {
         Args: { target_user_id: string }
