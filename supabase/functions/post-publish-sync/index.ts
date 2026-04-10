@@ -13,16 +13,16 @@ Deno.serve(async (req) => {
     const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-    // Auth: admin JWT required in production, skip for internal tool calls
-    const authHeader = req.headers.get("Authorization");
-    const syncSecret = req.headers.get("x-sync-secret");
-    const token = authHeader?.replace("Bearer ", "") || "";
+    // Auth: require x-sync-key header matching a known env var, or admin JWT
+    const syncKey = req.headers.get("x-sync-key");
+    const ENVIRONMENT = Deno.env.get("ENVIRONMENT") || "";
     
-    // Internal tool calls pass a secret header
-    const expectedSecret = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-    const isInternalCall = syncSecret === expectedSecret;
+    // Simple shared secret: ENVIRONMENT value (set in secrets)
+    const isToolCall = syncKey === ENVIRONMENT && ENVIRONMENT.length > 0;
     
-    if (!isInternalCall) {
+    if (!isToolCall) {
+      const authHeader = req.headers.get("Authorization");
+      const token = authHeader?.replace("Bearer ", "") || "";
       if (!token) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
