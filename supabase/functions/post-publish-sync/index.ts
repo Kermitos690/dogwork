@@ -13,18 +13,16 @@ Deno.serve(async (req) => {
     const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-    // Auth: admin JWT, service_role key, or internal sync key
+    // Auth: admin JWT required in production, skip for internal tool calls
     const authHeader = req.headers.get("Authorization");
+    const syncSecret = req.headers.get("x-sync-secret");
     const token = authHeader?.replace("Bearer ", "") || "";
     
-    // Check if it's the service_role key
-    const isServiceRole = token === SERVICE_ROLE_KEY;
+    // Internal tool calls pass a secret header
+    const expectedSecret = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const isInternalCall = syncSecret === expectedSecret;
     
-    // Check if called internally (anon key used by curl_edge_functions)
-    const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || "";
-    const isInternalCall = token === ANON_KEY;
-    
-    if (!isServiceRole && !isInternalCall) {
+    if (!isInternalCall) {
       if (!token) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
