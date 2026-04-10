@@ -2457,29 +2457,44 @@ export type Database = {
       }
       stripe_customers: {
         Row: {
+          cancel_at_period_end: boolean | null
           created_at: string
+          current_period_end: string | null
           current_tier: string
           email: string | null
           id: string
           stripe_customer_id: string
+          stripe_price_id: string | null
+          stripe_subscription_id: string | null
+          subscription_status: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          cancel_at_period_end?: boolean | null
           created_at?: string
+          current_period_end?: string | null
           current_tier?: string
           email?: string | null
           id?: string
           stripe_customer_id: string
+          stripe_price_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          cancel_at_period_end?: boolean | null
           created_at?: string
+          current_period_end?: string | null
           current_tier?: string
           email?: string | null
           id?: string
           stripe_customer_id?: string
+          stripe_price_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
           updated_at?: string
           user_id?: string
         }

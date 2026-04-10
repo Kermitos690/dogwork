@@ -32,11 +32,21 @@ export default function Subscription() {
   useEffect(() => {
     if (searchParams.get("success") === "true") {
       toast({ title: "Abonnement activé ! 🎉", description: "Bienvenue dans votre nouveau plan." });
-      checkSubscription();
+      // Retry subscription check multiple times - Stripe may take a moment to finalize
+      let attempts = 0;
+      const maxAttempts = 5;
+      const retryCheck = async () => {
+        await checkSubscription();
+        attempts++;
+        if (attempts < maxAttempts && !subscribed) {
+          setTimeout(retryCheck, 2000);
+        }
+      };
+      retryCheck();
     } else if (searchParams.get("canceled") === "true") {
       toast({ title: "Paiement annulé", description: "Aucun changement n'a été effectué.", variant: "destructive" });
     }
-  }, [searchParams, checkSubscription]);
+  }, [searchParams]);
 
   const handleCheckout = async (tierKey: TierKey) => {
     const plan = PLANS[tierKey];
