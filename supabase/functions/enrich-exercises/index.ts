@@ -54,8 +54,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const body = await req.json().catch(() => ({}));
-    const mode = body.mode || "enrich"; // "enrich" | "fix-json" | "stats"
+    // mode already parsed above
 
     // ─── MODE: fix-json ───
     if (mode === "fix-json") {
