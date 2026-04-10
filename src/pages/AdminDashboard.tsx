@@ -54,8 +54,6 @@ export default function AdminDashboard() {
   const [generatingImages, setGeneratingImages] = useState(false);
   const [imageProgress, setImageProgress] = useState<{ total: number; success: number; failed: number; pending: number; processing: number; done: boolean } | null>(null);
   const [syncing, setSyncing] = useState(false);
-  const [pipelineRunning, setPipelineRunning] = useState(false);
-  const [pipelineReport, setPipelineReport] = useState<any>(null);
 
   const { data: isAdmin, isLoading: adminLoading } = useQuery({
     queryKey: ["is_admin", user?.id],
@@ -497,69 +495,6 @@ export default function AdminDashboard() {
                 >
                   <Trash2 className="h-4 w-4" /> Nettoyer comptes test/doublons
                 </Button>
-              </CardContent>
-            </Card>
-
-            {/* Post-Publish Sync Pipeline */}
-            <Card className="border-primary/30">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2"><Rocket className="h-4 w-4 text-primary" /> Pipeline post-publish</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-xs text-muted-foreground">
-                  Aligne automatiquement la config, les exercices enrichis et l'économie IA après un publish. Exclut strictement les données transactionnelles.
-                </p>
-                <Button
-                  onClick={async () => {
-                    setPipelineRunning(true);
-                    setPipelineReport(null);
-                    try {
-                      const { data: { session } } = await supabase.auth.getSession();
-                      if (!session?.access_token) throw new Error("Session expirée");
-                      const { data, error } = await supabase.functions.invoke("post-publish-sync", {
-                        headers: { Authorization: `Bearer ${session.access_token}` },
-                      });
-                      if (error) throw error;
-                      if (data?.error) throw new Error(data.error);
-                      setPipelineReport(data);
-                      toast({
-                        title: data.overall_status === "success" ? "Pipeline terminé ✅" : "Pipeline terminé ⚠️",
-                        description: `${(data.steps || []).filter((s: any) => s.status === "ok").length}/${(data.steps || []).length} étapes réussies`,
-                      });
-                    } catch (err: any) {
-                      toast({ title: "Erreur pipeline", description: err.message, variant: "destructive" });
-                    }
-                    setPipelineRunning(false);
-                  }}
-                  disabled={pipelineRunning} className="w-full gap-2" size="sm"
-                >
-                  <Rocket className="h-4 w-4" /> {pipelineRunning ? "Synchronisation en cours..." : "Lancer le pipeline post-publish"}
-                </Button>
-                {pipelineReport && (
-                  <div className="space-y-2 mt-2">
-                    <div className="flex items-center gap-2">
-                      <Badge className={pipelineReport.overall_status === "success" ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"}>
-                        {pipelineReport.overall_status === "success" ? "✅ Succès" : "⚠️ Avec alertes"}
-                      </Badge>
-                      <span className="text-[10px] text-muted-foreground">{pipelineReport.completed_at?.slice(11, 19)}</span>
-                    </div>
-                    {(pipelineReport.steps || []).map((step: any, i: number) => (
-                      <div key={i} className="p-2 rounded-lg bg-secondary/30 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium text-foreground">{step.name}</span>
-                          <Badge className={`text-[9px] border-0 ${step.status === "ok" ? "bg-emerald-500/20 text-emerald-400" : step.status === "skipped" ? "bg-muted text-muted-foreground" : step.status === "warnings" ? "bg-amber-500/20 text-amber-400" : "bg-destructive/20 text-destructive"}`}>
-                            {step.status}
-                          </Badge>
-                        </div>
-                        {step.detail && (
-                          <pre className="text-[9px] text-muted-foreground overflow-auto max-h-32 whitespace-pre-wrap">
-                            {typeof step.detail === "string" ? step.detail : JSON.stringify(step.detail, null, 2)}
-                          </pre>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
               </CardContent>
             </Card>
 
