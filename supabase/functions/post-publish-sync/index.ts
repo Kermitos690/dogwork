@@ -31,11 +31,16 @@ Deno.serve(async (req) => {
     // ─── STEP 1: Upsert ai_pricing_config ───
     try {
       const configRows = [
-        { key: "chf_per_credit", value: 0.10, label: "Prix public par crédit (CHF)", description: "Prix facturé à l'utilisateur par crédit consommé" },
-        { key: "usd_per_credit_cost", value: 0.005, label: "Coût moyen fournisseur par crédit (USD)", description: "Coût moyen payé au fournisseur IA par crédit consommé" },
-        { key: "target_margin_percent", value: 90, label: "Marge cible (%)", description: "Objectif de marge brute sur les crédits IA" },
-        { key: "welcome_bonus_credits", value: 10, label: "Bonus de bienvenue (crédits)", description: "Crédits offerts à la création du wallet" },
-        { key: "chf_usd_rate", value: 0.92, label: "Taux CHF/USD", description: "Taux de change utilisé pour les calculs de marge" },
+        { key: "chf_per_credit", value: 0.05, label: "Prix par crédit (CHF)", description: "Taux de conversion crédit → CHF pour la facturation" },
+        { key: "credit_value_chf", value: 0.05, label: "Valeur 1 crédit (CHF)", description: "Prix de vente public d'un crédit en CHF" },
+        { key: "usd_to_chf", value: 0.88, label: "Taux USD → CHF", description: "Taux de conversion dollar vers franc suisse" },
+        { key: "usd_eur_rate", value: 0.92, label: "Taux USD/EUR", description: "Taux de change pour calcul de rentabilité" },
+        { key: "margin_standard", value: 3.5, label: "Marge standard", description: "Coefficient multiplicateur standard" },
+        { key: "margin_prudent", value: 2.5, label: "Marge prudente", description: "Coefficient multiplicateur prudent" },
+        { key: "margin_aggressive", value: 5.0, label: "Marge agressive", description: "Coefficient multiplicateur agressif" },
+        { key: "safety_buffer", value: 1.2, label: "Buffer de sécurité", description: "Majoration de sécurité sur le coût estimé" },
+        { key: "min_credits_per_action", value: 1, label: "Minimum par action", description: "Nombre minimum de crédits par action IA" },
+        { key: "welcome_bonus_credits", value: 10, label: "Bonus bienvenue", description: "Crédits offerts à l'inscription" },
       ];
       for (const row of configRows) {
         await supabase.from("ai_pricing_config").upsert(row, { onConflict: "key" });
@@ -48,9 +53,9 @@ Deno.serve(async (req) => {
     // ─── STEP 2: Upsert ai_credit_packs economics ───
     try {
       const packs = [
-        { slug: "starter", cost_estimate_usd: 0.25, margin_estimate: 95.0 },
-        { slug: "popular", cost_estimate_usd: 1.00, margin_estimate: 93.3 },
-        { slug: "pro", cost_estimate_usd: 2.50, margin_estimate: 92.1 },
+        { slug: "decouverte", cost_estimate_usd: 0.2614, margin_estimate: 95.30 },
+        { slug: "standard", cost_estimate_usd: 0.4902, margin_estimate: 93.70 },
+        { slug: "premium", cost_estimate_usd: 1.6340, margin_estimate: 92.80 },
       ];
       let updated = 0;
       for (const p of packs) {
@@ -68,9 +73,11 @@ Deno.serve(async (req) => {
     // ─── STEP 3: Upsert ai_plan_quotas ───
     try {
       const quotas = [
-        { plan_slug: "starter", monthly_credits: 0, discount_percent: 0 },
+        { plan_slug: "starter", monthly_credits: 5, discount_percent: 0 },
         { plan_slug: "pro", monthly_credits: 30, discount_percent: 10 },
         { plan_slug: "expert", monthly_credits: 100, discount_percent: 20 },
+        { plan_slug: "educator", monthly_credits: 200, discount_percent: 25 },
+        { plan_slug: "shelter", monthly_credits: 150, discount_percent: 20 },
       ];
       for (const q of quotas) {
         await supabase.from("ai_plan_quotas").upsert(q, { onConflict: "plan_slug" });
