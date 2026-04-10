@@ -75,7 +75,7 @@ export default function ShelterAnimalDetail() {
         .eq("shelter_user_id", user!.id)
         .eq("is_active", true)
         .order("name");
-      return data ?? [];
+      return (data as any[]) ?? [];
     },
     enabled: !!user,
   });
