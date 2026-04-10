@@ -55,7 +55,19 @@ export function useShelterEmployeeInfo() {
         .eq("auth_user_id", user.id)
         .eq("is_active", true)
         .maybeSingle();
-      return data;
+      return data as {
+        id: string;
+        name: string;
+        role: string;
+        job_title: string | null;
+        email: string | null;
+        phone: string | null;
+        shelter_user_id: string;
+        auth_user_id: string;
+        is_active: boolean;
+        created_at: string;
+        updated_at: string;
+      } | null;
     },
     enabled: !!user,
   });
