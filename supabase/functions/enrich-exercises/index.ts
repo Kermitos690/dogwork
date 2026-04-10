@@ -7,30 +7,30 @@ const corsHeaders = {
 
 async function verifyAdmin(supabase: any, req: Request): Promise<boolean> {
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader) return false;
-  const token = authHeader.replace("Bearer ", "").trim();
+  const apiKeyHeader = req.headers.get("apikey");
   
-  // Check if it's a service role key (for automated/internal calls)
+  if (!authHeader && !apiKeyHeader) return false;
+  
+  const token = authHeader ? authHeader.replace("Bearer ", "").trim() : "";
+  
+  // Check if it's a service role key
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (serviceRoleKey && token === serviceRoleKey) return true;
+  if (serviceRoleKey && (token === serviceRoleKey || apiKeyHeader === serviceRoleKey)) return true;
   
-  // Check if it matches the anon key (for curl_edge_functions tool calls)
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
-  if (anonKey && token === anonKey) {
-    // Internal tool call - treat as admin for maintenance operations
-    return true;
+  // For any valid token, try JWT auth
+  if (token) {
+    try {
+      const { data: userData } = await supabase.auth.getUser(token);
+      const userId = userData?.user?.id;
+      if (!userId) return false;
+      const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+      return !!isAdmin;
+    } catch {
+      return false;
+    }
   }
   
-  // Otherwise verify JWT
-  try {
-    const { data: userData } = await supabase.auth.getUser(token);
-    const userId = userData?.user?.id;
-    if (!userId) return false;
-    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
-    return !!isAdmin;
-  } catch {
-    return false;
-  }
+  return false;
 }
 
 Deno.serve(async (req) => {
