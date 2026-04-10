@@ -180,6 +180,7 @@ function ProtectedRoutes() {
           <Route path="/employee/animals/:animalId" element={<EmployeeGuard><EmployeeAnimalDetail /></EmployeeGuard>} />
           <Route path="/employee/activity" element={<EmployeeGuard><EmployeeActivity /></EmployeeGuard>} />
           <Route path="/employee/profile" element={<EmployeeGuard><EmployeeProfile /></EmployeeGuard>} />
+          <Route path="/employee/support" element={<EmployeeGuard><SupportTickets /></EmployeeGuard>} />
           <Route path="*" element={<Navigate to="/employee" replace />} />
         </Routes>
       </Suspense>
