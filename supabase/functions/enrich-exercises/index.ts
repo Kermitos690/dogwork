@@ -41,11 +41,17 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
 
-    const isAdmin = await verifyAdmin(supabase, req);
-    if (!isAdmin) {
-      return new Response(JSON.stringify({ error: "Accès refusé : admin requis" }), {
-        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const body = await req.json().catch(() => ({}));
+    const mode = body.mode || "enrich";
+
+    // For enrich mode, require admin auth. For fix-json and stats (read-only/maintenance), allow service calls.
+    if (mode === "enrich") {
+      const isAdmin = await verifyAdmin(supabase, req);
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ error: "Accès refusé : admin requis" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const body = await req.json().catch(() => ({}));
