@@ -235,6 +235,18 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
+        {/* Quick nav to Stripe admin */}
+        <Card className="cursor-pointer hover:bg-muted/40 transition" onClick={() => navigate("/admin/stripe")}>
+          <CardContent className="p-3 flex items-center gap-3">
+            <CreditCard className="h-5 w-5 text-primary shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground">Stripe Admin</p>
+              <p className="text-[10px] text-muted-foreground">Abonnements, paiements, remboursements, logs webhook</p>
+            </div>
+            <ArrowLeft className="h-4 w-4 text-muted-foreground rotate-180" />
+          </CardContent>
+        </Card>
+
         {/* Main admin tabs */}
         <Tabs defaultValue="users" className="w-full">
           <TabsList className="w-full grid grid-cols-4 h-10">
