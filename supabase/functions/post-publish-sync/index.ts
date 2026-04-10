@@ -114,25 +114,67 @@ Deno.serve(async (req) => {
     report.steps.push({ step: "upsert_plan_quotas", count: quotas.length, error: quotaErr?.message || null });
 
     // ─── STEP 5: Sync exercises from catalog (if exists) ───
-    const catalogUrl = `${SUPABASE_URL}/storage/v1/object/public/exercise-images/data/exercise-catalog.json`;
+    // Try multiple known paths for the catalog
+    const catalogPaths = [
+      "catalog/enriched-catalog.json",
+      "data/exercise-catalog.json",
+    ];
     let exerciseSync: any = { catalog_exists: false };
     try {
-      const catalogRes = await fetch(catalogUrl);
-      if (catalogRes.ok) {
-        const catalog = await catalogRes.json();
+      let catalog: any = null;
+      for (const path of catalogPaths) {
+        const url = `${SUPABASE_URL}/storage/v1/object/public/exercise-images/${path}`;
+        const res = await fetch(url);
+        if (res.ok) {
+          catalog = await res.json();
+          exerciseSync.catalog_path = path;
+          break;
+        }
+      }
+
+      if (catalog) {
         exerciseSync.catalog_exists = true;
         exerciseSync.categories_count = catalog.categories?.length || 0;
         exerciseSync.exercises_count = catalog.exercises?.length || 0;
 
-        const { data: syncResult, error: syncErr } = await supabase.rpc("sync_exercises_from_catalog_data", { _catalog: catalog });
-        if (syncErr) {
-          exerciseSync.sync_error = syncErr.message;
-        } else {
-          exerciseSync.sync_result = syncResult;
+        // Process in batches of 30 to avoid timeouts
+        const BATCH_SIZE = 30;
+        const exercises = catalog.exercises || [];
+        let totalUpdated = 0;
+        let totalFailed = 0;
+        const batchResults: any[] = [];
+
+        // First batch includes categories
+        for (let i = 0; i < exercises.length; i += BATCH_SIZE) {
+          const batch = exercises.slice(i, i + BATCH_SIZE);
+          const batchCatalog = {
+            categories: i === 0 ? (catalog.categories || []) : [],
+            exercises: batch,
+          };
+
+          const { data: syncResult, error: syncErr } = await supabase.rpc(
+            "sync_exercises_from_catalog_data",
+            { _catalog: batchCatalog }
+          );
+
+          if (syncErr) {
+            batchResults.push({ batch: i / BATCH_SIZE, error: syncErr.message });
+            totalFailed += batch.length;
+          } else {
+            totalUpdated += syncResult?.exercises_updated || 0;
+            totalFailed += syncResult?.exercises_failed || 0;
+            batchResults.push({ batch: i / BATCH_SIZE, ...syncResult });
+          }
         }
+
+        exerciseSync.sync_result = {
+          total_updated: totalUpdated,
+          total_failed: totalFailed,
+          batches: batchResults.length,
+          categories_synced: batchResults[0]?.categories_synced || 0,
+        };
       } else {
-        exerciseSync.catalog_status = catalogRes.status;
-        exerciseSync.note = "Catalog JSON not found in storage. Exercise enrichment sync skipped.";
+        exerciseSync.note = "Catalog JSON not found in storage. Tried paths: " + catalogPaths.join(", ");
       }
     } catch (e: unknown) {
       exerciseSync.error = e instanceof Error ? e.message : "Unknown error";
