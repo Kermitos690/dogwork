@@ -2838,10 +2838,12 @@ export type Database = {
         Row: {
           auth_user_id: string | null
           created_at: string | null
+          email: string | null
           id: string | null
           is_active: boolean | null
           job_title: string | null
           name: string | null
+          phone: string | null
           role: string | null
           shelter_user_id: string | null
           updated_at: string | null
@@ -2849,10 +2851,12 @@ export type Database = {
         Insert: {
           auth_user_id?: string | null
           created_at?: string | null
+          email?: string | null
           id?: string | null
           is_active?: boolean | null
           job_title?: string | null
           name?: string | null
+          phone?: string | null
           role?: string | null
           shelter_user_id?: string | null
           updated_at?: string | null
@@ -2860,10 +2864,12 @@ export type Database = {
         Update: {
           auth_user_id?: string | null
           created_at?: string | null
+          email?: string | null
           id?: string | null
           is_active?: boolean | null
           job_title?: string | null
           name?: string | null
+          phone?: string | null
           role?: string | null
           shelter_user_id?: string | null
           updated_at?: string | null
@@ -3053,6 +3059,10 @@ export type Database = {
       }
       tier_meets_minimum: {
         Args: { _min_tier: string; _user_tier: string }
+        Returns: boolean
+      }
+      verify_employee_pin: {
+        Args: { _employee_id: string; _pin: string }
         Returns: boolean
       }
     }
