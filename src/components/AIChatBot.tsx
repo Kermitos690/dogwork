@@ -108,6 +108,15 @@ async function streamChatWithCredits({
 }
 
 export function AIChatBot() {
+  try {
+    return <AIChatBotSafe />;
+  } catch {
+    // Gracefully handle missing context during lazy-load race
+    return null;
+  }
+}
+
+function AIChatBotSafe() {
   const { preferences } = usePreferences();
   if (preferences.hide_chatbot) return null;
 
