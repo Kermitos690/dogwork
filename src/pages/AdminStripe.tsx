@@ -96,7 +96,38 @@ export default function AdminStripe() {
     queryFn: () => callAdminStripe("compare_status"),
   });
 
-  const handleResync = async (userId: string) => {
+  const { data: connectData, isLoading: loadingConnect } = useQuery({
+    queryKey: ["admin-stripe", "connect"],
+    queryFn: () => callConnectDashboard("list_accounts"),
+  });
+
+  const { data: transfers, isLoading: loadingTransfers } = useQuery({
+    queryKey: ["admin-stripe", "transfers"],
+    queryFn: () => callConnectDashboard("platform_transfers"),
+  });
+
+  const handleLoginLink = async (educatorUserId: string) => {
+    setConnectLoading(educatorUserId);
+    try {
+      const result = await callConnectDashboard("create_login_link", { educator_user_id: educatorUserId });
+      if (result.url) {
+        window.open(result.url, "_blank");
+        if (result.onboarding_incomplete) {
+          toast.info("Onboarding Stripe incomplet — lien de finalisation ouvert.");
+        }
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Erreur");
+    }
+    setConnectLoading(null);
+  };
+
+  const fmtBalance = (balArr: any[]) => {
+    if (!balArr?.length) return "0.00 CHF";
+    return balArr.map((b: any) => `${(b.amount / 100).toFixed(2)} ${b.currency.toUpperCase()}`).join(", ");
+  };
+
+
     try {
       const result = await callAdminStripe("resync_user", { user_id: userId });
       toast.success(`Resync OK: tier = ${result.tier}`);
