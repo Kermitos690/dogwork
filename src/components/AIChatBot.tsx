@@ -107,13 +107,18 @@ async function streamChatWithCredits({
   onDone();
 }
 
+class AIChatBotBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() { return this.state.hasError ? null : this.props.children; }
+}
+
 export function AIChatBot() {
-  try {
-    return <AIChatBotSafe />;
-  } catch {
-    // Gracefully handle missing context during lazy-load race
-    return null;
-  }
+  return (
+    <AIChatBotBoundary>
+      <AIChatBotSafe />
+    </AIChatBotBoundary>
+  );
 }
 
 function AIChatBotSafe() {
