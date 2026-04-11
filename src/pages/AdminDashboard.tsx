@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AdminCourseReview } from "@/components/AdminCourseReview";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -263,60 +264,7 @@ export default function AdminDashboard() {
 
           {/* COURSES TAB */}
           <TabsContent value="courses" className="space-y-3 mt-3">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Eye className="h-4 w-4" /> À valider ({pendingCourses.filter((c: any) => c.approval_status === "pending").length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {pendingCourses.filter((c: any) => c.approval_status === "pending").length === 0 && (
-                  <p className="text-xs text-muted-foreground">Aucun cours en attente.</p>
-                )}
-                {pendingCourses.filter((c: any) => c.approval_status === "pending").map((course: any) => (
-                  <div key={course.id} className="p-3 rounded-lg bg-secondary/30 space-y-2">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{course.title}</p>
-                      <p className="text-[10px] text-muted-foreground">{(course.price_cents / 100).toFixed(0)} CHF — {course.category} — {course.duration_minutes} min</p>
-                      {course.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{course.description}</p>}
-                    </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" className="flex-1 gap-1" onClick={() => handleApproval(course.id, "approved")}>
-                        <Check className="h-3 w-3" /> Approuver
-                      </Button>
-                      <Button size="sm" variant="destructive" className="flex-1 gap-1" onClick={() => handleApproval(course.id, "rejected")}>
-                        <X className="h-3 w-3" /> Refuser
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-            <Collapsible>
-              <Card>
-                <CollapsibleTrigger className="w-full">
-                  <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                    <CardTitle className="text-sm">Tous les cours ({pendingCourses.length})</CardTitle>
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <CardContent className="space-y-1.5 pt-0">
-                    {pendingCourses.map((course: any) => (
-                      <div key={course.id} className="flex items-center justify-between p-2 rounded-lg bg-secondary/30">
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{course.title}</p>
-                          <p className="text-[10px] text-muted-foreground">{(course.price_cents / 100).toFixed(0)} CHF</p>
-                        </div>
-                        <Badge className={`text-[9px] border-0 ${course.approval_status === "approved" ? "bg-emerald-500/20 text-emerald-400" : course.approval_status === "pending" ? "bg-amber-500/20 text-amber-400" : "bg-destructive/20 text-destructive"}`}>
-                          {course.approval_status === "approved" ? "Approuvé" : course.approval_status === "pending" ? "En attente" : "Refusé"}
-                        </Badge>
-                      </div>
-                    ))}
-                  </CardContent>
-                </CollapsibleContent>
-              </Card>
-            </Collapsible>
+            <AdminCourseReview />
           </TabsContent>
 
           {/* TOOLS TAB */}
