@@ -138,52 +138,84 @@ async function loadDogContexts(
   userId: string,
   dogIds: string[],
   userRoles: string[],
+  shelterAnimalMatches?: any[],
 ): Promise<DogContext[]> {
-  if (dogIds.length === 0) return [];
-
-  // Build query based on role — coaches see client dogs via client_links
-  let dogsQuery;
-  if (userRoles.includes("educator")) {
-    // Educator: own dogs + client dogs
-    dogsQuery = admin
-      .from("dogs")
-      .select("*")
-      .in("id", dogIds);
-  } else if (userRoles.includes("shelter")) {
-    // Shelter animals handled separately
-    dogsQuery = admin
-      .from("dogs")
-      .select("*")
-      .in("id", dogIds);
-  } else {
-    // Regular user: own dogs only
-    dogsQuery = admin
-      .from("dogs")
-      .select("*")
-      .in("id", dogIds)
-      .eq("user_id", userId);
-  }
-
-  const { data: dogs } = await dogsQuery;
-  if (!dogs || dogs.length === 0) return [];
+  if (dogIds.length === 0 && (!shelterAnimalMatches || shelterAnimalMatches.length === 0)) return [];
 
   const contexts: DogContext[] = [];
 
-  for (const dog of dogs) {
-    const [evalRes, probRes, objRes, logRes] = await Promise.all([
-      admin.from("dog_evaluations").select("*").eq("dog_id", dog.id).order("created_at", { ascending: false }).limit(1),
-      admin.from("dog_problems").select("*").eq("dog_id", dog.id),
-      admin.from("dog_objectives").select("*").eq("dog_id", dog.id),
-      admin.from("behavior_logs").select("*").eq("dog_id", dog.id).order("created_at", { ascending: false }).limit(5),
-    ]);
+  // Load regular dogs
+  if (dogIds.length > 0) {
+    let dogsQuery;
+    if (userRoles.includes("educator") || userRoles.includes("admin")) {
+      dogsQuery = admin.from("dogs").select("*").in("id", dogIds);
+    } else if (userRoles.includes("shelter")) {
+      dogsQuery = admin.from("dogs").select("*").in("id", dogIds);
+    } else {
+      dogsQuery = admin.from("dogs").select("*").in("id", dogIds).eq("user_id", userId);
+    }
 
-    contexts.push({
-      dog,
-      evaluation: evalRes.data?.[0] || undefined,
-      problems: probRes.data || [],
-      objectives: objRes.data || [],
-      behaviorLogs: logRes.data || [],
-    });
+    const { data: dogs } = await dogsQuery;
+    
+    for (const dog of (dogs || [])) {
+      const [evalRes, probRes, objRes, logRes] = await Promise.all([
+        admin.from("dog_evaluations").select("*").eq("dog_id", dog.id).order("created_at", { ascending: false }).limit(1),
+        admin.from("dog_problems").select("*").eq("dog_id", dog.id),
+        admin.from("dog_objectives").select("*").eq("dog_id", dog.id),
+        admin.from("behavior_logs").select("*").eq("dog_id", dog.id).order("created_at", { ascending: false }).limit(5),
+      ]);
+
+      contexts.push({
+        dog,
+        evaluation: evalRes.data?.[0] || undefined,
+        problems: probRes.data || [],
+        objectives: objRes.data || [],
+        behaviorLogs: logRes.data || [],
+      });
+    }
+  }
+
+  // Load shelter animals (they have different schema)
+  if (shelterAnimalMatches && shelterAnimalMatches.length > 0) {
+    for (const sa of shelterAnimalMatches) {
+      // Load evaluations and observations for shelter animals
+      const [evalRes, obsRes] = await Promise.all([
+        admin.from("shelter_animal_evaluations").select("*").eq("animal_id", sa.id).order("created_at", { ascending: false }).limit(1),
+        admin.from("shelter_observations").select("*").eq("animal_id", sa.id).order("created_at", { ascending: false }).limit(5),
+      ]);
+
+      // Map shelter animal to dog-like structure for the prompt
+      const dogLike = {
+        name: sa.name,
+        breed: sa.breed || "inconnue",
+        sex: sa.sex,
+        birth_date: null,
+        weight_kg: sa.weight_kg,
+        is_mixed: false,
+        is_neutered: sa.is_sterilized,
+        health_notes: sa.health_notes,
+        _shelter_info: {
+          species: sa.species,
+          status: sa.status,
+          estimated_age: sa.estimated_age,
+          arrival_date: sa.arrival_date,
+          behavior_notes: sa.behavior_notes,
+          description: sa.description,
+        },
+      };
+
+      contexts.push({
+        dog: dogLike,
+        evaluation: evalRes.data?.[0] || undefined,
+        problems: [],
+        objectives: [],
+        behaviorLogs: (obsRes.data || []).map((o: any) => ({
+          day_id: 0,
+          comments: `[${o.observation_type}] ${o.content}`,
+          created_at: o.observation_date,
+        })),
+      });
+    }
   }
 
   return contexts;
