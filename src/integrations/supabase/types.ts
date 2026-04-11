@@ -1439,6 +1439,39 @@ export type Database = {
         }
         Relationships: []
       }
+      educator_commercial_rules: {
+        Row: {
+          annual_fee_chf: number
+          created_at: string
+          id: string
+          is_active: boolean
+          management_fee_percent: number
+          refuge_referral_discount_percent: number
+          stripe_coupon_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          annual_fee_chf?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          management_fee_percent?: number
+          refuge_referral_discount_percent?: number
+          stripe_coupon_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          annual_fee_chf?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          management_fee_percent?: number
+          refuge_referral_discount_percent?: number
+          stripe_coupon_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       exercise_categories: {
         Row: {
           color: string | null
@@ -2497,6 +2530,89 @@ export type Database = {
           subscription_status?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      subscription_plan_prices: {
+        Row: {
+          billing_period: string
+          created_at: string
+          id: string
+          is_public: boolean
+          notes: string | null
+          plan_code: string
+          price_chf: number | null
+          stripe_price_id: string | null
+          stripe_product_id: string | null
+        }
+        Insert: {
+          billing_period: string
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          notes?: string | null
+          plan_code: string
+          price_chf?: number | null
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+        }
+        Update: {
+          billing_period?: string
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          notes?: string | null
+          plan_code?: string
+          price_chf?: number | null
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_plan_prices_plan_code_fkey"
+            columns: ["plan_code"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      subscription_plans: {
+        Row: {
+          base_exercise_limit: number | null
+          code: string
+          created_at: string
+          includes_28_day_plans: boolean
+          includes_base_exercises: boolean
+          is_active: boolean
+          max_dogs: number
+          monthly_ai_credits: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          base_exercise_limit?: number | null
+          code: string
+          created_at?: string
+          includes_28_day_plans?: boolean
+          includes_base_exercises?: boolean
+          is_active?: boolean
+          max_dogs?: number
+          monthly_ai_credits?: number
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          base_exercise_limit?: number | null
+          code?: string
+          created_at?: string
+          includes_28_day_plans?: boolean
+          includes_base_exercises?: boolean
+          is_active?: boolean
+          max_dogs?: number
+          monthly_ai_credits?: number
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }
