@@ -8,9 +8,12 @@ import {
   Container,
   Head,
   Heading,
+  Hr,
   Html,
+  Img,
   Link,
   Preview,
+  Section,
   Text,
 } from 'npm:@react-email/components@0.0.22'
 
@@ -20,31 +23,58 @@ interface InviteEmailProps {
   confirmationUrl: string
 }
 
+const LOGO_URL = 'https://dcwbqsfeouvghcnvhrpj.supabase.co/storage/v1/object/public/email-assets/logo-dogwork.png'
+
 export const InviteEmail = ({
   siteName,
   siteUrl,
   confirmationUrl,
 }: InviteEmailProps) => (
-  <Html lang="en" dir="ltr">
+  <Html lang="fr" dir="ltr">
     <Head />
-    <Preview>You've been invited to join {siteName}</Preview>
+    <Preview>Vous êtes invité(e) – You've been invited | DogWork</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>You've been invited</Heading>
+        <Section style={logoSection}>
+          <Img src={LOGO_URL} width="160" height="auto" alt="DogWork" style={logo} />
+        </Section>
+
+        <Heading style={h1}>Vous êtes invité(e) sur DogWork</Heading>
+        <Text style={text}>
+          Vous avez été invité(e) à rejoindre{' '}
+          <Link href={siteUrl} style={link}><strong>{siteName}</strong></Link>.
+          Cliquez sur le bouton ci-dessous pour accepter l'invitation et créer votre compte.
+        </Text>
+        <Section style={buttonSection}>
+          <Button style={button} href={confirmationUrl}>
+            Accepter l'invitation
+          </Button>
+        </Section>
+
+        <Hr style={divider} />
+
+        <Heading style={h2}>You've been invited to DogWork</Heading>
         <Text style={text}>
           You've been invited to join{' '}
-          <Link href={siteUrl} style={link}>
-            <strong>{siteName}</strong>
-          </Link>
-          . Click the button below to accept the invitation and create your
-          account.
+          <Link href={siteUrl} style={link}><strong>{siteName}</strong></Link>.
+          Click the button below to accept the invitation and create your account.
         </Text>
-        <Button style={button} href={confirmationUrl}>
-          Accept Invitation
-        </Button>
+        <Section style={buttonSection}>
+          <Button style={buttonSecondary} href={confirmationUrl}>
+            Accept invitation
+          </Button>
+        </Section>
+
+        <Hr style={divider} />
+
         <Text style={footer}>
-          If you weren't expecting this invitation, you can safely ignore this
-          email.
+          Si vous n'attendiez pas cette invitation, ignorez simplement cet email.
+        </Text>
+        <Text style={footer}>
+          If you weren't expecting this invitation, you can safely ignore this email.
+        </Text>
+        <Text style={footerBrand}>
+          © DogWork — L'écosystème canin premium
         </Text>
       </Container>
     </Body>
@@ -53,27 +83,33 @@ export const InviteEmail = ({
 
 export default InviteEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
-const container = { padding: '20px 25px' }
-const h1 = {
-  fontSize: '22px',
-  fontWeight: 'bold' as const,
-  color: '#000000',
-  margin: '0 0 20px',
-}
-const text = {
-  fontSize: '14px',
-  color: '#55575d',
-  lineHeight: '1.5',
-  margin: '0 0 25px',
-}
-const link = { color: 'inherit', textDecoration: 'underline' }
+const main = { backgroundColor: '#ffffff', fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }
+const container = { padding: '40px 30px', maxWidth: '560px', margin: '0 auto' }
+const logoSection = { textAlign: 'center' as const, marginBottom: '30px' }
+const logo = { margin: '0 auto' }
+const h1 = { fontSize: '24px', fontWeight: '700' as const, color: '#1a1a2e', margin: '0 0 16px', lineHeight: '1.3' }
+const h2 = { fontSize: '20px', fontWeight: '600' as const, color: '#1a1a2e', margin: '0 0 14px', lineHeight: '1.3' }
+const text = { fontSize: '15px', color: '#4a4a5a', lineHeight: '1.6', margin: '0 0 20px' }
+const link = { color: '#3b82f6', textDecoration: 'underline' }
+const buttonSection = { textAlign: 'center' as const, margin: '8px 0 24px' }
 const button = {
-  backgroundColor: '#000000',
+  backgroundColor: '#1a1a2e',
   color: '#ffffff',
-  fontSize: '14px',
-  borderRadius: '8px',
-  padding: '12px 20px',
+  fontSize: '15px',
+  fontWeight: '600' as const,
+  borderRadius: '10px',
+  padding: '14px 28px',
   textDecoration: 'none',
 }
-const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
+const buttonSecondary = {
+  backgroundColor: '#3b82f6',
+  color: '#ffffff',
+  fontSize: '14px',
+  fontWeight: '600' as const,
+  borderRadius: '10px',
+  padding: '12px 24px',
+  textDecoration: 'none',
+}
+const divider = { borderColor: '#e8e8ee', margin: '28px 0' }
+const footer = { fontSize: '12px', color: '#9ca3af', lineHeight: '1.5', margin: '0 0 6px' }
+const footerBrand = { fontSize: '12px', color: '#b0b0c0', margin: '20px 0 0', textAlign: 'center' as const }
