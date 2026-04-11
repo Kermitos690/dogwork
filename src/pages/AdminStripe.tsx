@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import {
   ArrowLeft, CreditCard, Users, RefreshCw, DollarSign, AlertTriangle,
   ExternalLink, Loader2, Receipt, RotateCcw, XCircle, CheckCircle, FileText,
+  Wallet, Link2, GraduationCap, ArrowUpRight,
 } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
