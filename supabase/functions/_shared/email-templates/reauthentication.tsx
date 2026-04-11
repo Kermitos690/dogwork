@@ -17,19 +17,18 @@ interface ReauthenticationEmailProps {
 }
 
 export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => (
-  <Html lang="fr" dir="ltr">
+  <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Votre code de vérification DogWork</Preview>
+    <Preview>Your verification code</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Text style={logo}>🐕 DogWork</Text>
-        <Heading style={h1}>Code de vérification</Heading>
-        <Text style={text}>Utilisez le code ci-dessous pour confirmer votre identité :</Text>
+        <Heading style={h1}>Confirm reauthentication</Heading>
+        <Text style={text}>Use the code below to confirm your identity:</Text>
         <Text style={codeStyle}>{token}</Text>
         <Text style={footer}>
-          Ce code expire rapidement. Si vous n'avez pas fait cette demande, ignorez cet email.
+          This code will expire shortly. If you didn't request this, you can
+          safely ignore this email.
         </Text>
-        <Text style={footerBrand}>— L'équipe DogWork</Text>
       </Container>
     </Body>
   </Html>
@@ -37,19 +36,25 @@ export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => 
 
 export default ReauthenticationEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }
-const container = { padding: '32px 28px', maxWidth: '480px', margin: '0 auto' }
-const logo = { fontSize: '18px', fontWeight: 'bold' as const, color: '#0f1a30', margin: '0 0 24px', letterSpacing: '-0.02em' }
-const h1 = { fontSize: '22px', fontWeight: 'bold' as const, color: '#0f1a30', margin: '0 0 16px' }
-const text = { fontSize: '14px', color: '#6b7280', lineHeight: '1.6', margin: '0 0 20px' }
+const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
+const container = { padding: '20px 25px' }
+const h1 = {
+  fontSize: '22px',
+  fontWeight: 'bold' as const,
+  color: '#000000',
+  margin: '0 0 20px',
+}
+const text = {
+  fontSize: '14px',
+  color: '#55575d',
+  lineHeight: '1.5',
+  margin: '0 0 25px',
+}
 const codeStyle = {
   fontFamily: 'Courier, monospace',
-  fontSize: '28px',
+  fontSize: '22px',
   fontWeight: 'bold' as const,
-  color: '#3b82f6',
-  letterSpacing: '4px',
-  margin: '0 0 28px',
-  textAlign: 'center' as const,
+  color: '#000000',
+  margin: '0 0 30px',
 }
-const footer = { fontSize: '12px', color: '#9ca3af', margin: '28px 0 4px' }
-const footerBrand = { fontSize: '12px', color: '#9ca3af', margin: '0' }
+const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }

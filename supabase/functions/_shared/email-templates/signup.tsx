@@ -27,34 +27,32 @@ export const SignupEmail = ({
   recipient,
   confirmationUrl,
 }: SignupEmailProps) => (
-  <Html lang="fr" dir="ltr">
+  <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Confirmez votre email pour DogWork</Preview>
+    <Preview>Confirm your email for {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Text style={logo}>🐕 DogWork</Text>
-        <Heading style={h1}>Bienvenue sur DogWork !</Heading>
+        <Heading style={h1}>Confirm your email</Heading>
         <Text style={text}>
-          Merci de vous être inscrit sur{' '}
+          Thanks for signing up for{' '}
           <Link href={siteUrl} style={link}>
-            <strong>DogWork</strong>
+            <strong>{siteName}</strong>
           </Link>
-          .
+          !
         </Text>
         <Text style={text}>
-          Veuillez confirmer votre adresse email (
+          Please confirm your email address (
           <Link href={`mailto:${recipient}`} style={link}>
             {recipient}
           </Link>
-          ) en cliquant sur le bouton ci-dessous :
+          ) by clicking the button below:
         </Text>
         <Button style={button} href={confirmationUrl}>
-          Confirmer mon email
+          Verify Email
         </Button>
         <Text style={footer}>
-          Si vous n'avez pas créé de compte, vous pouvez ignorer cet email.
+          If you didn't create an account, you can safely ignore this email.
         </Text>
-        <Text style={footerBrand}>— L'équipe DogWork</Text>
       </Container>
     </Body>
   </Html>
@@ -62,21 +60,27 @@ export const SignupEmail = ({
 
 export default SignupEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }
-const container = { padding: '32px 28px', maxWidth: '480px', margin: '0 auto' }
-const logo = { fontSize: '18px', fontWeight: 'bold' as const, color: '#0f1a30', margin: '0 0 24px', letterSpacing: '-0.02em' }
-const h1 = { fontSize: '22px', fontWeight: 'bold' as const, color: '#0f1a30', margin: '0 0 16px' }
-const text = { fontSize: '14px', color: '#6b7280', lineHeight: '1.6', margin: '0 0 20px' }
-const link = { color: '#3b82f6', textDecoration: 'underline' }
+const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
+const container = { padding: '20px 25px' }
+const h1 = {
+  fontSize: '22px',
+  fontWeight: 'bold' as const,
+  color: '#000000',
+  margin: '0 0 20px',
+}
+const text = {
+  fontSize: '14px',
+  color: '#55575d',
+  lineHeight: '1.5',
+  margin: '0 0 25px',
+}
+const link = { color: 'inherit', textDecoration: 'underline' }
 const button = {
-  backgroundColor: '#3b82f6',
+  backgroundColor: '#000000',
   color: '#ffffff',
   fontSize: '14px',
-  fontWeight: '600' as const,
-  borderRadius: '14px',
-  padding: '12px 24px',
+  borderRadius: '8px',
+  padding: '12px 20px',
   textDecoration: 'none',
-  display: 'inline-block' as const,
 }
-const footer = { fontSize: '12px', color: '#9ca3af', margin: '28px 0 4px' }
-const footerBrand = { fontSize: '12px', color: '#9ca3af', margin: '0' }
+const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
