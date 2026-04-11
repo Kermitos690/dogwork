@@ -127,7 +127,7 @@ export default function AdminStripe() {
     return balArr.map((b: any) => `${(b.amount / 100).toFixed(2)} ${b.currency.toUpperCase()}`).join(", ");
   };
 
-
+  const handleResync = async (userId: string) => {
     try {
       const result = await callAdminStripe("resync_user", { user_id: userId });
       toast.success(`Resync OK: tier = ${result.tier}`);
