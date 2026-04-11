@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { callAI } from "../_shared/ai-provider.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -93,7 +94,6 @@ Deno.serve(async (req) => {
     const creditsCost = feature.credits_cost;
 
     if (isPrivileged) {
-      // Ensure wallet exists for privileged users too (for audit trail)
       try {
         await admin.rpc("ensure_ai_wallet", { _user_id: userId });
       } catch (e) {
@@ -120,11 +120,8 @@ Deno.serve(async (req) => {
           description: `Appel privilégié (${roleList.join(",")})`,
         });
         console.log(`[ai-with-credits] Privileged call logged, wallet balance: ${wallet.balance}`);
-      } else {
-        console.warn("[ai-with-credits] No wallet found for privileged user after ensure_ai_wallet");
       }
     } else {
-      // Debit credits (ensure_ai_wallet is called inside debit_ai_credits)
       console.log(`[ai-with-credits] Debiting ${creditsCost} credits for user ${userId.slice(0, 8)}...`);
 
       const { data: debited, error: debitErr } = await admin.rpc("debit_ai_credits", {
@@ -158,10 +155,23 @@ Deno.serve(async (req) => {
       console.log(`[ai-with-credits] Credits debited successfully`);
     }
 
-    // 5. Call AI gateway
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      console.error("[ai-with-credits] LOVABLE_API_KEY is not configured!");
+    // 5. Call AI provider (Gemini via adapter)
+    const systemMessages = system_prompt
+      ? [{ role: "system", content: system_prompt }]
+      : [];
+
+    console.log(`[ai-with-credits] Calling Gemini: model=${feature.model}`);
+
+    let response: Response;
+    try {
+      response = await callAI({
+        model: feature.model,
+        messages: [...systemMessages, ...messages],
+        stream,
+      });
+    } catch (configErr) {
+      // GOOGLE_AI_API_KEY missing
+      console.error("[ai-with-credits] AI provider config error:", configErr);
       if (!isPrivileged) {
         await admin.rpc("credit_ai_wallet", {
           _user_id: userId,
@@ -170,40 +180,21 @@ Deno.serve(async (req) => {
           _description: "Remboursement automatique — erreur de configuration serveur",
         });
       }
-      throw new Error("LOVABLE_API_KEY is not configured");
+      throw configErr;
     }
 
-    const systemMessages = system_prompt
-      ? [{ role: "system", content: system_prompt }]
-      : [];
-
-    console.log(`[ai-with-credits] Calling AI gateway: model=${feature.model}`);
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: feature.model,
-        messages: [...systemMessages, ...messages],
-        stream,
-      }),
-    });
-
     if (!response.ok) {
-      console.error(`[ai-with-credits] AI gateway error: ${response.status}`);
+      console.error(`[ai-with-credits] AI provider error: ${response.status}`);
 
-      // Refund on AI gateway error
+      // Refund on AI error
       if (!isPrivileged) {
         await admin.rpc("credit_ai_wallet", {
           _user_id: userId,
           _credits: creditsCost,
           _operation_type: "refund",
-          _description: `Remboursement auto — erreur gateway (${response.status})`,
+          _description: `Remboursement auto — erreur fournisseur IA (${response.status})`,
         });
-        console.log("[ai-with-credits] Credits refunded after gateway error");
+        console.log("[ai-with-credits] Credits refunded after AI error");
       }
 
       if (response.status === 429) {
@@ -211,20 +202,15 @@ Deno.serve(async (req) => {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Crédits plateforme épuisés. Contactez le support." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
 
       const t = await response.text();
-      console.error("[ai-with-credits] Gateway body:", t.slice(0, 500));
+      console.error("[ai-with-credits] AI body:", t.slice(0, 500));
       return new Response(JSON.stringify({ error: "Erreur du service IA" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log(`[ai-with-credits] AI gateway responded OK, stream=${stream}`);
+    console.log(`[ai-with-credits] AI responded OK, stream=${stream}`);
 
     if (stream) {
       return new Response(response.body, {

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { generateImage } from "../_shared/ai-provider.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,8 +22,8 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!lovableApiKey) throw new Error("LOVABLE_API_KEY not configured");
+
+    if (!Deno.env.get("GOOGLE_AI_API_KEY")) throw new Error("GOOGLE_AI_API_KEY not configured");
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) throw new Error("Non authentifié");
@@ -78,36 +79,23 @@ The illustration should show:
 Exercise context: ${exercise.objective || exercise.description || exercise.name}
 Level: ${exercise.level || "beginner"}`;
 
-    const imageResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${lovableApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3.1-flash-image-preview",
-        messages: [{ role: "user", content: imagePrompt }],
-        modalities: ["image", "text"],
-      }),
+    const result = await generateImage({
+      model: "google/gemini-3.1-flash-image-preview",
+      prompt: imagePrompt,
     });
 
-    if (!imageResponse.ok) {
-      const errText = await imageResponse.text();
-      if (imageResponse.status === 429) {
+    if (!result.imageData) {
+      if (result.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limited, réessayez plus tard" }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      throw new Error(`AI image error ${imageResponse.status}: ${errText}`);
+      throw new Error(`AI image error: ${result.error}`);
     }
 
-    const imageResult = await imageResponse.json();
-    const imageData = imageResult.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    if (!imageData) throw new Error("Pas d'image générée par l'IA");
-
     // Extract base64 data
-    const base64Match = imageData.match(/^data:image\/(png|jpeg|jpg|webp);base64,(.+)$/);
+    const base64Match = result.imageData.match(/^data:image\/(png|jpeg|jpg|webp);base64,(.+)$/);
     if (!base64Match) throw new Error("Format d'image invalide");
     
     const mimeType = `image/${base64Match[1]}`;
