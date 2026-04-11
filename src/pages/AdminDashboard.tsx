@@ -455,8 +455,15 @@ export default function AdminDashboard() {
                       });
                       if (error) throw error;
                       if (data?.error) throw new Error(data.error);
-                      toast({ title: "Synchronisation terminée ✅", description: data.message || `${data.exercises_updated} exercices mis à jour.` });
+                      const total = data?.verification?.total_exercises ?? "?";
+                      const isReady = data?.production_ready === true;
+                      if (isReady) {
+                        toast({ title: "Synchronisation complète ✅", description: `${total} exercices en base. Production prête.` });
+                      } else {
+                        toast({ title: "⚠️ Synchronisation incomplète", description: data.message || `${total}/480 exercices. Vérifiez le catalogue source.`, variant: "destructive" });
+                      }
                       queryClient.invalidateQueries({ queryKey: ["exercises_library"] });
+                      queryClient.invalidateQueries({ queryKey: ["admin_stats"] });
                     } catch (err: any) {
                       toast({ title: "Erreur", description: err.message, variant: "destructive" });
                     }
@@ -486,9 +493,19 @@ export default function AdminDashboard() {
                       });
                       if (error) throw error;
                       if (data?.error) throw new Error(data.error);
-                      const exCount = data?.verification?.exercise_stats?.total_exercises ?? "?";
-                      toast({ title: "Sync production terminée ✅", description: `${data?.steps?.length || 0} étapes exécutées. ${exCount} exercices en base.` });
+                      const v = data?.verification;
+                      const isReady = v?.production_ready === true;
+                      if (isReady) {
+                        toast({ title: "✅ Production prête", description: `${v.total_exercises} exercices, ${v.subscription_plans} plans, ${v.subscription_plan_prices} prix. Tout est aligné.` });
+                      } else {
+                        const issues: string[] = [];
+                        if (!v?.exercises_target_met) issues.push(`Exercices: ${v?.total_exercises ?? 0}/480`);
+                        if (!v?.plans_ok) issues.push(`Plans: ${v?.subscription_plans ?? 0}/5`);
+                        if (!v?.prices_ok) issues.push(`Prix: ${v?.subscription_plan_prices ?? 0}/5`);
+                        toast({ title: "⚠️ Production incomplète", description: issues.join(" · "), variant: "destructive" });
+                      }
                       queryClient.invalidateQueries({ queryKey: ["exercises_library"] });
+                      queryClient.invalidateQueries({ queryKey: ["admin_stats"] });
                     } catch (err: any) {
                       toast({ title: "Erreur sync production", description: err.message, variant: "destructive" });
                     }
