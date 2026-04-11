@@ -25,77 +25,17 @@ const asTextArray = (v: unknown): string[] | null => {
 const asJsonArray = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
 const asJsonValue = (v: unknown, fb: unknown = null): unknown => v === undefined || v === null ? fb : v;
 
-async function syncCatalogDirectly(
+async function syncCatalogViaRPC(
   supabase: ReturnType<typeof createClient>,
-  categories: Record<string, unknown>[],
-  exercises: Record<string, unknown>[],
+  catalog: { categories: unknown[]; exercises: unknown[] },
 ) {
-  // Upsert categories
-  const categoryRows = categories.map((c, i) => {
-    const slug = asNullableString(c.slug);
-    const name = asNullableString(c.name);
-    if (!slug || !name) return null;
-    return { slug, name, icon: asNullableString(c.icon), color: asNullableString(c.color), description: asNullableString(c.description), sort_order: asInteger(c.sort_order) ?? i + 1, is_professional: asBoolean(c.is_professional) };
-  }).filter(Boolean);
-
-  if (categoryRows.length === 0) throw new Error("Aucune catégorie exploitable.");
-  const { error: catErr } = await supabase.from("exercise_categories").upsert(categoryRows, { onConflict: "slug" });
-  if (catErr) throw new Error(`Catégories: ${catErr.message}`);
-
-  const { data: catData } = await supabase.from("exercise_categories").select("id, slug").in("slug", categoryRows.map((c) => c.slug));
-  const catMap = new Map((catData ?? []).map((c: { slug: string; id: string }) => [c.slug, c.id]));
-
-  // Map exercises
-  const exerciseRows = exercises.map((e, i) => {
-    const slug = asNullableString(e.slug);
-    const catSlug = asNullableString(e.category_slug);
-    const name = asNullableString(e.name);
-    if (!slug || !catSlug || !name) return null;
-    const categoryId = catMap.get(catSlug);
-    if (!categoryId) return null;
-    return {
-      slug, name, category_id: categoryId,
-      short_title: asNullableString(e.short_title), description: asNullableString(e.description),
-      objective: asNullableString(e.objective), dedication: asNullableString(e.dedication),
-      summary: asNullableString(e.summary), short_instruction: asNullableString(e.short_instruction),
-      level: asNullableString(e.level) ?? "débutant",
-      exercise_type: asNullableString(e.exercise_type) ?? asNullableString(e.exerciseType) ?? "fondation",
-      difficulty: asInteger(e.difficulty), duration: asNullableString(e.duration),
-      repetitions: asNullableString(e.repetitions), frequency: asNullableString(e.frequency),
-      environment: asNullableString(e.environment), intensity_level: asInteger(e.intensity_level),
-      cognitive_load: asInteger(e.cognitive_load), physical_load: asInteger(e.physical_load),
-      steps: asJsonArray(e.steps), tutorial_steps: asJsonArray(e.tutorial_steps), mistakes: asJsonArray(e.mistakes),
-      success_criteria: asNullableString(e.success_criteria), stop_criteria: asNullableString(e.stop_criteria),
-      vigilance: asNullableString(e.vigilance), precautions: asJsonValue(e.precautions, []),
-      contraindications: asJsonValue(e.contraindications, []), health_precautions: asJsonValue(e.health_precautions, []),
-      adaptations: asJsonValue(e.adaptations, []), progression_next: asNullableString(e.progression_next),
-      regression_simplified: asNullableString(e.regression_simplified), age_recommendation: asNullableString(e.age_recommendation),
-      suitable_profiles: asJsonValue(e.suitable_profiles, []),
-      compatible_reactivity: asBoolean(e.compatible_reactivity), compatible_senior: asBoolean(e.compatible_senior),
-      compatible_puppy: asBoolean(e.compatible_puppy), compatible_muzzle: asBoolean(e.compatible_muzzle),
-      is_professional: asBoolean(e.is_professional), target_breeds: asTextArray(e.target_breeds),
-      equipment: asTextArray(e.equipment), tags: asTextArray(e.tags),
-      priority_axis: asTextArray(e.priority_axis), target_problems: asTextArray(e.target_problems),
-      secondary_benefits: asTextArray(e.secondary_benefits), prerequisites: asTextArray(e.prerequisites),
-      cover_image: asNullableString(e.cover_image), sort_order: asInteger(e.sort_order) ?? i + 1,
-      body_positioning: asJsonArray(e.body_positioning), troubleshooting: asJsonArray(e.troubleshooting),
-      validation_protocol: asNullableString(e.validation_protocol), voice_commands: asJsonArray(e.voice_commands),
-      min_tier: asNullableString(e.min_tier) ?? "starter",
-    };
-  }).filter(Boolean);
-
-  let inserted = 0, failed = 0;
-  const chunkSize = 50;
-  for (let i = 0; i < exerciseRows.length; i += chunkSize) {
-    const chunk = exerciseRows.slice(i, i + chunkSize);
-    const { error } = await supabase.from("exercises").upsert(chunk, { onConflict: "slug" });
-    if (!error) { inserted += chunk.length; continue; }
-    for (const ex of chunk) {
-      const { error: rowErr } = await supabase.from("exercises").upsert(ex, { onConflict: "slug" });
-      if (rowErr) { failed++; console.error("row fail", ex.slug, rowErr.message); } else { inserted++; }
-    }
-  }
-  return { categories_synced: categoryRows.length, exercises_synced: inserted, exercises_failed: failed };
+  // Use the SQL function sync_exercises_from_catalog_data which runs entirely
+  // inside the database in a single transaction — much faster than REST batches.
+  const { data, error } = await supabase.rpc("sync_exercises_from_catalog_data", {
+    _catalog: catalog,
+  });
+  if (error) throw new Error(`RPC sync_exercises_from_catalog_data: ${error.message}`);
+  return data as Record<string, unknown>;
 }
 
 Deno.serve(async (req) => {
@@ -217,7 +157,8 @@ Deno.serve(async (req) => {
       if (catalogRes.ok) {
         const catalog = await catalogRes.json();
         if (Array.isArray(catalog?.categories) && Array.isArray(catalog?.exercises)) {
-          const result = await syncCatalogDirectly(supabase, catalog.categories, catalog.exercises);
+          console.log(`[post-publish-sync] Catalog loaded: ${catalog.categories.length} cats, ${catalog.exercises.length} exercises. Calling RPC...`);
+          const result = await syncCatalogViaRPC(supabase, catalog);
           steps.push({ step: "sync_exercises", previous_count: totalExercises, catalog_exercises: catalog.exercises.length, ...result });
         } else {
           steps.push({ step: "sync_exercises", error: "Invalid catalog format" });
