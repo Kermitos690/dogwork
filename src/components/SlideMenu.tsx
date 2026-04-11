@@ -13,7 +13,7 @@ import {
   Menu, Home, Dog, BookOpen, Play, BarChart3, ClipboardList,
   Calendar, User, HelpCircle, CreditCard, GraduationCap, Shield,
   MessageSquare, FileText, Users, LayoutDashboard, CalendarDays,
-  Target, AlertTriangle, Dumbbell, LogOut, Settings, Star, X, Heart
+  Target, AlertTriangle, Dumbbell, LogOut, Settings, Star, X, Heart, ShoppingBag
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -132,6 +132,7 @@ export function SlideMenu() {
       items: [
         { label: t("nav.profile"), icon: User, path: "/profile" },
         { label: t("nav.preferences"), icon: Settings, path: "/preferences" },
+        { label: t("nav.shop"), icon: ShoppingBag, path: "/shop" },
         { label: t("nav.subscription"), icon: CreditCard, path: "/subscription" },
         { label: t("nav.help"), icon: HelpCircle, path: "/help" },
         { label: "Support", icon: MessageSquare, path: "/support" },

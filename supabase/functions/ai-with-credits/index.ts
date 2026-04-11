@@ -401,80 +401,48 @@ Deno.serve(async (req) => {
 
     console.log(`[ai-with-credits] Feature found: ${feature.code}, cost=${feature.credits_cost}, model=${feature.model}`);
 
-    // 4. Check privileges (admin/educator get free access but are LOGGED)
+    // 4. Collect roles for logging/context and debit every account
     const { data: roles } = await admin
       .from("user_roles")
       .select("role")
       .eq("user_id", userId);
 
     const roleList = roles?.map((r: { role: string }) => r.role) || [];
-    const isPrivileged = roleList.includes("admin") || roleList.includes("educator");
-
-    console.log(`[ai-with-credits] Roles: [${roleList.join(",")}], privileged: ${isPrivileged}`);
+    console.log(`[ai-with-credits] Roles: [${roleList.join(",")}], debit enabled for all accounts`);
 
     const creditsCost = feature.credits_cost;
 
-    if (isPrivileged) {
-      try {
-        await admin.rpc("ensure_ai_wallet", { _user_id: userId });
-      } catch (e) {
-        console.error("[ai-with-credits] ensure_ai_wallet failed for privileged user:", e);
-      }
+    console.log(`[ai-with-credits] Debiting ${creditsCost} credits for user ${userId.slice(0, 8)}...`);
 
-      const { data: wallet } = await admin
-        .from("ai_credit_wallets")
-        .select("id, balance")
-        .eq("user_id", userId)
-        .single();
+    const { data: debited, error: debitErr } = await admin.rpc("debit_ai_credits", {
+      _user_id: userId,
+      _feature_code: feature_code,
+      _credits: creditsCost,
+      _provider_cost_usd: feature.cost_estimate_avg_usd,
+      _metadata: { model: feature.model, roles: roleList },
+    });
 
-      if (wallet) {
-        await admin.from("ai_credit_ledger").insert({
-          user_id: userId,
-          wallet_id: wallet.id,
-          operation_type: "consumption",
-          credits_delta: 0,
-          balance_after: wallet.balance,
-          feature_code: feature_code,
-          provider_cost_usd: feature.cost_estimate_avg_usd,
-          status: "success",
-          metadata: { model: feature.model, privileged: true },
-          description: `Appel privilégié (${roleList.join(",")})`,
-        });
-        console.log(`[ai-with-credits] Privileged call logged, wallet balance: ${wallet.balance}`);
-      }
-    } else {
-      console.log(`[ai-with-credits] Debiting ${creditsCost} credits for user ${userId.slice(0, 8)}...`);
-
-      const { data: debited, error: debitErr } = await admin.rpc("debit_ai_credits", {
-        _user_id: userId,
-        _feature_code: feature_code,
-        _credits: creditsCost,
-        _provider_cost_usd: feature.cost_estimate_avg_usd,
-        _metadata: { model: feature.model },
+    if (debitErr) {
+      console.error("[ai-with-credits] debit_ai_credits RPC error:", debitErr.message);
+      return new Response(JSON.stringify({ error: "Erreur système de crédits" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-
-      if (debitErr) {
-        console.error("[ai-with-credits] debit_ai_credits RPC error:", debitErr.message);
-        return new Response(JSON.stringify({ error: "Erreur système de crédits" }), {
-          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      if (debited === false) {
-        const { data: balance } = await admin.rpc("get_ai_balance", { _user_id: userId });
-        console.log(`[ai-with-credits] Insufficient credits: balance=${balance}, required=${creditsCost}`);
-        return new Response(JSON.stringify({
-          error: "Crédits IA insuffisants",
-          code: "INSUFFICIENT_CREDITS",
-          balance: balance || 0,
-          required: creditsCost,
-        }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      console.log(`[ai-with-credits] Credits debited successfully`);
     }
+
+    if (debited === false) {
+      const { data: balance } = await admin.rpc("get_ai_balance", { _user_id: userId });
+      console.log(`[ai-with-credits] Insufficient credits: balance=${balance}, required=${creditsCost}`);
+      return new Response(JSON.stringify({
+        error: "Crédits IA insuffisants",
+        code: "INSUFFICIENT_CREDITS",
+        balance: balance || 0,
+        required: creditsCost,
+      }), {
+        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    console.log(`[ai-with-credits] Credits debited successfully`);
 
     // 5. Build dog context if chat feature
     let dogContextPrompt = "";
@@ -639,29 +607,25 @@ Deno.serve(async (req) => {
       });
     } catch (configErr) {
       console.error("[ai-with-credits] AI provider config error:", configErr);
-      if (!isPrivileged) {
-        await admin.rpc("credit_ai_wallet", {
-          _user_id: userId,
-          _credits: creditsCost,
-          _operation_type: "refund",
-          _description: "Remboursement automatique — erreur de configuration serveur",
-        });
-      }
+      await admin.rpc("credit_ai_wallet", {
+        _user_id: userId,
+        _credits: creditsCost,
+        _operation_type: "refund",
+        _description: "Remboursement automatique — erreur de configuration serveur",
+      });
       throw configErr;
     }
 
     if (!response.ok) {
       console.error(`[ai-with-credits] AI provider error: ${response.status}`);
 
-      if (!isPrivileged) {
-        await admin.rpc("credit_ai_wallet", {
-          _user_id: userId,
-          _credits: creditsCost,
-          _operation_type: "refund",
-          _description: `Remboursement auto — erreur fournisseur IA (${response.status})`,
-        });
-        console.log("[ai-with-credits] Credits refunded after AI error");
-      }
+      await admin.rpc("credit_ai_wallet", {
+        _user_id: userId,
+        _credits: creditsCost,
+        _operation_type: "refund",
+        _description: `Remboursement auto — erreur fournisseur IA (${response.status})`,
+      });
+      console.log("[ai-with-credits] Credits refunded after AI error");
 
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Trop de requêtes IA, réessayez dans quelques instants." }), {
