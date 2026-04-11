@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { CreditBalanceCard, CreditPacksSection, CreditHistory } from "@/components/AICredits";
+import { FeaturePricingGrid, MonthlyUsageStats, CreditEstimator } from "@/components/CreditUsageDashboard";
 
 export default function Settings() {
   const navigate = useNavigate();
