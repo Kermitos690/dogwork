@@ -10,6 +10,7 @@ import { usePreferences } from "@/hooks/usePreferences";
 import { useAIBalance } from "@/hooks/useAICredits";
 import { CreditBalanceBadge } from "@/components/AICredits";
 import { useQueryClient } from "@tanstack/react-query";
+import { useDogs, useActiveDog } from "@/hooks/useDogs";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -17,11 +18,15 @@ const AI_CREDITS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-wit
 
 async function streamChatWithCredits({
   messages,
+  activeDogId,
+  dogNames,
   onDelta,
   onDone,
   onError,
 }: {
   messages: Msg[];
+  activeDogId?: string | null;
+  dogNames?: string[];
   onDelta: (t: string) => void;
   onDone: () => void;
   onError: (msg: string, code?: string) => void;
@@ -44,6 +49,8 @@ async function streamChatWithCredits({
       feature_code: "chat_general",
       messages,
       stream: true,
+      active_dog_id: activeDogId || undefined,
+      dog_names: dogNames || [],
     }),
   });
 
@@ -118,6 +125,11 @@ function AIChatBotInner() {
   const hasChat = useHasFeature("ai_chat");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  
+  // Dog context
+  const { data: dogs } = useDogs();
+  const activeDog = useActiveDog();
+  const dogNames = dogs?.map(d => d.name) || [];
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -167,6 +179,8 @@ function AIChatBotInner() {
     try {
       await streamChatWithCredits({
         messages: [...messages, userMsg],
+        activeDogId: activeDog?.id,
+        dogNames,
         onDelta: upsert,
         onDone: () => {
           setLoading(false);
@@ -226,6 +240,11 @@ function AIChatBotInner() {
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-primary" />
                 <span className="font-semibold text-sm text-foreground">DogWork AI</span>
+                {activeDog && (
+                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                    🐕 {activeDog.name}
+                  </span>
+                )}
                 <CreditBalanceBadge />
               </div>
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setOpen(false)} aria-label="Fermer le chat">
@@ -240,7 +259,17 @@ function AIChatBotInner() {
                   <Bot className="h-10 w-10 mx-auto text-primary/40" />
                   <p className="font-medium text-foreground">Bonjour ! 🐕</p>
                   <p>Je suis votre assistant en éducation canine.</p>
-                  <p className="text-xs">Posez-moi une question sur le comportement, les exercices ou l'entraînement de votre chien.</p>
+                  {activeDog && (
+                    <p className="text-xs text-primary/80">
+                      Je connais <strong>{activeDog.name}</strong> — posez-moi des questions à son sujet !
+                    </p>
+                  )}
+                  <p className="text-xs">
+                    {activeDog 
+                      ? `Exemple : "Quels exercices pour ${activeDog.name} ?" ou "Comment gérer sa réactivité ?"`
+                      : "Posez-moi une question sur le comportement, les exercices ou l'entraînement de votre chien."
+                    }
+                  </p>
                 </div>
               )}
               {messages.map((m, i) => (
@@ -275,7 +304,7 @@ function AIChatBotInner() {
                   ref={inputRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Posez votre question..."
+                  placeholder={activeDog ? `Parlez-moi de ${activeDog.name}...` : "Posez votre question..."}
                   className="flex-1 bg-muted rounded-full px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30"
                   disabled={loading}
                 />
