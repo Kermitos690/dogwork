@@ -245,7 +245,10 @@ async function findDogsByName(
 
   // Get accessible dog IDs based on role
   let dogQuery;
-  if (userRoles.includes("educator")) {
+  if (userRoles.includes("admin")) {
+    // Admin can see ALL dogs in the system
+    dogQuery = admin.from("dogs").select("id, name, user_id");
+  } else if (userRoles.includes("educator")) {
     const { data: clientLinks } = await admin
       .from("client_links")
       .select("client_user_id")
@@ -486,16 +489,54 @@ Deno.serve(async (req) => {
           // Auto-discover dog names for the user
           const { data: userDogs } = await admin.from("dogs").select("name").eq("user_id", userId);
           allNames = (userDogs || []).map((d: any) => d.name);
+          console.log(`[ai-with-credits] Auto-discovered ${allNames.length} dog names for user`);
           
-          // Also get shelter animal names if shelter role
+          // Shelter roles: also get shelter animal names
           if (roleList.includes("shelter")) {
             const { data: sa } = await admin.from("shelter_animals").select("name").eq("user_id", userId);
-            allNames.push(...(sa || []).map((a: any) => a.name));
+            const saNames = (sa || []).map((a: any) => a.name);
+            allNames.push(...saNames);
+            console.log(`[ai-with-credits] Added ${saNames.length} shelter animal names`);
+          }
+          
+          // Admin: search ALL dogs and shelter animals by names mentioned in messages
+          if (roleList.includes("admin") && allNames.length === 0) {
+            // Extract potential names from messages (capitalized words ≥ 2 chars)
+            const potentialNames = new Set<string>();
+            for (const msg of messages) {
+              if (msg.role !== "user") continue;
+              const words = msg.content.match(/[A-ZÀ-Ü][a-zà-ü]{1,}/g) || [];
+              words.forEach((w: string) => potentialNames.add(w));
+            }
+            
+            if (potentialNames.size > 0) {
+              const nameArr = Array.from(potentialNames);
+              console.log(`[ai-with-credits] Admin: searching for potential names: ${nameArr.join(", ")}`);
+              
+              // Search dogs table
+              const { data: matchedDogs } = await admin.from("dogs").select("id, name, user_id").in("name", nameArr);
+              // Search shelter_animals table
+              const { data: matchedSA } = await admin.from("shelter_animals")
+                .select("id, name, user_id, breed, sex, species, status, estimated_age, weight_kg, behavior_notes, health_notes, description, is_sterilized, arrival_date")
+                .in("name", nameArr);
+              
+              if (matchedDogs?.length) {
+                allNames.push(...matchedDogs.map((d: any) => d.name));
+                console.log(`[ai-with-credits] Admin: found ${matchedDogs.length} dogs by name`);
+              }
+              if (matchedSA?.length) {
+                allNames.push(...matchedSA.map((a: any) => a.name));
+                console.log(`[ai-with-credits] Admin: found ${matchedSA.length} shelter animals by name`);
+              }
+            }
           }
         }
         
+        console.log(`[ai-with-credits] Total names for matching: ${allNames.length} [${allNames.join(", ")}]`);
+        
         // Step B: Detect mentioned dog names in messages
         const mentionedNames = extractMentionedNames(messages, allNames);
+        console.log(`[ai-with-credits] Mentioned names detected: [${mentionedNames.join(", ")}]`);
         
         // Step C: Find mentioned dogs + active dog
         const dogIdsToLoad: Set<string> = new Set();
@@ -505,6 +546,7 @@ Deno.serve(async (req) => {
         
         if (mentionedNames.length > 0) {
           const mentionedDogs = await findDogsByName(admin, userId, roleList, mentionedNames);
+          console.log(`[ai-with-credits] findDogsByName returned ${mentionedDogs.length} matches`);
           for (const d of mentionedDogs) {
             if (d._source === "shelter_animal") {
               shelterAnimalMatches.push(d);
@@ -513,6 +555,8 @@ Deno.serve(async (req) => {
             }
           }
         }
+        
+        console.log(`[ai-with-credits] Loading context: ${dogIdsToLoad.size} dogs + ${shelterAnimalMatches.length} shelter animals`);
         
         // Step D: Load full context for each dog
         if (dogIdsToLoad.size > 0 || shelterAnimalMatches.length > 0) {
