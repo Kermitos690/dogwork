@@ -182,11 +182,11 @@ Deno.serve(async (req) => {
 
     // ─── STEP 6: Upsert subscription_plans ───
     const subscriptionPlans = [
-      { code: "starter", name: "Freemium", max_dogs: 1, base_exercise_limit: 15, monthly_ai_credits: 5, includes_28_day_plans: false, includes_base_exercises: true, is_active: true },
-      { code: "pro", name: "Pro", max_dogs: 3, base_exercise_limit: 150, monthly_ai_credits: 30, includes_28_day_plans: true, includes_base_exercises: true, is_active: true },
-      { code: "expert", name: "Expert", max_dogs: 999999, base_exercise_limit: 999999, monthly_ai_credits: 100, includes_28_day_plans: true, includes_base_exercises: true, is_active: true },
-      { code: "educator", name: "Éducateur", max_dogs: 999999, base_exercise_limit: 999999, monthly_ai_credits: 200, includes_28_day_plans: true, includes_base_exercises: true, is_active: true },
-      { code: "shelter", name: "Refuge", max_dogs: 999999, base_exercise_limit: 999999, monthly_ai_credits: 150, includes_28_day_plans: true, includes_base_exercises: true, is_active: true },
+      { code: "starter", name: "Freemium", max_dogs: 1, base_exercise_limit: 15, monthly_ai_credits: 1, includes_28_day_plans: false, includes_base_exercises: true, is_active: true },
+      { code: "pro", name: "Pro", max_dogs: 3, base_exercise_limit: 150, monthly_ai_credits: 5, includes_28_day_plans: true, includes_base_exercises: true, is_active: true },
+      { code: "expert", name: "Expert", max_dogs: 999999, base_exercise_limit: 999999, monthly_ai_credits: 15, includes_28_day_plans: true, includes_base_exercises: true, is_active: true },
+      { code: "educator", name: "Éducateur", max_dogs: 999999, base_exercise_limit: 999999, monthly_ai_credits: 30, includes_28_day_plans: true, includes_base_exercises: true, is_active: true },
+      { code: "shelter", name: "Refuge", max_dogs: 999999, base_exercise_limit: 999999, monthly_ai_credits: 20, includes_28_day_plans: true, includes_base_exercises: true, is_active: true },
     ];
     const { error: planErr } = await supabase.from("subscription_plans").upsert(subscriptionPlans, { onConflict: "code" });
     steps.push({ step: "upsert_subscription_plans", count: subscriptionPlans.length, error: planErr?.message || null });
