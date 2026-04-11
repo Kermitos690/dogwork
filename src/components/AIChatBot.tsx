@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { useHasFeature } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { usePreferences } from "@/hooks/usePreferences";
+import { useAuth } from "@/hooks/useAuth";
 import { useAIBalance } from "@/hooks/useAICredits";
 import { CreditBalanceBadge } from "@/components/AICredits";
 import { useQueryClient } from "@tanstack/react-query";
@@ -123,8 +124,9 @@ export function AIChatBot() {
 }
 
 function AIChatBotSafe() {
+  const { user } = useAuth();
   const { preferences } = usePreferences();
-  if (preferences.hide_chatbot) return null;
+  if (!user || preferences.hide_chatbot) return null;
 
   return <AIChatBotInner />;
 }
