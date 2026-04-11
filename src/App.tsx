@@ -237,6 +237,7 @@ function ProtectedRoutes() {
           <Route path="/preferences" element={<PreferencesPage />} />
           <Route path="/adoption-checkins" element={<AdoptionCheckins />} />
           <Route path="/adoption-followup" element={<AdoptionFollowup />} />
+          <Route path="/shop" element={<ShopPage />} />
           <Route path="/program" element={<Navigate to="/plan" replace />} />
           <Route path="*" element={<Navigate to="/shelter" replace />} />
         </Routes>
