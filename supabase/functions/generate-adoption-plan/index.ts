@@ -43,7 +43,6 @@ Deno.serve(async (req) => {
     const userRoles = roles?.map((r: { role: string }) => r.role) || [];
     const isShelter = userRoles.includes("shelter");
     const isAdmin = userRoles.includes("admin");
-    const isPrivileged = isAdmin;
 
     if (!isShelter && !isAdmin) {
       return new Response(JSON.stringify({ error: "Accès réservé aux refuges" }), {
@@ -75,47 +74,25 @@ Deno.serve(async (req) => {
 
     const creditsCost = feature.credits_cost;
 
-    // 3. Debit credits (or log for privileged)
-    if (isPrivileged) {
-      const { data: wallet } = await admin
-        .from("ai_credit_wallets")
-        .select("id, balance")
-        .eq("user_id", userId)
-        .maybeSingle();
-      if (wallet) {
-        await admin.from("ai_credit_ledger").insert({
-          user_id: userId,
-          wallet_id: wallet.id,
-          operation_type: "consumption",
-          credits_delta: 0,
-          balance_after: wallet.balance,
-          feature_code: FEATURE_CODE,
-          provider_cost_usd: feature.cost_estimate_avg_usd,
-          status: "success",
-          metadata: { model: feature.model, privileged: true },
-          description: `Appel privilégié (admin) — plan adoption`,
-        });
-      }
-    } else {
-      const { data: debited } = await admin.rpc("debit_ai_credits", {
-        _user_id: userId,
-        _feature_code: FEATURE_CODE,
-        _credits: creditsCost,
-        _provider_cost_usd: feature.cost_estimate_avg_usd,
-        _metadata: { model: feature.model, animal_id },
-      });
+    // 3. Debit credits for every account
+    const { data: debited } = await admin.rpc("debit_ai_credits", {
+      _user_id: userId,
+      _feature_code: FEATURE_CODE,
+      _credits: creditsCost,
+      _provider_cost_usd: feature.cost_estimate_avg_usd,
+      _metadata: { model: feature.model, animal_id, roles: userRoles },
+    });
 
-      if (debited === false) {
-        const { data: balance } = await admin.rpc("get_ai_balance", { _user_id: userId });
-        return new Response(JSON.stringify({
-          error: "Crédits IA insuffisants",
-          code: "INSUFFICIENT_CREDITS",
-          balance: balance || 0,
-          required: creditsCost,
-        }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    if (debited === false) {
+      const { data: balance } = await admin.rpc("get_ai_balance", { _user_id: userId });
+      return new Response(JSON.stringify({
+        error: "Crédits IA insuffisants",
+        code: "INSUFFICIENT_CREDITS",
+        balance: balance || 0,
+        required: creditsCost,
+      }), {
+        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // 4. Fetch animal data
@@ -126,14 +103,12 @@ Deno.serve(async (req) => {
       .single();
 
     if (animalError || !animal) {
-      if (!isPrivileged) {
-        await admin.rpc("credit_ai_wallet", {
-          _user_id: userId,
-          _credits: creditsCost,
-          _operation_type: "refund",
-          _description: "Remboursement auto — animal introuvable",
-        });
-      }
+      await admin.rpc("credit_ai_wallet", {
+        _user_id: userId,
+        _credits: creditsCost,
+        _operation_type: "refund",
+        _description: "Remboursement auto — animal introuvable",
+      });
       return new Response(JSON.stringify({ error: "Animal introuvable" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -227,26 +202,22 @@ RÈGLES :
         stream: false,
       });
     } catch (configErr) {
-      if (!isPrivileged) {
-        await admin.rpc("credit_ai_wallet", {
-          _user_id: userId,
-          _credits: creditsCost,
-          _operation_type: "refund",
-          _description: "Remboursement auto — erreur de configuration serveur",
-        });
-      }
+      await admin.rpc("credit_ai_wallet", {
+        _user_id: userId,
+        _credits: creditsCost,
+        _operation_type: "refund",
+        _description: "Remboursement auto — erreur de configuration serveur",
+      });
       throw configErr;
     }
 
     if (!aiResponse.ok) {
-      if (!isPrivileged) {
-        await admin.rpc("credit_ai_wallet", {
-          _user_id: userId,
-          _credits: creditsCost,
-          _operation_type: "refund",
-          _description: `Remboursement auto — erreur fournisseur IA (${aiResponse.status})`,
-        });
-      }
+      await admin.rpc("credit_ai_wallet", {
+        _user_id: userId,
+        _credits: creditsCost,
+        _operation_type: "refund",
+        _description: `Remboursement auto — erreur fournisseur IA (${aiResponse.status})`,
+      });
       const errText = await aiResponse.text();
       console.error("AI provider error:", aiResponse.status, errText);
       return new Response(JSON.stringify({ error: "Erreur du service IA" }), {
@@ -266,14 +237,12 @@ RÈGLES :
     try {
       plan = JSON.parse(jsonStr.trim());
     } catch {
-      if (!isPrivileged) {
-        await admin.rpc("credit_ai_wallet", {
-          _user_id: userId,
-          _credits: creditsCost,
-          _operation_type: "refund",
-          _description: "Remboursement auto — réponse IA invalide (JSON)",
-        });
-      }
+      await admin.rpc("credit_ai_wallet", {
+        _user_id: userId,
+        _credits: creditsCost,
+        _operation_type: "refund",
+        _description: "Remboursement auto — réponse IA invalide (JSON)",
+      });
       return new Response(JSON.stringify({ error: "Réponse IA invalide" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
