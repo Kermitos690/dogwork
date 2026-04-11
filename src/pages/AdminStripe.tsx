@@ -500,11 +500,11 @@ export default function AdminStripe() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirmAction?.type === "refund" ? "Confirmer le remboursement" : "Confirmer l'annulation"}
+              {confirmAction?.type === "refund" ? "Confirmer le remboursement partiel" : "Confirmer l'annulation"}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {confirmAction?.type === "refund"
-                ? `Rembourser ${confirmAction?.label} ? Cette action est irréversible.`
+                ? `Rembourser 92% de ${confirmAction?.label} ? 8% seront retenus pour couvrir les frais Stripe et la plateforme. Cette action est irréversible.`
                 : `Annuler l'abonnement ${confirmAction?.label} ? L'accès sera immédiatement retiré.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
