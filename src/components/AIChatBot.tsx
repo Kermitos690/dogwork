@@ -123,8 +123,9 @@ export function AIChatBot() {
 }
 
 function AIChatBotSafe() {
+  const { user } = useAuth();
   const { preferences } = usePreferences();
-  if (preferences.hide_chatbot) return null;
+  if (!user || preferences.hide_chatbot) return null;
 
   return <AIChatBotInner />;
 }
