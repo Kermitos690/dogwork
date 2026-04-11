@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
       console.log(`[post-publish-sync] Exercises incomplete: ${totalExercises}/${TARGET_EXERCISES}. Syncing...`);
       // Try local storage first, then fallback to Test instance catalog
       const localCatalogUrl = `${SUPABASE_URL}/storage/v1/object/public/exercise-images/data/exercise-catalog.json`;
-      const testCatalogUrl = `https://hdmmqwpypvhwohhhaqnf.supabase.co/storage/v1/object/public/exercise-images/data/exercise-catalog.json`;
+      const testCatalogUrl = `https://dcwbqsfeouvghcnvhrpj.supabase.co/storage/v1/object/public/exercise-images/data/exercise-catalog.json`;
       
       let catalogRes = await fetch(localCatalogUrl);
       let catalogSource = "local";
