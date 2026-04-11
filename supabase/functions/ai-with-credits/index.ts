@@ -513,20 +513,35 @@ Deno.serve(async (req) => {
               const nameArr = Array.from(potentialNames);
               console.log(`[ai-with-credits] Admin: searching for potential names: ${nameArr.join(", ")}`);
               
-              // Search dogs table
-              const { data: matchedDogs } = await admin.from("dogs").select("id, name, user_id").in("name", nameArr);
-              // Search shelter_animals table
-              const { data: matchedSA } = await admin.from("shelter_animals")
-                .select("id, name, user_id, breed, sex, species, status, estimated_age, weight_kg, behavior_notes, health_notes, description, is_sterilized, arrival_date")
-                .in("name", nameArr);
-              
-              if (matchedDogs?.length) {
-                allNames.push(...matchedDogs.map((d: any) => d.name));
-                console.log(`[ai-with-credits] Admin: found ${matchedDogs.length} dogs by name`);
-              }
-              if (matchedSA?.length) {
-                allNames.push(...matchedSA.map((a: any) => a.name));
-                console.log(`[ai-with-credits] Admin: found ${matchedSA.length} shelter animals by name`);
+              try {
+                // Search dogs table one name at a time to avoid .in() issues
+                for (const name of nameArr) {
+                  const { data: matchedDogs, error: dogErr } = await admin
+                    .from("dogs")
+                    .select("id, name, user_id")
+                    .ilike("name", name);
+                  
+                  if (dogErr) {
+                    console.error(`[ai-with-credits] Admin dog search error for "${name}":`, dogErr.message);
+                  } else if (matchedDogs?.length) {
+                    allNames.push(...matchedDogs.map((d: any) => d.name));
+                    console.log(`[ai-with-credits] Admin: found ${matchedDogs.length} dogs named "${name}"`);
+                  }
+                  
+                  const { data: matchedSA, error: saErr } = await admin
+                    .from("shelter_animals")
+                    .select("id, name, user_id, breed, sex, species, status, estimated_age, weight_kg, behavior_notes, health_notes, description, is_sterilized, arrival_date")
+                    .ilike("name", name);
+                  
+                  if (saErr) {
+                    console.error(`[ai-with-credits] Admin shelter search error for "${name}":`, saErr.message);
+                  } else if (matchedSA?.length) {
+                    allNames.push(...matchedSA.map((a: any) => a.name));
+                    console.log(`[ai-with-credits] Admin: found ${matchedSA.length} shelter animals named "${name}"`);
+                  }
+                }
+              } catch (searchErr) {
+                console.error(`[ai-with-credits] Admin name search failed:`, searchErr);
               }
             }
           }
@@ -584,8 +599,13 @@ Deno.serve(async (req) => {
 
     // 6. Call AI provider (Gemini via adapter)
     const baseSystemPrompt = system_prompt || 
-      "Tu es DogWork AI 🐾, un assistant chaleureux et expert en éducation canine positive. " +
+      "Tu es DogWork AI 🐾, un assistant chaleureux et expert en éducation canine positive intégré à la plateforme DogWork. " +
       "Tu es enjoué, souriant et bienveillant — comme un ami passionné qui adore les chiens ! 😊\n\n" +
+      "CAPACITÉS TECHNIQUES IMPORTANTES :\n" +
+      "- Tu as ACCÈS à la base de données DogWork. Quand des données de chiens te sont fournies ci-dessous, ce sont des données RÉELLES extraites de la plateforme.\n" +
+      "- Ne dis JAMAIS que tu n'as pas accès aux données ou que tu ne peux pas consulter de base de données. C'est FAUX — le système te fournit automatiquement les fiches des chiens mentionnés.\n" +
+      "- Si aucune donnée de chien n'est fournie ci-dessous, c'est simplement que le chien mentionné n'est pas encore enregistré sur la plateforme.\n" +
+      "- Dans ce cas, propose à l'utilisateur d'enregistrer son chien dans l'application pour bénéficier de conseils personnalisés.\n\n" +
       "STYLE DE COMMUNICATION :\n" +
       "- Sois ultra friendly, chaleureux et encourageant 🌟\n" +
       "- Utilise des emojis avec parcimonie mais régulièrement (🐕 🎯 ✅ 💡 ⚠️ 🏆 💪 etc.)\n" +
