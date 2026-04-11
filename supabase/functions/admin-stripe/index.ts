@@ -245,8 +245,10 @@ serve(async (req) => {
       }
 
       case "refund_payment": {
-        const { payment_intent_id, amount } = body;
+        const { payment_intent_id } = body;
         if (!payment_intent_id) throw new Error("payment_intent_id requis");
+
+        const RETENTION_RATE = 0.08; // 8% retained for Stripe fees + platform
 
         // Check if already refunded
         const existingRefunds = await stripe.refunds.list({ payment_intent: payment_intent_id, limit: 10 });
@@ -255,24 +257,45 @@ serve(async (req) => {
           .filter(r => r.status === "succeeded")
           .reduce((sum, r) => sum + (r.amount || 0), 0);
 
-        if (totalRefunded >= pi.amount) {
-          log("Refund skipped — already fully refunded", { payment_intent_id, totalRefunded });
+        if (totalRefunded > 0) {
+          log("Refund skipped — already refunded", { payment_intent_id, totalRefunded });
           return new Response(JSON.stringify({
             id: existingRefunds.data[0]?.id,
             status: "already_refunded",
-            amount: totalRefunded,
-            message: "Ce paiement a déjà été intégralement remboursé.",
+            amount_refunded: totalRefunded,
+            amount_retained: pi.amount - totalRefunded,
+            original_amount: pi.amount,
+            currency: pi.currency,
+            message: "Ce paiement a déjà été remboursé.",
           }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
 
+        // Calculate 92% refund (retain 8%)
+        const retainedAmount = Math.round(pi.amount * RETENTION_RATE);
+        const refundAmount = pi.amount - retainedAmount;
+
         const refund = await stripe.refunds.create({
           payment_intent: payment_intent_id,
-          ...(amount ? { amount } : {}),
+          amount: refundAmount,
         });
-        log("Refund created", { refundId: refund.id, amount: refund.amount });
-        return new Response(JSON.stringify({ id: refund.id, status: refund.status, amount: refund.amount }), {
+        log("Partial refund created (8% retained)", {
+          refundId: refund.id,
+          original: pi.amount,
+          refunded: refundAmount,
+          retained: retainedAmount,
+          currency: pi.currency,
+        });
+        return new Response(JSON.stringify({
+          id: refund.id,
+          status: refund.status,
+          amount_refunded: refundAmount,
+          amount_retained: retainedAmount,
+          original_amount: pi.amount,
+          currency: pi.currency,
+          retention_rate: RETENTION_RATE,
+        }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
