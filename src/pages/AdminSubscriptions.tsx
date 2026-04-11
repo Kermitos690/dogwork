@@ -16,10 +16,10 @@ import { ArrowLeft, CreditCard, Plus, Trash2, Search, Crown, Shield } from "luci
 import { motion } from "framer-motion";
 
 const TIER_OPTIONS = [
-  { value: "pro", label: "Pro (7.90 CHF/mois)", color: "bg-primary/20 text-primary" },
-  { value: "expert", label: "Expert (12.90 CHF/mois)", color: "bg-accent/20 text-accent-foreground" },
+  { value: "pro", label: "Pro (9.90 CHF/mois)", color: "bg-primary/20 text-primary" },
+  { value: "expert", label: "Expert (19.90 CHF/mois)", color: "bg-accent/20 text-accent-foreground" },
   { value: "educator", label: "Éducateur (200 CHF/an)", color: "bg-emerald-500/20 text-emerald-400" },
-  { value: "shelter", label: "Refuge (500 CHF/an)", color: "bg-amber-500/20 text-amber-400" },
+  { value: "shelter", label: "Refuge (sur mesure)", color: "bg-amber-500/20 text-amber-400" },
 ];
 
 export default function AdminSubscriptions() {
