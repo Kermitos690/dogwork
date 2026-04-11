@@ -94,6 +94,7 @@ const ForcePasswordChange = lazy(() => import("./pages/ForcePasswordChange"));
 const TermsPage = lazy(() => import("./pages/Terms"));
 const PrivacyPage = lazy(() => import("./pages/Privacy"));
 const LegalPage = lazy(() => import("./pages/Legal"));
+const ShopPage = lazy(() => import("./pages/Shop"));
 
 export const queryClient = new QueryClient();
 
@@ -278,6 +279,7 @@ function ProtectedRoutes() {
         <Route path="/preferences" element={<PreferencesPage />} />
         <Route path="/adoption-checkins" element={<AdoptionCheckins />} />
         <Route path="/adoption-followup" element={<AdoptionFollowup />} />
+        <Route path="/shop" element={<ShopPage />} />
         <Route path="/force-password-change" element={<ForcePasswordChange />} />
         <Route path="/program" element={<Navigate to="/plan" replace />} />
         {/* Coach / Educator routes */}

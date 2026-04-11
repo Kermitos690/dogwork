@@ -112,8 +112,8 @@ Deno.serve(async (req) => {
       customer_email: customerId ? undefined : userEmail,
       line_items: [{ price: priceId, quantity: 1 }],
       mode: "payment",
-      success_url: `${origin}/settings?credits=success&pack=${pack_slug}`,
-      cancel_url: `${origin}/settings?credits=cancel`,
+      success_url: `${origin}/shop?credits=success&pack=${pack_slug}`,
+      cancel_url: `${origin}/shop?credits=cancel`,
       metadata: {
         user_id: userId,
         pack_slug: pack.slug,
