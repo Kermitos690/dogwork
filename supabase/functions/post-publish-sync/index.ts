@@ -115,32 +115,32 @@ Deno.serve(async (req) => {
     const { error: packErr } = await supabase.from("ai_credit_packs").upsert(creditPacks, { onConflict: "slug" });
     steps.push({ step: "upsert_credit_packs", count: creditPacks.length, error: packErr?.message || null });
 
-    // ─── STEP 3b: Upsert ai_feature_catalog ───
+    // ─── STEP 3b: Upsert ai_feature_catalog (updated costs) ───
     const featureCatalog = [
-      { code: "chat", label: "Chat IA", credits_cost: 2, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.002, cost_estimate_min_usd: 0.001, cost_estimate_max_usd: 0.005, margin_target: 0.90, description: "Conversation avec l'assistant IA" },
-      { code: "chat_general", label: "Chat IA général", credits_cost: 2, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.002, cost_estimate_min_usd: 0.001, cost_estimate_max_usd: 0.005, margin_target: 0.90, description: "Chat IA généraliste" },
-      { code: "plan_generator", label: "Générateur de plan", credits_cost: 5, model: "google/gemini-2.5-pro", is_active: true, cost_estimate_avg_usd: 0.01, cost_estimate_min_usd: 0.005, cost_estimate_max_usd: 0.02, margin_target: 0.90, description: "Génération de plans d'entraînement personnalisés" },
-      { code: "education_plan", label: "Plan éducatif IA", credits_cost: 10, model: "google/gemini-2.5-pro", is_active: true, cost_estimate_avg_usd: 0.02, cost_estimate_min_usd: 0.01, cost_estimate_max_usd: 0.04, margin_target: 0.90, description: "Plan éducatif complet généré par IA" },
-      { code: "behavior_analysis", label: "Analyse comportementale", credits_cost: 6, model: "google/gemini-2.5-pro", is_active: true, cost_estimate_avg_usd: 0.015, cost_estimate_min_usd: 0.008, cost_estimate_max_usd: 0.03, margin_target: 0.90, description: "Analyse comportementale détaillée" },
-      { code: "behavior_summary", label: "Résumé comportemental", credits_cost: 4, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.005, cost_estimate_min_usd: 0.002, cost_estimate_max_usd: 0.01, margin_target: 0.90, description: "Résumé comportemental synthétique" },
-      { code: "dog_profile_analysis", label: "Analyse de profil chien", credits_cost: 5, model: "google/gemini-2.5-pro", is_active: true, cost_estimate_avg_usd: 0.01, cost_estimate_min_usd: 0.005, cost_estimate_max_usd: 0.02, margin_target: 0.90, description: "Analyse détaillée du profil d'un chien" },
-      { code: "connection_guide", label: "Guide de connexion", credits_cost: 3, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.003, cost_estimate_min_usd: 0.001, cost_estimate_max_usd: 0.006, margin_target: 0.90, description: "Guide personnalisé de connexion chien-humain" },
-      { code: "content_rewrite", label: "Reformulation", credits_cost: 1, model: "google/gemini-2.5-flash-lite", is_active: true, cost_estimate_avg_usd: 0.001, cost_estimate_min_usd: 0.0005, cost_estimate_max_usd: 0.002, margin_target: 0.90, description: "Reformulation et amélioration de texte" },
-      { code: "exercise_enrich", label: "Enrichissement exercice", credits_cost: 3, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.003, cost_estimate_min_usd: 0.001, cost_estimate_max_usd: 0.006, margin_target: 0.90, description: "Enrichissement de fiche exercice" },
-      { code: "marketing_content", label: "Contenu marketing", credits_cost: 3, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.003, cost_estimate_min_usd: 0.001, cost_estimate_max_usd: 0.006, margin_target: 0.90, description: "Génération de contenu marketing" },
-      { code: "adoption_plan", label: "Plan de suivi post-adoption IA", credits_cost: 8, model: "google/gemini-2.5-pro", is_active: true, cost_estimate_avg_usd: 0.015, cost_estimate_min_usd: 0.008, cost_estimate_max_usd: 0.03, margin_target: 0.90, description: "Plan de suivi post-adoption généré par IA" },
-      { code: "record_enrichment", label: "Enrichissement de fiche", credits_cost: 4, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.005, cost_estimate_min_usd: 0.002, cost_estimate_max_usd: 0.01, margin_target: 0.90, description: "Enrichissement intelligent de fiches" },
+      { code: "chat", label: "Chat IA", credits_cost: 1, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.002, cost_estimate_min_usd: 0.001, cost_estimate_max_usd: 0.005, margin_target: 3.0, description: "Conversation avec l'assistant IA" },
+      { code: "chat_general", label: "Chat IA général", credits_cost: 1, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.002, cost_estimate_min_usd: 0.001, cost_estimate_max_usd: 0.005, margin_target: 3.0, description: "Chat IA généraliste" },
+      { code: "plan_generator", label: "Générateur de plan", credits_cost: 3, model: "google/gemini-2.5-pro", is_active: true, cost_estimate_avg_usd: 0.01, cost_estimate_min_usd: 0.005, cost_estimate_max_usd: 0.02, margin_target: 3.0, description: "Génération de plans d'entraînement personnalisés" },
+      { code: "education_plan", label: "Plan éducatif IA", credits_cost: 5, model: "google/gemini-2.5-pro", is_active: true, cost_estimate_avg_usd: 0.02, cost_estimate_min_usd: 0.01, cost_estimate_max_usd: 0.04, margin_target: 3.0, description: "Plan éducatif complet généré par IA" },
+      { code: "behavior_analysis", label: "Analyse comportementale", credits_cost: 3, model: "google/gemini-2.5-pro", is_active: true, cost_estimate_avg_usd: 0.015, cost_estimate_min_usd: 0.008, cost_estimate_max_usd: 0.03, margin_target: 3.0, description: "Analyse comportementale détaillée" },
+      { code: "behavior_summary", label: "Résumé comportemental", credits_cost: 2, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.005, cost_estimate_min_usd: 0.002, cost_estimate_max_usd: 0.01, margin_target: 3.0, description: "Résumé comportemental synthétique" },
+      { code: "dog_profile_analysis", label: "Analyse de profil chien", credits_cost: 3, model: "google/gemini-2.5-pro", is_active: true, cost_estimate_avg_usd: 0.01, cost_estimate_min_usd: 0.005, cost_estimate_max_usd: 0.02, margin_target: 3.0, description: "Analyse détaillée du profil d'un chien" },
+      { code: "connection_guide", label: "Guide de connexion", credits_cost: 2, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.003, cost_estimate_min_usd: 0.001, cost_estimate_max_usd: 0.006, margin_target: 3.0, description: "Guide personnalisé de connexion chien-humain" },
+      { code: "content_rewrite", label: "Reformulation", credits_cost: 1, model: "google/gemini-2.5-flash-lite", is_active: false, cost_estimate_avg_usd: 0.001, cost_estimate_min_usd: 0.0005, cost_estimate_max_usd: 0.002, margin_target: 3.0, description: "Reformulation et amélioration de texte" },
+      { code: "exercise_enrich", label: "Enrichissement exercice", credits_cost: 2, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.003, cost_estimate_min_usd: 0.001, cost_estimate_max_usd: 0.006, margin_target: 3.0, description: "Enrichissement de fiche exercice" },
+      { code: "marketing_content", label: "Contenu marketing", credits_cost: 2, model: "google/gemini-2.5-flash", is_active: false, cost_estimate_avg_usd: 0.003, cost_estimate_min_usd: 0.001, cost_estimate_max_usd: 0.006, margin_target: 3.0, description: "Génération de contenu marketing" },
+      { code: "adoption_plan", label: "Plan de suivi post-adoption IA", credits_cost: 5, model: "google/gemini-2.5-pro", is_active: true, cost_estimate_avg_usd: 0.015, cost_estimate_min_usd: 0.008, cost_estimate_max_usd: 0.03, margin_target: 3.0, description: "Plan de suivi post-adoption généré par IA" },
+      { code: "record_enrichment", label: "Enrichissement de fiche", credits_cost: 2, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.005, cost_estimate_min_usd: 0.002, cost_estimate_max_usd: 0.01, margin_target: 3.0, description: "Enrichissement intelligent de fiches" },
     ];
     const { error: featErr } = await supabase.from("ai_feature_catalog").upsert(featureCatalog, { onConflict: "code" });
     steps.push({ step: "upsert_feature_catalog", count: featureCatalog.length, error: featErr?.message || null });
 
-    // ─── STEP 4: Upsert ai_plan_quotas ───
+    // ─── STEP 4: Upsert ai_plan_quotas (tightened) ───
     const quotas = [
-      { plan_slug: "starter", monthly_credits: 5, discount_percent: 0 },
-      { plan_slug: "pro", monthly_credits: 30, discount_percent: 10 },
-      { plan_slug: "expert", monthly_credits: 100, discount_percent: 20 },
-      { plan_slug: "shelter", monthly_credits: 150, discount_percent: 20 },
-      { plan_slug: "educator", monthly_credits: 200, discount_percent: 25 },
+      { plan_slug: "starter", monthly_credits: 1, discount_percent: 0 },
+      { plan_slug: "pro", monthly_credits: 5, discount_percent: 10 },
+      { plan_slug: "expert", monthly_credits: 15, discount_percent: 20 },
+      { plan_slug: "shelter", monthly_credits: 20, discount_percent: 20 },
+      { plan_slug: "educator", monthly_credits: 30, discount_percent: 25 },
     ];
     const { error: quotaErr } = await supabase.from("ai_plan_quotas").upsert(quotas, { onConflict: "plan_slug" });
     steps.push({ step: "upsert_plan_quotas", count: quotas.length, error: quotaErr?.message || null });
@@ -152,19 +152,29 @@ Deno.serve(async (req) => {
 
     if (totalExercises < TARGET_EXERCISES) {
       console.log(`[post-publish-sync] Exercises incomplete: ${totalExercises}/${TARGET_EXERCISES}. Syncing...`);
-      const catalogUrl = `${SUPABASE_URL}/storage/v1/object/public/exercise-images/data/exercise-catalog.json`;
-      const catalogRes = await fetch(catalogUrl);
+      // Try local storage first, then fallback to Test instance catalog
+      const localCatalogUrl = `${SUPABASE_URL}/storage/v1/object/public/exercise-images/data/exercise-catalog.json`;
+      const testCatalogUrl = `https://dcwbqsfeouvghcnvhrpj.supabase.co/storage/v1/object/public/exercise-images/data/exercise-catalog.json`;
+      
+      let catalogRes = await fetch(localCatalogUrl);
+      let catalogSource = "local";
+      if (!catalogRes.ok) {
+        console.log(`[post-publish-sync] Local catalog unavailable (${catalogRes.status}), trying test instance...`);
+        catalogRes = await fetch(testCatalogUrl);
+        catalogSource = "test-fallback";
+      }
+      
       if (catalogRes.ok) {
         const catalog = await catalogRes.json();
         if (Array.isArray(catalog?.categories) && Array.isArray(catalog?.exercises)) {
-          console.log(`[post-publish-sync] Catalog loaded: ${catalog.categories.length} cats, ${catalog.exercises.length} exercises. Calling RPC...`);
+          console.log(`[post-publish-sync] Catalog loaded from ${catalogSource}: ${catalog.categories.length} cats, ${catalog.exercises.length} exercises. Calling RPC...`);
           const result = await syncCatalogViaRPC(supabase, catalog);
-          steps.push({ step: "sync_exercises", previous_count: totalExercises, catalog_exercises: catalog.exercises.length, ...result });
+          steps.push({ step: "sync_exercises", source: catalogSource, previous_count: totalExercises, catalog_exercises: catalog.exercises.length, ...result });
         } else {
           steps.push({ step: "sync_exercises", error: "Invalid catalog format" });
         }
       } else {
-        steps.push({ step: "sync_exercises", error: `Catalog fetch failed: ${catalogRes.status}` });
+        steps.push({ step: "sync_exercises", error: `Catalog fetch failed from both sources. Local: tried, Test: ${catalogRes.status}` });
       }
     } else {
       steps.push({ step: "sync_exercises", skipped: true, reason: `${totalExercises} exercises already present (>= ${TARGET_EXERCISES})` });
@@ -172,11 +182,11 @@ Deno.serve(async (req) => {
 
     // ─── STEP 6: Upsert subscription_plans ───
     const subscriptionPlans = [
-      { code: "starter", name: "Freemium", max_dogs: 1, base_exercise_limit: 15, monthly_ai_credits: 5, includes_28_day_plans: false, includes_base_exercises: true, is_active: true },
-      { code: "pro", name: "Pro", max_dogs: 3, base_exercise_limit: 150, monthly_ai_credits: 30, includes_28_day_plans: true, includes_base_exercises: true, is_active: true },
-      { code: "expert", name: "Expert", max_dogs: 999999, base_exercise_limit: 999999, monthly_ai_credits: 100, includes_28_day_plans: true, includes_base_exercises: true, is_active: true },
-      { code: "educator", name: "Éducateur", max_dogs: 999999, base_exercise_limit: 999999, monthly_ai_credits: 200, includes_28_day_plans: true, includes_base_exercises: true, is_active: true },
-      { code: "shelter", name: "Refuge", max_dogs: 999999, base_exercise_limit: 999999, monthly_ai_credits: 150, includes_28_day_plans: true, includes_base_exercises: true, is_active: true },
+      { code: "starter", name: "Freemium", max_dogs: 1, base_exercise_limit: 15, monthly_ai_credits: 1, includes_28_day_plans: false, includes_base_exercises: true, is_active: true },
+      { code: "pro", name: "Pro", max_dogs: 3, base_exercise_limit: 150, monthly_ai_credits: 5, includes_28_day_plans: true, includes_base_exercises: true, is_active: true },
+      { code: "expert", name: "Expert", max_dogs: 999999, base_exercise_limit: 999999, monthly_ai_credits: 15, includes_28_day_plans: true, includes_base_exercises: true, is_active: true },
+      { code: "educator", name: "Éducateur", max_dogs: 999999, base_exercise_limit: 999999, monthly_ai_credits: 30, includes_28_day_plans: true, includes_base_exercises: true, is_active: true },
+      { code: "shelter", name: "Refuge", max_dogs: 999999, base_exercise_limit: 999999, monthly_ai_credits: 20, includes_28_day_plans: true, includes_base_exercises: true, is_active: true },
     ];
     const { error: planErr } = await supabase.from("subscription_plans").upsert(subscriptionPlans, { onConflict: "code" });
     steps.push({ step: "upsert_subscription_plans", count: subscriptionPlans.length, error: planErr?.message || null });
