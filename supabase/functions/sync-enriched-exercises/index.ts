@@ -260,48 +260,54 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
+    // Allow service-role calls (from post-publish-sync or internal triggers)
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return respond({
-        ok: false,
-        error: "Session expirée ou accès non autorisé.",
-        diagnostics: { stage: "auth_missing" },
+    const serviceKey = req.headers.get("x-service-key");
+    const isServiceCall = serviceKey === SERVICE_ROLE_KEY;
+
+    if (!isServiceCall) {
+      if (!authHeader?.startsWith("Bearer ")) {
+        return respond({
+          ok: false,
+          error: "Session expirée ou accès non autorisé.",
+          diagnostics: { stage: "auth_missing" },
+        });
+      }
+
+      const token = authHeader.replace("Bearer ", "");
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser(token);
+
+      if (userError || !user) {
+        return respond({
+          ok: false,
+          error: "Session expirée ou accès non autorisé.",
+          diagnostics: { stage: "auth_invalid", details: userError?.message ?? null },
+        });
+      }
+
+      const { data: isAdmin, error: roleError } = await supabase.rpc("has_role", {
+        _user_id: user.id,
+        _role: "admin",
       });
-    }
 
-    const token = authHeader.replace("Bearer ", "");
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser(token);
+      if (roleError) {
+        return respond({
+          ok: false,
+          error: "Impossible de vérifier les droits administrateur.",
+          diagnostics: { stage: "role_check", details: roleError.message },
+        });
+      }
 
-    if (userError || !user) {
-      return respond({
-        ok: false,
-        error: "Session expirée ou accès non autorisé.",
-        diagnostics: { stage: "auth_invalid", details: userError?.message ?? null },
-      });
-    }
-
-    const { data: isAdmin, error: roleError } = await supabase.rpc("has_role", {
-      _user_id: user.id,
-      _role: "admin",
-    });
-
-    if (roleError) {
-      return respond({
-        ok: false,
-        error: "Impossible de vérifier les droits administrateur.",
-        diagnostics: { stage: "role_check", details: roleError.message },
-      });
-    }
-
-    if (!isAdmin) {
-      return respond({
-        ok: false,
-        error: "Accès réservé à l’administration.",
-        diagnostics: { stage: "forbidden" },
-      });
+      if (!isAdmin) {
+        return respond({
+          ok: false,
+          error: "Accès réservé à l'administration.",
+          diagnostics: { stage: "forbidden" },
+        });
+      }
     }
 
     const catalogUrl = `${SUPABASE_URL}/storage/v1/object/public/exercise-images/data/exercise-catalog.json`;
