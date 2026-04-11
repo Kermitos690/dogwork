@@ -131,6 +131,19 @@ function AIChatBotSafe() {
   return <AIChatBotInner />;
 }
 
+function SuggestionChip({ text, icon, onClick }: { text: string; icon: string; onClick: (t: string) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onClick(text)}
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted hover:bg-primary/10 text-xs text-foreground transition-colors border border-border"
+    >
+      <span>{icon}</span>
+      <span className="text-left">{text}</span>
+    </button>
+  );
+}
+
 function AIChatBotInner() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
