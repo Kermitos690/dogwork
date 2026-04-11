@@ -1,67 +1,49 @@
 project_id = "dcwbqsfeouvghcnvhrpj"
 
-[functions.enrich-exercises]
-verify_jwt = false
-
-[functions.check-subscription]
-verify_jwt = false
-
-[functions.create-checkout]
-verify_jwt = false
-
-[functions.create-educator-checkout]
-verify_jwt = false
-
-[functions.create-course-checkout]
-verify_jwt = false
-
-[functions.customer-portal]
-verify_jwt = false
-
-[functions.create-educator]
-verify_jwt = false
-
-[functions.create-shelter]
-verify_jwt = false
-
-[functions.seed-exercises]
-verify_jwt = false
-
-[functions.chat]
-verify_jwt = false
-
-[functions.send-notification-email]
-verify_jwt = false
-
-[functions.send-appointment-reminders]
-verify_jwt = false
-
-[functions.stripe-course-webhook]
-verify_jwt = false
-
-[functions.generate-exercise-image]
-verify_jwt = false
-
-[functions.generate-exercise-images]
-verify_jwt = false
-
-[functions.connect-onboard]
-verify_jwt = false
-
-[functions.connect-status]
-verify_jwt = false
-
-[functions.connect-dashboard]
-verify_jwt = false
-
-[functions.stripe-webhook]
-verify_jwt = false
-
-[functions.ai-with-credits]
-verify_jwt = false
-
-[functions.create-credits-checkout]
-verify_jwt = false
-
-[functions.admin-stripe]
-verify_jwt = false
+[functions]
+  [functions.admin-stripe]
+    verify_jwt = false
+  [functions.ai-with-credits]
+    verify_jwt = false
+  [functions.auth-email-hook]
+    verify_jwt = false
+  [functions.chat]
+    verify_jwt = false
+  [functions.check-subscription]
+    verify_jwt = false
+  [functions.connect-dashboard]
+    verify_jwt = false
+  [functions.connect-onboard]
+    verify_jwt = false
+  [functions.connect-status]
+    verify_jwt = false
+  [functions.create-checkout]
+    verify_jwt = false
+  [functions.create-course-checkout]
+    verify_jwt = false
+  [functions.create-credits-checkout]
+    verify_jwt = false
+  [functions.create-educator]
+    verify_jwt = false
+  [functions.create-educator-checkout]
+    verify_jwt = false
+  [functions.create-shelter]
+    verify_jwt = false
+  [functions.customer-portal]
+    verify_jwt = false
+  [functions.enrich-exercises]
+    verify_jwt = false
+  [functions.generate-exercise-image]
+    verify_jwt = false
+  [functions.generate-exercise-images]
+    verify_jwt = false
+  [functions.seed-exercises]
+    verify_jwt = false
+  [functions.send-appointment-reminders]
+    verify_jwt = false
+  [functions.send-notification-email]
+    verify_jwt = false
+  [functions.stripe-course-webhook]
+    verify_jwt = false
+  [functions.stripe-webhook]
+    verify_jwt = false
