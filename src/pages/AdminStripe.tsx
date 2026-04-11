@@ -225,6 +225,128 @@ export default function AdminStripe() {
             </Card>
           </TabsContent>
 
+          {/* CONNECT TAB */}
+          <TabsContent value="connect" className="space-y-3 mt-3">
+            {/* Platform balance */}
+            {connectData?.platform_balance && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Wallet className="h-4 w-4 text-primary" /> Solde plateforme
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-2.5 rounded-lg bg-secondary/30 text-center">
+                      <p className="text-[10px] text-muted-foreground">Disponible</p>
+                      <p className="text-sm font-bold text-primary">{fmtBalance(connectData.platform_balance.available)}</p>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-secondary/30 text-center">
+                      <p className="text-[10px] text-muted-foreground">En attente</p>
+                      <p className="text-sm font-bold">{fmtBalance(connectData.platform_balance.pending)}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Educator accounts */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <GraduationCap className="h-4 w-4 text-primary" /> Comptes éducateurs ({connectData?.accounts?.length || 0})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingConnect ? (
+                  <div className="flex items-center gap-2 text-muted-foreground text-sm"><Loader2 className="h-4 w-4 animate-spin" /> Chargement...</div>
+                ) : !connectData?.accounts?.length ? (
+                  <p className="text-xs text-muted-foreground">Aucun compte Connect éducateur.</p>
+                ) : (
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {connectData.accounts.map((a: any) => (
+                      <div key={a.user_id} className="p-2.5 rounded-lg bg-secondary/30 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-xs font-medium">{a.display_name || a.account_id}</p>
+                            <p className="text-[10px] text-muted-foreground font-mono">{a.account_id}</p>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {a.charges_enabled ? (
+                              <Badge className="text-[9px] border-0 bg-emerald-500/20 text-emerald-400">Actif</Badge>
+                            ) : (
+                              <Badge className="text-[9px] border-0 bg-amber-500/20 text-amber-400">Onboarding</Badge>
+                            )}
+                          </div>
+                        </div>
+                        {!a.error && (
+                          <div className="grid grid-cols-2 gap-2 text-[10px]">
+                            <div>
+                              <span className="text-muted-foreground">Disponible: </span>
+                              <span className="font-medium">{fmtBalance(a.balance_available)}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">En attente: </span>
+                              <span className="font-medium">{fmtBalance(a.balance_pending)}</span>
+                            </div>
+                          </div>
+                        )}
+                        {a.error && (
+                          <p className="text-[10px] text-destructive">{a.error}</p>
+                        )}
+                        <Button
+                          size="sm" variant="outline" className="h-7 text-[10px] gap-1 w-full"
+                          disabled={connectLoading === a.user_id}
+                          onClick={() => handleLoginLink(a.user_id)}
+                        >
+                          {connectLoading === a.user_id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : a.charges_enabled ? (
+                            <><ArrowUpRight className="h-3 w-3" /> Dashboard Stripe</>
+                          ) : (
+                            <><Link2 className="h-3 w-3" /> Finaliser onboarding</>
+                          )}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Recent transfers */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-primary" /> Transferts récents
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingTransfers ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : !transfers?.transfers?.length ? (
+                  <p className="text-xs text-muted-foreground">Aucun transfert Connect.</p>
+                ) : (
+                  <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                    {transfers.transfers.slice(0, 20).map((t: any) => (
+                      <div key={t.id} className="p-2 rounded-lg bg-secondary/30 flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-medium">{(t.amount / 100).toFixed(2)} {t.currency?.toUpperCase()}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            → {t.destination?.slice(0, 15)}… • {new Date(t.created * 1000).toLocaleDateString("fr-CH")}
+                          </p>
+                        </div>
+                        <Badge className={`text-[9px] border-0 ${t.reversed ? "bg-red-500/20 text-red-400" : "bg-emerald-500/20 text-emerald-400"}`}>
+                          {t.reversed ? "Annulé" : "OK"}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* CUSTOMERS TAB */}
           <TabsContent value="customers" className="space-y-3 mt-3">
             <Card>
