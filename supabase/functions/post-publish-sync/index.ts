@@ -188,32 +188,72 @@ Deno.serve(async (req) => {
     const { error: quotaErr } = await supabase.from("ai_plan_quotas").upsert(quotas, { onConflict: "plan_slug" });
     steps.push({ step: "upsert_plan_quotas", count: quotas.length, error: quotaErr?.message || null });
 
-    // ─── STEP 5: Auto-seed exercises if empty ───
+    // ─── STEP 5: Sync exercises if incomplete (< 480) ───
+    const TARGET_EXERCISES = 480;
     const { count } = await supabase.from("exercises").select("id", { count: "exact", head: true });
     const totalExercises = count || 0;
 
-    if (totalExercises === 0) {
+    if (totalExercises < TARGET_EXERCISES) {
+      console.log(`[post-publish-sync] Exercises incomplete: ${totalExercises}/${TARGET_EXERCISES}. Syncing...`);
       const catalogUrl = `${SUPABASE_URL}/storage/v1/object/public/exercise-images/data/exercise-catalog.json`;
       const catalogRes = await fetch(catalogUrl);
       if (catalogRes.ok) {
         const catalog = await catalogRes.json();
         if (Array.isArray(catalog?.categories) && Array.isArray(catalog?.exercises)) {
           const result = await syncCatalogDirectly(supabase, catalog.categories, catalog.exercises);
-          steps.push({ step: "auto_seed_exercises", ...result });
+          steps.push({ step: "sync_exercises", previous_count: totalExercises, catalog_exercises: catalog.exercises.length, ...result });
         } else {
-          steps.push({ step: "auto_seed_exercises", error: "Invalid catalog format" });
+          steps.push({ step: "sync_exercises", error: "Invalid catalog format" });
         }
       } else {
-        steps.push({ step: "auto_seed_exercises", error: `Catalog fetch failed: ${catalogRes.status}` });
+        steps.push({ step: "sync_exercises", error: `Catalog fetch failed: ${catalogRes.status}` });
       }
     } else {
-      steps.push({ step: "auto_seed_exercises", skipped: true, reason: `${totalExercises} exercises already present` });
+      steps.push({ step: "sync_exercises", skipped: true, reason: `${totalExercises} exercises already present (>= ${TARGET_EXERCISES})` });
     }
 
-    // ─── STEP 6: Verification ───
+    // ─── STEP 6: Upsert subscription_plans ───
+    const subscriptionPlans = [
+      { code: "starter", name: "Freemium", max_dogs: 1, base_exercise_limit: 15, monthly_ai_credits: 5, includes_28_day_plans: false, includes_base_exercises: true, is_active: true },
+      { code: "pro", name: "Pro", max_dogs: 3, base_exercise_limit: 150, monthly_ai_credits: 30, includes_28_day_plans: true, includes_base_exercises: true, is_active: true },
+      { code: "expert", name: "Expert", max_dogs: 999999, base_exercise_limit: 999999, monthly_ai_credits: 100, includes_28_day_plans: true, includes_base_exercises: true, is_active: true },
+      { code: "educator", name: "Éducateur", max_dogs: 999999, base_exercise_limit: 999999, monthly_ai_credits: 200, includes_28_day_plans: true, includes_base_exercises: true, is_active: true },
+      { code: "shelter", name: "Refuge", max_dogs: 999999, base_exercise_limit: 999999, monthly_ai_credits: 150, includes_28_day_plans: true, includes_base_exercises: true, is_active: true },
+    ];
+    const { error: planErr } = await supabase.from("subscription_plans").upsert(subscriptionPlans, { onConflict: "code" });
+    steps.push({ step: "upsert_subscription_plans", count: subscriptionPlans.length, error: planErr?.message || null });
+
+    // ─── STEP 7: Upsert subscription_plan_prices ───
+    const subscriptionPrices = [
+      { plan_code: "starter", billing_period: "monthly", price_chf: 0, stripe_price_id: null, stripe_product_id: null, is_public: true },
+      { plan_code: "pro", billing_period: "monthly", price_chf: 9.90, stripe_price_id: "price_1TKpFyPshPrEibTgOW98FPOq", stripe_product_id: "prod_U83i1wbeLdd3EI", is_public: true },
+      { plan_code: "expert", billing_period: "monthly", price_chf: 19.90, stripe_price_id: "price_1TKpNpPshPrEibTgDiRVEAmV", stripe_product_id: "prod_U83inCbv8JMMgf", is_public: true },
+      { plan_code: "educator", billing_period: "yearly", price_chf: 200, stripe_price_id: "price_1T9wXlPshPrEibTgEM0BNrSm", stripe_product_id: "prod_U8CxlV7PMpHAgA", is_public: true },
+      { plan_code: "shelter", billing_period: "custom", price_chf: 0, stripe_price_id: "price_1TEtxAPshPrEibTgsDFHr8Nw", stripe_product_id: "prod_UDKcjmnJnM7pBo", is_public: false },
+    ];
+    const { error: priceErr } = await supabase.from("subscription_plan_prices").upsert(subscriptionPrices, { onConflict: "plan_code,billing_period" });
+    steps.push({ step: "upsert_subscription_plan_prices", count: subscriptionPrices.length, error: priceErr?.message || null });
+
+    // ─── STEP 8: Strict Verification ───
     const { count: finalCount } = await supabase.from("exercises").select("id", { count: "exact", head: true });
     const { count: catCount } = await supabase.from("exercise_categories").select("id", { count: "exact", head: true });
-    report.verification = { total_exercises: finalCount, total_categories: catCount };
+    const { count: planCount } = await supabase.from("subscription_plans").select("code", { count: "exact", head: true });
+    const { count: priceCount } = await supabase.from("subscription_plan_prices").select("plan_code", { count: "exact", head: true });
+    
+    const exercisesOk = (finalCount || 0) >= TARGET_EXERCISES;
+    const plansOk = (planCount || 0) >= 5;
+    const pricesOk = (priceCount || 0) >= 5;
+    
+    report.verification = { 
+      total_exercises: finalCount, 
+      total_categories: catCount,
+      subscription_plans: planCount,
+      subscription_plan_prices: priceCount,
+      exercises_target_met: exercisesOk,
+      plans_ok: plansOk,
+      prices_ok: pricesOk,
+      production_ready: exercisesOk && plansOk && pricesOk,
+    };
     report.completed_at = new Date().toISOString();
 
     return new Response(JSON.stringify(report), {

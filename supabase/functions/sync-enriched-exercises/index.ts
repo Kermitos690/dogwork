@@ -333,20 +333,28 @@ Deno.serve(async (req) => {
     const syncResult = await syncCatalogDirectly(supabase, catalog.categories, catalog.exercises);
     const { data: verification, error: verificationError } = await supabase.rpc("sync_exercise_stats");
 
+    // Strict verification: fail if not 480
+    const TARGET = 480;
+    const totalAfterSync = verification?.total_exercises ?? 0;
+    const isComplete = totalAfterSync >= TARGET;
+
     return respond({
-      ok: syncResult.exercises_failed === 0,
+      ok: syncResult.exercises_failed === 0 && isComplete,
       ...syncResult,
       verification: verification ?? null,
-      message:
-        syncResult.exercises_failed === 0
-          ? `Synchronisation terminée : ${syncResult.exercises_inserted + syncResult.exercises_updated} exercices traités.`
-          : `Synchronisation partielle : ${syncResult.exercises_failed} exercice(s) en échec.`,
+      production_ready: isComplete,
+      message: isComplete
+        ? `✅ Synchronisation complète : ${totalAfterSync} exercices en base.`
+        : `⚠️ Synchronisation partielle : ${totalAfterSync}/${TARGET} exercices. ${syncResult.exercises_failed} en échec.`,
       error:
-        syncResult.exercises_failed > 0
-          ? `${syncResult.exercises_failed} exercice(s) n'ont pas pu être synchronisés.`
-          : undefined,
+        !isComplete
+          ? `Objectif non atteint : ${totalAfterSync}/${TARGET} exercices.`
+          : syncResult.exercises_failed > 0
+            ? `${syncResult.exercises_failed} exercice(s) n'ont pas pu être synchronisés.`
+            : undefined,
       diagnostics: {
         stage: "completed",
+        target: TARGET,
         requested_url: catalogUrl,
         processing_time_ms: Date.now() - startedAt,
         verification_error: verificationError?.message ?? null,
