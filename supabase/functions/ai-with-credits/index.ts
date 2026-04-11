@@ -466,24 +466,44 @@ Deno.serve(async (req) => {
     if (feature_code.startsWith("chat") || feature_code === "dog_analysis") {
       try {
         // Step A: Get all accessible dog names for mention detection
-        const allNames: string[] = Array.isArray(dog_names) ? dog_names : [];
+        // If frontend didn't send names, auto-discover from DB
+        let allNames: string[] = Array.isArray(dog_names) && dog_names.length > 0 ? dog_names : [];
+        
+        if (allNames.length === 0) {
+          // Auto-discover dog names for the user
+          const { data: userDogs } = await admin.from("dogs").select("name").eq("user_id", userId);
+          allNames = (userDogs || []).map((d: any) => d.name);
+          
+          // Also get shelter animal names if shelter role
+          if (roleList.includes("shelter")) {
+            const { data: sa } = await admin.from("shelter_animals").select("name").eq("user_id", userId);
+            allNames.push(...(sa || []).map((a: any) => a.name));
+          }
+        }
         
         // Step B: Detect mentioned dog names in messages
         const mentionedNames = extractMentionedNames(messages, allNames);
         
         // Step C: Find mentioned dogs + active dog
         const dogIdsToLoad: Set<string> = new Set();
+        let shelterAnimalMatches: any[] = [];
         
         if (active_dog_id) dogIdsToLoad.add(active_dog_id);
         
         if (mentionedNames.length > 0) {
           const mentionedDogs = await findDogsByName(admin, userId, roleList, mentionedNames);
-          mentionedDogs.forEach((d: any) => dogIdsToLoad.add(d.id));
+          for (const d of mentionedDogs) {
+            if (d._source === "shelter_animal") {
+              shelterAnimalMatches.push(d);
+            } else {
+              dogIdsToLoad.add(d.id);
+            }
+          }
         }
         
         // Step D: Load full context for each dog
-        if (dogIdsToLoad.size > 0) {
-          const contexts = await loadDogContexts(admin, userId, Array.from(dogIdsToLoad), roleList);
+        if (dogIdsToLoad.size > 0 || shelterAnimalMatches.length > 0) {
+          const contexts = await loadDogContexts(admin, userId, Array.from(dogIdsToLoad), roleList, shelterAnimalMatches);
           
           if (contexts.length > 0) {
             const contextParts = contexts.map(buildDogContextPrompt);
@@ -502,7 +522,6 @@ Deno.serve(async (req) => {
         }
       } catch (ctxErr) {
         console.error("[ai-with-credits] Dog context loading failed (non-blocking):", ctxErr);
-        // Non-blocking: continue without context
       }
     }
 
