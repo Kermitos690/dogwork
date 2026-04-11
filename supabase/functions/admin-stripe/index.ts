@@ -11,6 +11,18 @@ const log = (step: string, details?: any) => {
   console.log(`[ADMIN-STRIPE] ${step}${details ? ` - ${JSON.stringify(details)}` : ""}`);
 };
 
+/** Safe date conversion — returns ISO string or null, never throws */
+function safeDate(ts: number | null | undefined): string | null {
+  if (ts == null || !Number.isFinite(ts)) return null;
+  try {
+    const d = new Date(ts * 1000);
+    if (isNaN(d.getTime())) return null;
+    return d.toISOString();
+  } catch {
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -84,13 +96,13 @@ serve(async (req) => {
           id: s.id,
           customer: s.customer,
           status: s.status,
-          current_period_end: new Date(s.current_period_end * 1000).toISOString(),
+          current_period_end: safeDate(s.current_period_end),
           cancel_at_period_end: s.cancel_at_period_end,
           product_id: s.items.data[0]?.price?.product,
           price_id: s.items.data[0]?.price?.id,
           amount: s.items.data[0]?.price?.unit_amount,
           currency: s.items.data[0]?.price?.currency,
-          created: new Date(s.created * 1000).toISOString(),
+          created: safeDate(s.created),
         }));
         return new Response(JSON.stringify(result), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -105,7 +117,7 @@ serve(async (req) => {
           currency: p.currency,
           status: p.status,
           customer: p.customer,
-          created: new Date(p.created * 1000).toISOString(),
+          created: safeDate(p.created),
           metadata: p.metadata,
         }));
         return new Response(JSON.stringify(result), {
@@ -122,7 +134,7 @@ serve(async (req) => {
           status: r.status,
           reason: r.reason,
           payment_intent: r.payment_intent,
-          created: new Date(r.created * 1000).toISOString(),
+          created: safeDate(r.created),
         }));
         return new Response(JSON.stringify(result), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -222,7 +234,7 @@ serve(async (req) => {
           subscription_status: bestSub?.status || "none",
           stripe_subscription_id: bestSub?.id || null,
           stripe_price_id: bestSub?.items?.data?.[0]?.price?.id || null,
-          current_period_end: bestSub ? new Date(bestSub.current_period_end * 1000).toISOString() : null,
+          current_period_end: bestSub ? safeDate(bestSub.current_period_end) : null,
           cancel_at_period_end: bestSub?.cancel_at_period_end || false,
         }).eq("user_id", user_id);
 
