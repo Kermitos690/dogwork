@@ -32,10 +32,23 @@ function buildDogContextPrompt(ctx: DogContext): string {
   const d = ctx.dog;
   const lines: string[] = [];
   
-  lines.push(`## 🐕 Fiche de ${d.name}`);
+  // Shelter animal extra info
+  const si = d._shelter_info;
+  if (si) {
+    lines.push(`## 🐕 Fiche de ${d.name} (Animal en refuge)`);
+    lines.push(`- Espèce : ${si.species || "chien"}`);
+    lines.push(`- Statut : ${si.status || "inconnu"}`);
+    if (si.estimated_age) lines.push(`- Âge estimé : ${si.estimated_age}`);
+    if (si.arrival_date) lines.push(`- Date d'arrivée : ${si.arrival_date}`);
+    if (si.description) lines.push(`- Description : ${si.description}`);
+    if (si.behavior_notes) lines.push(`- Notes comportement : ${si.behavior_notes}`);
+  } else {
+    lines.push(`## 🐕 Fiche de ${d.name}`);
+  }
+  
   lines.push(`- Race : ${d.breed || "inconnue"}${d.is_mixed ? " (croisé)" : ""}`);
   lines.push(`- Sexe : ${d.sex === "male" ? "Mâle" : d.sex === "female" ? "Femelle" : "non précisé"}${d.is_neutered ? " (stérilisé)" : ""}`);
-  lines.push(`- Âge : ${formatAge(d.birth_date)}`);
+  if (!si) lines.push(`- Âge : ${formatAge(d.birth_date)}`);
   if (d.weight_kg) lines.push(`- Poids : ${d.weight_kg} kg`);
   if (d.size) lines.push(`- Taille : ${d.size}`);
   if (d.activity_level) lines.push(`- Niveau d'activité : ${d.activity_level}`);
@@ -138,52 +151,84 @@ async function loadDogContexts(
   userId: string,
   dogIds: string[],
   userRoles: string[],
+  shelterAnimalMatches?: any[],
 ): Promise<DogContext[]> {
-  if (dogIds.length === 0) return [];
-
-  // Build query based on role — coaches see client dogs via client_links
-  let dogsQuery;
-  if (userRoles.includes("educator")) {
-    // Educator: own dogs + client dogs
-    dogsQuery = admin
-      .from("dogs")
-      .select("*")
-      .in("id", dogIds);
-  } else if (userRoles.includes("shelter")) {
-    // Shelter animals handled separately
-    dogsQuery = admin
-      .from("dogs")
-      .select("*")
-      .in("id", dogIds);
-  } else {
-    // Regular user: own dogs only
-    dogsQuery = admin
-      .from("dogs")
-      .select("*")
-      .in("id", dogIds)
-      .eq("user_id", userId);
-  }
-
-  const { data: dogs } = await dogsQuery;
-  if (!dogs || dogs.length === 0) return [];
+  if (dogIds.length === 0 && (!shelterAnimalMatches || shelterAnimalMatches.length === 0)) return [];
 
   const contexts: DogContext[] = [];
 
-  for (const dog of dogs) {
-    const [evalRes, probRes, objRes, logRes] = await Promise.all([
-      admin.from("dog_evaluations").select("*").eq("dog_id", dog.id).order("created_at", { ascending: false }).limit(1),
-      admin.from("dog_problems").select("*").eq("dog_id", dog.id),
-      admin.from("dog_objectives").select("*").eq("dog_id", dog.id),
-      admin.from("behavior_logs").select("*").eq("dog_id", dog.id).order("created_at", { ascending: false }).limit(5),
-    ]);
+  // Load regular dogs
+  if (dogIds.length > 0) {
+    let dogsQuery;
+    if (userRoles.includes("educator") || userRoles.includes("admin")) {
+      dogsQuery = admin.from("dogs").select("*").in("id", dogIds);
+    } else if (userRoles.includes("shelter")) {
+      dogsQuery = admin.from("dogs").select("*").in("id", dogIds);
+    } else {
+      dogsQuery = admin.from("dogs").select("*").in("id", dogIds).eq("user_id", userId);
+    }
 
-    contexts.push({
-      dog,
-      evaluation: evalRes.data?.[0] || undefined,
-      problems: probRes.data || [],
-      objectives: objRes.data || [],
-      behaviorLogs: logRes.data || [],
-    });
+    const { data: dogs } = await dogsQuery;
+    
+    for (const dog of (dogs || [])) {
+      const [evalRes, probRes, objRes, logRes] = await Promise.all([
+        admin.from("dog_evaluations").select("*").eq("dog_id", dog.id).order("created_at", { ascending: false }).limit(1),
+        admin.from("dog_problems").select("*").eq("dog_id", dog.id),
+        admin.from("dog_objectives").select("*").eq("dog_id", dog.id),
+        admin.from("behavior_logs").select("*").eq("dog_id", dog.id).order("created_at", { ascending: false }).limit(5),
+      ]);
+
+      contexts.push({
+        dog,
+        evaluation: evalRes.data?.[0] || undefined,
+        problems: probRes.data || [],
+        objectives: objRes.data || [],
+        behaviorLogs: logRes.data || [],
+      });
+    }
+  }
+
+  // Load shelter animals (they have different schema)
+  if (shelterAnimalMatches && shelterAnimalMatches.length > 0) {
+    for (const sa of shelterAnimalMatches) {
+      // Load evaluations and observations for shelter animals
+      const [evalRes, obsRes] = await Promise.all([
+        admin.from("shelter_animal_evaluations").select("*").eq("animal_id", sa.id).order("created_at", { ascending: false }).limit(1),
+        admin.from("shelter_observations").select("*").eq("animal_id", sa.id).order("created_at", { ascending: false }).limit(5),
+      ]);
+
+      // Map shelter animal to dog-like structure for the prompt
+      const dogLike = {
+        name: sa.name,
+        breed: sa.breed || "inconnue",
+        sex: sa.sex,
+        birth_date: null,
+        weight_kg: sa.weight_kg,
+        is_mixed: false,
+        is_neutered: sa.is_sterilized,
+        health_notes: sa.health_notes,
+        _shelter_info: {
+          species: sa.species,
+          status: sa.status,
+          estimated_age: sa.estimated_age,
+          arrival_date: sa.arrival_date,
+          behavior_notes: sa.behavior_notes,
+          description: sa.description,
+        },
+      };
+
+      contexts.push({
+        dog: dogLike,
+        evaluation: evalRes.data?.[0] || undefined,
+        problems: [],
+        objectives: [],
+        behaviorLogs: (obsRes.data || []).map((o: any) => ({
+          day_id: 0,
+          comments: `[${o.observation_type}] ${o.content}`,
+          created_at: o.observation_date,
+        })),
+      });
+    }
   }
 
   return contexts;
@@ -201,7 +246,6 @@ async function findDogsByName(
   // Get accessible dog IDs based on role
   let dogQuery;
   if (userRoles.includes("educator")) {
-    // Get own dogs + client dogs
     const { data: clientLinks } = await admin
       .from("client_links")
       .select("client_user_id")
@@ -213,7 +257,6 @@ async function findDogsByName(
     
     dogQuery = admin.from("dogs").select("id, name, user_id").in("user_id", allUserIds);
   } else if (userRoles.includes("shelter")) {
-    // Shelter sees own dogs + linked adopter dogs
     const { data: adopterLinks } = await admin
       .from("adopter_links")
       .select("adopter_user_id")
@@ -224,7 +267,6 @@ async function findDogsByName(
     
     dogQuery = admin.from("dogs").select("id, name, user_id").in("user_id", allUserIds);
   } else if (userRoles.includes("shelter_employee")) {
-    // Employee sees shelter's dogs
     const { data: shelterId } = await admin.rpc("get_employee_shelter_id", { _user_id: userId });
     if (shelterId) {
       dogQuery = admin.from("dogs").select("id, name, user_id").eq("user_id", shelterId);
@@ -236,11 +278,35 @@ async function findDogsByName(
   }
 
   const { data: allDogs } = await dogQuery;
-  if (!allDogs) return [];
+  
+  // Also search shelter_animals for shelter/employee/admin roles
+  let shelterAnimals: any[] = [];
+  if (userRoles.includes("shelter") || userRoles.includes("shelter_employee") || userRoles.includes("admin")) {
+    let shelterQuery;
+    if (userRoles.includes("shelter")) {
+      shelterQuery = admin.from("shelter_animals").select("id, name, user_id, breed, sex, species, status, estimated_age, weight_kg, behavior_notes, health_notes, description").eq("user_id", userId);
+    } else if (userRoles.includes("shelter_employee")) {
+      const { data: shelterId } = await admin.rpc("get_employee_shelter_id", { _user_id: userId });
+      if (shelterId) {
+        shelterQuery = admin.from("shelter_animals").select("id, name, user_id, breed, sex, species, status, estimated_age, weight_kg, behavior_notes, health_notes, description").eq("user_id", shelterId);
+      }
+    } else if (userRoles.includes("admin")) {
+      // Admin can see all shelter animals matching names
+      const lowerNames = names.map(n => n.toLowerCase().trim());
+      shelterQuery = admin.from("shelter_animals").select("id, name, user_id, breed, sex, species, status, estimated_age, weight_kg, behavior_notes, health_notes, description");
+    }
+    
+    if (shelterQuery) {
+      const { data: sa } = await shelterQuery;
+      shelterAnimals = (sa || []).map((a: any) => ({ ...a, _source: "shelter_animal" }));
+    }
+  }
 
+  const combined = [...(allDogs || []), ...shelterAnimals];
+  
   // Match by name (case-insensitive)
   const lowerNames = names.map(n => n.toLowerCase().trim());
-  return allDogs.filter((d: any) => lowerNames.includes(d.name.toLowerCase().trim()));
+  return combined.filter((d: any) => lowerNames.includes(d.name.toLowerCase().trim()));
 }
 
 /** Extract potential dog names mentioned in user messages */
@@ -413,24 +479,44 @@ Deno.serve(async (req) => {
     if (feature_code.startsWith("chat") || feature_code === "dog_analysis") {
       try {
         // Step A: Get all accessible dog names for mention detection
-        const allNames: string[] = Array.isArray(dog_names) ? dog_names : [];
+        // If frontend didn't send names, auto-discover from DB
+        let allNames: string[] = Array.isArray(dog_names) && dog_names.length > 0 ? dog_names : [];
+        
+        if (allNames.length === 0) {
+          // Auto-discover dog names for the user
+          const { data: userDogs } = await admin.from("dogs").select("name").eq("user_id", userId);
+          allNames = (userDogs || []).map((d: any) => d.name);
+          
+          // Also get shelter animal names if shelter role
+          if (roleList.includes("shelter")) {
+            const { data: sa } = await admin.from("shelter_animals").select("name").eq("user_id", userId);
+            allNames.push(...(sa || []).map((a: any) => a.name));
+          }
+        }
         
         // Step B: Detect mentioned dog names in messages
         const mentionedNames = extractMentionedNames(messages, allNames);
         
         // Step C: Find mentioned dogs + active dog
         const dogIdsToLoad: Set<string> = new Set();
+        let shelterAnimalMatches: any[] = [];
         
         if (active_dog_id) dogIdsToLoad.add(active_dog_id);
         
         if (mentionedNames.length > 0) {
           const mentionedDogs = await findDogsByName(admin, userId, roleList, mentionedNames);
-          mentionedDogs.forEach((d: any) => dogIdsToLoad.add(d.id));
+          for (const d of mentionedDogs) {
+            if (d._source === "shelter_animal") {
+              shelterAnimalMatches.push(d);
+            } else {
+              dogIdsToLoad.add(d.id);
+            }
+          }
         }
         
         // Step D: Load full context for each dog
-        if (dogIdsToLoad.size > 0) {
-          const contexts = await loadDogContexts(admin, userId, Array.from(dogIdsToLoad), roleList);
+        if (dogIdsToLoad.size > 0 || shelterAnimalMatches.length > 0) {
+          const contexts = await loadDogContexts(admin, userId, Array.from(dogIdsToLoad), roleList, shelterAnimalMatches);
           
           if (contexts.length > 0) {
             const contextParts = contexts.map(buildDogContextPrompt);
@@ -449,7 +535,6 @@ Deno.serve(async (req) => {
         }
       } catch (ctxErr) {
         console.error("[ai-with-credits] Dog context loading failed (non-blocking):", ctxErr);
-        // Non-blocking: continue without context
       }
     }
 
