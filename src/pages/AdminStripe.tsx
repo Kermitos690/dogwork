@@ -174,8 +174,9 @@ export default function AdminStripe() {
         </div>
 
         <Tabs defaultValue="sync" className="w-full">
-          <TabsList className="w-full grid grid-cols-5 h-10">
+          <TabsList className="w-full grid grid-cols-6 h-10">
             <TabsTrigger value="sync" className="text-[10px]">Sync</TabsTrigger>
+            <TabsTrigger value="connect" className="text-[10px]">Connect</TabsTrigger>
             <TabsTrigger value="customers" className="text-[10px]">Clients</TabsTrigger>
             <TabsTrigger value="subs" className="text-[10px]">Abos</TabsTrigger>
             <TabsTrigger value="payments" className="text-[10px]">Paiements</TabsTrigger>
