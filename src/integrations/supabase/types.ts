@@ -943,6 +943,50 @@ export type Database = {
         }
         Relationships: []
       }
+      course_admin_notes: {
+        Row: {
+          admin_user_id: string
+          content: string
+          course_id: string
+          created_at: string
+          educator_user_id: string
+          id: string
+          note_type: string
+          read: boolean
+          updated_at: string
+        }
+        Insert: {
+          admin_user_id: string
+          content: string
+          course_id: string
+          created_at?: string
+          educator_user_id: string
+          id?: string
+          note_type?: string
+          read?: boolean
+          updated_at?: string
+        }
+        Update: {
+          admin_user_id?: string
+          content?: string
+          course_id?: string
+          created_at?: string
+          educator_user_id?: string
+          id?: string
+          note_type?: string
+          read?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_admin_notes_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       course_bookings: {
         Row: {
           amount_cents: number | null
