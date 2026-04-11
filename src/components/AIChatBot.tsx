@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { MessageCircle, Send, X, Lock, Bot, Sparkles, Loader2, Coins } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
@@ -107,7 +107,21 @@ async function streamChatWithCredits({
   onDone();
 }
 
+class AIChatBotBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() { return this.state.hasError ? null : this.props.children; }
+}
+
 export function AIChatBot() {
+  return (
+    <AIChatBotBoundary>
+      <AIChatBotSafe />
+    </AIChatBotBoundary>
+  );
+}
+
+function AIChatBotSafe() {
   const { preferences } = usePreferences();
   if (preferences.hide_chatbot) return null;
 
