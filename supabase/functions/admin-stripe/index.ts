@@ -247,6 +247,26 @@ serve(async (req) => {
       case "refund_payment": {
         const { payment_intent_id, amount } = body;
         if (!payment_intent_id) throw new Error("payment_intent_id requis");
+
+        // Check if already refunded
+        const existingRefunds = await stripe.refunds.list({ payment_intent: payment_intent_id, limit: 10 });
+        const pi = await stripe.paymentIntents.retrieve(payment_intent_id);
+        const totalRefunded = existingRefunds.data
+          .filter(r => r.status === "succeeded")
+          .reduce((sum, r) => sum + (r.amount || 0), 0);
+
+        if (totalRefunded >= pi.amount) {
+          log("Refund skipped — already fully refunded", { payment_intent_id, totalRefunded });
+          return new Response(JSON.stringify({
+            id: existingRefunds.data[0]?.id,
+            status: "already_refunded",
+            amount: totalRefunded,
+            message: "Ce paiement a déjà été intégralement remboursé.",
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
         const refund = await stripe.refunds.create({
           payment_intent: payment_intent_id,
           ...(amount ? { amount } : {}),
