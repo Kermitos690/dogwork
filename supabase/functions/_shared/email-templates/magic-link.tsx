@@ -38,7 +38,8 @@ export const MagicLinkEmail = ({
 
         <Heading style={h1}>Votre lien de connexion</Heading>
         <Text style={text}>
-          Cliquez sur le bouton ci-dessous pour vous connecter à DogWork. Ce lien expirera sous peu.
+          Cliquez sur le bouton ci-dessous pour vous connecter à {siteName}.
+          Ce lien expirera sous peu.
         </Text>
         <Section style={buttonSection}>
           <Button style={button} href={confirmationUrl}>
@@ -50,7 +51,8 @@ export const MagicLinkEmail = ({
 
         <Heading style={h2}>Your login link</Heading>
         <Text style={text}>
-          Click the button below to log in to DogWork. This link will expire shortly.
+          Click the button below to log in to {siteName}.
+          This link will expire shortly.
         </Text>
         <Section style={buttonSection}>
           <Button style={buttonSecondary} href={confirmationUrl}>
@@ -61,7 +63,7 @@ export const MagicLinkEmail = ({
         <Hr style={divider} />
 
         <Text style={footer}>
-          Si vous n'avez pas demandé ce lien, ignorez cet email.
+          Si vous n'avez pas demandé ce lien, ignorez simplement cet email.
         </Text>
         <Text style={footer}>
           If you didn't request this link, you can safely ignore this email.

@@ -11,6 +11,7 @@ import {
   Hr,
   Html,
   Img,
+  Link,
   Preview,
   Section,
   Text,
@@ -31,16 +32,17 @@ export const InviteEmail = ({
 }: InviteEmailProps) => (
   <Html lang="fr" dir="ltr">
     <Head />
-    <Preview>Vous êtes invité(e) à rejoindre DogWork – You've been invited</Preview>
+    <Preview>Vous êtes invité(e) – You've been invited | DogWork</Preview>
     <Body style={main}>
       <Container style={container}>
         <Section style={logoSection}>
           <Img src={LOGO_URL} width="160" height="auto" alt="DogWork" style={logo} />
         </Section>
 
-        <Heading style={h1}>Vous êtes invité(e) 🎉</Heading>
+        <Heading style={h1}>Vous êtes invité(e) sur DogWork</Heading>
         <Text style={text}>
-          Vous avez été invité(e) à rejoindre DogWork, la plateforme de référence pour les services canins.
+          Vous avez été invité(e) à rejoindre{' '}
+          <Link href={siteUrl} style={link}><strong>{siteName}</strong></Link>.
           Cliquez sur le bouton ci-dessous pour accepter l'invitation et créer votre compte.
         </Text>
         <Section style={buttonSection}>
@@ -51,9 +53,10 @@ export const InviteEmail = ({
 
         <Hr style={divider} />
 
-        <Heading style={h2}>You've been invited 🎉</Heading>
+        <Heading style={h2}>You've been invited to DogWork</Heading>
         <Text style={text}>
-          You've been invited to join DogWork, the premium platform for canine services.
+          You've been invited to join{' '}
+          <Link href={siteUrl} style={link}><strong>{siteName}</strong></Link>.
           Click the button below to accept the invitation and create your account.
         </Text>
         <Section style={buttonSection}>
@@ -65,7 +68,7 @@ export const InviteEmail = ({
         <Hr style={divider} />
 
         <Text style={footer}>
-          Si vous n'attendiez pas cette invitation, ignorez cet email.
+          Si vous n'attendiez pas cette invitation, ignorez simplement cet email.
         </Text>
         <Text style={footer}>
           If you weren't expecting this invitation, you can safely ignore this email.
@@ -87,6 +90,7 @@ const logo = { margin: '0 auto' }
 const h1 = { fontSize: '24px', fontWeight: '700' as const, color: '#1a1a2e', margin: '0 0 16px', lineHeight: '1.3' }
 const h2 = { fontSize: '20px', fontWeight: '600' as const, color: '#1a1a2e', margin: '0 0 14px', lineHeight: '1.3' }
 const text = { fontSize: '15px', color: '#4a4a5a', lineHeight: '1.6', margin: '0 0 20px' }
+const link = { color: '#3b82f6', textDecoration: 'underline' }
 const buttonSection = { textAlign: 'center' as const, margin: '8px 0 24px' }
 const button = {
   backgroundColor: '#1a1a2e',

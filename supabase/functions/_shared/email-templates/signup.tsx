@@ -41,11 +41,15 @@ export const SignupEmail = ({
           <Img src={LOGO_URL} width="160" height="auto" alt="DogWork" style={logo} />
         </Section>
 
-        <Heading style={h1}>Bienvenue sur DogWork 🐕</Heading>
+        <Heading style={h1}>Bienvenue sur DogWork 🐾</Heading>
         <Text style={text}>
-          Merci de vous être inscrit(e) ! Veuillez confirmer votre adresse email (
+          Merci de vous être inscrit sur{' '}
+          <Link href={siteUrl} style={link}><strong>{siteName}</strong></Link> !
+        </Text>
+        <Text style={text}>
+          Veuillez confirmer votre adresse email ({' '}
           <Link href={`mailto:${recipient}`} style={link}>{recipient}</Link>
-          ) en cliquant sur le bouton ci-dessous.
+          {' '}) en cliquant sur le bouton ci-dessous :
         </Text>
         <Section style={buttonSection}>
           <Button style={button} href={confirmationUrl}>
@@ -55,22 +59,26 @@ export const SignupEmail = ({
 
         <Hr style={divider} />
 
-        <Heading style={h2}>Welcome to DogWork 🐕</Heading>
+        <Heading style={h2}>Welcome to DogWork 🐾</Heading>
         <Text style={text}>
-          Thanks for signing up! Please confirm your email address (
+          Thanks for signing up for{' '}
+          <Link href={siteUrl} style={link}><strong>{siteName}</strong></Link>!
+        </Text>
+        <Text style={text}>
+          Please confirm your email address ({' '}
           <Link href={`mailto:${recipient}`} style={link}>{recipient}</Link>
-          ) by clicking the button below.
+          {' '}) by clicking the button below:
         </Text>
         <Section style={buttonSection}>
           <Button style={buttonSecondary} href={confirmationUrl}>
-            Confirm my email
+            Verify my email
           </Button>
         </Section>
 
         <Hr style={divider} />
 
         <Text style={footer}>
-          Si vous n'avez pas créé de compte, ignorez cet email.
+          Si vous n'avez pas créé de compte, ignorez simplement cet email.
         </Text>
         <Text style={footer}>
           If you didn't create an account, you can safely ignore this email.

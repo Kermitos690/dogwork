@@ -29,7 +29,7 @@ export const RecoveryEmail = ({
 }: RecoveryEmailProps) => (
   <Html lang="fr" dir="ltr">
     <Head />
-    <Preview>Réinitialisez votre mot de passe – Reset your password | DogWork</Preview>
+    <Preview>Réinitialisation de mot de passe – Password reset | DogWork</Preview>
     <Body style={main}>
       <Container style={container}>
         <Section style={logoSection}>
@@ -38,7 +38,7 @@ export const RecoveryEmail = ({
 
         <Heading style={h1}>Réinitialisation du mot de passe</Heading>
         <Text style={text}>
-          Nous avons reçu une demande de réinitialisation de votre mot de passe pour DogWork.
+          Nous avons reçu une demande de réinitialisation de votre mot de passe pour {siteName}.
           Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe.
         </Text>
         <Section style={buttonSection}>
@@ -49,9 +49,9 @@ export const RecoveryEmail = ({
 
         <Hr style={divider} />
 
-        <Heading style={h2}>Reset your password</Heading>
+        <Heading style={h2}>Password reset</Heading>
         <Text style={text}>
-          We received a request to reset your password for DogWork.
+          We received a request to reset your password for {siteName}.
           Click the button below to choose a new password.
         </Text>
         <Section style={buttonSection}>
