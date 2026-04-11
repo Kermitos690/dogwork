@@ -33,30 +33,30 @@ Deno.serve(async (req) => {
     }
 
     // Read categories from Test
-    const { data: testCats, error: catErr } = await testClient.from("exercise_categories").select("*");
-    if (catErr) throw new Error(`Read test categories: ${catErr.message}`);
-    steps.push({ step: "read_test_categories", count: testCats?.length });
+    const { data: sourceCats, error: catErr } = await sourceClient.from("exercise_categories").select("*");
+    if (catErr) throw new Error(`Read source categories: ${catErr.message}`);
+    steps.push({ step: "read_source_categories", count: sourceCats?.length });
 
     // Read exercises from Test in batches (limit 1000 per query)
     const allExercises: unknown[] = [];
     let offset = 0;
     const BATCH = 500;
     while (true) {
-      const { data: batch, error: exErr } = await testClient
+      const { data: batch, error: exErr } = await sourceClient
         .from("exercises")
         .select("*, exercise_categories!inner(slug)")
         .range(offset, offset + BATCH - 1)
         .order("slug");
-      if (exErr) throw new Error(`Read test exercises at offset ${offset}: ${exErr.message}`);
+      if (exErr) throw new Error(`Read source exercises at offset ${offset}: ${exErr.message}`);
       if (!batch || batch.length === 0) break;
       allExercises.push(...batch);
       offset += batch.length;
       if (batch.length < BATCH) break;
     }
-    steps.push({ step: "read_test_exercises", count: allExercises.length });
+    steps.push({ step: "read_source_exercises", count: allExercises.length });
 
     // Build catalog format for RPC
-    const categories = (testCats || []).map((c: Record<string, unknown>) => ({
+    const categories = (sourceCats || []).map((c: Record<string, unknown>) => ({
       slug: c.slug,
       name: c.name,
       icon: c.icon,
