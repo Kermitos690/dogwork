@@ -94,15 +94,6 @@ export default function AdminDashboard() {
     enabled: isAdmin === true,
   });
 
-  const { data: pendingCourses = [], refetch: refetchCourses } = useQuery({
-    queryKey: ["admin_pending_courses"],
-    queryFn: async () => {
-      const { data } = await supabase.from("courses").select("*").order("created_at", { ascending: false });
-      return data || [];
-    },
-    enabled: isAdmin === true,
-  });
-
   const { data: allBookings = [] } = useQuery({
     queryKey: ["admin_all_bookings"],
     queryFn: async () => {
@@ -157,21 +148,6 @@ export default function AdminDashboard() {
       toast({ title: "Erreur", description: err.message || "Impossible de créer le refuge", variant: "destructive" });
     }
     setCreatingShelter(false);
-  };
-
-  const handleApproval = async (courseId: string, status: "approved" | "rejected") => {
-    const { error } = await supabase.from("courses").update({ approval_status: status }).eq("id", courseId);
-    if (error) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: status === "approved" ? "Cours approuvé ✅" : "Cours refusé ❌" });
-      refetchCourses();
-      try {
-        await supabase.functions.invoke("send-notification-email", {
-          body: { type: status === "approved" ? "course_approved" : "course_rejected", data: { courseId } },
-        });
-      } catch (e) { console.error("Email notification error:", e); }
-    }
   };
 
   if (adminLoading) return <AppLayout><div className="pt-4 text-center animate-pulse text-muted-foreground">Chargement...</div></AppLayout>;
