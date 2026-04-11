@@ -513,20 +513,35 @@ Deno.serve(async (req) => {
               const nameArr = Array.from(potentialNames);
               console.log(`[ai-with-credits] Admin: searching for potential names: ${nameArr.join(", ")}`);
               
-              // Search dogs table
-              const { data: matchedDogs } = await admin.from("dogs").select("id, name, user_id").in("name", nameArr);
-              // Search shelter_animals table
-              const { data: matchedSA } = await admin.from("shelter_animals")
-                .select("id, name, user_id, breed, sex, species, status, estimated_age, weight_kg, behavior_notes, health_notes, description, is_sterilized, arrival_date")
-                .in("name", nameArr);
-              
-              if (matchedDogs?.length) {
-                allNames.push(...matchedDogs.map((d: any) => d.name));
-                console.log(`[ai-with-credits] Admin: found ${matchedDogs.length} dogs by name`);
-              }
-              if (matchedSA?.length) {
-                allNames.push(...matchedSA.map((a: any) => a.name));
-                console.log(`[ai-with-credits] Admin: found ${matchedSA.length} shelter animals by name`);
+              try {
+                // Search dogs table one name at a time to avoid .in() issues
+                for (const name of nameArr) {
+                  const { data: matchedDogs, error: dogErr } = await admin
+                    .from("dogs")
+                    .select("id, name, user_id")
+                    .ilike("name", name);
+                  
+                  if (dogErr) {
+                    console.error(`[ai-with-credits] Admin dog search error for "${name}":`, dogErr.message);
+                  } else if (matchedDogs?.length) {
+                    allNames.push(...matchedDogs.map((d: any) => d.name));
+                    console.log(`[ai-with-credits] Admin: found ${matchedDogs.length} dogs named "${name}"`);
+                  }
+                  
+                  const { data: matchedSA, error: saErr } = await admin
+                    .from("shelter_animals")
+                    .select("id, name, user_id, breed, sex, species, status, estimated_age, weight_kg, behavior_notes, health_notes, description, is_sterilized, arrival_date")
+                    .ilike("name", name);
+                  
+                  if (saErr) {
+                    console.error(`[ai-with-credits] Admin shelter search error for "${name}":`, saErr.message);
+                  } else if (matchedSA?.length) {
+                    allNames.push(...matchedSA.map((a: any) => a.name));
+                    console.log(`[ai-with-credits] Admin: found ${matchedSA.length} shelter animals named "${name}"`);
+                  }
+                }
+              } catch (searchErr) {
+                console.error(`[ai-with-credits] Admin name search failed:`, searchErr);
               }
             }
           }
