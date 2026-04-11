@@ -142,8 +142,14 @@ export default function AdminStripe() {
     setActionLoading(true);
     try {
       if (confirmAction.type === "refund") {
-        await callAdminStripe("refund_payment", { payment_intent_id: confirmAction.id });
-        toast.success("Remboursement effectué");
+        const result = await callAdminStripe("refund_payment", { payment_intent_id: confirmAction.id });
+        if (result.status === "already_refunded") {
+          toast.info(result.message || "Ce paiement a déjà été remboursé.");
+        } else {
+          const refunded = (result.amount_refunded / 100).toFixed(2);
+          const retained = (result.amount_retained / 100).toFixed(2);
+          toast.success(`Remboursement de ${refunded} CHF effectué (${retained} CHF retenus)`);
+        }
       } else {
         await callAdminStripe("cancel_subscription", { subscription_id: confirmAction.id });
         toast.success("Abonnement annulé");
@@ -494,11 +500,11 @@ export default function AdminStripe() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirmAction?.type === "refund" ? "Confirmer le remboursement" : "Confirmer l'annulation"}
+              {confirmAction?.type === "refund" ? "Confirmer le remboursement partiel" : "Confirmer l'annulation"}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {confirmAction?.type === "refund"
-                ? `Rembourser ${confirmAction?.label} ? Cette action est irréversible.`
+                ? `Rembourser 92% de ${confirmAction?.label} ? 8% seront retenus pour couvrir les frais Stripe et la plateforme. Cette action est irréversible.`
                 : `Annuler l'abonnement ${confirmAction?.label} ? L'accès sera immédiatement retiré.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
