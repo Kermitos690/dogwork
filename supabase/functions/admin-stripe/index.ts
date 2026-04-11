@@ -11,6 +11,18 @@ const log = (step: string, details?: any) => {
   console.log(`[ADMIN-STRIPE] ${step}${details ? ` - ${JSON.stringify(details)}` : ""}`);
 };
 
+/** Safe date conversion — returns ISO string or null, never throws */
+function safeDate(ts: number | null | undefined): string | null {
+  if (ts == null || !Number.isFinite(ts)) return null;
+  try {
+    const d = new Date(ts * 1000);
+    if (isNaN(d.getTime())) return null;
+    return d.toISOString();
+  } catch {
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
