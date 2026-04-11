@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
+import * as React from "react";
+import { useState, useRef, useEffect } from "react";
 import { MessageCircle, Send, X, Lock, Bot, Sparkles, Loader2, Coins } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
