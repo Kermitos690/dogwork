@@ -115,7 +115,26 @@ Deno.serve(async (req) => {
     const { error: quotaErr } = await supabase.from("ai_plan_quotas").upsert(quotas, { onConflict: "plan_slug" });
     report.steps.push({ step: "upsert_plan_quotas", count: quotas.length, error: quotaErr?.message || null });
 
-    // ─── STEP 5: Verification ───
+    // ─── STEP 5: Auto-seed exercises if empty ───
+    const { data: preStats } = await supabase.rpc("sync_exercise_stats");
+    const totalExercises = preStats?.total_exercises || 0;
+
+    if (totalExercises === 0) {
+      // Fetch catalog from storage
+      const catalogUrl = `${SUPABASE_URL}/storage/v1/object/public/exercise-images/data/exercise-catalog.json`;
+      const catalogRes = await fetch(catalogUrl);
+      if (catalogRes.ok) {
+        const catalog = await catalogRes.json();
+        const { data: syncResult, error: syncErr } = await supabase.rpc("sync_exercises_from_catalog_data", { _catalog: catalog });
+        report.steps.push({ step: "auto_seed_exercises", result: syncResult, error: syncErr?.message || null });
+      } else {
+        report.steps.push({ step: "auto_seed_exercises", error: `Catalog fetch failed: ${catalogRes.status}` });
+      }
+    } else {
+      report.steps.push({ step: "auto_seed_exercises", skipped: true, reason: `${totalExercises} exercises already present` });
+    }
+
+    // ─── STEP 6: Verification ───
     const { data: stats } = await supabase.rpc("sync_exercise_stats");
     const { data: packCheck } = await supabase
       .from("ai_credit_packs")
