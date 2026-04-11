@@ -471,6 +471,38 @@ export default function AdminDashboard() {
 
             <Card>
               <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2"><Rocket className="h-4 w-4 text-primary" /> Sync production complète</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <p className="text-xs text-muted-foreground">Aligne pricing, quotas, credit packs et seed les exercices si la base est vide. À lancer après chaque publication.</p>
+                <Button
+                  onClick={async () => {
+                    setSyncing(true);
+                    try {
+                      const { data: { session } } = await supabase.auth.getSession();
+                      if (!session?.access_token) throw new Error("Session expirée");
+                      const { data, error } = await supabase.functions.invoke("post-publish-sync", {
+                        headers: { Authorization: `Bearer ${session.access_token}` },
+                      });
+                      if (error) throw error;
+                      if (data?.error) throw new Error(data.error);
+                      const exCount = data?.verification?.exercise_stats?.total_exercises ?? "?";
+                      toast({ title: "Sync production terminée ✅", description: `${data?.steps?.length || 0} étapes exécutées. ${exCount} exercices en base.` });
+                      queryClient.invalidateQueries({ queryKey: ["exercises_library"] });
+                    } catch (err: any) {
+                      toast({ title: "Erreur sync production", description: err.message, variant: "destructive" });
+                    }
+                    setSyncing(false);
+                  }}
+                  disabled={syncing} className="w-full gap-2" size="sm" variant="default"
+                >
+                  <Rocket className="h-4 w-4" /> {syncing ? "Sync en cours..." : "Lancer sync production"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2"><UserCog className="h-4 w-4 text-primary" /> Nettoyage comptes</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
