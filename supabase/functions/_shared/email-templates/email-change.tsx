@@ -8,12 +8,9 @@ import {
   Container,
   Head,
   Heading,
-  Hr,
   Html,
-  Img,
   Link,
   Preview,
-  Section,
   Text,
 } from 'npm:@react-email/components@0.0.22'
 
@@ -24,63 +21,38 @@ interface EmailChangeEmailProps {
   confirmationUrl: string
 }
 
-const LOGO_URL = 'https://dcwbqsfeouvghcnvhrpj.supabase.co/storage/v1/object/public/email-assets/logo-dogwork.png'
-
 export const EmailChangeEmail = ({
   siteName,
   email,
   newEmail,
   confirmationUrl,
 }: EmailChangeEmailProps) => (
-  <Html lang="fr" dir="ltr">
+  <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Confirmez le changement d'email – Confirm email change | DogWork</Preview>
+    <Preview>Confirm your email change for {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Section style={logoSection}>
-          <Img src={LOGO_URL} width="160" height="auto" alt="DogWork" style={logo} />
-        </Section>
-
-        <Heading style={h1}>Changement d'adresse email</Heading>
+        <Heading style={h1}>Confirm your email change</Heading>
         <Text style={text}>
-          Vous avez demandé à changer votre adresse email de{' '}
-          <Link href={`mailto:${email}`} style={link}>{email}</Link>{' '}
-          vers{' '}
-          <Link href={`mailto:${newEmail}`} style={link}>{newEmail}</Link>.
-          Cliquez sur le bouton ci-dessous pour confirmer.
-        </Text>
-        <Section style={buttonSection}>
-          <Button style={button} href={confirmationUrl}>
-            Confirmer le changement
-          </Button>
-        </Section>
-
-        <Hr style={divider} />
-
-        <Heading style={h2}>Email address change</Heading>
-        <Text style={text}>
-          You requested to change your email from{' '}
-          <Link href={`mailto:${email}`} style={link}>{email}</Link>{' '}
+          You requested to change your email address for {siteName} from{' '}
+          <Link href={`mailto:${email}`} style={link}>
+            {email}
+          </Link>{' '}
           to{' '}
-          <Link href={`mailto:${newEmail}`} style={link}>{newEmail}</Link>.
-          Click the button below to confirm this change.
+          <Link href={`mailto:${newEmail}`} style={link}>
+            {newEmail}
+          </Link>
+          .
         </Text>
-        <Section style={buttonSection}>
-          <Button style={buttonSecondary} href={confirmationUrl}>
-            Confirm email change
-          </Button>
-        </Section>
-
-        <Hr style={divider} />
-
+        <Text style={text}>
+          Click the button below to confirm this change:
+        </Text>
+        <Button style={button} href={confirmationUrl}>
+          Confirm Email Change
+        </Button>
         <Text style={footer}>
-          Si vous n'avez pas demandé ce changement, sécurisez votre compte immédiatement.
-        </Text>
-        <Text style={footer}>
-          If you didn't request this change, please secure your account immediately.
-        </Text>
-        <Text style={footerBrand}>
-          © DogWork — L'écosystème canin premium
+          If you didn't request this change, please secure your account
+          immediately.
         </Text>
       </Container>
     </Body>
@@ -89,33 +61,27 @@ export const EmailChangeEmail = ({
 
 export default EmailChangeEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }
-const container = { padding: '40px 30px', maxWidth: '560px', margin: '0 auto' }
-const logoSection = { textAlign: 'center' as const, marginBottom: '30px' }
-const logo = { margin: '0 auto' }
-const h1 = { fontSize: '24px', fontWeight: '700' as const, color: '#1a1a2e', margin: '0 0 16px', lineHeight: '1.3' }
-const h2 = { fontSize: '20px', fontWeight: '600' as const, color: '#1a1a2e', margin: '0 0 14px', lineHeight: '1.3' }
-const text = { fontSize: '15px', color: '#4a4a5a', lineHeight: '1.6', margin: '0 0 20px' }
-const link = { color: '#3b82f6', textDecoration: 'underline' }
-const buttonSection = { textAlign: 'center' as const, margin: '8px 0 24px' }
-const button = {
-  backgroundColor: '#1a1a2e',
-  color: '#ffffff',
-  fontSize: '15px',
-  fontWeight: '600' as const,
-  borderRadius: '10px',
-  padding: '14px 28px',
-  textDecoration: 'none',
+const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
+const container = { padding: '20px 25px' }
+const h1 = {
+  fontSize: '22px',
+  fontWeight: 'bold' as const,
+  color: '#000000',
+  margin: '0 0 20px',
 }
-const buttonSecondary = {
-  backgroundColor: '#3b82f6',
+const text = {
+  fontSize: '14px',
+  color: '#55575d',
+  lineHeight: '1.5',
+  margin: '0 0 25px',
+}
+const link = { color: 'inherit', textDecoration: 'underline' }
+const button = {
+  backgroundColor: '#000000',
   color: '#ffffff',
   fontSize: '14px',
-  fontWeight: '600' as const,
-  borderRadius: '10px',
-  padding: '12px 24px',
+  borderRadius: '8px',
+  padding: '12px 20px',
   textDecoration: 'none',
 }
-const divider = { borderColor: '#e8e8ee', margin: '28px 0' }
-const footer = { fontSize: '12px', color: '#9ca3af', lineHeight: '1.5', margin: '0 0 6px' }
-const footerBrand = { fontSize: '12px', color: '#b0b0c0', margin: '20px 0 0', textAlign: 'center' as const }
+const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
