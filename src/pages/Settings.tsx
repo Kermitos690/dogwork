@@ -103,14 +103,23 @@ export default function Settings() {
         </div>
 
         {/* AI Credits */}
-        <div className="rounded-2xl border border-border bg-card p-4 space-y-4">
+        <div className="rounded-2xl border border-border bg-card p-4 space-y-6">
           <div className="flex items-center gap-2">
             <Coins className="h-4 w-4 text-primary" />
             <h3 className="text-sm font-semibold text-foreground">Crédits IA</h3>
           </div>
           <CreditBalanceCard />
-          <CreditPacksSection />
-          <CreditHistory />
+          <MonthlyUsageStats />
+          <CreditEstimator />
+          <div className="border-t border-border/50 pt-4">
+            <FeaturePricingGrid />
+          </div>
+          <div className="border-t border-border/50 pt-4">
+            <CreditPacksSection />
+          </div>
+          <div className="border-t border-border/50 pt-4">
+            <CreditHistory />
+          </div>
         </div>
 
         {/* Preferences */}
