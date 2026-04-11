@@ -32,10 +32,23 @@ function buildDogContextPrompt(ctx: DogContext): string {
   const d = ctx.dog;
   const lines: string[] = [];
   
-  lines.push(`## 🐕 Fiche de ${d.name}`);
+  // Shelter animal extra info
+  const si = d._shelter_info;
+  if (si) {
+    lines.push(`## 🐕 Fiche de ${d.name} (Animal en refuge)`);
+    lines.push(`- Espèce : ${si.species || "chien"}`);
+    lines.push(`- Statut : ${si.status || "inconnu"}`);
+    if (si.estimated_age) lines.push(`- Âge estimé : ${si.estimated_age}`);
+    if (si.arrival_date) lines.push(`- Date d'arrivée : ${si.arrival_date}`);
+    if (si.description) lines.push(`- Description : ${si.description}`);
+    if (si.behavior_notes) lines.push(`- Notes comportement : ${si.behavior_notes}`);
+  } else {
+    lines.push(`## 🐕 Fiche de ${d.name}`);
+  }
+  
   lines.push(`- Race : ${d.breed || "inconnue"}${d.is_mixed ? " (croisé)" : ""}`);
   lines.push(`- Sexe : ${d.sex === "male" ? "Mâle" : d.sex === "female" ? "Femelle" : "non précisé"}${d.is_neutered ? " (stérilisé)" : ""}`);
-  lines.push(`- Âge : ${formatAge(d.birth_date)}`);
+  if (!si) lines.push(`- Âge : ${formatAge(d.birth_date)}`);
   if (d.weight_kg) lines.push(`- Poids : ${d.weight_kg} kg`);
   if (d.size) lines.push(`- Taille : ${d.size}`);
   if (d.activity_level) lines.push(`- Niveau d'activité : ${d.activity_level}`);
