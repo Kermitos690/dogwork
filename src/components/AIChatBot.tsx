@@ -272,21 +272,31 @@ function AIChatBotInner() {
             {/* Messages */}
             <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
               {messages.length === 0 && (
-                <div className="text-center text-muted-foreground text-sm py-8 space-y-2">
+                <div className="text-center text-muted-foreground text-sm py-6 space-y-3">
                   <Bot className="h-10 w-10 mx-auto text-primary/40" />
                   <p className="font-medium text-foreground">Bonjour ! 🐕</p>
-                  <p>Je suis votre assistant en éducation canine.</p>
-                  {activeDog && (
-                    <p className="text-xs text-primary/80">
-                      Je connais <strong>{activeDog.name}</strong> — posez-moi des questions à son sujet !
-                    </p>
-                  )}
                   <p className="text-xs">
                     {activeDog 
-                      ? `Exemple : "Quels exercices pour ${activeDog.name} ?" ou "Comment gérer sa réactivité ?"`
-                      : "Posez-moi une question sur le comportement, les exercices ou l'entraînement de votre chien."
+                      ? <>Je connais <strong>{activeDog.name}</strong> et sa fiche complète. Comment puis-je vous aider ?</>
+                      : "Sélectionnez un chien pour que je puisse accéder à sa fiche et vous aider au mieux."
                     }
                   </p>
+                  <div className="flex flex-wrap justify-center gap-2 pt-2">
+                    {activeDog ? (
+                      <>
+                        <SuggestionChip onClick={(t) => { setInput(t); }} text={`${activeDog.name} vient d'un refuge ?`} icon="🏠" />
+                        <SuggestionChip onClick={(t) => { setInput(t); }} text={`Quels exercices pour ${activeDog.name} ?`} icon="🎯" />
+                        <SuggestionChip onClick={(t) => { setInput(t); }} text={`Comment gérer la réactivité de ${activeDog.name} ?`} icon="⚡" />
+                        <SuggestionChip onClick={(t) => { setInput(t); }} text={`Analyse comportementale de ${activeDog.name}`} icon="📊" />
+                      </>
+                    ) : (
+                      <>
+                        <SuggestionChip onClick={(t) => { setInput(t); }} text="J'ai adopté un chien en refuge" icon="🏠" />
+                        <SuggestionChip onClick={(t) => { setInput(t); }} text="Mon chien tire en laisse" icon="🐕‍🦺" />
+                        <SuggestionChip onClick={(t) => { setInput(t); }} text="Comment socialiser mon chien ?" icon="🤝" />
+                      </>
+                    )}
+                  </div>
                 </div>
               )}
               {messages.map((m, i) => (
