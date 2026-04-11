@@ -57,6 +57,7 @@ export default function AdminStripe() {
     id: string;
     label: string;
   } | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
   const [connectLoading, setConnectLoading] = useState<string | null>(null);
 
   async function callConnectDashboard(action: string, extra: Record<string, any> = {}) {
