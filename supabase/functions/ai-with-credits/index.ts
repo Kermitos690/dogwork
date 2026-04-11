@@ -201,7 +201,6 @@ async function findDogsByName(
   // Get accessible dog IDs based on role
   let dogQuery;
   if (userRoles.includes("educator")) {
-    // Get own dogs + client dogs
     const { data: clientLinks } = await admin
       .from("client_links")
       .select("client_user_id")
@@ -213,7 +212,6 @@ async function findDogsByName(
     
     dogQuery = admin.from("dogs").select("id, name, user_id").in("user_id", allUserIds);
   } else if (userRoles.includes("shelter")) {
-    // Shelter sees own dogs + linked adopter dogs
     const { data: adopterLinks } = await admin
       .from("adopter_links")
       .select("adopter_user_id")
@@ -224,7 +222,6 @@ async function findDogsByName(
     
     dogQuery = admin.from("dogs").select("id, name, user_id").in("user_id", allUserIds);
   } else if (userRoles.includes("shelter_employee")) {
-    // Employee sees shelter's dogs
     const { data: shelterId } = await admin.rpc("get_employee_shelter_id", { _user_id: userId });
     if (shelterId) {
       dogQuery = admin.from("dogs").select("id, name, user_id").eq("user_id", shelterId);
@@ -236,11 +233,35 @@ async function findDogsByName(
   }
 
   const { data: allDogs } = await dogQuery;
-  if (!allDogs) return [];
+  
+  // Also search shelter_animals for shelter/employee/admin roles
+  let shelterAnimals: any[] = [];
+  if (userRoles.includes("shelter") || userRoles.includes("shelter_employee") || userRoles.includes("admin")) {
+    let shelterQuery;
+    if (userRoles.includes("shelter")) {
+      shelterQuery = admin.from("shelter_animals").select("id, name, user_id, breed, sex, species, status, estimated_age, weight_kg, behavior_notes, health_notes, description").eq("user_id", userId);
+    } else if (userRoles.includes("shelter_employee")) {
+      const { data: shelterId } = await admin.rpc("get_employee_shelter_id", { _user_id: userId });
+      if (shelterId) {
+        shelterQuery = admin.from("shelter_animals").select("id, name, user_id, breed, sex, species, status, estimated_age, weight_kg, behavior_notes, health_notes, description").eq("user_id", shelterId);
+      }
+    } else if (userRoles.includes("admin")) {
+      // Admin can see all shelter animals matching names
+      const lowerNames = names.map(n => n.toLowerCase().trim());
+      shelterQuery = admin.from("shelter_animals").select("id, name, user_id, breed, sex, species, status, estimated_age, weight_kg, behavior_notes, health_notes, description");
+    }
+    
+    if (shelterQuery) {
+      const { data: sa } = await shelterQuery;
+      shelterAnimals = (sa || []).map((a: any) => ({ ...a, _source: "shelter_animal" }));
+    }
+  }
 
+  const combined = [...(allDogs || []), ...shelterAnimals];
+  
   // Match by name (case-insensitive)
   const lowerNames = names.map(n => n.toLowerCase().trim());
-  return allDogs.filter((d: any) => lowerNames.includes(d.name.toLowerCase().trim()));
+  return combined.filter((d: any) => lowerNames.includes(d.name.toLowerCase().trim()));
 }
 
 /** Extract potential dog names mentioned in user messages */
