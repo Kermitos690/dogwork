@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { callAI } from "../_shared/ai-provider.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,7 +15,6 @@ Deno.serve(async (req) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
 
   try {
     // 1. Auth
@@ -126,7 +126,6 @@ Deno.serve(async (req) => {
       .single();
 
     if (animalError || !animal) {
-      // Refund on data error
       if (!isPrivileged) {
         await admin.rpc("credit_ai_wallet", {
           _user_id: userId,
@@ -214,26 +213,10 @@ RÈGLES :
 - Sois concret, bienveillant et professionnel
 - Réponds UNIQUEMENT en JSON valide, sans commentaire`;
 
-    // 6. Call AI gateway
-    if (!lovableApiKey) {
-      if (!isPrivileged) {
-        await admin.rpc("credit_ai_wallet", {
-          _user_id: userId,
-          _credits: creditsCost,
-          _operation_type: "refund",
-          _description: "Remboursement auto — erreur de configuration serveur",
-        });
-      }
-      throw new Error("LOVABLE_API_KEY non configurée");
-    }
-
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${lovableApiKey}`,
-      },
-      body: JSON.stringify({
+    // 6. Call AI via adapter
+    let aiResponse: Response;
+    try {
+      aiResponse = await callAI({
         model: feature.model,
         messages: [
           { role: "system", content: "Tu es un éducateur canin expert. Réponds uniquement en JSON valide." },
@@ -242,21 +225,30 @@ RÈGLES :
         temperature: 0.7,
         max_tokens: 4000,
         stream: false,
-      }),
-    });
-
-    if (!aiResponse.ok) {
-      // Refund on gateway error
+      });
+    } catch (configErr) {
       if (!isPrivileged) {
         await admin.rpc("credit_ai_wallet", {
           _user_id: userId,
           _credits: creditsCost,
           _operation_type: "refund",
-          _description: `Remboursement auto — erreur gateway (${aiResponse.status})`,
+          _description: "Remboursement auto — erreur de configuration serveur",
+        });
+      }
+      throw configErr;
+    }
+
+    if (!aiResponse.ok) {
+      if (!isPrivileged) {
+        await admin.rpc("credit_ai_wallet", {
+          _user_id: userId,
+          _credits: creditsCost,
+          _operation_type: "refund",
+          _description: `Remboursement auto — erreur fournisseur IA (${aiResponse.status})`,
         });
       }
       const errText = await aiResponse.text();
-      console.error("AI gateway error:", aiResponse.status, errText);
+      console.error("AI provider error:", aiResponse.status, errText);
       return new Response(JSON.stringify({ error: "Erreur du service IA" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -274,7 +266,6 @@ RÈGLES :
     try {
       plan = JSON.parse(jsonStr.trim());
     } catch {
-      // Refund on parse error
       if (!isPrivileged) {
         await admin.rpc("credit_ai_wallet", {
           _user_id: userId,

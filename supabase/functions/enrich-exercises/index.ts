@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-provider.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,11 +14,9 @@ async function verifyAdmin(supabase: any, req: Request): Promise<boolean> {
   
   const token = authHeader ? authHeader.replace("Bearer ", "").trim() : "";
   
-  // Check if it's a service role key
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (serviceRoleKey && (token === serviceRoleKey || apiKeyHeader === serviceRoleKey)) return true;
   
-  // For any valid token, try JWT auth
   if (token) {
     try {
       const { data: userData } = await supabase.auth.getUser(token);
@@ -44,7 +43,6 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const mode = body.mode || "enrich";
 
-    // For enrich mode, require admin auth. For fix-json and stats (read-only/maintenance), allow service calls.
     if (mode === "enrich") {
       const isAdmin = await verifyAdmin(supabase, req);
       if (!isAdmin) {
@@ -53,8 +51,6 @@ Deno.serve(async (req) => {
         });
       }
     }
-
-    // mode already parsed above
 
     // ─── MODE: fix-json ───
     if (mode === "fix-json") {
@@ -142,13 +138,9 @@ Deno.serve(async (req) => {
     }
 
     // ─── MODE: enrich ───
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!lovableApiKey) throw new Error("LOVABLE_API_KEY not configured");
-
     const batchSize = Math.min(body.batchSize || 5, 10);
     const offset = body.offset || 0;
 
-    // Get exercises that need enrichment (missing description or other key fields)
     const { data: exercises, error: fetchError } = await supabase
       .from("exercises")
       .select("*")
@@ -163,7 +155,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Count remaining
     const { count: remaining } = await supabase
       .from("exercises")
       .select("id", { count: "exact", head: true })
@@ -173,7 +164,6 @@ Deno.serve(async (req) => {
 
     for (const exercise of exercises) {
       try {
-        // Get category name
         const { data: catData } = await supabase
           .from("exercise_categories")
           .select("name, slug")
@@ -205,125 +195,118 @@ RÈGLES :
 6. body_positioning : positions du maître aux phases clés de cet exercice.
 7. validation_protocol : critères chiffrés et mesurables.`;
 
-        const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${lovableApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
-            messages: [
-              { role: "system", content: "Tu es un rédacteur expert en éducation canine positive. Retourne UNIQUEMENT du JSON via l'outil fourni. Contenu spécifique à l'exercice demandé." },
-              { role: "user", content: prompt },
-            ],
-            tools: [
-              {
-                type: "function",
-                function: {
-                  name: "enrich_exercise",
-                  description: "Enrichit un exercice canin",
-                  parameters: {
-                    type: "object",
-                    properties: {
-                      description: { type: "string", description: "Description spécifique 3-5 phrases. 200-400 chars." },
-                      summary: { type: "string", description: "Résumé 1 phrase. Max 100 chars." },
-                      short_instruction: { type: "string", description: "Instruction principale 1 phrase. Max 150 chars." },
-                      tutorial_steps: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          properties: {
-                            title: { type: "string" },
-                            description: { type: "string" },
-                            voice_command: { type: "string" },
-                            body_position: { type: "string" },
-                            tip: { type: "string" },
-                          },
-                          required: ["title", "description"],
+        const response = await callAI({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: "Tu es un rédacteur expert en éducation canine positive. Retourne UNIQUEMENT du JSON via l'outil fourni. Contenu spécifique à l'exercice demandé." },
+            { role: "user", content: prompt },
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "enrich_exercise",
+                description: "Enrichit un exercice canin",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    description: { type: "string", description: "Description spécifique 3-5 phrases. 200-400 chars." },
+                    summary: { type: "string", description: "Résumé 1 phrase. Max 100 chars." },
+                    short_instruction: { type: "string", description: "Instruction principale 1 phrase. Max 150 chars." },
+                    tutorial_steps: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          title: { type: "string" },
+                          description: { type: "string" },
+                          voice_command: { type: "string" },
+                          body_position: { type: "string" },
+                          tip: { type: "string" },
                         },
-                      },
-                      voice_commands: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          properties: {
-                            command: { type: "string" },
-                            tone: { type: "string" },
-                            timing: { type: "string" },
-                            warning: { type: "string" },
-                          },
-                          required: ["command", "tone", "timing"],
-                        },
-                      },
-                      body_positioning: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          properties: {
-                            phase: { type: "string" },
-                            position: { type: "string" },
-                            common_mistake: { type: "string" },
-                          },
-                          required: ["phase", "position"],
-                        },
-                      },
-                      troubleshooting: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          properties: {
-                            situation: { type: "string" },
-                            solution: { type: "string" },
-                            prevention: { type: "string" },
-                          },
-                          required: ["situation", "solution"],
-                        },
-                      },
-                      validation_protocol: { type: "string" },
-                      mistakes: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          properties: {
-                            mistake: { type: "string" },
-                            consequence: { type: "string" },
-                            correction: { type: "string" },
-                          },
-                          required: ["mistake", "consequence", "correction"],
-                        },
-                      },
-                      precautions: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          properties: { text: { type: "string" } },
-                          required: ["text"],
-                        },
-                      },
-                      success_criteria: { type: "string" },
-                      stop_criteria: { type: "string" },
-                      vigilance: { type: "string" },
-                      adaptations: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          properties: {
-                            profile: { type: "string" },
-                            adaptation: { type: "string" },
-                          },
-                          required: ["profile", "adaptation"],
-                        },
+                        required: ["title", "description"],
                       },
                     },
-                    required: ["description", "summary", "short_instruction", "tutorial_steps", "voice_commands", "body_positioning", "troubleshooting", "validation_protocol", "success_criteria", "stop_criteria"],
-                    additionalProperties: false,
+                    voice_commands: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          command: { type: "string" },
+                          tone: { type: "string" },
+                          timing: { type: "string" },
+                          warning: { type: "string" },
+                        },
+                        required: ["command", "tone", "timing"],
+                      },
+                    },
+                    body_positioning: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          phase: { type: "string" },
+                          position: { type: "string" },
+                          common_mistake: { type: "string" },
+                        },
+                        required: ["phase", "position"],
+                      },
+                    },
+                    troubleshooting: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          situation: { type: "string" },
+                          solution: { type: "string" },
+                          prevention: { type: "string" },
+                        },
+                        required: ["situation", "solution"],
+                      },
+                    },
+                    validation_protocol: { type: "string" },
+                    mistakes: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          mistake: { type: "string" },
+                          consequence: { type: "string" },
+                          correction: { type: "string" },
+                        },
+                        required: ["mistake", "consequence", "correction"],
+                      },
+                    },
+                    precautions: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: { text: { type: "string" } },
+                        required: ["text"],
+                      },
+                    },
+                    success_criteria: { type: "string" },
+                    stop_criteria: { type: "string" },
+                    vigilance: { type: "string" },
+                    adaptations: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          profile: { type: "string" },
+                          adaptation: { type: "string" },
+                        },
+                        required: ["profile", "adaptation"],
+                      },
+                    },
                   },
+                  required: ["description", "summary", "short_instruction", "tutorial_steps", "voice_commands", "body_positioning", "troubleshooting", "validation_protocol", "success_criteria", "stop_criteria"],
+                  additionalProperties: false,
                 },
               },
-            ],
-            tool_choice: { type: "function", function: { name: "enrich_exercise" } },
-          }),
+            },
+          ],
+          tool_choice: { type: "function", function: { name: "enrich_exercise" } },
         });
 
         if (!response.ok) {
@@ -362,7 +345,6 @@ RÈGLES :
         if (updateError) throw updateError;
         results.push({ id: exercise.id, name: exercise.name, success: true });
 
-        // Throttle
         if (exercises.indexOf(exercise) < exercises.length - 1) {
           await new Promise(r => setTimeout(r, 2000));
         }
