@@ -15,10 +15,10 @@ Deno.serve(async (req) => {
     const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-    // Test instance client (read-only)
-    const TEST_URL = "https://hdmmqwpypvhwohhhaqnf.supabase.co";
-    const TEST_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhkbW1xd3B5cHZod29oaGhhcW5mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxODQ1ODIsImV4cCI6MjA4ODc2MDU4Mn0.9oCzusJXlcayJ5JS1HgCLDM71slIGzX4ufWo1Kw0doA";
-    const testClient = createClient(TEST_URL, TEST_ANON);
+    // Source instance (Preview/Test - has the 480 exercises)
+    const SOURCE_URL = "https://dcwbqsfeouvghcnvhrpj.supabase.co";
+    const SOURCE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjd2Jxc2Zlb3V2Z2hjbnZocnBqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyMzkxMDcsImV4cCI6MjA4ODgxNTEwN30.wF0VlmMKVqeJOo2q3GlWVzl1-EyYMd3-i2YDhYBKfog";
+    const sourceClient = createClient(SOURCE_URL, SOURCE_ANON);
 
     const steps: Record<string, unknown>[] = [];
 
