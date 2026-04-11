@@ -245,7 +245,10 @@ async function findDogsByName(
 
   // Get accessible dog IDs based on role
   let dogQuery;
-  if (userRoles.includes("educator")) {
+  if (userRoles.includes("admin")) {
+    // Admin can see ALL dogs in the system
+    dogQuery = admin.from("dogs").select("id, name, user_id");
+  } else if (userRoles.includes("educator")) {
     const { data: clientLinks } = await admin
       .from("client_links")
       .select("client_user_id")
