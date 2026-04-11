@@ -1,6 +1,13 @@
 /**
  * Centralized plan configuration for DogWork monetization.
  * Single source of truth for all plan definitions, features, and limits.
+ *
+ * Grille tarifaire officielle (v2 — avril 2026) :
+ *   Freemium   0 CHF
+ *   Pro        9.90 CHF/mois
+ *   Expert    19.90 CHF/mois
+ *   Éducateur 200 CHF/an  (+15.8 % frais de gestion)
+ *   Refuge    sur mesure
  */
 
 export type OwnerTier = "starter" | "pro" | "expert";
@@ -36,7 +43,7 @@ export interface PlanConfig {
 export const PLANS: Record<OwnerTier, PlanConfig> = {
   starter: {
     slug: "starter",
-    name: "Starter",
+    name: "Freemium",
     label: "Gratuit",
     price: 0,
     price_id: null,
@@ -67,9 +74,9 @@ export const PLANS: Record<OwnerTier, PlanConfig> = {
   pro: {
     slug: "pro",
     name: "Pro",
-    label: "7.90 CHF/mois",
-    price: 7.9,
-    price_id: "price_1T9nakPshPrEibTgfEAogTJY",
+    label: "9.90 CHF/mois",
+    price: 9.9,
+    price_id: "price_1TKpFyPshPrEibTgOW98FPOq",
     product_id: "prod_U83i1wbeLdd3EI",
     order: 1,
     badge: "Le plus populaire",
@@ -92,16 +99,16 @@ export const PLANS: Record<OwnerTier, PlanConfig> = {
         "Évaluation comportementale complète",
         "Objectifs & problèmes personnalisés",
         "Statistiques avancées",
-        "Tout le plan Starter inclus",
+        "Tout le plan Freemium inclus",
       ],
     },
   },
   expert: {
     slug: "expert",
     name: "Expert",
-    label: "12.90 CHF/mois",
-    price: 12.9,
-    price_id: "price_1T9nbAPshPrEibTgo3JA1m5S",
+    label: "19.90 CHF/mois",
+    price: 19.9,
+    price_id: "price_1TKpNpPshPrEibTgDiRVEAmV",
     product_id: "prod_U83inCbv8JMMgf",
     order: 2,
     badge: "Accès complet",

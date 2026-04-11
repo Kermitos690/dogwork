@@ -9,9 +9,9 @@ export type TierKey = OwnerTier;
 
 // Re-export for backward compat
 export const TIERS = {
-  starter: { name: "Starter", price_id: null, product_id: null, price: 0, label: "Gratuit" },
-  pro: { name: "Pro", price_id: PLANS.pro.price_id, product_id: PLANS.pro.product_id, price: 7.9, label: "7.90 CHF/mois" },
-  expert: { name: "Expert", price_id: PLANS.expert.price_id, product_id: PLANS.expert.product_id, price: 12.9, label: "12.90 CHF/mois" },
+  starter: { name: "Freemium", price_id: null, product_id: null, price: 0, label: "Gratuit" },
+  pro: { name: "Pro", price_id: PLANS.pro.price_id, product_id: PLANS.pro.product_id, price: 9.9, label: "9.90 CHF/mois" },
+  expert: { name: "Expert", price_id: PLANS.expert.price_id, product_id: PLANS.expert.product_id, price: 19.9, label: "19.90 CHF/mois" },
 } as const;
 
 export function getTierByPriceId(priceId: string | null): TierKey {

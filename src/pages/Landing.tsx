@@ -331,7 +331,7 @@ export default function Landing() {
                   <Zap className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg">Starter</h3>
+                  <h3 className="font-bold text-lg">Freemium</h3>
                   <p className="text-xs text-muted-foreground">Gratuit, pour toujours</p>
                 </div>
               </div>
@@ -369,7 +369,7 @@ export default function Landing() {
                   <p className="text-xs text-muted-foreground">Pour aller plus loin</p>
                 </div>
               </div>
-              <div className="text-3xl font-black mb-1">7.90 <span className="text-lg font-semibold text-muted-foreground">CHF/mois</span></div>
+              <div className="text-3xl font-black mb-1">9.90 <span className="text-lg font-semibold text-muted-foreground">CHF/mois</span></div>
               <div className="text-sm text-muted-foreground mb-5">Annulable à tout moment</div>
               <ul className="space-y-2.5 mb-6 flex-1">
                 {[
@@ -388,7 +388,7 @@ export default function Landing() {
               </ul>
               <Button onClick={() => navigate("/auth")}
                 className="w-full rounded-full">
-                S'abonner – 7.90 CHF/mois
+                S'abonner – 9.90 CHF/mois
               </Button>
             </motion.div>
 
@@ -408,7 +408,7 @@ export default function Landing() {
                   <p className="text-xs text-muted-foreground">L'expérience complète</p>
                 </div>
               </div>
-              <div className="text-3xl font-black mb-1">12.90 <span className="text-lg font-semibold text-muted-foreground">CHF/mois</span></div>
+              <div className="text-3xl font-black mb-1">19.90 <span className="text-lg font-semibold text-muted-foreground">CHF/mois</span></div>
               <div className="text-sm text-muted-foreground mb-5">Annulable à tout moment</div>
               <ul className="space-y-2.5 mb-6 flex-1">
                 {[
@@ -427,7 +427,7 @@ export default function Landing() {
               </ul>
               <Button onClick={() => navigate("/auth")}
                 className="w-full rounded-full bg-gradient-to-r from-primary to-accent hover:opacity-90">
-                S'abonner – 12.90 CHF/mois
+                S'abonner – 19.90 CHF/mois
               </Button>
             </motion.div>
           </div>
