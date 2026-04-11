@@ -115,32 +115,32 @@ Deno.serve(async (req) => {
     const { error: packErr } = await supabase.from("ai_credit_packs").upsert(creditPacks, { onConflict: "slug" });
     steps.push({ step: "upsert_credit_packs", count: creditPacks.length, error: packErr?.message || null });
 
-    // ─── STEP 3b: Upsert ai_feature_catalog ───
+    // ─── STEP 3b: Upsert ai_feature_catalog (updated costs) ───
     const featureCatalog = [
-      { code: "chat", label: "Chat IA", credits_cost: 2, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.002, cost_estimate_min_usd: 0.001, cost_estimate_max_usd: 0.005, margin_target: 0.90, description: "Conversation avec l'assistant IA" },
-      { code: "chat_general", label: "Chat IA général", credits_cost: 2, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.002, cost_estimate_min_usd: 0.001, cost_estimate_max_usd: 0.005, margin_target: 0.90, description: "Chat IA généraliste" },
-      { code: "plan_generator", label: "Générateur de plan", credits_cost: 5, model: "google/gemini-2.5-pro", is_active: true, cost_estimate_avg_usd: 0.01, cost_estimate_min_usd: 0.005, cost_estimate_max_usd: 0.02, margin_target: 0.90, description: "Génération de plans d'entraînement personnalisés" },
-      { code: "education_plan", label: "Plan éducatif IA", credits_cost: 10, model: "google/gemini-2.5-pro", is_active: true, cost_estimate_avg_usd: 0.02, cost_estimate_min_usd: 0.01, cost_estimate_max_usd: 0.04, margin_target: 0.90, description: "Plan éducatif complet généré par IA" },
-      { code: "behavior_analysis", label: "Analyse comportementale", credits_cost: 6, model: "google/gemini-2.5-pro", is_active: true, cost_estimate_avg_usd: 0.015, cost_estimate_min_usd: 0.008, cost_estimate_max_usd: 0.03, margin_target: 0.90, description: "Analyse comportementale détaillée" },
-      { code: "behavior_summary", label: "Résumé comportemental", credits_cost: 4, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.005, cost_estimate_min_usd: 0.002, cost_estimate_max_usd: 0.01, margin_target: 0.90, description: "Résumé comportemental synthétique" },
-      { code: "dog_profile_analysis", label: "Analyse de profil chien", credits_cost: 5, model: "google/gemini-2.5-pro", is_active: true, cost_estimate_avg_usd: 0.01, cost_estimate_min_usd: 0.005, cost_estimate_max_usd: 0.02, margin_target: 0.90, description: "Analyse détaillée du profil d'un chien" },
-      { code: "connection_guide", label: "Guide de connexion", credits_cost: 3, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.003, cost_estimate_min_usd: 0.001, cost_estimate_max_usd: 0.006, margin_target: 0.90, description: "Guide personnalisé de connexion chien-humain" },
-      { code: "content_rewrite", label: "Reformulation", credits_cost: 1, model: "google/gemini-2.5-flash-lite", is_active: true, cost_estimate_avg_usd: 0.001, cost_estimate_min_usd: 0.0005, cost_estimate_max_usd: 0.002, margin_target: 0.90, description: "Reformulation et amélioration de texte" },
-      { code: "exercise_enrich", label: "Enrichissement exercice", credits_cost: 3, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.003, cost_estimate_min_usd: 0.001, cost_estimate_max_usd: 0.006, margin_target: 0.90, description: "Enrichissement de fiche exercice" },
-      { code: "marketing_content", label: "Contenu marketing", credits_cost: 3, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.003, cost_estimate_min_usd: 0.001, cost_estimate_max_usd: 0.006, margin_target: 0.90, description: "Génération de contenu marketing" },
-      { code: "adoption_plan", label: "Plan de suivi post-adoption IA", credits_cost: 8, model: "google/gemini-2.5-pro", is_active: true, cost_estimate_avg_usd: 0.015, cost_estimate_min_usd: 0.008, cost_estimate_max_usd: 0.03, margin_target: 0.90, description: "Plan de suivi post-adoption généré par IA" },
-      { code: "record_enrichment", label: "Enrichissement de fiche", credits_cost: 4, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.005, cost_estimate_min_usd: 0.002, cost_estimate_max_usd: 0.01, margin_target: 0.90, description: "Enrichissement intelligent de fiches" },
+      { code: "chat", label: "Chat IA", credits_cost: 1, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.002, cost_estimate_min_usd: 0.001, cost_estimate_max_usd: 0.005, margin_target: 3.0, description: "Conversation avec l'assistant IA" },
+      { code: "chat_general", label: "Chat IA général", credits_cost: 1, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.002, cost_estimate_min_usd: 0.001, cost_estimate_max_usd: 0.005, margin_target: 3.0, description: "Chat IA généraliste" },
+      { code: "plan_generator", label: "Générateur de plan", credits_cost: 3, model: "google/gemini-2.5-pro", is_active: true, cost_estimate_avg_usd: 0.01, cost_estimate_min_usd: 0.005, cost_estimate_max_usd: 0.02, margin_target: 3.0, description: "Génération de plans d'entraînement personnalisés" },
+      { code: "education_plan", label: "Plan éducatif IA", credits_cost: 5, model: "google/gemini-2.5-pro", is_active: true, cost_estimate_avg_usd: 0.02, cost_estimate_min_usd: 0.01, cost_estimate_max_usd: 0.04, margin_target: 3.0, description: "Plan éducatif complet généré par IA" },
+      { code: "behavior_analysis", label: "Analyse comportementale", credits_cost: 3, model: "google/gemini-2.5-pro", is_active: true, cost_estimate_avg_usd: 0.015, cost_estimate_min_usd: 0.008, cost_estimate_max_usd: 0.03, margin_target: 3.0, description: "Analyse comportementale détaillée" },
+      { code: "behavior_summary", label: "Résumé comportemental", credits_cost: 2, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.005, cost_estimate_min_usd: 0.002, cost_estimate_max_usd: 0.01, margin_target: 3.0, description: "Résumé comportemental synthétique" },
+      { code: "dog_profile_analysis", label: "Analyse de profil chien", credits_cost: 3, model: "google/gemini-2.5-pro", is_active: true, cost_estimate_avg_usd: 0.01, cost_estimate_min_usd: 0.005, cost_estimate_max_usd: 0.02, margin_target: 3.0, description: "Analyse détaillée du profil d'un chien" },
+      { code: "connection_guide", label: "Guide de connexion", credits_cost: 2, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.003, cost_estimate_min_usd: 0.001, cost_estimate_max_usd: 0.006, margin_target: 3.0, description: "Guide personnalisé de connexion chien-humain" },
+      { code: "content_rewrite", label: "Reformulation", credits_cost: 1, model: "google/gemini-2.5-flash-lite", is_active: false, cost_estimate_avg_usd: 0.001, cost_estimate_min_usd: 0.0005, cost_estimate_max_usd: 0.002, margin_target: 3.0, description: "Reformulation et amélioration de texte" },
+      { code: "exercise_enrich", label: "Enrichissement exercice", credits_cost: 2, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.003, cost_estimate_min_usd: 0.001, cost_estimate_max_usd: 0.006, margin_target: 3.0, description: "Enrichissement de fiche exercice" },
+      { code: "marketing_content", label: "Contenu marketing", credits_cost: 2, model: "google/gemini-2.5-flash", is_active: false, cost_estimate_avg_usd: 0.003, cost_estimate_min_usd: 0.001, cost_estimate_max_usd: 0.006, margin_target: 3.0, description: "Génération de contenu marketing" },
+      { code: "adoption_plan", label: "Plan de suivi post-adoption IA", credits_cost: 5, model: "google/gemini-2.5-pro", is_active: true, cost_estimate_avg_usd: 0.015, cost_estimate_min_usd: 0.008, cost_estimate_max_usd: 0.03, margin_target: 3.0, description: "Plan de suivi post-adoption généré par IA" },
+      { code: "record_enrichment", label: "Enrichissement de fiche", credits_cost: 2, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.005, cost_estimate_min_usd: 0.002, cost_estimate_max_usd: 0.01, margin_target: 3.0, description: "Enrichissement intelligent de fiches" },
     ];
     const { error: featErr } = await supabase.from("ai_feature_catalog").upsert(featureCatalog, { onConflict: "code" });
     steps.push({ step: "upsert_feature_catalog", count: featureCatalog.length, error: featErr?.message || null });
 
-    // ─── STEP 4: Upsert ai_plan_quotas ───
+    // ─── STEP 4: Upsert ai_plan_quotas (tightened) ───
     const quotas = [
-      { plan_slug: "starter", monthly_credits: 5, discount_percent: 0 },
-      { plan_slug: "pro", monthly_credits: 30, discount_percent: 10 },
-      { plan_slug: "expert", monthly_credits: 100, discount_percent: 20 },
-      { plan_slug: "shelter", monthly_credits: 150, discount_percent: 20 },
-      { plan_slug: "educator", monthly_credits: 200, discount_percent: 25 },
+      { plan_slug: "starter", monthly_credits: 1, discount_percent: 0 },
+      { plan_slug: "pro", monthly_credits: 5, discount_percent: 10 },
+      { plan_slug: "expert", monthly_credits: 15, discount_percent: 20 },
+      { plan_slug: "shelter", monthly_credits: 20, discount_percent: 20 },
+      { plan_slug: "educator", monthly_credits: 30, discount_percent: 25 },
     ];
     const { error: quotaErr } = await supabase.from("ai_plan_quotas").upsert(quotas, { onConflict: "plan_slug" });
     steps.push({ step: "upsert_plan_quotas", count: quotas.length, error: quotaErr?.message || null });
