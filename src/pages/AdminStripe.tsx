@@ -57,7 +57,18 @@ export default function AdminStripe() {
     id: string;
     label: string;
   } | null>(null);
-  const [actionLoading, setActionLoading] = useState(false);
+  const [connectLoading, setConnectLoading] = useState<string | null>(null);
+
+  async function callConnectDashboard(action: string, extra: Record<string, any> = {}) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error("Non connecté");
+    const { data, error } = await supabase.functions.invoke("connect-dashboard", {
+      body: { action, ...extra },
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    if (error) throw error;
+    return data;
+  }
 
   const { data: customers, isLoading: loadingCustomers } = useQuery({
     queryKey: ["admin-stripe", "customers"],
