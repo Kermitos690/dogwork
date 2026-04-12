@@ -81,7 +81,7 @@ export const PLANS: Record<OwnerTier, PlanConfig> = {
     order: 1,
     badge: "Le plus populaire",
     features: {
-      dogs_limit: 3,
+      dogs_limit: 1,
       exercise_library_limit: 150,
       behavior_evaluation: true,
       advanced_objectives: true,
@@ -94,7 +94,7 @@ export const PLANS: Record<OwnerTier, PlanConfig> = {
     marketing: {
       tagline: "L'essentiel pour éduquer sérieusement",
       highlights: [
-        "Jusqu'à 3 chiens",
+        "1 profil chien",
         "150 exercices (basiques + intermédiaires)",
         "Évaluation comportementale complète",
         "Objectifs & problèmes personnalisés",
