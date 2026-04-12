@@ -94,7 +94,7 @@ export const PLANS: Record<OwnerTier, PlanConfig> = {
     marketing: {
       tagline: "L'essentiel pour éduquer sérieusement",
       highlights: [
-        "Jusqu'à 3 chiens",
+        "1 profil chien",
         "150 exercices (basiques + intermédiaires)",
         "Évaluation comportementale complète",
         "Objectifs & problèmes personnalisés",
