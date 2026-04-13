@@ -245,6 +245,12 @@ export function useAICall() {
             required: err.required,
           });
         }
+        if (err.code === "COOLDOWN_ACTIVE") {
+          throw Object.assign(new Error(err.error || `Veuillez patienter ${err.retry_after || 30}s`), {
+            code: "COOLDOWN_ACTIVE",
+            retry_after: err.retry_after,
+          });
+        }
         throw new Error(err.error || "Erreur IA");
       }
 
