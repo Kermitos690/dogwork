@@ -61,7 +61,7 @@ export function SlideMenu() {
   const { user, signOut } = useAuth();
   const { preferences } = usePreferences();
   const { t } = useTranslation();
-  const { data: wallet } = useAIBalance();
+  const { data: wallet, isLoading: walletLoading, isError: walletError } = useAIBalance();
 
   const { data: roles } = useQuery({
     queryKey: ["user-roles-menu", user?.id],
@@ -270,7 +270,9 @@ export function SlideMenu() {
             className="mt-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors w-full"
           >
             <Coins className="h-3.5 w-3.5 text-primary" />
-            <span className="text-xs font-semibold text-primary">{wallet?.balance ?? 0} crédits IA</span>
+            <span className="text-xs font-semibold text-primary">
+              {walletLoading ? "… crédits IA" : walletError ? "— crédits IA" : `${wallet?.balance ?? 0} crédits IA`}
+            </span>
           </button>
         </div>
 
