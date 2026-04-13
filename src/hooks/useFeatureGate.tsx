@@ -40,9 +40,13 @@ export function useFeatureGate(feature: keyof PlanFeatures): FeatureGateResult {
   const plan = PLANS[tier];
   const value = plan.features[feature];
 
+  // AI features are gated by credits, not by plan tier
+  if (feature === "ai_plan" || feature === "ai_chat") {
+    return { allowed: true };
+  }
+
   if (typeof value === "boolean") {
     if (value) return { allowed: true };
-    // Find the minimum tier that enables this feature
     const requiredTier = (["pro", "expert"] as OwnerTier[]).find(
       t => !!PLANS[t].features[feature]
     );
