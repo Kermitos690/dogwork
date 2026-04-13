@@ -3,14 +3,15 @@ import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ShelterLayout } from "@/components/ShelterLayout";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Grid3X3, Plus, Pencil, Trash2, PawPrint } from "lucide-react";
+import { Grid3X3, Plus, Pencil, Trash2, PawPrint, LayoutGrid, BarChart3 } from "lucide-react";
 import { motion } from "framer-motion";
 
 const SPACE_TYPES = [
@@ -18,6 +19,7 @@ const SPACE_TYPES = [
   { value: "enclos", label: "Enclos" },
   { value: "infirmerie", label: "Infirmerie" },
   { value: "quarantaine", label: "Quarantaine" },
+  { value: "isolement", label: "Isolement" },
   { value: "promenade", label: "Zone de promenade" },
   { value: "accueil", label: "Accueil" },
 ];
@@ -27,6 +29,7 @@ const SPACE_COLORS: Record<string, string> = {
   enclos: "bg-emerald-500/20 border-emerald-500/40",
   infirmerie: "bg-red-500/20 border-red-500/40",
   quarantaine: "bg-amber-500/20 border-amber-500/40",
+  isolement: "bg-orange-500/20 border-orange-500/40",
   promenade: "bg-green-500/20 border-green-500/40",
   accueil: "bg-purple-500/20 border-purple-500/40",
 };
@@ -49,15 +52,38 @@ export default function ShelterSpaces() {
   const [form, setForm] = useState<SpaceForm>(emptyForm);
   const [assignDialog, setAssignDialog] = useState<string | null>(null);
 
+  // Use the SQL view for grid data
   const { data: spaces = [], isLoading } = useQuery({
-    queryKey: ["shelter-spaces", user?.id],
+    queryKey: ["shelter-spaces-grid", user?.id],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("shelter_spaces" as any)
-        .select("*")
-        .eq("shelter_user_id", user!.id)
-        .order("name");
+      const { data, error } = await supabase.from("v_shelter_spaces_grid" as any).select("*");
+      if (error) {
+        // Fallback to direct table if view not available yet
+        const { data: fallback } = await supabase
+          .from("shelter_spaces" as any).select("*").eq("shelter_user_id", user!.id).order("name");
+        return (fallback as any[]) || [];
+      }
       return (data as any[]) || [];
+    },
+    enabled: !!user,
+  });
+
+  // Occupancy stats
+  const { data: occupancy = [] } = useQuery({
+    queryKey: ["shelter-spaces-occupancy", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("v_shelter_spaces_occupancy" as any).select("*");
+      return (data as any[]) || [];
+    },
+    enabled: !!user,
+  });
+
+  // Global stats
+  const { data: stats } = useQuery({
+    queryKey: ["shelter-spaces-stats", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("v_shelter_spaces_stats" as any).select("*").single();
+      return data as any;
     },
     enabled: !!user,
   });
@@ -75,6 +101,12 @@ export default function ShelterSpaces() {
     enabled: !!user,
   });
 
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ["shelter-spaces-grid"] });
+    queryClient.invalidateQueries({ queryKey: ["shelter-spaces-occupancy"] });
+    queryClient.invalidateQueries({ queryKey: ["shelter-spaces-stats"] });
+  };
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!form.name.trim()) throw new Error("Nom requis");
@@ -90,10 +122,8 @@ export default function ShelterSpaces() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["shelter-spaces"] });
-      setDialogOpen(false);
-      setEditId(null);
-      setForm(emptyForm);
+      invalidateAll();
+      setDialogOpen(false); setEditId(null); setForm(emptyForm);
       toast({ title: editId ? "Espace mis à jour" : "Espace créé" });
     },
     onError: (e: any) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
@@ -104,24 +134,22 @@ export default function ShelterSpaces() {
       const { error } = await (supabase.from("shelter_spaces" as any) as any).delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["shelter-spaces"] });
-      toast({ title: "Espace supprimé" });
-    },
+    onSuccess: () => { invalidateAll(); toast({ title: "Espace supprimé" }); },
   });
 
   const assignMutation = useMutation({
     mutationFn: async ({ spaceId, animalId }: { spaceId: string; animalId: string | null }) => {
-      const { error } = await (supabase.from("shelter_spaces" as any) as any)
-        .update({ current_animal_id: animalId })
-        .eq("id", spaceId);
-      if (error) throw error;
+      if (animalId) {
+        await supabase.rpc("assign_animal_to_shelter_space" as any, { _space_id: spaceId, _animal_id: animalId });
+      } else {
+        await supabase.rpc("end_shelter_space_assignment" as any, { _space_id: spaceId });
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["shelter-spaces"] });
-      setAssignDialog(null);
-      toast({ title: "Animal assigné ✅" });
+      invalidateAll(); setAssignDialog(null);
+      toast({ title: "Affectation mise à jour ✅" });
     },
+    onError: (e: any) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
   });
 
   const openEdit = (space: any) => {
@@ -130,38 +158,27 @@ export default function ShelterSpaces() {
     setDialogOpen(true);
   };
 
-  const openNew = () => {
-    setEditId(null);
-    setForm(emptyForm);
-    setDialogOpen(true);
-  };
-
-  const getAnimalName = (animalId: string | null) => {
-    if (!animalId) return null;
-    const animal = animals.find((a: any) => a.id === animalId);
-    return animal ? animal.name : null;
-  };
+  const openNew = () => { setEditId(null); setForm(emptyForm); setDialogOpen(true); };
 
   return (
     <ShelterLayout>
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="pb-8 space-y-4">
+        {/* Header */}
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
-            <Grid3X3 className="h-5 w-5 text-primary" />
-            Espaces
+            <LayoutGrid className="h-5 w-5 text-primary" />
+            Gestion des espaces
           </h1>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button size="sm" className="gap-1" onClick={openNew}><Plus className="h-4 w-4" /> Ajouter</Button>
             </DialogTrigger>
             <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{editId ? "Modifier l'espace" : "Nouvel espace"}</DialogTitle>
-              </DialogHeader>
+              <DialogHeader><DialogTitle>{editId ? "Modifier l'espace" : "Nouvel espace"}</DialogTitle></DialogHeader>
               <div className="space-y-4 pt-2">
                 <div className="space-y-2">
                   <Label>Nom *</Label>
-                  <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Box 1, Enclos A..." />
+                  <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Box A1, Enclos B..." />
                 </div>
                 <div className="space-y-2">
                   <Label>Type</Label>
@@ -188,6 +205,56 @@ export default function ShelterSpaces() {
           </Dialog>
         </div>
 
+        {/* Stats bar */}
+        {stats && (
+          <div className="grid grid-cols-3 gap-2">
+            <Card>
+              <CardContent className="p-3 text-center">
+                <p className="text-lg font-bold">{stats.total_spaces}</p>
+                <p className="text-[10px] text-muted-foreground">Espaces</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3 text-center">
+                <p className="text-lg font-bold text-primary">{stats.occupied_spaces}</p>
+                <p className="text-[10px] text-muted-foreground">Occupés</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3 text-center">
+                <p className="text-lg font-bold text-green-600">{stats.free_spaces}</p>
+                <p className="text-[10px] text-muted-foreground">Libres</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Occupancy by type */}
+        {occupancy.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-primary" />
+                Occupation par type
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {occupancy.map((o: any) => (
+                <div key={o.space_type} className="flex items-center justify-between text-sm">
+                  <span className="capitalize">{SPACE_TYPES.find(t => t.value === o.space_type)?.label || o.space_type}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full bg-primary rounded-full" style={{ width: `${o.occupancy_pct}%` }} />
+                    </div>
+                    <span className="text-xs text-muted-foreground w-16 text-right">{o.occupied}/{o.total} ({o.occupancy_pct}%)</span>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Grid */}
         {isLoading ? (
           <div className="animate-pulse text-muted-foreground text-center py-8">Chargement...</div>
         ) : spaces.length === 0 ? (
@@ -195,6 +262,7 @@ export default function ShelterSpaces() {
             <CardContent className="p-6 text-center">
               <Grid3X3 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">Aucun espace créé</p>
+              <p className="text-xs text-muted-foreground mt-1">Créez des boxes, enclos et zones pour organiser votre refuge</p>
               <Button variant="outline" size="sm" className="mt-3 gap-1" onClick={openNew}>
                 <Plus className="h-4 w-4" /> Créer un espace
               </Button>
@@ -203,7 +271,7 @@ export default function ShelterSpaces() {
         ) : (
           <div className="grid grid-cols-2 gap-2">
             {spaces.map((space: any) => {
-              const animalName = getAnimalName(space.current_animal_id);
+              const animalName = space.animal_name || null;
               const colorClass = SPACE_COLORS[space.space_type] || "bg-muted border-border";
               return (
                 <Card key={space.id} className={`border ${colorClass} overflow-hidden`}>
@@ -225,17 +293,16 @@ export default function ShelterSpaces() {
                       <div className="flex items-center gap-1 p-1.5 rounded bg-primary/10">
                         <PawPrint className="h-3 w-3 text-primary" />
                         <span className="text-xs font-medium text-primary truncate">{animalName}</span>
+                        {space.animal_species && (
+                          <Badge variant="secondary" className="text-[8px] ml-auto">{space.animal_species}</Badge>
+                        )}
                       </div>
                     ) : (
                       <p className="text-[10px] text-muted-foreground italic">Libre</p>
                     )}
 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full text-[10px] h-7"
-                      onClick={() => setAssignDialog(space.id)}
-                    >
+                    <Button variant="outline" size="sm" className="w-full text-[10px] h-7"
+                      onClick={() => setAssignDialog(space.id)}>
                       {animalName ? "Changer" : "Assigner"}
                     </Button>
                   </CardContent>
@@ -245,23 +312,18 @@ export default function ShelterSpaces() {
           </div>
         )}
 
-        {/* Assign animal dialog */}
+        {/* Assign dialog */}
         <Dialog open={!!assignDialog} onOpenChange={() => setAssignDialog(null)}>
           <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Assigner un animal</DialogTitle>
-            </DialogHeader>
+            <DialogHeader><DialogTitle>Assigner un animal</DialogTitle></DialogHeader>
             <div className="space-y-2 max-h-60 overflow-y-auto">
-              <Button variant="outline" className="w-full justify-start text-xs" onClick={() => assignMutation.mutate({ spaceId: assignDialog!, animalId: null })}>
+              <Button variant="outline" className="w-full justify-start text-xs"
+                onClick={() => assignMutation.mutate({ spaceId: assignDialog!, animalId: null })}>
                 Libérer l'espace
               </Button>
               {animals.map((a: any) => (
-                <Button
-                  key={a.id}
-                  variant="outline"
-                  className="w-full justify-start text-xs gap-2"
-                  onClick={() => assignMutation.mutate({ spaceId: assignDialog!, animalId: a.id })}
-                >
+                <Button key={a.id} variant="outline" className="w-full justify-start text-xs gap-2"
+                  onClick={() => assignMutation.mutate({ spaceId: assignDialog!, animalId: a.id })}>
                   <PawPrint className="h-3 w-3" />
                   {a.name} ({a.species})
                 </Button>

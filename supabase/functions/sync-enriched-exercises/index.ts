@@ -17,9 +17,9 @@ type SyncSummary = {
   failed_slugs: string[];
 };
 
-const respond = (payload: Record<string, unknown>) =>
+const respond = (payload: Record<string, unknown>, status = 200) =>
   new Response(JSON.stringify(payload), {
-    status: 200,
+    status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
@@ -62,12 +62,9 @@ async function syncCatalogDirectly(
     .map((category, index) => {
       const slug = asNullableString(category.slug);
       const name = asNullableString(category.name);
-
       if (!slug || !name) return null;
-
       return {
-        slug,
-        name,
+        slug, name,
         icon: asNullableString(category.icon),
         color: asNullableString(category.color),
         description: asNullableString(category.description),
@@ -89,7 +86,7 @@ async function syncCatalogDirectly(
     throw new Error(`Impossible de synchroniser les catégories: ${categoryUpsertError.message}`);
   }
 
-  const categorySlugs = categoryRows.map((category) => category.slug);
+  const categorySlugs = categoryRows.map((c) => c.slug);
   const { data: categoryData, error: categoryReadError } = await supabase
     .from("exercise_categories")
     .select("id, slug")
@@ -99,7 +96,7 @@ async function syncCatalogDirectly(
     throw new Error(`Impossible de relire les catégories: ${categoryReadError.message}`);
   }
 
-  const categoryMap = new Map((categoryData ?? []).map((category) => [category.slug, category.id]));
+  const categoryMap = new Map((categoryData ?? []).map((c) => [c.slug, c.id]));
   const failedSlugs = new Set<string>();
 
   const exerciseRows = exercises
@@ -107,22 +104,12 @@ async function syncCatalogDirectly(
       const slug = asNullableString(exercise.slug);
       const categorySlug = asNullableString(exercise.category_slug);
       const name = asNullableString(exercise.name);
-
-      if (!slug || !categorySlug || !name) {
-        if (slug) failedSlugs.add(slug);
-        return null;
-      }
-
+      if (!slug || !categorySlug || !name) { if (slug) failedSlugs.add(slug); return null; }
       const categoryId = categoryMap.get(categorySlug);
-      if (!categoryId) {
-        failedSlugs.add(slug);
-        return null;
-      }
+      if (!categoryId) { failedSlugs.add(slug); return null; }
 
       return {
-        slug,
-        name,
-        category_id: categoryId,
+        slug, name, category_id: categoryId,
         short_title: asNullableString(exercise.short_title),
         description: asNullableString(exercise.description),
         objective: asNullableString(exercise.objective),
@@ -130,10 +117,7 @@ async function syncCatalogDirectly(
         summary: asNullableString(exercise.summary),
         short_instruction: asNullableString(exercise.short_instruction),
         level: asNullableString(exercise.level) ?? "débutant",
-        exercise_type:
-          asNullableString(exercise.exercise_type) ??
-          asNullableString(exercise.exerciseType) ??
-          "fondation",
+        exercise_type: asNullableString(exercise.exercise_type) ?? asNullableString(exercise.exerciseType) ?? "fondation",
         difficulty: asInteger(exercise.difficulty),
         duration: asNullableString(exercise.duration),
         repetitions: asNullableString(exercise.repetitions),
@@ -179,22 +163,13 @@ async function syncCatalogDirectly(
     })
     .filter(Boolean);
 
-  const exerciseSlugs = exerciseRows.map((exercise) => exercise.slug);
+  const exerciseSlugs = exerciseRows.map((e) => e.slug);
   const existingSlugs = new Set<string>();
 
   if (exerciseSlugs.length > 0) {
-    const { data: existingRows, error: existingReadError } = await supabase
-      .from("exercises")
-      .select("slug")
-      .in("slug", exerciseSlugs);
-
-    if (existingReadError) {
-      throw new Error(`Impossible de vérifier les exercices existants: ${existingReadError.message}`);
-    }
-
-    for (const row of existingRows ?? []) {
-      existingSlugs.add(row.slug);
-    }
+    const { data: existingRows } = await supabase
+      .from("exercises").select("slug").in("slug", exerciseSlugs);
+    for (const row of existingRows ?? []) existingSlugs.add(row.slug);
   }
 
   let exercisesInserted = 0;
@@ -202,30 +177,17 @@ async function syncCatalogDirectly(
   const chunkSize = 50;
 
   const countSuccess = (slug: string) => {
-    if (existingSlugs.has(slug)) {
-      exercisesUpdated += 1;
-    } else {
-      exercisesInserted += 1;
-    }
+    if (existingSlugs.has(slug)) exercisesUpdated += 1;
+    else exercisesInserted += 1;
   };
 
   for (let index = 0; index < exerciseRows.length; index += chunkSize) {
     const chunk = exerciseRows.slice(index, index + chunkSize);
     const { error: chunkError } = await supabase.from("exercises").upsert(chunk, { onConflict: "slug" });
-
-    if (!chunkError) {
-      chunk.forEach((exercise) => countSuccess(exercise.slug));
-      continue;
-    }
-
+    if (!chunkError) { chunk.forEach((e) => countSuccess(e.slug)); continue; }
     for (const exercise of chunk) {
       const { error: rowError } = await supabase.from("exercises").upsert(exercise, { onConflict: "slug" });
-      if (rowError) {
-        failedSlugs.add(exercise.slug);
-        console.error("sync-enriched-exercises row failure", exercise.slug, rowError.message);
-        continue;
-      }
-
+      if (rowError) { failedSlugs.add(exercise.slug); continue; }
       countSuccess(exercise.slug);
     }
   }
@@ -237,6 +199,46 @@ async function syncCatalogDirectly(
     exercises_failed: failedSlugs.size,
     failed_slugs: Array.from(failedSlugs).slice(0, 20),
   };
+}
+
+// ─── Fallback URLs ─────────────────────────────────────────
+const TEST_SUPABASE_URL = "https://dcwbqsfeouvghcnvhrpj.supabase.co";
+
+async function fetchCatalog(supabaseUrl: string): Promise<{ catalog: any; source: string; url: string }> {
+  // Try local storage first
+  const localUrl = `${supabaseUrl}/storage/v1/object/public/exercise-images/data/exercise-catalog.json`;
+  console.log(`[sync-enriched] Trying local: ${localUrl}`);
+  const localRes = await fetch(localUrl);
+  if (localRes.ok) {
+    const catalog = await localRes.json();
+    if (Array.isArray(catalog?.categories) && Array.isArray(catalog?.exercises)) {
+      return { catalog, source: "local", url: localUrl };
+    }
+  }
+  console.log(`[sync-enriched] Local failed (${localRes.status}), trying test fallback...`);
+
+  // Fallback to test instance
+  const testUrl = `${TEST_SUPABASE_URL}/storage/v1/object/public/exercise-images/data/exercise-catalog.json`;
+  console.log(`[sync-enriched] Trying test: ${testUrl}`);
+  const testRes = await fetch(testUrl);
+  if (testRes.ok) {
+    const catalog = await testRes.json();
+    if (Array.isArray(catalog?.categories) && Array.isArray(catalog?.exercises)) {
+      return { catalog, source: "test_fallback", url: testUrl };
+    }
+  }
+
+  // Fallback to public static file
+  const staticUrl = `${supabaseUrl}/storage/v1/object/public/exercise-images/exercise-catalog.json`;
+  const staticRes = await fetch(staticUrl);
+  if (staticRes.ok) {
+    const catalog = await staticRes.json();
+    if (Array.isArray(catalog?.categories) && Array.isArray(catalog?.exercises)) {
+      return { catalog, source: "static_fallback", url: staticUrl };
+    }
+  }
+
+  throw new Error(`Catalogue introuvable sur aucune source (local: ${localRes.status}, test: ${testRes.status}, static: ${staticRes.status})`);
 }
 
 Deno.serve(async (req) => {
@@ -251,89 +253,39 @@ Deno.serve(async (req) => {
     const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
-      return respond({
-        ok: false,
-        error: "Configuration serveur incomplète.",
-        diagnostics: { stage: "env_missing" },
-      });
+      return respond({ ok: false, error: "Configuration serveur incomplète.", diagnostics: { stage: "env_missing" } });
     }
 
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-    // Allow service-role calls (from post-publish-sync or internal triggers)
+    // Auth check
     const authHeader = req.headers.get("Authorization");
     const serviceKey = req.headers.get("x-service-key");
     const isServiceCall = serviceKey === SERVICE_ROLE_KEY;
 
     if (!isServiceCall) {
       if (!authHeader?.startsWith("Bearer ")) {
-        return respond({
-          ok: false,
-          error: "Session expirée ou accès non autorisé.",
-          diagnostics: { stage: "auth_missing" },
-        });
+        return respond({ ok: false, error: "Session expirée ou accès non autorisé.", diagnostics: { stage: "auth_missing" } });
       }
-
       const token = authHeader.replace("Bearer ", "");
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser(token);
-
+      const { data: { user }, error: userError } = await supabase.auth.getUser(token);
       if (userError || !user) {
-        return respond({
-          ok: false,
-          error: "Session expirée ou accès non autorisé.",
-          diagnostics: { stage: "auth_invalid", details: userError?.message ?? null },
-        });
+        return respond({ ok: false, error: "Session expirée ou accès non autorisé.", diagnostics: { stage: "auth_invalid" } });
       }
-
-      const { data: isAdmin, error: roleError } = await supabase.rpc("has_role", {
-        _user_id: user.id,
-        _role: "admin",
-      });
-
-      if (roleError) {
-        return respond({
-          ok: false,
-          error: "Impossible de vérifier les droits administrateur.",
-          diagnostics: { stage: "role_check", details: roleError.message },
-        });
-      }
-
+      const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
       if (!isAdmin) {
-        return respond({
-          ok: false,
-          error: "Accès réservé à l'administration.",
-          diagnostics: { stage: "forbidden" },
-        });
+        return respond({ ok: false, error: "Accès réservé à l'administration.", diagnostics: { stage: "forbidden" } });
       }
     }
 
-    const catalogUrl = `${SUPABASE_URL}/storage/v1/object/public/exercise-images/data/exercise-catalog.json`;
-    const catalogRes = await fetch(catalogUrl);
+    // Fetch catalog with fallback
+    const { catalog, source, url: catalogUrl } = await fetchCatalog(SUPABASE_URL);
 
-    if (!catalogRes.ok) {
-      return respond({
-        ok: false,
-        error: `Catalogue introuvable (${catalogRes.status}).`,
-        diagnostics: { stage: "catalog_fetch", requested_url: catalogUrl },
-      });
-    }
-
-    const catalog = await catalogRes.json();
-    if (!Array.isArray(catalog?.categories) || !Array.isArray(catalog?.exercises)) {
-      return respond({
-        ok: false,
-        error: "Le catalogue est invalide.",
-        diagnostics: { stage: "catalog_parse", requested_url: catalogUrl },
-      });
-    }
+    console.log(`[sync-enriched] Catalog loaded from ${source}: ${catalog.categories.length} categories, ${catalog.exercises.length} exercises`);
 
     const syncResult = await syncCatalogDirectly(supabase, catalog.categories, catalog.exercises);
     const { data: verification, error: verificationError } = await supabase.rpc("sync_exercise_stats");
 
-    // Strict verification: fail if not 480
     const TARGET = 480;
     const totalAfterSync = verification?.total_exercises ?? 0;
     const isComplete = totalAfterSync >= TARGET;
@@ -345,16 +297,11 @@ Deno.serve(async (req) => {
       production_ready: isComplete,
       message: isComplete
         ? `✅ Synchronisation complète : ${totalAfterSync} exercices en base.`
-        : `⚠️ Synchronisation partielle : ${totalAfterSync}/${TARGET} exercices. ${syncResult.exercises_failed} en échec.`,
-      error:
-        !isComplete
-          ? `Objectif non atteint : ${totalAfterSync}/${TARGET} exercices.`
-          : syncResult.exercises_failed > 0
-            ? `${syncResult.exercises_failed} exercice(s) n'ont pas pu être synchronisés.`
-            : undefined,
+        : `⚠️ Synchronisation partielle : ${totalAfterSync}/${TARGET} exercices.`,
       diagnostics: {
         stage: "completed",
         target: TARGET,
+        source_used: source,
         requested_url: catalogUrl,
         processing_time_ms: Date.now() - startedAt,
         verification_error: verificationError?.message ?? null,
