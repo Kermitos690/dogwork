@@ -341,10 +341,10 @@ Deno.serve(async (req) => {
       diagnostics: {
         stage: "completed",
         target: TARGET,
-        source: source,
+        source,
         local_catalog_url: localCatalogUrl,
         fallback_catalog_url: testCatalogUrl,
-        requested_url: catalogUrl,
+        requested_url: requestedUrl,
         processing_time_ms: Date.now() - startedAt,
         verification_error: verificationError?.message ?? null,
       },
@@ -358,9 +358,12 @@ Deno.serve(async (req) => {
       error: message,
       diagnostics: {
         stage: "exception",
+        source: null,
+        requested_url: null,
         local_catalog_url: `${SUPABASE_URL}/storage/v1/object/public/exercise-images/data/exercise-catalog.json`,
         fallback_catalog_url: `${TEST_SUPABASE_URL}/storage/v1/object/public/exercise-images/data/exercise-catalog.json`,
         processing_time_ms: Date.now() - startedAt,
+        verification_error: null,
       },
     });
   }
