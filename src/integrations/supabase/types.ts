@@ -3060,6 +3060,179 @@ export type Database = {
         }
         Relationships: []
       }
+      v_credit_kpis: {
+        Row: {
+          avg_basket_chf: number | null
+          revenue_chf: number | null
+          total_credited: number | null
+          total_credits_sold: number | null
+          total_orders: number | null
+          unique_buyers: number | null
+        }
+        Relationships: []
+      }
+      v_credit_orders_admin: {
+        Row: {
+          amount_chf: number | null
+          created_at: string | null
+          credits: number | null
+          description: string | null
+          feature_code: string | null
+          id: string | null
+          operation_type: Database["public"]["Enums"]["ai_ledger_type"] | null
+          status: string | null
+          stripe_payment_id: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_credit_ledger_feature_code_fkey"
+            columns: ["feature_code"]
+            isOneToOne: false
+            referencedRelation: "ai_feature_catalog"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "ai_credit_ledger_feature_code_fkey"
+            columns: ["feature_code"]
+            isOneToOne: false
+            referencedRelation: "ai_feature_catalog_public"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      v_credit_orders_daily: {
+        Row: {
+          credited: number | null
+          credits_sold: number | null
+          daily_revenue: number | null
+          day: string | null
+          orders: number | null
+        }
+        Relationships: []
+      }
+      v_my_credit_orders: {
+        Row: {
+          amount_chf: number | null
+          created_at: string | null
+          credits: number | null
+          description: string | null
+          id: string | null
+          status: string | null
+          stripe_payment_id: string | null
+        }
+        Insert: {
+          amount_chf?: number | null
+          created_at?: string | null
+          credits?: number | null
+          description?: string | null
+          id?: string | null
+          status?: string | null
+          stripe_payment_id?: string | null
+        }
+        Update: {
+          amount_chf?: number | null
+          created_at?: string | null
+          credits?: number | null
+          description?: string | null
+          id?: string | null
+          status?: string | null
+          stripe_payment_id?: string | null
+        }
+        Relationships: []
+      }
+      v_my_wallet_daily_activity: {
+        Row: {
+          credits_in: number | null
+          credits_out: number | null
+          day: string | null
+          operations: number | null
+        }
+        Relationships: []
+      }
+      v_my_wallet_summary: {
+        Row: {
+          balance: number | null
+          last_activity: string | null
+          total_in: number | null
+          total_out: number | null
+          total_refunded: number | null
+        }
+        Insert: {
+          balance?: number | null
+          last_activity?: string | null
+          total_in?: number | null
+          total_out?: number | null
+          total_refunded?: number | null
+        }
+        Update: {
+          balance?: number | null
+          last_activity?: string | null
+          total_in?: number | null
+          total_out?: number | null
+          total_refunded?: number | null
+        }
+        Relationships: []
+      }
+      v_shelter_spaces_grid: {
+        Row: {
+          animal_breed: string | null
+          animal_name: string | null
+          animal_species: string | null
+          animal_status: string | null
+          capacity: number | null
+          color: string | null
+          current_animal_id: string | null
+          height: number | null
+          id: string | null
+          name: string | null
+          notes: string | null
+          position_x: number | null
+          position_y: number | null
+          shelter_user_id: string | null
+          space_type: string | null
+          width: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shelter_spaces_current_animal_id_fkey"
+            columns: ["current_animal_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_animals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shelter_spaces_current_animal_id_fkey"
+            columns: ["current_animal_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_animals_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_shelter_spaces_occupancy: {
+        Row: {
+          free: number | null
+          occupancy_pct: number | null
+          occupied: number | null
+          shelter_user_id: string | null
+          space_type: string | null
+          total: number | null
+        }
+        Relationships: []
+      }
+      v_shelter_spaces_stats: {
+        Row: {
+          free_spaces: number | null
+          occupancy_pct: number | null
+          occupied_spaces: number | null
+          space_types: number | null
+          total_capacity: number | null
+          total_spaces: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       admin_ai_economy_summary: { Args: never; Returns: Json }
@@ -3072,6 +3245,10 @@ export type Database = {
           roles: string[]
           user_id: string
         }[]
+      }
+      assign_animal_to_shelter_space: {
+        Args: { _animal_id: string; _space_id: string }
+        Returns: undefined
       }
       credit_ai_wallet: {
         Args: {
@@ -3094,6 +3271,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      end_shelter_space_assignment: {
+        Args: { _space_id: string }
+        Returns: undefined
       }
       ensure_ai_wallet: { Args: { _user_id: string }; Returns: string }
       fix_exercise_json_encoding: { Args: never; Returns: Json }
