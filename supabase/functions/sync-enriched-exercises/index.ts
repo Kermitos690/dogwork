@@ -318,8 +318,8 @@ Deno.serve(async (req) => {
     const localCatalogUrl = `${SUPABASE_URL}/storage/v1/object/public/exercise-images/data/exercise-catalog.json`;
     const testCatalogUrl = `${TEST_SUPABASE_URL}/storage/v1/object/public/exercise-images/data/exercise-catalog.json`;
 
-    // Fetch catalog with fallback
-    const { catalog, source, url: catalogUrl } = await fetchCatalog(SUPABASE_URL);
+    // Fetch catalog with explicit local -> test fallback
+    const { catalog, source, requestedUrl } = await fetchCatalogWithFallback(localCatalogUrl, testCatalogUrl);
 
     console.log(`[sync-enriched] Catalog loaded from ${source}: ${catalog.categories.length} categories, ${catalog.exercises.length} exercises`);
 
