@@ -2936,11 +2936,13 @@ export type Database = {
           arrival_date: string | null
           behavior_notes: string | null
           breed: string | null
+          chip_id: string | null
           created_at: string | null
           departure_date: string | null
           departure_reason: string | null
           description: string | null
           estimated_age: string | null
+          health_notes: string | null
           id: string | null
           is_sterilized: boolean | null
           name: string | null
@@ -2956,11 +2958,13 @@ export type Database = {
           arrival_date?: string | null
           behavior_notes?: string | null
           breed?: string | null
+          chip_id?: string | null
           created_at?: string | null
           departure_date?: string | null
           departure_reason?: string | null
           description?: string | null
           estimated_age?: string | null
+          health_notes?: string | null
           id?: string | null
           is_sterilized?: boolean | null
           name?: string | null
@@ -2976,11 +2980,13 @@ export type Database = {
           arrival_date?: string | null
           behavior_notes?: string | null
           breed?: string | null
+          chip_id?: string | null
           created_at?: string | null
           departure_date?: string | null
           departure_reason?: string | null
           description?: string | null
           estimated_age?: string | null
+          health_notes?: string | null
           id?: string | null
           is_sterilized?: boolean | null
           name?: string | null
