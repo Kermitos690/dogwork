@@ -274,8 +274,8 @@ export function SlideMenu() {
               <span className="text-xs font-semibold text-primary">{wallet?.balance ?? 0} crédits IA</span>
             </button>
           )}
+        </div>
 
-        {/* Navigation */}
         <ScrollArea className="flex-1 h-[calc(100vh-180px)]">
           <div className="py-2">
             {allSections.map((section) => {
