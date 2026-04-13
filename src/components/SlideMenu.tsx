@@ -262,6 +262,7 @@ export function SlideMenu() {
                 {isShelter && <Badge className="text-[9px] px-1.5 py-0 bg-violet-600 text-white border-0">{t("menu.shelter")}</Badge>}
                 {!isAdmin && !isEducator && !isShelter && <Badge variant="secondary" className="text-[9px] px-1.5 py-0">{t("menu.user")}</Badge>}
               </div>
+            </div>
           </div>
           {/* Credit balance */}
           {wallet !== undefined && (
@@ -273,8 +274,6 @@ export function SlideMenu() {
               <span className="text-xs font-semibold text-primary">{wallet?.balance ?? 0} crédits IA</span>
             </button>
           )}
-        </div>
-        </div>
 
         {/* Navigation */}
         <ScrollArea className="flex-1 h-[calc(100vh-180px)]">
