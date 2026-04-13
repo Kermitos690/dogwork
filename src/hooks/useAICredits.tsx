@@ -47,11 +47,11 @@ export interface AICreditPack {
 
 export interface CreditOrder {
   id: string;
-  pack_slug: string;
-  pack_label: string;
+  description: string | null;
   credits: number;
   amount_chf: number;
   status: string;
+  stripe_payment_id: string | null;
   created_at: string;
 }
 
