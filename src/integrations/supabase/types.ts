@@ -3060,6 +3060,36 @@ export type Database = {
         }
         Relationships: []
       }
+      v_active_credit_packs: {
+        Row: {
+          credits: number | null
+          description: string | null
+          id: string | null
+          label: string | null
+          price_chf: number | null
+          slug: string | null
+          sort_order: number | null
+        }
+        Insert: {
+          credits?: number | null
+          description?: string | null
+          id?: string | null
+          label?: string | null
+          price_chf?: number | null
+          slug?: string | null
+          sort_order?: number | null
+        }
+        Update: {
+          credits?: number | null
+          description?: string | null
+          id?: string | null
+          label?: string | null
+          price_chf?: number | null
+          slug?: string | null
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
       v_credit_kpis: {
         Row: {
           avg_basket_chf: number | null
@@ -3250,6 +3280,10 @@ export type Database = {
         Args: { _animal_id: string; _space_id: string }
         Returns: undefined
       }
+      consume_my_credits: {
+        Args: { _credits?: number; _feature_code: string }
+        Returns: boolean
+      }
       credit_ai_wallet: {
         Args: {
           _credits: number
@@ -3277,6 +3311,7 @@ export type Database = {
         Returns: undefined
       }
       ensure_ai_wallet: { Args: { _user_id: string }; Returns: string }
+      ensure_credit_wallet: { Args: never; Returns: string }
       fix_exercise_json_encoding: { Args: never; Returns: Json }
       get_ai_balance: { Args: { _user_id: string }; Returns: number }
       get_coach_profile_safe: {
@@ -3294,6 +3329,15 @@ export type Database = {
       }
       get_employee_shelter_id: { Args: { _user_id: string }; Returns: string }
       get_exercise_for_user: { Args: { _slug: string }; Returns: Json }
+      get_my_credit_balance: {
+        Args: never
+        Returns: {
+          balance: number
+          lifetime_consumed: number
+          lifetime_purchased: number
+          lifetime_refunded: number
+        }[]
+      }
       get_unenriched_exercises: {
         Args: { batch_limit?: number; batch_offset?: number }
         Returns: {
