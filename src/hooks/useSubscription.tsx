@@ -92,26 +92,13 @@ export function useSubscription() {
   return useContext(SubscriptionContext);
 }
 
+/**
+ * @deprecated Use credit-based gating instead.
+ * AI features are now gated by credits (wallet balance), not by plan tier.
+ * Kept for backward compatibility but always returns true so credits are the sole gate.
+ */
 export function useHasFeature(feature: "ai_plan" | "ai_chat"): boolean {
-  const { tier } = useSubscription();
-  const { user } = useAuth();
-
-  const { data: hasPrivilegedRole } = useQuery({
-    queryKey: ["privileged-role", user?.id],
-    queryFn: async () => {
-      const [{ data: admin }, { data: educator }] = await Promise.all([
-        supabase.rpc("is_admin"),
-        supabase.rpc("is_educator"),
-      ]);
-      return admin === true || educator === true;
-    },
-    enabled: !!user,
-    staleTime: 5 * 60_000,
-  });
-
-  if (hasPrivilegedRole) return true;
-
-  if (feature === "ai_plan") return tier === "expert";
-  if (feature === "ai_chat") return tier === "expert";
-  return false;
+  // Credits are now the sole gate for AI features.
+  // Any authenticated user with credits can access AI.
+  return true;
 }

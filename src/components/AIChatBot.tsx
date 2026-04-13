@@ -1,11 +1,11 @@
 import * as React from "react";
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, Send, X, Lock, Bot, Sparkles, Loader2, Coins } from "lucide-react";
+import { Send, X, Bot, Sparkles, Loader2, Coins } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { useHasFeature } from "@/hooks/useSubscription";
+// Credits-based gating — no plan tier check needed
 import { supabase } from "@/integrations/supabase/client";
 import { usePreferences } from "@/hooks/usePreferences";
 import { useAuth } from "@/hooks/useAuth";
@@ -157,7 +157,6 @@ function AIChatBotInner() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const hasChat = useHasFeature("ai_chat");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   
@@ -176,19 +175,8 @@ function AIChatBotInner() {
     if (open && inputRef.current) inputRef.current.focus();
   }, [open]);
 
-  if (!hasChat) {
-    return (
-      <motion.button
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        className="fixed bottom-20 right-4 z-50 rounded-full bg-muted p-3.5 shadow-lg"
-        onClick={() => navigate("/subscription")}
-        aria-label="Débloquez le chatbot IA avec le plan Expert"
-      >
-        <Lock className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-      </motion.button>
-    );
-  }
+  // AI chat is gated by credits, not by plan tier.
+  // Any authenticated user with credits can use the chatbot.
 
   const send = async () => {
     const text = input.trim();

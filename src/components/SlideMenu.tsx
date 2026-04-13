@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { usePreferences } from "@/hooks/usePreferences";
+import { useAIBalance } from "@/hooks/useAICredits";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +14,8 @@ import {
   Menu, Home, Dog, BookOpen, Play, BarChart3, ClipboardList,
   Calendar, User, HelpCircle, CreditCard, GraduationCap, Shield,
   MessageSquare, FileText, Users, LayoutDashboard, CalendarDays,
-  Target, AlertTriangle, Dumbbell, LogOut, Settings, Star, X, Heart, ShoppingBag
+  Target, AlertTriangle, Dumbbell, LogOut, Settings, Star, X, Heart, ShoppingBag,
+  Coins, LayoutGrid
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -59,6 +61,7 @@ export function SlideMenu() {
   const { user, signOut } = useAuth();
   const { preferences } = usePreferences();
   const { t } = useTranslation();
+  const { data: wallet } = useAIBalance();
 
   const { data: roles } = useQuery({
     queryKey: ["user-roles-menu", user?.id],
@@ -170,6 +173,7 @@ export function SlideMenu() {
       items: [
         { label: t("menu.shelterDashboard"), icon: LayoutDashboard, path: "/shelter" },
         { label: t("menu.animals"), icon: Dog, path: "/shelter/animals" },
+        { label: "Gestion des espaces", icon: LayoutGrid, path: "/shelter/spaces" },
         { label: "Plans post-adoption", icon: Heart, path: "/shelter/adoption-plans" },
       ],
     },
@@ -258,8 +262,18 @@ export function SlideMenu() {
                 {isShelter && <Badge className="text-[9px] px-1.5 py-0 bg-violet-600 text-white border-0">{t("menu.shelter")}</Badge>}
                 {!isAdmin && !isEducator && !isShelter && <Badge variant="secondary" className="text-[9px] px-1.5 py-0">{t("menu.user")}</Badge>}
               </div>
-            </div>
           </div>
+          {/* Credit balance */}
+          {wallet !== undefined && (
+            <button
+              onClick={() => handleNav("/shop")}
+              className="mt-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors w-full"
+            >
+              <Coins className="h-3.5 w-3.5 text-primary" />
+              <span className="text-xs font-semibold text-primary">{wallet?.balance ?? 0} crédits IA</span>
+            </button>
+          )}
+        </div>
         </div>
 
         {/* Navigation */}
