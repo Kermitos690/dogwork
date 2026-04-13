@@ -1,6 +1,6 @@
 /**
  * Centralized AI credits hook.
- * Provides balance, history, debit check, and pack purchase.
+ * Uses canonical SQL functions: get_my_credit_balance(), v_active_credit_packs, v_my_credit_orders
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,8 +8,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
 export interface AIWallet {
-  id: string;
-  user_id: string;
   balance: number;
   lifetime_purchased: number;
   lifetime_consumed: number;
@@ -44,42 +42,85 @@ export interface AICreditPack {
   description: string | null;
   credits: number;
   price_chf: number;
-  is_active: boolean;
   sort_order: number;
 }
 
+export interface CreditOrder {
+  id: string;
+  description: string | null;
+  credits: number;
+  amount_chf: number;
+  status: string;
+  stripe_payment_id: string | null;
+  created_at: string;
+}
+
+// ─── Wallet balance via RPC ───────────────────────────────────────
 export function useAIBalance() {
   const { user } = useAuth();
 
   return useQuery({
     queryKey: ["ai-balance", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ai_credit_wallets")
-        .select("*")
-        .eq("user_id", user!.id)
-        .maybeSingle();
+    queryFn: async (): Promise<AIWallet> => {
+      const { data, error } = await supabase.rpc("get_my_credit_balance" as any);
 
       if (error) throw error;
 
-      // If no wallet yet, trigger creation via RPC
-      if (!data) {
-        await supabase.rpc("ensure_ai_wallet", { _user_id: user!.id } as any);
-        const { data: wallet } = await supabase
-          .from("ai_credit_wallets")
-          .select("*")
-          .eq("user_id", user!.id)
-          .single();
-        return wallet as unknown as AIWallet;
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row) {
+        return { balance: 0, lifetime_purchased: 0, lifetime_consumed: 0, lifetime_refunded: 0 };
       }
 
-      return data as unknown as AIWallet;
+      return {
+        balance: row.balance ?? 0,
+        lifetime_purchased: row.lifetime_purchased ?? 0,
+        lifetime_consumed: row.lifetime_consumed ?? 0,
+        lifetime_refunded: row.lifetime_refunded ?? 0,
+      };
+    },
+    enabled: !!user,
+    staleTime: 15_000,
+  });
+}
+
+// ─── Active credit packs via view ─────────────────────────────────
+export function useAICreditPacks() {
+  return useQuery({
+    queryKey: ["ai-credit-packs"],
+    queryFn: async (): Promise<AICreditPack[]> => {
+      const { data, error } = await supabase
+        .from("v_active_credit_packs" as any)
+        .select("*")
+        .order("sort_order");
+
+      if (error) throw error;
+      return (data || []) as unknown as AICreditPack[];
+    },
+    staleTime: 5 * 60_000,
+  });
+}
+
+// ─── Credit orders history via view ───────────────────────────────
+export function useCreditOrders() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ["credit-orders", user?.id],
+    queryFn: async (): Promise<CreditOrder[]> => {
+      const { data, error } = await supabase
+        .from("v_my_credit_orders" as any)
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return (data || []) as unknown as CreditOrder[];
     },
     enabled: !!user,
     staleTime: 30_000,
   });
 }
 
+// ─── Ledger history (full activity) ──────────────────────────────
 export function useAILedger(limit = 20) {
   const { user } = useAuth();
 
@@ -101,6 +142,7 @@ export function useAILedger(limit = 20) {
   });
 }
 
+// ─── Feature catalog ─────────────────────────────────────────────
 export function useAIFeatures() {
   return useQuery({
     queryKey: ["ai-features"],
@@ -118,29 +160,12 @@ export function useAIFeatures() {
   });
 }
 
-export function useAICreditPacks() {
-  return useQuery({
-    queryKey: ["ai-credit-packs"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ai_credit_packs_public" as any)
-        .select("*")
-        .eq("is_active", true)
-        .order("sort_order");
-
-      if (error) throw error;
-      return (data || []) as unknown as AICreditPack[];
-    },
-    staleTime: 5 * 60_000,
-  });
-}
-
+// ─── Purchase credit pack ────────────────────────────────────────
 export function usePurchaseCreditPack() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (packSlug: string) => {
-      // Pre-open window synchronously to keep user-gesture context
       const newWindow = window.open("about:blank", "_blank");
 
       const session = (await supabase.auth.getSession()).data.session;
@@ -170,14 +195,12 @@ export function usePurchaseCreditPack() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ai-balance"] });
+      queryClient.invalidateQueries({ queryKey: ["credit-orders"] });
     },
   });
 }
 
-/**
- * Centralized AI call with credits.
- * Returns a mutation that handles credits debit, AI call, and error/refund.
- */
+// ─── AI Call with credits ────────────────────────────────────────
 export function useAICall() {
   const queryClient = useQueryClient();
 
@@ -225,10 +248,7 @@ export function useAICall() {
         throw new Error(err.error || "Erreur IA");
       }
 
-      if (stream) {
-        return resp; // Return raw response for streaming
-      }
-
+      if (stream) return resp;
       return resp.json();
     },
     onSettled: () => {
@@ -237,9 +257,7 @@ export function useAICall() {
   });
 }
 
-/**
- * Stream AI response with credits, token by token.
- */
+// ─── Stream AI with credits ──────────────────────────────────────
 export async function streamAIWithCredits({
   featureCode,
   messages,

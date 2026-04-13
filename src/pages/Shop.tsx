@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Coins, CreditCard, ExternalLink, Loader2, Package, ShoppingBag, Sparkles, Zap } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
-import { CreditBalanceCard, CreditPacksSection, CreditHistory } from "@/components/AICredits";
+import { CreditBalanceCard, CreditPacksSection, CreditHistory, CreditOrdersHistory } from "@/components/AICredits";
 import { FeaturePricingGrid, MonthlyUsageStats } from "@/components/CreditUsageDashboard";
 import { useAIBalance } from "@/hooks/useAICredits";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,18 +22,17 @@ export default function Shop() {
   const { tier, subscribed, subscriptionEnd, loading: subscriptionLoading } = useSubscription();
   const [portalLoading, setPortalLoading] = useState(false);
 
-  // Handle Stripe redirect results
   useEffect(() => {
     const creditsStatus = searchParams.get("credits");
     const packSlug = searchParams.get("pack");
 
     if (creditsStatus === "success") {
-      // Poll for updated balance after Stripe webhook processes
       let attempts = 0;
       const poll = setInterval(async () => {
         attempts++;
         await queryClient.invalidateQueries({ queryKey: ["ai-balance"] });
         await queryClient.invalidateQueries({ queryKey: ["ai-ledger"] });
+        await queryClient.invalidateQueries({ queryKey: ["credit-orders"] });
         if (attempts >= 5) clearInterval(poll);
       }, 2000);
 
@@ -41,7 +40,6 @@ export default function Shop() {
         description: `Vos crédits IA (pack ${packSlug || ""}) sont en cours de chargement...`,
       });
 
-      // Clean URL
       setSearchParams({}, { replace: true });
     } else if (creditsStatus === "cancel") {
       toast.info("Achat annulé");
@@ -187,22 +185,17 @@ export default function Shop() {
           <CreditPacksSection />
         </div>
 
-        <div className="rounded-2xl border border-border bg-card p-4 space-y-4">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold">Activité & achats</h2>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Retrouvez ici vos achats de crédits, remboursements éventuels et déductions après utilisation des outils IA.
-          </p>
-        </div>
-
         {/* Feature pricing */}
         <div className="rounded-2xl border border-border bg-card p-4 space-y-4">
           <FeaturePricingGrid />
         </div>
 
-        {/* History */}
+        {/* Credit Orders */}
+        <div className="rounded-2xl border border-border bg-card p-4 space-y-4">
+          <CreditOrdersHistory />
+        </div>
+
+        {/* Full Ledger History */}
         <div className="rounded-2xl border border-border bg-card p-4 space-y-4">
           <CreditHistory />
         </div>
