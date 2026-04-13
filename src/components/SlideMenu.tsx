@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { usePreferences } from "@/hooks/usePreferences";
+import { useAIBalance } from "@/hooks/useAICredits";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +14,8 @@ import {
   Menu, Home, Dog, BookOpen, Play, BarChart3, ClipboardList,
   Calendar, User, HelpCircle, CreditCard, GraduationCap, Shield,
   MessageSquare, FileText, Users, LayoutDashboard, CalendarDays,
-  Target, AlertTriangle, Dumbbell, LogOut, Settings, Star, X, Heart, ShoppingBag
+  Target, AlertTriangle, Dumbbell, LogOut, Settings, Star, X, Heart, ShoppingBag,
+  Coins, LayoutGrid
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -57,6 +59,9 @@ export function SlideMenu() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { preferences } = usePreferences();
+  const { t } = useTranslation();
+  const { data: wallet } = useAIBalance();
   const { preferences } = usePreferences();
   const { t } = useTranslation();
 
