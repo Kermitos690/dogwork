@@ -278,6 +278,10 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Build diagnostic URLs
+    const localCatalogUrl = `${SUPABASE_URL}/storage/v1/object/public/exercise-images/data/exercise-catalog.json`;
+    const testCatalogUrl = `${TEST_SUPABASE_URL}/storage/v1/object/public/exercise-images/data/exercise-catalog.json`;
+
     // Fetch catalog with fallback
     const { catalog, source, url: catalogUrl } = await fetchCatalog(SUPABASE_URL);
 
@@ -301,7 +305,9 @@ Deno.serve(async (req) => {
       diagnostics: {
         stage: "completed",
         target: TARGET,
-        source_used: source,
+        source: source,
+        local_catalog_url: localCatalogUrl,
+        fallback_catalog_url: testCatalogUrl,
         requested_url: catalogUrl,
         processing_time_ms: Date.now() - startedAt,
         verification_error: verificationError?.message ?? null,
@@ -310,10 +316,16 @@ Deno.serve(async (req) => {
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Erreur interne";
     console.error("sync-enriched-exercises error:", message);
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
     return respond({
       ok: false,
       error: message,
-      diagnostics: { stage: "exception", processing_time_ms: Date.now() - startedAt },
+      diagnostics: {
+        stage: "exception",
+        local_catalog_url: `${SUPABASE_URL}/storage/v1/object/public/exercise-images/data/exercise-catalog.json`,
+        fallback_catalog_url: `${TEST_SUPABASE_URL}/storage/v1/object/public/exercise-images/data/exercise-catalog.json`,
+        processing_time_ms: Date.now() - startedAt,
+      },
     });
   }
 });
