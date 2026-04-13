@@ -217,7 +217,7 @@ export function CreditOrdersHistory() {
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{order.pack_label || order.pack_slug}</p>
+                <p className="text-sm font-medium truncate">{order.description || "Achat de crédits"}</p>
                 <p className="text-xs text-muted-foreground">
                   {format(new Date(order.created_at), "d MMM yyyy HH:mm", { locale: fr })}
                 </p>
