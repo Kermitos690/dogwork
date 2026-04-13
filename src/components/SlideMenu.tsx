@@ -265,15 +265,13 @@ export function SlideMenu() {
             </div>
           </div>
           {/* Credit balance */}
-          {wallet !== undefined && (
-            <button
-              onClick={() => handleNav("/shop")}
-              className="mt-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors w-full"
-            >
-              <Coins className="h-3.5 w-3.5 text-primary" />
-              <span className="text-xs font-semibold text-primary">{wallet?.balance ?? 0} crédits IA</span>
-            </button>
-          )}
+          <button
+            onClick={() => handleNav("/shop")}
+            className="mt-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors w-full"
+          >
+            <Coins className="h-3.5 w-3.5 text-primary" />
+            <span className="text-xs font-semibold text-primary">{wallet?.balance ?? 0} crédits IA</span>
+          </button>
         </div>
 
         <ScrollArea className="flex-1 h-[calc(100vh-180px)]">
