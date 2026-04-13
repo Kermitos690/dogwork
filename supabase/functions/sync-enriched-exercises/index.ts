@@ -204,41 +204,77 @@ async function syncCatalogDirectly(
 // ─── Fallback URLs ─────────────────────────────────────────
 const TEST_SUPABASE_URL = "https://dcwbqsfeouvghcnvhrpj.supabase.co";
 
-async function fetchCatalog(supabaseUrl: string): Promise<{ catalog: any; source: string; url: string }> {
-  // Try local storage first
-  const localUrl = `${supabaseUrl}/storage/v1/object/public/exercise-images/data/exercise-catalog.json`;
-  console.log(`[sync-enriched] Trying local: ${localUrl}`);
-  const localRes = await fetch(localUrl);
-  if (localRes.ok) {
-    const catalog = await localRes.json();
-    if (Array.isArray(catalog?.categories) && Array.isArray(catalog?.exercises)) {
-      return { catalog, source: "local", url: localUrl };
-    }
-  }
-  console.log(`[sync-enriched] Local failed (${localRes.status}), trying test fallback...`);
+type CatalogPayload = {
+  categories: CatalogCategory[];
+  exercises: CatalogExercise[];
+};
 
-  // Fallback to test instance
-  const testUrl = `${TEST_SUPABASE_URL}/storage/v1/object/public/exercise-images/data/exercise-catalog.json`;
-  console.log(`[sync-enriched] Trying test: ${testUrl}`);
-  const testRes = await fetch(testUrl);
-  if (testRes.ok) {
-    const catalog = await testRes.json();
-    if (Array.isArray(catalog?.categories) && Array.isArray(catalog?.exercises)) {
-      return { catalog, source: "test_fallback", url: testUrl };
+type CatalogFetchSuccess = {
+  catalog: CatalogPayload;
+  source: "local" | "test_fallback";
+  requestedUrl: string;
+};
+
+type CatalogFetchAttempt =
+  | { ok: true; catalog: CatalogPayload; url: string }
+  | { ok: false; url: string; error: string };
+
+const isValidCatalog = (catalog: unknown): catalog is CatalogPayload => {
+  return Array.isArray((catalog as CatalogPayload | undefined)?.categories)
+    && Array.isArray((catalog as CatalogPayload | undefined)?.exercises);
+};
+
+async function fetchCatalogAttempt(url: string): Promise<CatalogFetchAttempt> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      return { ok: false, url, error: `HTTP ${response.status}` };
     }
+
+    const catalog = await response.json();
+    if (!isValidCatalog(catalog)) {
+      return { ok: false, url, error: "Format de catalogue invalide" };
+    }
+
+    return { ok: true, catalog, url };
+  } catch (error) {
+    return {
+      ok: false,
+      url,
+      error: error instanceof Error ? error.message : "Erreur réseau inconnue",
+    };
+  }
+}
+
+async function fetchCatalogWithFallback(
+  localCatalogUrl: string,
+  testCatalogUrl: string,
+): Promise<CatalogFetchSuccess> {
+  console.log(`[sync-enriched] Tentative locale: ${localCatalogUrl}`);
+  const localAttempt = await fetchCatalogAttempt(localCatalogUrl);
+  if (localAttempt.ok) {
+    return {
+      catalog: localAttempt.catalog,
+      source: "local",
+      requestedUrl: localAttempt.url,
+    };
   }
 
-  // Fallback to public static file
-  const staticUrl = `${supabaseUrl}/storage/v1/object/public/exercise-images/exercise-catalog.json`;
-  const staticRes = await fetch(staticUrl);
-  if (staticRes.ok) {
-    const catalog = await staticRes.json();
-    if (Array.isArray(catalog?.categories) && Array.isArray(catalog?.exercises)) {
-      return { catalog, source: "static_fallback", url: staticUrl };
-    }
+  console.warn(`[sync-enriched] Échec local: ${localAttempt.error}`);
+  console.log(`[sync-enriched] Tentative fallback test: ${testCatalogUrl}`);
+
+  const testAttempt = await fetchCatalogAttempt(testCatalogUrl);
+  if (testAttempt.ok) {
+    return {
+      catalog: testAttempt.catalog,
+      source: "test_fallback",
+      requestedUrl: testAttempt.url,
+    };
   }
 
-  throw new Error(`Catalogue introuvable sur aucune source (local: ${localRes.status}, test: ${testRes.status}, static: ${staticRes.status})`);
+  throw new Error(
+    `Catalogue introuvable après 2 tentatives. Source locale: ${localAttempt.error}. Fallback test: ${testAttempt.error}.`,
+  );
 }
 
 Deno.serve(async (req) => {
