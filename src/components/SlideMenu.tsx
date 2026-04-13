@@ -274,6 +274,7 @@ export function SlideMenu() {
             </button>
           )}
         </div>
+        </div>
 
         {/* Navigation */}
         <ScrollArea className="flex-1 h-[calc(100vh-180px)]">
