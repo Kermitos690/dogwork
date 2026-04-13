@@ -173,6 +173,7 @@ export function SlideMenu() {
       items: [
         { label: t("menu.shelterDashboard"), icon: LayoutDashboard, path: "/shelter" },
         { label: t("menu.animals"), icon: Dog, path: "/shelter/animals" },
+        { label: "Gestion des espaces", icon: LayoutGrid, path: "/shelter/spaces" },
         { label: "Plans post-adoption", icon: Heart, path: "/shelter/adoption-plans" },
       ],
     },
