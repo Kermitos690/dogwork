@@ -62,8 +62,6 @@ export function SlideMenu() {
   const { preferences } = usePreferences();
   const { t } = useTranslation();
   const { data: wallet } = useAIBalance();
-  const { preferences } = usePreferences();
-  const { t } = useTranslation();
 
   const { data: roles } = useQuery({
     queryKey: ["user-roles-menu", user?.id],
