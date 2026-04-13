@@ -57,7 +57,12 @@ async function streamChatWithCredits({
   });
 
   if (resp.status === 429) {
-    onError("Trop de requêtes. Réessayez dans quelques instants.");
+    const data = await resp.json().catch(() => ({}));
+    if (data.code === "COOLDOWN_ACTIVE" && data.retry_after) {
+      onError(`Veuillez patienter ${data.retry_after}s avant votre prochaine requête IA.`);
+    } else {
+      onError("Trop de requêtes. Réessayez dans quelques instants.");
+    }
     return;
   }
   if (resp.status === 402) {

@@ -412,6 +412,33 @@ Deno.serve(async (req) => {
 
     const creditsCost = feature.credits_cost;
 
+    // 4b. Cooldown: 30s between AI calls to prevent spam
+    const COOLDOWN_SECONDS = 30;
+    const { data: lastCall } = await admin
+      .from("ai_credit_ledger")
+      .select("created_at")
+      .eq("user_id", userId)
+      .eq("operation_type", "consumption")
+      .eq("status", "success")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (lastCall) {
+      const elapsed = (Date.now() - new Date(lastCall.created_at).getTime()) / 1000;
+      if (elapsed < COOLDOWN_SECONDS) {
+        const wait = Math.ceil(COOLDOWN_SECONDS - elapsed);
+        console.log(`[ai-with-credits] Cooldown active: ${elapsed.toFixed(0)}s elapsed, need ${COOLDOWN_SECONDS}s`);
+        return new Response(JSON.stringify({
+          error: `Veuillez patienter ${wait} secondes avant votre prochaine requête IA.`,
+          code: "COOLDOWN_ACTIVE",
+          retry_after: wait,
+        }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     console.log(`[ai-with-credits] Debiting ${creditsCost} credits for user ${userId.slice(0, 8)}...`);
 
     const { data: debited, error: debitErr } = await admin.rpc("debit_ai_credits", {
