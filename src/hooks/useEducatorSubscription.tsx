@@ -34,8 +34,11 @@ export function EducatorSubscriptionProvider({ children }: { children: React.Rea
     }
 
     try {
+      const { data: { session: freshSession } } = await supabase.auth.getSession();
+      const token = freshSession?.access_token ?? session.access_token;
+
       const { data, error } = await supabase.functions.invoke("check-subscription", {
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (error) throw error;
 
