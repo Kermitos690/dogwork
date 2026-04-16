@@ -55,8 +55,12 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
 
     try {
+      // Always get a fresh session to avoid expired token errors
+      const { data: { session: freshSession } } = await supabase.auth.getSession();
+      const token = freshSession?.access_token ?? session.access_token;
+
       const { data, error } = await supabase.functions.invoke("check-subscription", {
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (error) throw error;
