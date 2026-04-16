@@ -27,6 +27,65 @@ const featureIcons: Record<string, React.ReactNode> = {
   record_enrichment: <RefreshCw className="h-4 w-4" />,
 };
 
+/**
+ * Bénéfices concrets utilisateur par fonctionnalité.
+ * Affichés à la place des descriptions techniques pour clarifier l'utilité.
+ */
+const featureBenefits: Record<string, { benefit: string; example: string }> = {
+  chat_general: {
+    benefit: "Posez vos questions à un assistant qui connaît la fiche complète de votre chien.",
+    example: "Ex: « Comment apprendre le rappel à Léon en présence d'autres chiens ? »",
+  },
+  chat: {
+    benefit: "Posez vos questions à un assistant qui connaît la fiche complète de votre chien.",
+    example: "Ex: « Comment apprendre le rappel à Léon ? »",
+  },
+  behavior_analysis: {
+    benefit: "Analyse complète de la dernière semaine : tensions, progrès, points d'alerte, recommandations.",
+    example: "Sortie : un rapport de 5 axes avec actions concrètes pour les 7 prochains jours.",
+  },
+  behavior_summary: {
+    benefit: "Synthèse rapide des comportements observés sur la période choisie.",
+    example: "Idéal avant une séance avec l'éducateur ou un rendez-vous vétérinaire.",
+  },
+  plan_generator: {
+    benefit: "Plan d'entraînement personnalisé sur 8 semaines, adapté au profil exact de votre chien.",
+    example: "Sortie : 56 jours d'exercices progressifs, niveaux ajustables, axes prioritaires.",
+  },
+  education_plan: {
+    benefit: "Programme éducatif structuré sur plusieurs semaines basé sur les objectifs choisis.",
+    example: "Sortie : objectifs hebdomadaires + exercices issus de la bibliothèque enrichie.",
+  },
+  adoption_plan: {
+    benefit: "Plan de suivi post-adoption pour adopter en sérénité avec étapes claires semaine par semaine.",
+    example: "Sortie : 8 semaines de tâches, observations et rituels pour bâtir la confiance.",
+  },
+  dog_profile_analysis: {
+    benefit: "Diagnostic du profil de votre chien : forces, vulnérabilités, recommandations prioritaires.",
+    example: "Idéal après création de fiche pour orienter votre travail.",
+  },
+  connection_guide: {
+    benefit: "Guide personnalisé pour renforcer le lien de confiance avec un nouvel arrivant.",
+    example: "Sortie : 14 jours de rituels et activités calmes pour créer la complicité.",
+  },
+  exercise_enrich: {
+    benefit: "Génère le contenu pédagogique complet d'un exercice (étapes, erreurs, progressions).",
+    example: "Réservé aux administrateurs pour enrichir le catalogue.",
+  },
+  content_rewrite: {
+    benefit: "Reformule un texte pour le rendre plus clair, plus pro ou plus engageant.",
+    example: "Utile pour vos descriptions de cours, profils ou messages aux clients.",
+  },
+  marketing_content: {
+    benefit: "Génère un contenu marketing optimisé (annonce, post, descriptif).",
+    example: "Pour éducateurs et refuges qui veulent gagner du temps.",
+  },
+  record_enrichment: {
+    benefit: "Enrichit automatiquement une fiche avec des suggestions intelligentes.",
+    example: "Comble les champs manquants à partir des informations existantes.",
+  },
+};
+
 interface UsageStat {
   featureCode: string;
   label: string;
@@ -48,32 +107,42 @@ export function FeaturePricingGrid() {
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <Zap className="h-5 w-5 text-primary" />
-        <h3 className="text-lg font-semibold">Tarifs par fonctionnalité</h3>
+        <h3 className="text-lg font-semibold">Que pouvez-vous faire avec vos crédits&nbsp;?</h3>
       </div>
       <p className="text-xs text-muted-foreground">
-        Chaque action IA consomme un nombre fixe de crédits. Consultez cette grille pour estimer vos dépenses.
+        Chaque fonctionnalité IA a un coût fixe et un bénéfice clair. Avant chaque utilisation, une confirmation s'affiche pour éviter les mauvaises surprises.
       </p>
-      <div className="grid gap-2">
-        {features.map((f: AIFeature) => (
-          <div
-            key={f.code}
-            className="flex items-center gap-3 rounded-xl border border-border/60 bg-card px-3 py-2.5"
-          >
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 text-primary">
-              {featureIcons[f.code] || <Coins className="h-4 w-4" />}
+      <div className="grid gap-3">
+        {features.map((f: AIFeature) => {
+          const info = featureBenefits[f.code];
+          return (
+            <div
+              key={f.code}
+              className="flex gap-3 rounded-xl border border-border/60 bg-card p-3"
+            >
+              <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 text-primary self-start">
+                {featureIcons[f.code] || <Coins className="h-4 w-4" />}
+              </div>
+              <div className="flex-1 min-w-0 space-y-1">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm font-semibold leading-tight">{f.label}</p>
+                  <Badge variant="secondary" className="gap-1 shrink-0 font-semibold">
+                    <Coins className="h-3 w-3" />
+                    {f.credits_cost}
+                  </Badge>
+                </div>
+                {info ? (
+                  <>
+                    <p className="text-xs text-foreground/80 leading-snug">{info.benefit}</p>
+                    <p className="text-[11px] text-muted-foreground italic leading-snug">{info.example}</p>
+                  </>
+                ) : f.description ? (
+                  <p className="text-xs text-muted-foreground leading-snug">{f.description}</p>
+                ) : null}
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{f.label}</p>
-              {f.description && (
-                <p className="text-xs text-muted-foreground truncate">{f.description}</p>
-              )}
-            </div>
-            <Badge variant="secondary" className="gap-1 shrink-0 font-semibold">
-              <Coins className="h-3 w-3" />
-              {f.credits_cost}
-            </Badge>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
