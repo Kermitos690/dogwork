@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Coins, CreditCard, ExternalLink, Loader2, Package, ShoppingBag, Sparkles, Zap } from "lucide-react";
+import { ArrowLeft, Coins, CreditCard, ExternalLink, Loader2, Package, ShoppingBag, Sparkles, Zap, ShieldCheck, Wallet, Activity } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
 import { CreditBalanceCard, CreditPacksSection, CreditHistory, CreditOrdersHistory } from "@/components/AICredits";
 import { FeaturePricingGrid, MonthlyUsageStats } from "@/components/CreditUsageDashboard";
@@ -171,6 +171,31 @@ export default function Shop() {
         {/* Current Balance */}
         <CreditBalanceCard />
 
+        {/* Comment ça marche */}
+        <div className="rounded-2xl border border-primary/20 bg-card p-5 space-y-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold">Comment fonctionnent les crédits IA&nbsp;?</h2>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Step
+              icon={<Wallet className="h-5 w-5" />}
+              title="1. Achetez un pack"
+              description="Choisissez le pack adapté à votre usage. Pas d'abonnement, pas d'expiration."
+            />
+            <Step
+              icon={<ShieldCheck className="h-5 w-5" />}
+              title="2. Confirmez avant déduction"
+              description="Avant chaque action IA, une fenêtre indique le coût exact, votre solde et le solde après."
+            />
+            <Step
+              icon={<Activity className="h-5 w-5" />}
+              title="3. Suivez votre conso"
+              description="Toutes vos déductions sont tracées dans l'historique ci-dessous, à la transaction près."
+            />
+          </div>
+        </div>
+
         {/* Usage stats */}
         <div className="rounded-2xl border border-border bg-card p-4 space-y-4">
           <div className="flex items-center gap-2">
@@ -185,7 +210,7 @@ export default function Shop() {
           <CreditPacksSection />
         </div>
 
-        {/* Feature pricing */}
+        {/* Feature pricing — pédagogique */}
         <div className="rounded-2xl border border-border bg-card p-4 space-y-4">
           <FeaturePricingGrid />
         </div>
@@ -201,5 +226,17 @@ export default function Shop() {
         </div>
       </div>
     </AppLayout>
+  );
+}
+
+function Step({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
+  return (
+    <div className="rounded-xl border border-border/60 bg-secondary/30 p-3 space-y-2">
+      <div className="h-9 w-9 rounded-lg bg-primary/15 flex items-center justify-center text-primary">
+        {icon}
+      </div>
+      <p className="text-sm font-semibold">{title}</p>
+      <p className="text-xs text-muted-foreground leading-snug">{description}</p>
+    </div>
   );
 }
