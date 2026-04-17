@@ -27,18 +27,40 @@ export default function Shop() {
     const packSlug = searchParams.get("pack");
 
     if (creditsStatus === "success") {
-      let attempts = 0;
-      const poll = setInterval(async () => {
-        attempts++;
-        await queryClient.invalidateQueries({ queryKey: ["ai-balance"] });
-        await queryClient.invalidateQueries({ queryKey: ["ai-ledger"] });
-        await queryClient.invalidateQueries({ queryKey: ["credit-orders"] });
-        if (attempts >= 5) clearInterval(poll);
-      }, 2000);
-
       toast.success("Paiement réussi !", {
-        description: `Vos crédits IA (pack ${packSlug || ""}) sont en cours de chargement...`,
+        description: "Vérification du paiement et crédit du portefeuille...",
       });
+
+      // Réconciliation côté client (fallback si webhook Stripe non livré)
+      (async () => {
+        try {
+          if (session?.access_token && packSlug) {
+            const { data, error } = await supabase.functions.invoke(
+              "reconcile-credits-checkout",
+              {
+                body: { pack_slug: packSlug },
+                headers: { Authorization: `Bearer ${session.access_token}` },
+              },
+            );
+            if (error) throw error;
+            if (data?.credited > 0) {
+              toast.success(`+${data.credited} crédits ajoutés à votre portefeuille !`);
+            }
+          }
+        } catch (e) {
+          console.error("Reconciliation failed", e);
+        } finally {
+          // Polling des données utilisateur
+          let attempts = 0;
+          const poll = setInterval(async () => {
+            attempts++;
+            await queryClient.invalidateQueries({ queryKey: ["ai-balance"] });
+            await queryClient.invalidateQueries({ queryKey: ["ai-ledger"] });
+            await queryClient.invalidateQueries({ queryKey: ["credit-orders"] });
+            if (attempts >= 5) clearInterval(poll);
+          }, 2000);
+        }
+      })();
 
       setSearchParams({}, { replace: true });
     } else if (creditsStatus === "cancel") {
