@@ -13,8 +13,10 @@ import { toast } from "sonner";
 import {
   Coins, TrendingUp, TrendingDown, Users, Activity,
   AlertTriangle, DollarSign, Settings2, BarChart3,
-  Search, ShoppingCart, Calendar,
+  Search, ShoppingCart, Calendar, Plus, Minus, Gift,
 } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
