@@ -67,7 +67,7 @@ export default function Shop() {
       toast.info("Achat annulé");
       setSearchParams({}, { replace: true });
     }
-  }, [searchParams, setSearchParams, queryClient]);
+  }, [searchParams, setSearchParams, queryClient, session]);
 
   const handlePortal = async () => {
     if (!session?.access_token) {
