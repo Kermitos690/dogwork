@@ -254,6 +254,11 @@ function FeaturesTab() {
 
 function UsersTab() {
   const [search, setSearch] = useState("");
+  const [adjustOpen, setAdjustOpen] = useState(false);
+  const [targetUser, setTargetUser] = useState<{ id: string; name: string; balance: number } | null>(null);
+  const [creditAmount, setCreditAmount] = useState<string>("10");
+  const [reason, setReason] = useState<string>("Crédits offerts");
+
   const { data: wallets, isLoading } = useQuery({
     queryKey: ["admin-ai-wallets"],
     queryFn: async () => {
@@ -274,13 +279,45 @@ function UsersTab() {
   });
   const profileMap = new Map((profiles || []).map(p => [p.user_id, p.display_name]));
   const queryClient = useQueryClient();
+
   const adjustCredits = useMutation({
     mutationFn: async ({ userId, credits, description }: { userId: string; credits: number; description: string }) => {
-      const { error } = await supabase.rpc("credit_ai_wallet", { _user_id: userId, _credits: credits, _operation_type: "admin_adjustment", _description: description } as any);
+      const { data, error } = await supabase.rpc("credit_ai_wallet", {
+        _user_id: userId,
+        _credits: credits,
+        _operation_type: "admin_adjustment",
+        _description: description,
+      } as any);
       if (error) throw error;
+      return data;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-ai-wallets"] }); toast.success("Crédits ajustés"); },
+    onSuccess: (newBalance) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-ai-wallets"] });
+      queryClient.invalidateQueries({ queryKey: ["ai-balance"] });
+      toast.success(`Crédits ajustés ✅ Nouveau solde : ${newBalance}`);
+      setAdjustOpen(false);
+      setCreditAmount("10");
+      setReason("Crédits offerts");
+    },
+    onError: (err: any) => {
+      toast.error(`Échec : ${err?.message || "Erreur inconnue"}`);
+    },
   });
+
+  const openAdjust = (w: any) => {
+    setTargetUser({ id: w.user_id, name: profileMap.get(w.user_id) || "Utilisateur", balance: w.balance });
+    setAdjustOpen(true);
+  };
+
+  const submitAdjust = () => {
+    if (!targetUser) return;
+    const n = parseInt(creditAmount, 10);
+    if (!Number.isFinite(n) || n === 0) {
+      toast.error("Montant invalide");
+      return;
+    }
+    adjustCredits.mutate({ userId: targetUser.id, credits: n, description: reason || "Ajustement admin" });
+  };
 
   if (isLoading) return <Skeleton className="h-60" />;
 
@@ -293,24 +330,73 @@ function UsersTab() {
       <div className="space-y-2">
         {wallets?.filter(w => !search || (profileMap.get(w.user_id) || "").toLowerCase().includes(search.toLowerCase())).map(w => (
           <Card key={w.id}>
-            <CardContent className="p-4 flex items-center justify-between">
-              <div>
-                <p className="font-medium">{profileMap.get(w.user_id) || "Utilisateur"}</p>
-                <div className="flex gap-4 text-xs text-muted-foreground mt-1">
-                  <span>Solde: <strong>{w.balance}</strong></span>
-                  <span>Consommé: {w.lifetime_consumed}</span>
-                  <span>Acheté: {w.lifetime_purchased}</span>
+            <CardContent className="p-4 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-medium truncate">{profileMap.get(w.user_id) || "Utilisateur"}</p>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mt-1">
+                  <span>Solde : <strong className="text-foreground">{w.balance}</strong></span>
+                  <span>Consommé : {w.lifetime_consumed}</span>
+                  <span>Acheté : {w.lifetime_purchased}</span>
                 </div>
               </div>
-              <Button variant="outline" size="sm" onClick={() => {
-                const credits = prompt("Crédits à ajouter (négatif pour retirer):"); if (!credits) return;
-                const desc = prompt("Raison:") || "Ajustement admin";
-                adjustCredits.mutate({ userId: w.user_id, credits: parseInt(credits), description: desc });
-              }}>Ajuster</Button>
+              <Button variant="outline" size="sm" className="gap-1 shrink-0" onClick={() => openAdjust(w)}>
+                <Gift className="h-4 w-4" /> Ajuster
+              </Button>
             </CardContent>
           </Card>
         ))}
       </div>
+
+      <Dialog open={adjustOpen} onOpenChange={setAdjustOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Ajuster les crédits IA</DialogTitle>
+            <DialogDescription>
+              {targetUser ? <>Utilisateur&nbsp;: <strong>{targetUser.name}</strong> — solde actuel <strong>{targetUser.balance}</strong></> : null}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Crédits (positif = ajouter, négatif = retirer)</Label>
+              <div className="flex gap-2 mt-1">
+                <Button type="button" variant="outline" size="icon" onClick={() => setCreditAmount(String((parseInt(creditAmount || "0", 10) || 0) - 10))}>
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <Input type="number" inputMode="numeric" value={creditAmount} onChange={e => setCreditAmount(e.target.value)} className="text-center" />
+                <Button type="button" variant="outline" size="icon" onClick={() => setCreditAmount(String((parseInt(creditAmount || "0", 10) || 0) + 10))}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="flex gap-1 mt-2 flex-wrap">
+                {[10, 25, 50, 100, 250].map(n => (
+                  <Button key={n} type="button" variant="secondary" size="sm" className="h-7 px-2 text-xs" onClick={() => setCreditAmount(String(n))}>
+                    +{n}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs">Raison</Label>
+              <Textarea value={reason} onChange={e => setReason(e.target.value)} rows={2} className="mt-1 text-sm" />
+            </div>
+
+            {targetUser && Number.isFinite(parseInt(creditAmount, 10)) && (
+              <div className="rounded-md bg-muted p-2 text-xs text-muted-foreground">
+                Nouveau solde estimé&nbsp;: <strong className="text-foreground">{targetUser.balance + (parseInt(creditAmount, 10) || 0)}</strong>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAdjustOpen(false)}>Annuler</Button>
+            <Button onClick={submitAdjust} disabled={adjustCredits.isPending}>
+              {adjustCredits.isPending ? "Application…" : "Appliquer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
