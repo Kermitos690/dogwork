@@ -318,11 +318,11 @@ function UsersTab() {
       toast.error("Montant invalide");
       return;
     }
-    const confirmed = window.confirm(
-      isPreviewEnv
-        ? "Vous êtes sur l’environnement TEST. Cet ajustement n’ajoutera pas de crédits en production. Continuer ?"
-        : "Vous êtes sur l’environnement PRODUCTION. Cet ajustement modifiera le solde réel de cet utilisateur. Continuer ?",
-    );
+    if (isPreviewEnv) {
+      toast.error("Ajout manuel désactivé en Test. Ouvrez l’application publiée pour modifier le solde réel.");
+      return;
+    }
+    const confirmed = window.confirm("Vous êtes sur l’environnement PRODUCTION. Cet ajustement modifiera le solde réel de cet utilisateur. Continuer ?");
     if (!confirmed) return;
     adjustCredits.mutate({ userId: targetUser.id, credits: n, description: reason || "Ajustement admin" });
   };
@@ -355,7 +355,7 @@ function UsersTab() {
                   <span>Acheté : {w.lifetime_purchased}</span>
                 </div>
               </div>
-              <Button variant="outline" size="sm" className="gap-1 shrink-0" onClick={() => openAdjust(w)}>
+              <Button variant="outline" size="sm" className="gap-1 shrink-0" onClick={() => openAdjust(w)} disabled={isPreviewEnv}>
                 <Gift className="h-4 w-4" /> Ajuster
               </Button>
             </CardContent>
@@ -407,7 +407,7 @@ function UsersTab() {
 
           <DialogFooter>
             <Button variant="ghost" onClick={() => setAdjustOpen(false)}>Annuler</Button>
-            <Button onClick={submitAdjust} disabled={adjustCredits.isPending}>
+            <Button onClick={submitAdjust} disabled={adjustCredits.isPending || isPreviewEnv}>
               {adjustCredits.isPending ? "Application…" : "Appliquer"}
             </Button>
           </DialogFooter>
