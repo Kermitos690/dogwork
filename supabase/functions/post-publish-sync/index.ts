@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import bundledCatalog from "../_shared/exercise-catalog.json" with { type: "json" };
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,6 +25,11 @@ const asTextArray = (v: unknown): string[] | null => {
 };
 const asJsonArray = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
 const asJsonValue = (v: unknown, fb: unknown = null): unknown => v === undefined || v === null ? fb : v;
+
+const isValidCatalog = (catalog: unknown): catalog is { categories: unknown[]; exercises: unknown[] } => {
+  return Array.isArray((catalog as { categories?: unknown[] } | null)?.categories)
+    && Array.isArray((catalog as { exercises?: unknown[] } | null)?.exercises);
+};
 
 async function syncCatalogViaRPC(
   supabase: ReturnType<typeof createClient>,
@@ -152,29 +158,35 @@ Deno.serve(async (req) => {
 
     if (totalExercises < TARGET_EXERCISES) {
       console.log(`[post-publish-sync] Exercises incomplete: ${totalExercises}/${TARGET_EXERCISES}. Syncing...`);
-      // Try local storage first, then fallback to Test instance catalog
       const localCatalogUrl = `${SUPABASE_URL}/storage/v1/object/public/exercise-images/data/exercise-catalog.json`;
       const testCatalogUrl = `https://dcwbqsfeouvghcnvhrpj.supabase.co/storage/v1/object/public/exercise-images/data/exercise-catalog.json`;
-      
-      let catalogRes = await fetch(localCatalogUrl);
-      let catalogSource = "local";
-      if (!catalogRes.ok) {
-        console.log(`[post-publish-sync] Local catalog unavailable (${catalogRes.status}), trying test instance...`);
-        catalogRes = await fetch(testCatalogUrl);
-        catalogSource = "test-fallback";
-      }
-      
-      if (catalogRes.ok) {
-        const catalog = await catalogRes.json();
-        if (Array.isArray(catalog?.categories) && Array.isArray(catalog?.exercises)) {
-          console.log(`[post-publish-sync] Catalog loaded from ${catalogSource}: ${catalog.categories.length} cats, ${catalog.exercises.length} exercises. Calling RPC...`);
-          const result = await syncCatalogViaRPC(supabase, catalog);
-          steps.push({ step: "sync_exercises", source: catalogSource, previous_count: totalExercises, catalog_exercises: catalog.exercises.length, ...result });
-        } else {
-          steps.push({ step: "sync_exercises", error: "Invalid catalog format" });
+
+      let catalog: { categories: unknown[]; exercises: unknown[] } | null = isValidCatalog(bundledCatalog) ? bundledCatalog : null;
+      let catalogSource = "bundled";
+
+      if (!catalog) {
+        let catalogRes = await fetch(localCatalogUrl);
+        catalogSource = "local";
+        if (!catalogRes.ok) {
+          console.log(`[post-publish-sync] Local catalog unavailable (${catalogRes.status}), trying test instance...`);
+          catalogRes = await fetch(testCatalogUrl);
+          catalogSource = "test-fallback";
         }
+
+        if (catalogRes.ok) {
+          const remoteCatalog = await catalogRes.json();
+          if (isValidCatalog(remoteCatalog)) {
+            catalog = remoteCatalog;
+          }
+        }
+      }
+
+      if (catalog) {
+        console.log(`[post-publish-sync] Catalog loaded from ${catalogSource}: ${catalog.categories.length} cats, ${catalog.exercises.length} exercises. Calling RPC...`);
+        const result = await syncCatalogViaRPC(supabase, catalog);
+        steps.push({ step: "sync_exercises", source: catalogSource, previous_count: totalExercises, catalog_exercises: catalog.exercises.length, ...result });
       } else {
-        steps.push({ step: "sync_exercises", error: `Catalog fetch failed from both sources. Local: tried, Test: ${catalogRes.status}` });
+        steps.push({ step: "sync_exercises", error: "Catalog unavailable or invalid from bundled, local, and test sources" });
       }
     } else {
       steps.push({ step: "sync_exercises", skipped: true, reason: `${totalExercises} exercises already present (>= ${TARGET_EXERCISES})` });
