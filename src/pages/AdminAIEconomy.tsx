@@ -258,6 +258,8 @@ function UsersTab() {
   const [targetUser, setTargetUser] = useState<{ id: string; name: string; balance: number } | null>(null);
   const [creditAmount, setCreditAmount] = useState<string>("10");
   const [reason, setReason] = useState<string>("Crédits offerts");
+  const isPreviewEnv = typeof window !== "undefined" && window.location.hostname.includes("preview");
+  const envLabel = isPreviewEnv ? "Test" : "Production";
 
   const { data: wallets, isLoading } = useQuery({
     queryKey: ["admin-ai-wallets"],
@@ -316,6 +318,12 @@ function UsersTab() {
       toast.error("Montant invalide");
       return;
     }
+    if (isPreviewEnv) {
+      toast.error("Ajout manuel désactivé en Test. Ouvrez l’application publiée pour modifier le solde réel.");
+      return;
+    }
+    const confirmed = window.confirm("Vous êtes sur l’environnement PRODUCTION. Cet ajustement modifiera le solde réel de cet utilisateur. Continuer ?");
+    if (!confirmed) return;
     adjustCredits.mutate({ userId: targetUser.id, credits: n, description: reason || "Ajustement admin" });
   };
 
@@ -323,6 +331,14 @@ function UsersTab() {
 
   return (
     <div className="space-y-4">
+      <div className={`rounded-lg border p-3 text-xs ${isPreviewEnv ? "border-destructive/30 bg-destructive/10 text-destructive" : "border-primary/30 bg-primary/10 text-foreground"}`}>
+        <strong>Environnement {envLabel}</strong>
+        <div className="mt-1 text-muted-foreground">
+          {isPreviewEnv
+            ? "Les crédits ajoutés ici restent en Test et ne sont jamais envoyés vers la production publiée."
+            : "Les crédits ajoutés ici modifient le solde réel utilisé par l’application publiée."}
+        </div>
+      </div>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input placeholder="Rechercher..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
@@ -339,7 +355,7 @@ function UsersTab() {
                   <span>Acheté : {w.lifetime_purchased}</span>
                 </div>
               </div>
-              <Button variant="outline" size="sm" className="gap-1 shrink-0" onClick={() => openAdjust(w)}>
+              <Button variant="outline" size="sm" className="gap-1 shrink-0" onClick={() => openAdjust(w)} disabled={isPreviewEnv}>
                 <Gift className="h-4 w-4" /> Ajuster
               </Button>
             </CardContent>
@@ -352,7 +368,7 @@ function UsersTab() {
           <DialogHeader>
             <DialogTitle>Ajuster les crédits IA</DialogTitle>
             <DialogDescription>
-              {targetUser ? <>Utilisateur&nbsp;: <strong>{targetUser.name}</strong> — solde actuel <strong>{targetUser.balance}</strong></> : null}
+              {targetUser ? <>Environnement&nbsp;: <strong>{envLabel}</strong> · Utilisateur&nbsp;: <strong>{targetUser.name}</strong> — solde actuel <strong>{targetUser.balance}</strong></> : null}
             </DialogDescription>
           </DialogHeader>
 
@@ -391,7 +407,7 @@ function UsersTab() {
 
           <DialogFooter>
             <Button variant="ghost" onClick={() => setAdjustOpen(false)}>Annuler</Button>
-            <Button onClick={submitAdjust} disabled={adjustCredits.isPending}>
+            <Button onClick={submitAdjust} disabled={adjustCredits.isPending || isPreviewEnv}>
               {adjustCredits.isPending ? "Application…" : "Appliquer"}
             </Button>
           </DialogFooter>
