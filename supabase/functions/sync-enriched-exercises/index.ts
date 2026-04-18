@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import bundledCatalog from "../_shared/exercise-catalog.json" with { type: "json" };
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -318,8 +319,11 @@ Deno.serve(async (req) => {
     const localCatalogUrl = `${SUPABASE_URL}/storage/v1/object/public/exercise-images/data/exercise-catalog.json`;
     const testCatalogUrl = `${TEST_SUPABASE_URL}/storage/v1/object/public/exercise-images/data/exercise-catalog.json`;
 
-    // Fetch catalog with explicit local -> test fallback
-    const { catalog, source, requestedUrl } = await fetchCatalogWithFallback(localCatalogUrl, testCatalogUrl);
+    // Prefer bundled catalog shipped with the deployed code, then fallback to storage/test
+    const bundled = isValidCatalog(bundledCatalog)
+      ? { catalog: bundledCatalog, source: "bundled" as const, requestedUrl: "bundled://exercise-catalog.json" }
+      : null;
+    const { catalog, source, requestedUrl } = bundled ?? await fetchCatalogWithFallback(localCatalogUrl, testCatalogUrl);
 
     console.log(`[sync-enriched] Catalog loaded from ${source}: ${catalog.categories.length} categories, ${catalog.exercises.length} exercises`);
 

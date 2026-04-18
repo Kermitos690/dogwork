@@ -405,7 +405,7 @@ export default function AdminDashboard() {
                 <CardTitle className="text-sm flex items-center gap-2"><Rocket className="h-4 w-4 text-primary" /> Sync production complète</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <p className="text-xs text-muted-foreground">Aligne pricing, quotas, credit packs et seed les exercices si la base est vide. À lancer après chaque publication.</p>
+                <p className="text-xs text-muted-foreground">Aligne l'environnement actuellement ouvert. Le vrai Live est mis à jour au moment du Publish via la synchronisation automatique backend.</p>
                 <Button
                   onClick={async () => {
                     setSyncing(true);
@@ -437,7 +437,7 @@ export default function AdminDashboard() {
                   }}
                   disabled={syncing} className="w-full gap-2" size="sm" variant="default"
                 >
-                  <Rocket className="h-4 w-4" /> {syncing ? "Sync en cours..." : "Lancer sync production"}
+                  <Rocket className="h-4 w-4" /> {syncing ? "Sync en cours..." : "Synchroniser l’environnement courant"}
                 </Button>
               </CardContent>
             </Card>
