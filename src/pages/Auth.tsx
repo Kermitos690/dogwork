@@ -20,7 +20,7 @@ type Mode = "login" | "employee" | "signup" | "forgot";
 const IS_DEV = import.meta.env.VITE_ENVIRONMENT === "development";
 const IS_PRODUCTION = !IS_DEV;
 
-const toEmployeePassword = (pin: string) => `DogWork!${pin}#Secure`;
+
 
 export default function Auth() {
   const [mode, setMode] = useState<Mode>("login");
@@ -62,10 +62,17 @@ export default function Auth() {
         if (!/^\d{6}$/.test(pin)) {
           throw new Error(t("auth.pinError"));
         }
-        const { error } = await signIn(normalizedEmail, toEmployeePassword(pin));
-        if (error) {
+        const { data, error } = await supabase.functions.invoke("employee-login", {
+          body: { email: normalizedEmail, pin },
+        });
+        if (error || data?.error) {
           throw new Error(t("auth.employeeError"));
         }
+        const { error: sessionErr } = await supabase.auth.setSession({
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+        });
+        if (sessionErr) throw new Error(t("auth.employeeError"));
         navigate("/");
       } else if (mode === "signup") {
         const { error } = await signUp(normalizedEmail, password, displayName);
