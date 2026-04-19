@@ -114,6 +114,19 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Cross-tenant guard: shelter users may only access their own animals
+    if (!isAdmin && animal.user_id !== userId) {
+      await admin.rpc("credit_ai_wallet", {
+        _user_id: userId,
+        _credits: creditsCost,
+        _operation_type: "refund",
+        _description: "Remboursement auto — accès refusé (animal d'un autre refuge)",
+      });
+      return new Response(JSON.stringify({ error: "Accès refusé" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Fetch evaluations
     const { data: evaluations } = await admin
       .from("shelter_animal_evaluations")
