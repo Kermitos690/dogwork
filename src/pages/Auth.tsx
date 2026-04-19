@@ -20,7 +20,7 @@ type Mode = "login" | "employee" | "signup" | "forgot";
 const IS_DEV = import.meta.env.VITE_ENVIRONMENT === "development";
 const IS_PRODUCTION = !IS_DEV;
 
-const toEmployeePassword = (pin: string) => `DogWork!${pin}#Secure`;
+
 
 export default function Auth() {
   const [mode, setMode] = useState<Mode>("login");
