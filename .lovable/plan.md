@@ -1,56 +1,42 @@
 
+The user wants Preview and Production to look/behave identically. Two screenshots show different layouts of the Admin page — tablet (prod) vs Lovable preview (mobile after publish). Root cause: **they are looking at two different physical viewports** (tablet ~1024px vs phone ~414px), so the responsive grid simply renders differently. That is normal CSS behavior, not a sync bug.
 
-## Diagnostic d'infrastructure — Résultat factuel
+But the deeper recurring complaint is: **"quand je publie depuis preview, la prod ne reflète pas mes changements"**. Two real causes here:
 
-### 1. Identification des environnements
+1. **Two separate Supabase instances** (Test `dcwbqsfeouvghcnvhrpj` vs Live `hdmmqwpypvhwohhhaqnf`). Lovable publishes the **frontend code** to Live, but data lives in two distinct DBs and never syncs. Manual credit adjustments done in `/admin/ai-economy` while on the **preview URL** write to the Test DB. The published app reads from Live DB → balance stays 0.
+2. **The frontend `src/integrations/supabase/client.ts` is auto-generated and points to a single instance per environment.** That part is correct and untouchable. So we cannot "merge" databases — that would be unsafe (would wipe real user data).
 
-| | **TEST (Preview/Dev)** | **LIVE (Production)** |
-|---|---|---|
-| **Project ref** | `dcwbqsfeouvghcnvhrpj` | `hdmmqwpypvhwohhhaqnf` |
-| **URL backend** | `https://dcwbqsfeouvghcnvhrpj.supabase.co` | `https://hdmmqwpypvhwohhhaqnf.supabase.co` |
-| **Tables métier** | 62 tables (confirmé par query) | 62 tables (confirmé par query) |
-| **Données crédits** | 5 wallets, ledger actif | Séparé |
-| **Domaine frontend** | `id-preview--8dfb0029-...lovable.app` | `dogwork-at-home.com` / `dogwork-at-home.lovable.app` |
+What the user actually needs:
+- A **single source of truth**: when working in Preview, all admin operations (manual credit, user creation, etc.) must target the **published Live DB** so the published app reflects them.
+- Stop the misleading "Preview shows different data" experience for admin tooling specifically.
 
-### 2. Le backend TEST est bien `dcwbqsfeouvghcnvhrpj` — avec toutes les tables
+### Solution
 
-J'ai vérifié directement via l'outil de requête Lovable Cloud (environnement `development`) : **62 tables métier existent** dans le schéma `public`, incluant `ai_credit_wallets`, `ai_credit_ledger`, `ai_credit_packs`, `exercises` (480), etc.
+Make admin economy/credit operations go through an **edge function that always writes to Live**, regardless of which environment the admin UI is hosted on. Edge functions can hold a Live service-role key as a secret (`LIVE_SERVICE_ROLE_KEY` + `LIVE_SUPABASE_URL`) and proxy the writes.
 
-**Si le dashboard Supabase que vous avez ouvert montre un schéma vide, c'est que vous regardez un autre projet Supabase**, pas celui lié à Lovable Cloud. L'accès au vrai backend se fait exclusivement via **Lovable Cloud > Cloud View** dans l'éditeur Lovable, pas via un dashboard Supabase externe.
+### Plan
 
-### 3. Le vrai problème : les crédits ne sont pas ajoutés après achat
+1. **Add two new secrets to the Test project**: `LIVE_SUPABASE_URL`, `LIVE_SERVICE_ROLE_KEY` (user provides the Live service-role key once).
+2. **Create edge function `admin-live-proxy`** (deployed in Test):
+   - Verifies caller is admin (via Test JWT → check `user_roles` → admin).
+   - Accepts actions: `credit_wallet`, `list_users`, `get_balance`, `create_user`.
+   - Internally uses a Supabase client built with `LIVE_SUPABASE_URL` + `LIVE_SERVICE_ROLE_KEY` and executes the RPC/insert against **Live**.
+3. **Refactor `src/pages/AdminAIEconomy.tsx`** to call this proxy when crediting wallets. Remove the "disabled in preview" lockout (no longer needed). Replace it with a clear toggle "Cible: Production (Live)" — always Live for credit operations.
+4. **Same proxy pattern for user search** so the admin sees the actual Live user list when searching to credit a wallet.
+5. **Remove obsolete `post-publish-sync` confusion**: keep the function but rename UI button to "Réinjecter le catalogue dans cet environnement" — clarify it's per-env, not cross-env.
+6. **Document in memory**: cross-env admin proxy pattern → `mem://tech/infrastructure/admin-cross-env-proxy`.
 
-Le code webhook (lignes 158-181 de `stripe-webhook/index.ts`) est **correct** — il appelle `credit_ai_wallet` RPC. Mais :
+### What stays untouched
+- `src/integrations/supabase/client.ts` (auto-generated).
+- Live database schema/data.
+- Stripe webhooks.
+- Auth flows.
 
-- **`billing_events` est vide** dans l'environnement TEST → aucun webhook Stripe n'a jamais atteint cette instance
-- **Aucun log Edge Function** pour `stripe-webhook` dans l'environnement TEST
-- **Aucune entrée `purchase`** dans `ai_credit_ledger`
+### Why not "merge databases"
+Merging would either delete real production user data or expose Live data to Preview testing — both unacceptable. The proxy approach gives the user exactly what they asked: "quand je travaille sur preview et publie, ça doit se publier réellement" → admin actions in Preview will hit Live directly.
 
-**Cause racine** : Le webhook Stripe est configuré pour pointer vers l'instance **LIVE** (`hdmmqwpypvhwohhhaqnf`), pas vers l'instance TEST. Les appels `checkout.session.completed` de Stripe arrivent donc sur LIVE, pas sur TEST. Le checkout fonctionne (Stripe reçoit le paiement), mais le callback webhook n'atteint jamais le backend TEST.
+### Required from user
+The **Live service-role key** (from Lovable Cloud → Live project → API keys). I'll request it via the secrets tool when I switch to default mode.
 
-### 4. Plan de correction
-
-**Étape 1** — Vérifier la configuration webhook Stripe
-- Le webhook Stripe doit pointer vers `https://dcwbqsfeouvghcnvhrpj.supabase.co/functions/v1/stripe-webhook` pour l'environnement TEST
-- Et vers `https://hdmmqwpypvhwohhhaqnf.supabase.co/functions/v1/stripe-webhook` pour LIVE
-
-**Étape 2** — Action immédiate dans Stripe Dashboard
-- Aller dans Stripe Dashboard > Developers > Webhooks
-- Vérifier l'endpoint URL configuré
-- Si un seul endpoint existe (pointant vers LIVE), ajouter un second endpoint pour TEST, ou utiliser le Stripe CLI pour le test local
-
-**Étape 3** — Vérifier que `STRIPE_WEBHOOK_SECRET` dans l'environnement TEST correspond au bon endpoint
-- Si le webhook secret correspond à l'endpoint LIVE, les signatures seront rejetées même si on redirige vers TEST
-
-**Étape 4** — Alternative sans modifier Stripe
-- Créditer manuellement via RPC pour débloquer les tests immédiats pendant que la configuration webhook est corrigée
-
-### 5. Comment accéder au vrai backend
-
-Le vrai backend contenant les 62 tables métier est accessible **uniquement** via :
-- **Lovable Cloud** dans l'éditeur (onglet Cloud > Database > Tables)
-- **Lovable Cloud > Run SQL** pour les requêtes directes
-- Les outils de requête que j'utilise ici (`supabase--read_query`)
-
-Le dashboard Supabase externe (`supabase.com/dashboard`) ne montre que les projets Supabase liés à **votre compte Supabase personnel**, pas le projet Lovable Cloud qui est géré automatiquement.
-
+### Visual difference (tablet vs phone)
+That part is purely responsive CSS — same code, different viewport. Nothing to fix; the published app is identical to preview when viewed at the same screen size.
