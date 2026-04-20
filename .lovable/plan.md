@@ -1,86 +1,117 @@
 
+Objectif: corriger à la fois le bug visible dans ton screen et les vrais défauts du module Plans pour que le comportement soit cohérent en preview et en production.
 
-# Pourquoi l'attribution gratuite ne débloque rien en production
+1. Clarifier la cause du “bug en screen”
+- Le screen montré n’indique pas un bug métier DogWork dans l’interface Plans, mais un échec interne du moteur de traitement du prompt.
+- Cause probable: le message est extrêmement long, répété plusieurs fois, mélange plusieurs demandes à la fois, et contient même des balises/instructions système copiées dans le prompt. Ce type de prompt surcharge facilement l’orchestrateur et peut produire “An internal error occurred”.
+- Le correctif produit n’est donc pas seulement “réparer le prompt”, mais rendre l’app plus robuste pour que les vraies règles Plans soient codées clairement et ne dépendent pas d’un prompt géant.
 
-## Le vrai problème (en clair)
+2. Corriger les causes réelles côté produit
+Problèmes identifiés:
+- Les templates ne sont pas synchronisés entre environnements: en preview il y a 65 templates, en production il y en a 0.
+- Le catalogue actuel ne respecte pas ta règle métier: 15 freemium et 50 pro au lieu de 5 freemium et 30 pro.
+- Le plan IA n’est pas “sur demande”:
+  - l’onboarding génère automatiquement un plan,
+  - `useHasFeature("ai_plan")` retourne toujours `true`,
+  - le message UI parle de débloquer avec Pro alors que tu veux réserver le plan IA personnalisé au niveau Expert.
+- Le générateur est figé à 28 jours: l’utilisateur ne choisit pas la durée.
+- La page Plans ne traite pas complètement les paliers `educator` / `shelter` comme accès complet.
+- L’attribution d’abonnement admin peut être correcte dans un environnement mais invisible dans l’autre, et le rafraîchissement n’est pas immédiat.
 
-L'attribution d'abonnement gratuit échoue en production à cause de **5 défauts cumulés** dans la chaîne de droits. C'est logique une fois identifié :
+3. Refonte ciblée du flux Plans
+A. Templates freemium / pro
+- Réduire le catalogue à:
+  - 5 templates freemium maximum
+  - 30 templates pro
+- Masquer/supprimer les autres templates existants pour éviter toute incohérence.
+- Afficher les bons compteurs et bons libellés dans l’UI.
 
-1. **Frontend ne reconnaît que 3 paliers** (`starter / pro / expert`). Quand tu attribues `educator` ou `shelter`, le mapping renvoie `starter` → tout reste verrouillé.
-2. **Mismatch du quota chiens** : le trigger DB autorise 3 chiens en Pro, mais le plan officiel Pro = 1 chien. Cohérence cassée.
-3. **Triggers backend bloquent les paliers `educator`/`shelter`** : la fonction `tier_meets_minimum` ne connaît que `starter / pro / expert`. Un utilisateur avec override `shelter` est traité comme `starter` → évaluation, problèmes, objectifs **rejetés**.
-4. **`useFeatureGate` ne bypass que pour les rôles admin/educator**, jamais pour les overrides commerciaux Shelter.
-5. **Cross-environnement** : tu attribues l'override depuis Preview (DB Test) mais l'utilisateur se connecte sur le site publié (DB Live). Les deux bases ne se parlent pas.
+B. Plan IA personnalisé
+- Ne plus générer automatiquement un plan pendant l’onboarding.
+- Conserver l’onboarding pour créer le chien, son évaluation, ses problèmes et objectifs.
+- Ajouter sur la page Plan un vrai bloc “Générer un plan IA personnalisé” déclenché uniquement par l’utilisateur.
+- Ajouter un choix de durée avant génération: nombre de jours défini par l’utilisateur.
+- Réserver ce générateur personnalisé au niveau Expert / accès complet.
 
-## Plan de réparation
+C. Logique du générateur
+- Faire évoluer `generatePersonalizedPlan()` pour accepter une durée variable au lieu de toujours produire 28 jours.
+- Conserver la règle clé: le plan doit être construit à partir des exercices déjà présents en base, en parcourant le catalogue disponible, puis en les sélectionnant selon:
+  - profil du chien
+  - problèmes
+  - objectifs
+  - sécurité
+  - âge / santé / réactivité
+  - historique comportemental pour Expert
+- Ne pas générer des exercices inventés: uniquement composer un plan intelligent avec les exercices existants.
 
-### 1. Aligner le palier `educator`/`shelter` dans tout le système
-
-**`supabase/migrations/<new>.sql`** — étendre le mapping de tiers :
-- `tier_meets_minimum` : ajouter `educator=4`, `shelter=5` (>= expert).
-- `enforce_dog_limit` : `educator`, `shelter`, `expert` → illimité ; `pro` → 1 (aligné avec PLANS) ; sinon 1.
-- Vérifier que les triggers `enforce_evaluation_tier`, `enforce_objectives_tier`, `enforce_problems_tier` traitent `educator`/`shelter` comme >= pro (résolu via le `tier_meets_minimum` étendu).
-
-### 2. Frontend — reconnaître les 5 paliers
-
-**`src/hooks/useSubscription.tsx`** :
-- Ajouter `educator` et `shelter` au type `TierKey`.
-- Ajouter leurs `product_id` dans la résolution `getTierByProductId` (réutiliser les constantes `EDUCATOR_PRODUCT_ID`, `SHELTER_PRODUCT_ID` de `plans.ts`).
-- Pour ces deux tiers, retourner les mêmes droits qu'`expert` (chiens illimités, toutes features).
-
-**`src/hooks/useFeatureGate.tsx`** :
-- Bypass total si `tier === "educator" || tier === "shelter" || tier === "expert"` pour toutes les features booléennes.
-- `useDogsLimit` : illimité pour ces 3 paliers.
-
-**`src/lib/plans.ts`** :
-- Exposer une fonction `tierGrantsFullAccess(tier)` partagée pour éviter les divergences futures.
-
-### 3. Forcer le rafraîchissement immédiat après attribution
-
-**`src/pages/AdminSubscriptions.tsx`** :
-- Après `handleGrant`, invalider `["subscription"]`, `["privileged-role"]`, `["is_admin"]` (au cas où l'admin se l'attribue à lui-même).
-- Afficher un message clair : *"Demande à l'utilisateur de se déconnecter/reconnecter pour appliquer immédiatement, sinon prise en compte sous 5 minutes."*
-
-### 4. Solution au problème cross-environnement (la cause #1 visible)
-
-Aujourd'hui, attribuer en Preview = écrire sur la DB Test, alors que ton vrai utilisateur en production est sur la DB Live → l'override n'existe pas pour lui.
-
-Deux solutions, à choisir :
-
-- **A. (Recommandé)** Forcer l'attribution à passer par une edge function `admin-grant-subscription` qui détecte l'environnement courant. En Preview, utiliser le proxy `admin-live-proxy` (déjà existant mais dormant) avec `LIVE_SERVICE_ROLE_KEY` pour écrire **dans la DB Live** quoi qu'il arrive. Comme ça, peu importe d'où l'admin attribue, c'est toujours la prod qui est mise à jour.
-- **B.** Bandeau d'avertissement permanent sur `/admin/subscriptions` indiquant l'environnement actif (comme déjà fait sur `/admin/ai-economy`), forçant l'admin à faire l'opération depuis l'app publiée.
-
-→ Je propose **A** car tu travailles depuis Preview et tu veux que ça affecte la prod.
-
-### 5. Vérifications post-déploiement
-
-- Migration appliquée → `tier_meets_minimum('shelter','pro')` doit renvoyer `true`.
-- Test : attribuer `expert` à un compte test → reload → page Évaluation accessible, "Programmes Pro" déverrouillés, badge "Plan actuel : Expert" sur `/subscription`.
-
-## Détails techniques
-
-```
-Flux après fix :
-[Admin clique "Attribuer Expert"]
-        ↓
-[Edge function admin-grant-subscription]
-        ↓ (LIVE_SERVICE_ROLE_KEY si Preview)
-[admin_subscriptions Live DB : INSERT tier=expert]
-        ↓
-[User refresh / 5min poll]
-        ↓
-[check-subscription voit override → product_id=expert]
-        ↓
-[useSubscription tier=expert → useFeatureGate.allowed=true]
-        ↓
-[Triggers DB : tier_meets_minimum(expert, pro)=true → INSERT autorisés]
-```
-
-Fichiers modifiés :
+4. Fichiers à modifier
+- `src/pages/Plan.tsx`
+  - corriger les checks de tiers
+  - séparer clairement templates vs IA personnalisée
+  - ajouter le sélecteur de durée
+  - corriger les textes “Pro” / “Expert”
+  - traiter `educator` et `shelter` comme full access
+  - corriger le compteur affiché “50 programmes” vers “30”
+- `src/pages/Onboarding.tsx`
+  - supprimer la génération automatique du plan
+  - rediriger vers la page Plan après création du profil
+  - garder la donnée chien prête pour une génération sur demande
+- `src/lib/planGenerator.ts`
+  - supporter une durée paramétrable
+  - appliquer la sélection uniquement depuis les exercices en base
+  - étendre les améliorations Expert aux accès complets si nécessaire
 - `src/hooks/useSubscription.tsx`
+  - fiabiliser le rafraîchissement après attribution d’abonnement
+  - garder une résolution cohérente des tiers spéciaux
 - `src/hooks/useFeatureGate.tsx`
-- `src/lib/plans.ts` (ajout helper)
-- `src/pages/AdminSubscriptions.tsx` (invalidation + bandeau env)
-- `supabase/functions/admin-grant-subscription/index.ts` (nouveau, route via Live)
-- `supabase/migrations/<timestamp>_align_tier_enforcement.sql` (étendre `tier_meets_minimum` + `enforce_dog_limit`)
+  - aligner la logique commerciale avec les vraies règles Plans
+- `src/lib/plans.ts`
+  - aligner les messages marketing et limites visibles avec la nouvelle offre
+- `src/pages/AdminSubscriptions.tsx`
+  - déclencher un refresh immédiat plus fiable après attribution/révocation
 
+5. Données backend à corriger
+- Mettre à jour les données `training_plans` de templates pour respecter exactement 5 free / 30 pro.
+- Répliquer ces données dans l’environnement live, car actuellement la prod n’a aucun template.
+- Vérifier les overrides `admin_subscriptions` dans l’environnement réellement utilisé.
+- Si nécessaire, ajouter un petit mécanisme de synchronisation de templates depuis une source unique pour éviter que la prod retombe à 0 template après une nouvelle itération.
+
+6. Mémoire projet à enregistrer
+Une fois approuvé et implémenté, enregistrer comme règle projet:
+- maximum 5 plans freemium
+- 30 plans pro
+- plan IA personnalisé uniquement sur demande explicite de l’utilisateur
+- plan personnalisé construit uniquement à partir des exercices existants en base
+- la durée du plan IA doit être choisie par l’utilisateur
+- le plan Expert doit produire un plan réellement adapté au chien sélectionné
+
+7. Validation finale
+- Vérifier en preview et en production que:
+  - les 5 templates freemium s’affichent
+  - les 30 templates pro s’affichent
+  - un compte Starter voit seulement les templates free
+  - un compte Pro voit les templates pro
+  - un compte Expert peut lancer la génération IA personnalisée
+  - un compte `educator` / `shelter` bénéficie bien de l’accès complet
+  - après attribution admin, le changement est visible immédiatement sans attendre 5 minutes
+  - l’onboarding ne génère plus de plan automatiquement
+  - le plan généré respecte la durée choisie et n’utilise que les exercices existants
+
+Détails techniques
+- Constats mesurés:
+  - preview/test: 65 templates (`15 free`, `50 pro`)
+  - production/live: `0 template`
+  - cela explique directement “les plans freemium ne sont pas intégrés” selon l’environnement
+- Bug logique actuel:
+  - `useHasFeature("ai_plan")` retourne toujours `true`
+  - le générateur retourne toujours `totalDays: 28`
+  - `Plan.tsx` considère `isPro = tier === "pro" || tier === "expert"` et oublie `educator` / `shelter`
+- Risque métier actuel:
+  - les règles visibles dans l’UI, les données en base et la logique d’accès ne racontent pas la même chose
+
+Résultat attendu après implémentation
+- un système simple et cohérent:
+  - Starter: 5 programmes de base
+  - Pro: 30 programmes supplémentaires
+  - Expert: génération IA personnalisée sur demande, basée sur le profil réel du chien et les exercices déjà intégrés
+  - plus aucun décalage entre attribution d’abonnement, contenu visible et environnement utilisé
