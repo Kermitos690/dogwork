@@ -87,7 +87,9 @@ export async function callAI(options: AICompletionOptions): Promise<Response> {
   });
 }
 
-// ─── Image Generation (Native Gemini API) ──────────────────
+// ─── Image Generation (Lovable AI Gateway) ─────────────────
+
+const LOVABLE_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 export interface AIImageOptions {
   model: string;
@@ -102,10 +104,50 @@ export interface AIImageResult {
 }
 
 /**
- * Generate an image using Gemini's native image generation.
+ * Generate an image using the Lovable AI Gateway.
+ * Falls back to direct Gemini API if LOVABLE_API_KEY is unavailable.
  * Returns a data URI (base64) compatible with existing upload logic.
  */
 export async function generateImage(options: AIImageOptions): Promise<AIImageResult> {
+  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+
+  if (lovableKey) {
+    return generateImageViaGateway(lovableKey, options);
+  }
+
+  // Fallback: direct Gemini
+  return generateImageViaNative(options);
+}
+
+async function generateImageViaGateway(apiKey: string, options: AIImageOptions): Promise<AIImageResult> {
+  const res = await fetch(LOVABLE_GATEWAY, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: options.model || "google/gemini-3.1-flash-image-preview",
+      messages: [{ role: "user", content: options.prompt }],
+      modalities: ["image", "text"],
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    return { imageData: null, error: `Gateway ${res.status}: ${errText}`, status: res.status };
+  }
+
+  const data = await res.json();
+  const images = data.choices?.[0]?.message?.images;
+  if (!images || images.length === 0) {
+    return { imageData: null, error: "No image in gateway response" };
+  }
+
+  return { imageData: images[0].image_url.url };
+}
+
+async function generateImageViaNative(options: AIImageOptions): Promise<AIImageResult> {
   const apiKey = getApiKey();
   const model = mapModel(options.model);
 
