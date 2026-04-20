@@ -3001,6 +3001,36 @@ export type Database = {
         }
         Relationships: []
       }
+      educator_commercial_rules_public: {
+        Row: {
+          annual_fee_chf: number | null
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          management_fee_percent: number | null
+          refuge_referral_discount_percent: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          annual_fee_chf?: number | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          management_fee_percent?: number | null
+          refuge_referral_discount_percent?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          annual_fee_chf?: number | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          management_fee_percent?: number | null
+          refuge_referral_discount_percent?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       shelter_animals_safe: {
         Row: {
           adopter_email: string | null
