@@ -379,7 +379,7 @@ function UsersTab() {
       <Dialog open={adjustOpen} onOpenChange={setAdjustOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Ajuster les crédits IA (Production)</DialogTitle>
+            <DialogTitle>Ajuster les crédits IA ({ENV_LABEL})</DialogTitle>
             <DialogDescription>
               {targetUser ? <>Utilisateur&nbsp;: <strong>{targetUser.name}</strong> — solde actuel <strong>{targetUser.balance}</strong></> : null}
             </DialogDescription>
