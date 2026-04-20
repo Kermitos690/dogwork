@@ -81,17 +81,17 @@ export default function AdminSubscriptions() {
         .eq("is_active", true);
       if (revokeError) throw revokeError;
 
-      const { error } = await supabase.from("admin_subscriptions").insert({
+      const { error } = await supabase.from("admin_subscriptions").upsert({
         user_id: selectedUserId,
         tier: selectedTier,
         granted_by: user.id,
         is_active: true,
         notes,
-      });
+      }, { onConflict: "user_id,tier" });
       if (error) throw error;
       toast({
         title: "Abonnement activé ✅",
-        description: `Tier ${selectedTier} attribué. Demande à l'utilisateur de se reconnecter pour application immédiate (sinon prise en compte sous 5 min).`,
+        description: `Tier ${selectedTier} attribué. Si l'utilisateur ne le voit pas immédiatement, il doit se reconnecter (sinon prise en compte sous 5 min).`,
       });
       setSelectedUserId("");
       setSelectedTier("");
