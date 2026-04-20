@@ -252,6 +252,10 @@ function FeaturesTab() {
 
 // =============== USERS TAB ===============
 
+// Detect environment based on URL host
+const IS_PUBLISHED = typeof window !== "undefined" && !window.location.hostname.includes("id-preview--");
+const ENV_LABEL = IS_PUBLISHED ? "Production" : "Preview / Test";
+
 function UsersTab() {
   const [search, setSearch] = useState("");
   const [adjustOpen, setAdjustOpen] = useState(false);
@@ -260,15 +264,31 @@ function UsersTab() {
   const [reason, setReason] = useState<string>("Crédits offerts");
   const queryClient = useQueryClient();
 
-  // Always query LIVE via the cross-env proxy — the only source of truth users actually see
+  // Query the CURRENT environment's database (same DB as chat/balance/debit)
+  // → In Preview = Test DB, in Published = Live DB. One coherent universe.
   const { data: liveUsers, isLoading, refetch } = useQuery({
-    queryKey: ["admin-live-users", search],
+    queryKey: ["admin-users-current-env", search],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("admin-live-proxy", {
-        body: { action: "list_users", search },
-      });
-      if (error) throw error;
-      return (data?.users ?? []) as Array<{
+      const { data: usersData, error: usersErr } = await supabase.rpc("admin_list_users");
+      if (usersErr) throw usersErr;
+      const filtered = (usersData ?? []).filter((u: any) => {
+        if (!search) return true;
+        const q = search.toLowerCase();
+        return (u.email ?? "").toLowerCase().includes(q) || (u.display_name ?? "").toLowerCase().includes(q);
+      }).slice(0, 50);
+
+      const ids = filtered.map((u: any) => u.user_id);
+      const { data: wallets } = await supabase
+        .from("ai_credit_wallets")
+        .select("user_id, balance, lifetime_consumed, lifetime_purchased")
+        .in("user_id", ids);
+      const wmap = new Map((wallets ?? []).map((w: any) => [w.user_id, w]));
+      return filtered.map((u: any) => ({
+        user_id: u.user_id,
+        email: u.email,
+        display_name: u.display_name,
+        wallet: wmap.get(u.user_id) ?? null,
+      })) as Array<{
         user_id: string;
         email: string;
         display_name: string;
