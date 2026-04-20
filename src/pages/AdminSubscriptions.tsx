@@ -74,23 +74,27 @@ export default function AdminSubscriptions() {
     if (!selectedUserId || !selectedTier || !user) return;
     setGranting(true);
     try {
-      const { error } = await supabase.from("admin_subscriptions").upsert(
-        {
-          user_id: selectedUserId,
-          tier: selectedTier,
-          granted_by: user.id,
-          is_active: true,
-          notes,
-        },
-        { onConflict: "user_id,tier" }
-      );
+      const { error: revokeError } = await supabase
+        .from("admin_subscriptions")
+        .update({ is_active: false })
+        .eq("user_id", selectedUserId)
+        .eq("is_active", true);
+      if (revokeError) throw revokeError;
+
+      const { error } = await supabase.from("admin_subscriptions").insert({
+        user_id: selectedUserId,
+        tier: selectedTier,
+        granted_by: user.id,
+        is_active: true,
+        notes,
+      });
       if (error) throw error;
       toast({ title: "Abonnement activé ✅", description: `Tier ${selectedTier} attribué gratuitement.` });
       setSelectedUserId("");
       setSelectedTier("");
       setNotes("");
       setSearchQuery("");
-      refetch();
+      await Promise.all([refetch(), queryClient.invalidateQueries({ queryKey: ["admin_subscriptions"] })]);
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
     }
@@ -105,7 +109,7 @@ export default function AdminSubscriptions() {
         .eq("id", id);
       if (error) throw error;
       toast({ title: "Abonnement révoqué ✅" });
-      refetch();
+      await Promise.all([refetch(), queryClient.invalidateQueries({ queryKey: ["admin_subscriptions"] })]);
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
     }
