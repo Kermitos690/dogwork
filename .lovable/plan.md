@@ -1,100 +1,86 @@
 
-Objectif: remettre DogWork sur le fonctionnement standard, fiable et compréhensible de Lovable Cloud.
 
-Constat actuel après relecture du code:
-- Les crédits IA côté admin sont revenus sur une logique cohérente par environnement dans `AdminAIEconomy`: Preview utilise Test, Published utilise Live.
-- Mais le projet reste brouillé par des restes de l’ancienne tentative “cross-env”:
-  - `admin-live-proxy` existe encore avec une config active,
-  - des messages admin parlent encore de “sync production” alors qu’un publish ne copie jamais les données,
-  - plusieurs consommateurs de `check-subscription` ne récupèrent pas correctement les erreurs d’authentification 401,
-  - ce 401 peut casser des guards / états globaux et donner l’impression que “plus rien ne marche”.
-- Donc le vrai problème n’est pas “Preview doit partager la même base que Published”, mais:
-  1. supprimer l’ambiguïté,
-  2. rétablir un seul comportement standard partout,
-  3. rendre l’auth et les crédits robustes.
+# Pourquoi l'attribution gratuite ne débloque rien en production
 
-Plan d’implémentation
+## Le vrai problème (en clair)
 
-1. Réimposer la règle unique Preview / Published
-- Remettre partout la règle officielle:
-  - Preview = environnement Test
-  - Published / domaine public = environnement Live
-- Ne plus laisser aucune logique runtime faire croire qu’une action Preview agit sur Live.
-- Conserver le principe normal de publish:
-  - le code frontend est publié en Live quand vous cliquez sur Publish,
-  - les fonctions backend / schéma se déploient sur Live au publish,
-  - les données ne se copient jamais entre Test et Live.
+L'attribution d'abonnement gratuit échoue en production à cause de **5 défauts cumulés** dans la chaîne de droits. C'est logique une fois identifié :
 
-2. Nettoyer l’héritage “cross-env”
-- Retirer du parcours produit toute dépendance réelle ou perçue à `admin-live-proxy`.
-- Soit le laisser totalement dormant et non utilisé, soit le retirer proprement de la doc/config si possible sans risque.
-- Supprimer les messages et labels qui entretiennent la confusion sur une “production sync” de données.
+1. **Frontend ne reconnaît que 3 paliers** (`starter / pro / expert`). Quand tu attribues `educator` ou `shelter`, le mapping renvoie `starter` → tout reste verrouillé.
+2. **Mismatch du quota chiens** : le trigger DB autorise 3 chiens en Pro, mais le plan officiel Pro = 1 chien. Cohérence cassée.
+3. **Triggers backend bloquent les paliers `educator`/`shelter`** : la fonction `tier_meets_minimum` ne connaît que `starter / pro / expert`. Un utilisateur avec override `shelter` est traité comme `starter` → évaluation, problèmes, objectifs **rejetés**.
+4. **`useFeatureGate` ne bypass que pour les rôles admin/educator**, jamais pour les overrides commerciaux Shelter.
+5. **Cross-environnement** : tu attribues l'override depuis Preview (DB Test) mais l'utilisateur se connecte sur le site publié (DB Live). Les deux bases ne se parlent pas.
 
-3. Corriger définitivement `check-subscription`
-- Durcir l’Edge Function `check-subscription` pour la validation de session.
-- Uniformiser tous les appels frontend à cette fonction:
-  - `useSubscription.tsx`
-  - `useEducatorSubscription.tsx`
-  - `ShelterGuard.tsx`
-  - `ShelterSubscription.tsx`
-- En cas de JWT expiré / session invalide:
-  - nettoyer la session locale proprement,
-  - retomber sur un état “non abonné” sans écran cassé,
-  - éviter les boucles de polling ou les guards incohérents.
+## Plan de réparation
 
-4. Stabiliser le flux crédits IA
-- Garder une seule vérité:
-  - solde affiché,
-  - confirmation de débit,
-  - consommation du chat,
-  - historique ledger,
-  - ajustement admin,
-  doivent toujours pointer sur la base de l’environnement courant.
-- Vérifier et harmoniser:
-  - `useAICredits.tsx`
-  - `useCreditConfirmation.tsx`
-  - `AICredits.tsx`
-  - `AIChatBot.tsx`
-- Invalidation de cache systématique après:
-  - ajustement admin,
-  - appel IA,
-  - achat / réconciliation.
+### 1. Aligner le palier `educator`/`shelter` dans tout le système
 
-5. Clarifier l’interface admin
-- Remplacer les textes ambigus par des messages simples:
-  - “Vous travaillez en Preview/Test”
-  - “Vous êtes sur l’application publiée / Live”
-- Corriger notamment `AdminDashboard.tsx` et `AdminAIEconomy.tsx` pour qu’aucun bouton ne suggère qu’un publish transfère les données.
-- Garder un bandeau environnement visible sur les écrans sensibles.
+**`supabase/migrations/<new>.sql`** — étendre le mapping de tiers :
+- `tier_meets_minimum` : ajouter `educator=4`, `shelter=5` (>= expert).
+- `enforce_dog_limit` : `educator`, `shelter`, `expert` → illimité ; `pro` → 1 (aligné avec PLANS) ; sinon 1.
+- Vérifier que les triggers `enforce_evaluation_tier`, `enforce_objectives_tier`, `enforce_problems_tier` traitent `educator`/`shelter` comme >= pro (résolu via le `tier_meets_minimum` étendu).
 
-6. Vérification complète avant retour
-- Tester le comportement attendu, pas seulement le code:
-  - Preview: connexion, crédits admin, badge de solde, chatbot IA, guards d’abonnement
-  - Published: mêmes parcours sur Live
-- Vérifier qu’un clic sur Publish publie bien le code en production, sans promettre un faux “sync de data”.
-- Vérifier l’absence de 401 bloquants dans les flux d’abonnement et l’absence d’écart entre solde affiché et solde débité.
+### 2. Frontend — reconnaître les 5 paliers
 
-Résultat attendu
-- Preview et Published refonctionnent exactement comme ils doivent fonctionner chez Lovable:
-  - même code après publication,
-  - bases séparées,
-  - plus aucun mélange Test/Live,
-  - crédits IA cohérents,
-  - plus de faux positifs ni d’interface trompeuse.
+**`src/hooks/useSubscription.tsx`** :
+- Ajouter `educator` et `shelter` au type `TierKey`.
+- Ajouter leurs `product_id` dans la résolution `getTierByProductId` (réutiliser les constantes `EDUCATOR_PRODUCT_ID`, `SHELTER_PRODUCT_ID` de `plans.ts`).
+- Pour ces deux tiers, retourner les mêmes droits qu'`expert` (chiens illimités, toutes features).
 
-Détails techniques
-- Fichiers les plus concernés:
-  - `src/hooks/useSubscription.tsx`
-  - `src/hooks/useEducatorSubscription.tsx`
-  - `src/components/ShelterGuard.tsx`
-  - `src/pages/ShelterSubscription.tsx`
-  - `src/hooks/useAICredits.tsx`
-  - `src/components/AIChatBot.tsx`
-  - `src/pages/AdminAIEconomy.tsx`
-  - `src/pages/AdminDashboard.tsx`
-  - `supabase/functions/check-subscription/index.ts`
-  - éventuellement `supabase/functions/admin-live-proxy/index.ts` et `supabase/config.toml`
-- Règle produit finale à figer:
-  - Publish publie le code et le backend,
-  - pas les données,
-  - crédits et abonnements lisent/écrivent toujours dans la base de l’environnement courant seulement.
+**`src/hooks/useFeatureGate.tsx`** :
+- Bypass total si `tier === "educator" || tier === "shelter" || tier === "expert"` pour toutes les features booléennes.
+- `useDogsLimit` : illimité pour ces 3 paliers.
+
+**`src/lib/plans.ts`** :
+- Exposer une fonction `tierGrantsFullAccess(tier)` partagée pour éviter les divergences futures.
+
+### 3. Forcer le rafraîchissement immédiat après attribution
+
+**`src/pages/AdminSubscriptions.tsx`** :
+- Après `handleGrant`, invalider `["subscription"]`, `["privileged-role"]`, `["is_admin"]` (au cas où l'admin se l'attribue à lui-même).
+- Afficher un message clair : *"Demande à l'utilisateur de se déconnecter/reconnecter pour appliquer immédiatement, sinon prise en compte sous 5 minutes."*
+
+### 4. Solution au problème cross-environnement (la cause #1 visible)
+
+Aujourd'hui, attribuer en Preview = écrire sur la DB Test, alors que ton vrai utilisateur en production est sur la DB Live → l'override n'existe pas pour lui.
+
+Deux solutions, à choisir :
+
+- **A. (Recommandé)** Forcer l'attribution à passer par une edge function `admin-grant-subscription` qui détecte l'environnement courant. En Preview, utiliser le proxy `admin-live-proxy` (déjà existant mais dormant) avec `LIVE_SERVICE_ROLE_KEY` pour écrire **dans la DB Live** quoi qu'il arrive. Comme ça, peu importe d'où l'admin attribue, c'est toujours la prod qui est mise à jour.
+- **B.** Bandeau d'avertissement permanent sur `/admin/subscriptions` indiquant l'environnement actif (comme déjà fait sur `/admin/ai-economy`), forçant l'admin à faire l'opération depuis l'app publiée.
+
+→ Je propose **A** car tu travailles depuis Preview et tu veux que ça affecte la prod.
+
+### 5. Vérifications post-déploiement
+
+- Migration appliquée → `tier_meets_minimum('shelter','pro')` doit renvoyer `true`.
+- Test : attribuer `expert` à un compte test → reload → page Évaluation accessible, "Programmes Pro" déverrouillés, badge "Plan actuel : Expert" sur `/subscription`.
+
+## Détails techniques
+
+```
+Flux après fix :
+[Admin clique "Attribuer Expert"]
+        ↓
+[Edge function admin-grant-subscription]
+        ↓ (LIVE_SERVICE_ROLE_KEY si Preview)
+[admin_subscriptions Live DB : INSERT tier=expert]
+        ↓
+[User refresh / 5min poll]
+        ↓
+[check-subscription voit override → product_id=expert]
+        ↓
+[useSubscription tier=expert → useFeatureGate.allowed=true]
+        ↓
+[Triggers DB : tier_meets_minimum(expert, pro)=true → INSERT autorisés]
+```
+
+Fichiers modifiés :
+- `src/hooks/useSubscription.tsx`
+- `src/hooks/useFeatureGate.tsx`
+- `src/lib/plans.ts` (ajout helper)
+- `src/pages/AdminSubscriptions.tsx` (invalidation + bandeau env)
+- `supabase/functions/admin-grant-subscription/index.ts` (nouveau, route via Live)
+- `supabase/migrations/<timestamp>_align_tier_enforcement.sql` (étendre `tier_meets_minimum` + `enforce_dog_limit`)
+
