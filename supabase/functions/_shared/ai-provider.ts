@@ -109,14 +109,20 @@ export interface AIImageResult {
  * Returns a data URI (base64) compatible with existing upload logic.
  */
 export async function generateImage(options: AIImageOptions): Promise<AIImageResult> {
-  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-
-  if (lovableKey) {
-    return generateImageViaGateway(lovableKey, options);
+  // Use direct Gemini API (5000 req/day quota on GOOGLE_AI_API_KEY).
+  // Lovable Gateway is only used as fallback if Gemini key is missing.
+  if (Deno.env.get("GOOGLE_AI_API_KEY")) {
+    const result = await generateImageViaNative(options);
+    if (result.imageData) return result;
+    // If native fails and gateway key exists, try gateway as last resort
+    const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+    if (lovableKey) return generateImageViaGateway(lovableKey, options);
+    return result;
   }
 
-  // Fallback: direct Gemini
-  return generateImageViaNative(options);
+  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+  if (lovableKey) return generateImageViaGateway(lovableKey, options);
+  return { imageData: null, error: "No AI provider key configured" };
 }
 
 async function generateImageViaGateway(apiKey: string, options: AIImageOptions): Promise<AIImageResult> {
