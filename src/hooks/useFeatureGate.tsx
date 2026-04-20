@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useDogs } from "@/hooks/useDogs";
-import { PLANS, type OwnerTier, type PlanFeatures } from "@/lib/plans";
+import { PLANS, tierGrantsFullAccess, type OwnerTier, type PlanFeatures } from "@/lib/plans";
 
 interface FeatureGateResult {
   allowed: boolean;
@@ -17,11 +17,18 @@ interface FeatureGateResult {
   limit?: number;
 }
 
+/** Resolve the effective plan to use for feature lookups. Educator/Shelter map onto Expert. */
+function effectivePlan(tier: string) {
+  if (tier === "educator" || tier === "shelter" || tier === "expert") return PLANS.expert;
+  if (tier === "pro") return PLANS.pro;
+  return PLANS.starter;
+}
+
 export function useFeatureGate(feature: keyof PlanFeatures): FeatureGateResult {
   const { user } = useAuth();
   const { tier } = useSubscription();
 
-  // Admin/educator bypass
+  // Admin/educator (role) bypass
   const { data: isPrivileged } = useQuery({
     queryKey: ["privileged-role", user?.id],
     queryFn: async () => {
@@ -37,7 +44,10 @@ export function useFeatureGate(feature: keyof PlanFeatures): FeatureGateResult {
 
   if (isPrivileged) return { allowed: true };
 
-  const plan = PLANS[tier];
+  // Commercial bypass: Expert / Educator / Shelter unlock everything
+  if (tierGrantsFullAccess(tier)) return { allowed: true };
+
+  const plan = effectivePlan(tier);
   const value = plan.features[feature];
 
   // AI features are gated by credits, not by plan tier
@@ -75,9 +85,12 @@ export function useDogsLimit(): FeatureGateResult & { dogsCount: number } {
   });
 
   const dogsCount = dogs?.length || 0;
-  const limit = PLANS[tier].features.dogs_limit;
 
-  if (isPrivileged) return { allowed: true, dogsCount };
+  if (isPrivileged || tierGrantsFullAccess(tier)) {
+    return { allowed: true, dogsCount, currentUsage: dogsCount, limit: Infinity };
+  }
+
+  const limit = effectivePlan(tier).features.dogs_limit;
 
   if (dogsCount >= limit) {
     const requiredTier = tier === "starter" ? "pro" : "expert";
@@ -111,9 +124,9 @@ export function useExerciseAccess(exerciseMinTier: string): FeatureGateResult {
     staleTime: 5 * 60_000,
   });
 
-  if (isPrivileged) return { allowed: true };
+  if (isPrivileged || tierGrantsFullAccess(tier)) return { allowed: true };
 
-  const allowedTiers = PLANS[tier].features.allowed_exercise_tiers;
+  const allowedTiers = effectivePlan(tier).features.allowed_exercise_tiers;
   if (allowedTiers.includes(exerciseMinTier as OwnerTier)) {
     return { allowed: true };
   }

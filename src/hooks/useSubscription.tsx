@@ -2,10 +2,16 @@ import { useState, useEffect, useCallback, createContext, useContext } from "rea
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
-import { PLANS, getTierByProductId, type OwnerTier } from "@/lib/plans";
+import {
+  PLANS,
+  EDUCATOR_PRODUCT_ID,
+  SHELTER_PRODUCT_ID,
+  type OwnerTier,
+} from "@/lib/plans";
 
-export { PLANS, getTierByProductId, type OwnerTier };
-export type TierKey = OwnerTier;
+export { PLANS, type OwnerTier };
+// Extended tier including B2B paliers (educator, shelter) which grant expert-level rights.
+export type TierKey = OwnerTier | "educator" | "shelter";
 
 // Re-export for backward compat
 export const TIERS = {
@@ -13,6 +19,17 @@ export const TIERS = {
   pro: { name: "Pro", price_id: PLANS.pro.price_id, product_id: PLANS.pro.product_id, price: 9.9, label: "9.90 CHF/mois" },
   expert: { name: "Expert", price_id: PLANS.expert.price_id, product_id: PLANS.expert.product_id, price: 19.9, label: "19.90 CHF/mois" },
 } as const;
+
+/** Resolve any active product (including Educator/Shelter overrides) to a TierKey. */
+export function getTierByProductId(productId: string | null): TierKey {
+  if (!productId) return "starter";
+  if (productId === EDUCATOR_PRODUCT_ID) return "educator";
+  if (productId === SHELTER_PRODUCT_ID) return "shelter";
+  for (const plan of Object.values(PLANS)) {
+    if (plan.product_id === productId) return plan.slug;
+  }
+  return "starter";
+}
 
 export function getTierByPriceId(priceId: string | null): TierKey {
   if (!priceId) return "starter";
