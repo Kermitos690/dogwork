@@ -321,8 +321,6 @@ export type Database = {
       }
       adoption_updates: {
         Row: {
-          adopter_email: string | null
-          adopter_name: string | null
           animal_id: string
           created_at: string | null
           id: string
@@ -331,8 +329,6 @@ export type Database = {
           shelter_user_id: string
         }
         Insert: {
-          adopter_email?: string | null
-          adopter_name?: string | null
           animal_id: string
           created_at?: string | null
           id?: string
@@ -341,8 +337,6 @@ export type Database = {
           shelter_user_id: string
         }
         Update: {
-          adopter_email?: string | null
-          adopter_name?: string | null
           animal_id?: string
           created_at?: string | null
           id?: string
