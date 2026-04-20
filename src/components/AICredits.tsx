@@ -21,6 +21,11 @@ import {
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
+function formatChfAmount(value: number | null | undefined) {
+  if (value == null || Number.isNaN(Number(value))) return null;
+  return `${Number(value).toFixed(2)} CHF`;
+}
+
 const operationIcons: Record<string, React.ReactNode> = {
   consumption: <ArrowDown className="h-4 w-4 text-destructive" />,
   purchase: <ArrowUp className="h-4 w-4 text-green-500" />,
@@ -88,12 +93,12 @@ export function CreditBalanceCard() {
 
 /* ───── Balance Badge (compact) ────────────────────────────── */
 export function CreditBalanceBadge() {
-  const { data: wallet } = useAIBalance();
+  const { data: wallet, isLoading } = useAIBalance();
 
   return (
     <Badge variant="outline" className="gap-1 font-medium">
       <Coins className="h-3 w-3" />
-      {wallet?.balance ?? 0}
+      {isLoading ? "…" : wallet?.balance ?? 0}
     </Badge>
   );
 }
@@ -260,13 +265,21 @@ export function CreditHistory() {
                 <p className="text-sm font-medium truncate">
                   {entry.description || operationLabels[entry.operation_type] || entry.operation_type}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  {format(new Date(entry.created_at), "d MMM yyyy HH:mm", { locale: fr })}
-                </p>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                  <span>{format(new Date(entry.created_at), "d MMM yyyy HH:mm", { locale: fr })}</span>
+                  {formatChfAmount(entry.public_price_chf) && (
+                    <span>· {formatChfAmount(entry.public_price_chf)}</span>
+                  )}
+                </div>
               </div>
-              <span className={`text-sm font-semibold ${entry.credits_delta > 0 ? "text-green-600" : "text-destructive"}`}>
-                {entry.credits_delta > 0 ? "+" : ""}{entry.credits_delta}
-              </span>
+              <div className="text-right shrink-0">
+                <span className={`block text-sm font-semibold ${entry.credits_delta > 0 ? "text-green-600" : "text-destructive"}`}>
+                  {entry.credits_delta > 0 ? "+" : ""}{entry.credits_delta}
+                </span>
+                {entry.operation_type === "consumption" && !formatChfAmount(entry.public_price_chf) && (
+                  <span className="text-[10px] text-muted-foreground">Montant en cours de synchro</span>
+                )}
+              </div>
             </div>
           ))}
           {entries && entries.length > 10 && !showAll && (
