@@ -254,7 +254,7 @@ function FeaturesTab() {
 
 // Detect environment based on URL host
 const IS_PUBLISHED = typeof window !== "undefined" && !window.location.hostname.includes("id-preview--");
-const ENV_LABEL = IS_PUBLISHED ? "Production" : "Preview / Test";
+const ENV_LABEL = IS_PUBLISHED ? "Live (publié)" : "Preview / Test";
 
 function UsersTab() {
   const [search, setSearch] = useState("");
@@ -345,8 +345,11 @@ function UsersTab() {
         <strong className="text-foreground">Environnement actif : {ENV_LABEL}</strong>
         <div className="mt-1 text-muted-foreground">
           {IS_PUBLISHED
-            ? "Vous êtes sur l'application publiée. Les ajustements modifient les vrais soldes des utilisateurs en production."
+            ? "Vous êtes sur l'application publiée. Les ajustements modifient les vrais soldes des utilisateurs (base Live)."
             : "Vous êtes en Preview. Les ajustements ne touchent que la base de Test. Pour modifier la production, ouvrez l'application publiée puis l'admin."}
+        </div>
+        <div className="mt-1 text-[11px] text-muted-foreground">
+          Règle : la liste, les soldes et les ajustements pointent toujours sur la base de l'environnement courant. Aucune donnée n'est copiée entre Test et Live.
         </div>
       </div>
       <div className="relative">

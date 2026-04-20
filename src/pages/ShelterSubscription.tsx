@@ -26,10 +26,18 @@ export default function ShelterSubscription() {
       const { data, error } = await supabase.functions.invoke("check-subscription", {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
+      const isAuthError =
+        (error && (error as any)?.context?.status === 401) ||
+        data?.error === "auth_error";
+      if (isAuthError) {
+        await supabase.auth.signOut().catch(() => {});
+        return null;
+      }
       if (error) throw error;
       return data;
     },
     enabled: !!user,
+    retry: false,
   });
 
   const isSubscribed = subscription?.subscribed && subscription?.product_id === SHELTER_PRODUCT_ID;

@@ -29,6 +29,14 @@ export function ShelterGuard({ children }: { children: React.ReactNode }) {
       const { data, error } = await supabase.functions.invoke("check-subscription", {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
+      // Auth error → purge stale session, treat as not subscribed
+      const isAuthError =
+        (error && (error as any)?.context?.status === 401) ||
+        data?.error === "auth_error";
+      if (isAuthError) {
+        await supabase.auth.signOut().catch(() => {});
+        return { subscribed: false };
+      }
       if (error) return { subscribed: false };
       return {
         subscribed: data?.subscribed === true && data?.product_id === SHELTER_PRODUCT_ID,
@@ -36,6 +44,7 @@ export function ShelterGuard({ children }: { children: React.ReactNode }) {
     },
     enabled: !!user && isShelter === true,
     staleTime: 5 * 60_000,
+    retry: false,
   });
 
   if (shelterLoading || adminLoading || (isShelter && subLoading)) {
