@@ -19,7 +19,7 @@ const TIER_MAP: Record<string, { product_id: string; price_id: string }> = {
   shelter: { product_id: "prod_UDKcjmnJnM7pBo", price_id: "price_1TEtxAPshPrEibTgsDFHr8Nw" },
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
