@@ -27,8 +27,8 @@ const MODEL_MAP: Record<string, string> = {
   "google/gemini-2.5-pro": "gemini-2.5-pro",
   "google/gemini-3-flash-preview": "gemini-2.5-flash",
   "google/gemini-3.1-pro-preview": "gemini-2.5-pro",
-  "google/gemini-3-pro-image-preview": "gemini-2.0-flash-preview-image-generation",
-  "google/gemini-3.1-flash-image-preview": "gemini-2.0-flash-preview-image-generation",
+  "google/gemini-3-pro-image-preview": "gemini-2.0-flash-exp-image-generation",
+  "google/gemini-3.1-flash-image-preview": "gemini-2.0-flash-exp-image-generation",
   // OpenAI equivalents → Gemini
   "openai/gpt-5": "gemini-2.5-pro",
   "openai/gpt-5-mini": "gemini-2.5-flash",
