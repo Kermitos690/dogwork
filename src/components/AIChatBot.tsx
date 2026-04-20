@@ -319,10 +319,13 @@ function AIChatBotInner() {
           }
           setDraftMessages([]);
           queryClient.invalidateQueries({ queryKey: ["ai-balance"] });
+          queryClient.invalidateQueries({ queryKey: ["ai-ledger"] });
         },
         onError: (msg, code, retryAfter) => {
           setLoading(false);
           setDraftMessages([]);
+          queryClient.invalidateQueries({ queryKey: ["ai-balance"] });
+          queryClient.invalidateQueries({ queryKey: ["ai-ledger"] });
           if (code === "COOLDOWN_ACTIVE") {
             const wait = retryAfter ?? COOLDOWN_SECONDS;
             startCooldownTimer(wait);
