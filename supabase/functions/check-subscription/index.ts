@@ -74,23 +74,23 @@ Deno.serve(async (req) => {
     // ── Check admin subscription overrides FIRST ──
     const { data: adminOverrides } = await supabaseClient
       .from("admin_subscriptions")
-      .select("tier")
+      .select("id, tier, created_at, updated_at")
       .eq("user_id", userId)
-      .eq("is_active", true);
+      .eq("is_active", true)
+      .order("updated_at", { ascending: false })
+      .order("created_at", { ascending: false });
 
     if (adminOverrides && adminOverrides.length > 0) {
-      // Pick the highest tier override
-      const tierPriority = ["shelter", "educator", "expert", "pro"];
-      let bestTier = adminOverrides[0].tier;
-      for (const ov of adminOverrides) {
-        if (tierPriority.indexOf(ov.tier) < tierPriority.indexOf(bestTier)) {
-          bestTier = ov.tier;
-        }
-      }
-
-      const mapped = TIER_MAP[bestTier];
+      // The admin UI is meant to have a single current override per user.
+      // If legacy duplicates exist, the most recently updated active record wins.
+      const currentOverride = adminOverrides[0];
+      const mapped = TIER_MAP[currentOverride.tier];
       if (mapped) {
-        logStep("Admin override active", { tier: bestTier, userId });
+        logStep("Admin override active", {
+          tier: currentOverride.tier,
+          userId,
+          duplicate_count: adminOverrides.length,
+        });
         return new Response(JSON.stringify({
           subscribed: true,
           product_id: mapped.product_id,
