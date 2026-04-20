@@ -252,6 +252,10 @@ function FeaturesTab() {
 
 // =============== USERS TAB ===============
 
+// Detect environment based on URL host
+const IS_PUBLISHED = typeof window !== "undefined" && !window.location.hostname.includes("id-preview--");
+const ENV_LABEL = IS_PUBLISHED ? "Production" : "Preview / Test";
+
 function UsersTab() {
   const [search, setSearch] = useState("");
   const [adjustOpen, setAdjustOpen] = useState(false);
@@ -260,15 +264,31 @@ function UsersTab() {
   const [reason, setReason] = useState<string>("Crédits offerts");
   const queryClient = useQueryClient();
 
-  // Always query LIVE via the cross-env proxy — the only source of truth users actually see
+  // Query the CURRENT environment's database (same DB as chat/balance/debit)
+  // → In Preview = Test DB, in Published = Live DB. One coherent universe.
   const { data: liveUsers, isLoading, refetch } = useQuery({
-    queryKey: ["admin-live-users", search],
+    queryKey: ["admin-users-current-env", search],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("admin-live-proxy", {
-        body: { action: "list_users", search },
-      });
-      if (error) throw error;
-      return (data?.users ?? []) as Array<{
+      const { data: usersData, error: usersErr } = await supabase.rpc("admin_list_users");
+      if (usersErr) throw usersErr;
+      const filtered = (usersData ?? []).filter((u: any) => {
+        if (!search) return true;
+        const q = search.toLowerCase();
+        return (u.email ?? "").toLowerCase().includes(q) || (u.display_name ?? "").toLowerCase().includes(q);
+      }).slice(0, 50);
+
+      const ids = filtered.map((u: any) => u.user_id);
+      const { data: wallets } = await supabase
+        .from("ai_credit_wallets")
+        .select("user_id, balance, lifetime_consumed, lifetime_purchased")
+        .in("user_id", ids);
+      const wmap = new Map((wallets ?? []).map((w: any) => [w.user_id, w]));
+      return filtered.map((u: any) => ({
+        user_id: u.user_id,
+        email: u.email,
+        display_name: u.display_name,
+        wallet: wmap.get(u.user_id) ?? null,
+      })) as Array<{
         user_id: string;
         email: string;
         display_name: string;
@@ -280,16 +300,20 @@ function UsersTab() {
 
   const adjustCredits = useMutation({
     mutationFn: async ({ userId, credits, description }: { userId: string; credits: number; description: string }) => {
-      const { data, error } = await supabase.functions.invoke("admin-live-proxy", {
-        body: { action: "credit_wallet", user_id: userId, credits, description },
+      const { data, error } = await supabase.rpc("credit_ai_wallet", {
+        _user_id: userId,
+        _credits: credits,
+        _operation_type: "admin_adjustment",
+        _description: description,
+        _metadata: { source: "admin-ui", env: ENV_LABEL },
       });
       if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      return data?.new_balance as number;
+      return data as number;
     },
     onSuccess: (newBalance) => {
-      queryClient.invalidateQueries({ queryKey: ["admin-live-users"] });
-      toast.success(`Crédits ajustés sur Production ✅ Nouveau solde : ${newBalance}`);
+      queryClient.invalidateQueries({ queryKey: ["admin-users-current-env"] });
+      queryClient.invalidateQueries({ queryKey: ["ai-balance"] });
+      toast.success(`Crédits ajustés (${ENV_LABEL}) ✅ Nouveau solde : ${newBalance}`);
       setAdjustOpen(false);
       setCreditAmount("10");
       setReason("Crédits offerts");
@@ -310,10 +334,6 @@ function UsersTab() {
       toast.error("Montant invalide");
       return;
     }
-    const confirmed = window.confirm(
-      `Cet ajustement modifie le solde réel de ${targetUser.name} sur PRODUCTION (visible immédiatement dans l'application publiée). Continuer ?`,
-    );
-    if (!confirmed) return;
     adjustCredits.mutate({ userId: targetUser.id, credits: n, description: reason || "Ajustement admin" });
   };
 
@@ -321,10 +341,12 @@ function UsersTab() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-primary/30 bg-primary/10 p-3 text-xs">
-        <strong className="text-foreground">Cible : Production (Live)</strong>
+      <div className={`rounded-lg border p-3 text-xs ${IS_PUBLISHED ? "border-green-500/40 bg-green-500/10" : "border-yellow-500/40 bg-yellow-500/10"}`}>
+        <strong className="text-foreground">Environnement actif : {ENV_LABEL}</strong>
         <div className="mt-1 text-muted-foreground">
-          Toute opération ci-dessous écrit directement dans la base de production utilisée par l'application publiée — quel que soit l'environnement où vous travaillez (Preview ou Live).
+          {IS_PUBLISHED
+            ? "Vous êtes sur l'application publiée. Les ajustements modifient les vrais soldes des utilisateurs en production."
+            : "Vous êtes en Preview. Les ajustements ne touchent que la base de Test. Pour modifier la production, ouvrez l'application publiée puis l'admin."}
         </div>
       </div>
       <div className="relative">
@@ -357,7 +379,7 @@ function UsersTab() {
       <Dialog open={adjustOpen} onOpenChange={setAdjustOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Ajuster les crédits IA (Production)</DialogTitle>
+            <DialogTitle>Ajuster les crédits IA ({ENV_LABEL})</DialogTitle>
             <DialogDescription>
               {targetUser ? <>Utilisateur&nbsp;: <strong>{targetUser.name}</strong> — solde actuel <strong>{targetUser.balance}</strong></> : null}
             </DialogDescription>
@@ -399,7 +421,7 @@ function UsersTab() {
           <DialogFooter>
             <Button variant="ghost" onClick={() => setAdjustOpen(false)}>Annuler</Button>
             <Button onClick={submitAdjust} disabled={adjustCredits.isPending}>
-              {adjustCredits.isPending ? "Application…" : "Appliquer sur Production"}
+              {adjustCredits.isPending ? "Application…" : `Appliquer (${ENV_LABEL})`}
             </Button>
           </DialogFooter>
         </DialogContent>
