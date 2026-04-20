@@ -10,11 +10,12 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Target, ClipboardCheck, AlertTriangle, BookOpen, Zap, Shield, ChevronRight, ChevronDown, Loader2, Info, Sparkles, Lock, Crown, Star } from "lucide-react";
-import { useHasFeature, useSubscription } from "@/hooks/useSubscription";
+import { useSubscription } from "@/hooks/useSubscription";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PROGRAM } from "@/data/program";
 import { generatePersonalizedPlan, setDbExercises, type PersonalizedPlan } from "@/lib/planGenerator";
+import { tierGrantsFullAccess } from "@/lib/plans";
 import { toast } from "@/hooks/use-toast";
 
 const statusColors: Record<string, string> = {
@@ -38,8 +39,10 @@ export default function PlanPage() {
   const [generating, setGenerating] = useState(false);
   const [showPrecautions, setShowPrecautions] = useState(false);
   const [showPrereqs, setShowPrereqs] = useState(false);
-  const hasAiPlan = useHasFeature("ai_plan");
+  const [durationDays, setDurationDays] = useState(28);
   const { tier } = useSubscription();
+  // Personalized AI plan is reserved for Expert / Educator / Shelter (full access tiers)
+  const hasAiPlan = tierGrantsFullAccess(tier);
   const adaptiveSuggestion = useAdaptiveSuggestion();
 
   const { data: savedPlan, refetch: refetchPlan } = useQuery({
@@ -156,9 +159,9 @@ export default function PlanPage() {
         setDbExercises(dbExercises);
       }
 
-      // For Expert tier, gather behavior data for adaptive generation
+      // For Expert / Educator / Shelter, gather behavior data for adaptive generation
       let behaviorData = undefined;
-      if (tier === "expert") {
+      if (tierGrantsFullAccess(tier)) {
         const { data: logs } = await supabase
           .from("behavior_logs")
           .select("*")
@@ -201,10 +204,10 @@ export default function PlanPage() {
         problems: problems.map(p => ({ problem_key: p.problem_key, intensity: p.intensity, frequency: p.frequency })),
         objectives: (objectives || []).map(o => ({ objective_key: o.objective_key, is_priority: o.is_priority || false })),
         evaluation: evaluation || null,
-      }, { tier, behaviorData });
+      }, { tier, behaviorData, totalDays: durationDays });
       await supabase.from("training_plans").update({ is_active: false }).eq("dog_id", activeDog.id).eq("user_id", user.id);
       await supabase.from("training_plans").insert({
-        dog_id: activeDog.id, user_id: user.id, plan_type: tier === "expert" ? "expert" : "personalized",
+        dog_id: activeDog.id, user_id: user.id, plan_type: tierGrantsFullAccess(tier) ? "expert" : "personalized",
         title: plan.dogName, summary: plan.summary,
         axes: plan.axes as any, precautions: plan.precautions as any,
         frequency: plan.frequency, average_duration: plan.averageDuration,
@@ -212,7 +215,7 @@ export default function PlanPage() {
         days: plan.days as any,
       });
       refetchPlan();
-      toast({ title: tier === "expert" ? "✨ Plan Expert généré" : "✓ Plan généré", description: `Plan pour ${activeDog.name} enregistré.` });
+      toast({ title: "✨ Plan IA généré", description: `Plan ${plan.totalDays} jours pour ${activeDog.name}.` });
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
     } finally {
