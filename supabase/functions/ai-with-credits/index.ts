@@ -411,6 +411,8 @@ Deno.serve(async (req) => {
     console.log(`[ai-with-credits] Roles: [${roleList.join(",")}], debit enabled for all accounts`);
 
     const creditsCost = feature.credits_cost;
+    const pricePerCreditChf = 0.05;
+    const publicPriceChf = Number((creditsCost * pricePerCreditChf).toFixed(4));
 
     // 4b. Cooldown: 30s between AI calls to prevent spam
     const COOLDOWN_SECONDS = 30;
@@ -446,7 +448,7 @@ Deno.serve(async (req) => {
       _feature_code: feature_code,
       _credits: creditsCost,
       _provider_cost_usd: feature.cost_estimate_avg_usd,
-      _metadata: { model: feature.model, roles: roleList },
+      _metadata: { model: feature.model, roles: roleList, public_price_chf: publicPriceChf },
     });
 
     if (debitErr) {
@@ -623,7 +625,7 @@ Deno.serve(async (req) => {
 
     const systemMessages = [{ role: "system", content: fullSystemPrompt }];
 
-    console.log(`[ai-with-credits] Calling Gemini: model=${feature.model}`);
+    console.log(`[ai-with-credits] Calling Gemini: model=${feature.model}, public_price_chf=${publicPriceChf}`);
 
     // Fallback chain: si le modèle principal est saturé (429/503), on essaie des modèles alternatifs.
     const modelChain: string[] = [feature.model];
