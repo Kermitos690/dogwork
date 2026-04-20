@@ -1,0 +1,1 @@
+UPDATE public.image_generation_queue SET status = 'pending', error_message = NULL, updated_at = now() WHERE status = 'failed';

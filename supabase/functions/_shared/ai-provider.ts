@@ -27,8 +27,9 @@ const MODEL_MAP: Record<string, string> = {
   "google/gemini-2.5-pro": "gemini-2.5-pro",
   "google/gemini-3-flash-preview": "gemini-2.5-flash",
   "google/gemini-3.1-pro-preview": "gemini-2.5-pro",
-  "google/gemini-3-pro-image-preview": "gemini-2.0-flash-exp-image-generation",
-  "google/gemini-3.1-flash-image-preview": "gemini-2.0-flash-exp-image-generation",
+  "google/gemini-3-pro-image-preview": "gemini-3-pro-image-preview",
+  "google/gemini-3.1-flash-image-preview": "gemini-3.1-flash-image-preview",
+  "google/gemini-2.5-flash-image": "gemini-2.5-flash-image",
   // OpenAI equivalents → Gemini
   "openai/gpt-5": "gemini-2.5-pro",
   "openai/gpt-5-mini": "gemini-2.5-flash",
@@ -109,13 +110,11 @@ export interface AIImageResult {
  * Returns a data URI (base64) compatible with existing upload logic.
  */
 export async function generateImage(options: AIImageOptions): Promise<AIImageResult> {
-  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-
-  if (lovableKey) {
-    return generateImageViaGateway(lovableKey, options);
+  // Use direct Gemini API (5000 req/day quota on GOOGLE_AI_API_KEY).
+  // No fallback to Gateway: it has been blocked by 402 and would just waste retries.
+  if (!Deno.env.get("GOOGLE_AI_API_KEY")) {
+    return { imageData: null, error: "GOOGLE_AI_API_KEY not configured" };
   }
-
-  // Fallback: direct Gemini
   return generateImageViaNative(options);
 }
 
