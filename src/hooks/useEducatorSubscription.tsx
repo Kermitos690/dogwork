@@ -40,6 +40,19 @@ export function EducatorSubscriptionProvider({ children }: { children: React.Rea
       const { data, error } = await supabase.functions.invoke("check-subscription", {
         headers: { Authorization: `Bearer ${token}` },
       });
+
+      // Stale/revoked session → purge local auth silently and stop polling
+      const isAuthError =
+        (error && (error as any)?.context?.status === 401) ||
+        data?.error === "auth_error";
+
+      if (isAuthError) {
+        setSubscribed(false);
+        setSubscriptionEnd(null);
+        await supabase.auth.signOut().catch(() => {});
+        return;
+      }
+
       if (error) throw error;
 
       if (data?.subscribed && data?.product_id === EDUCATOR_PRODUCT_ID) {
