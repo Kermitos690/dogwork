@@ -35,7 +35,6 @@ interface ShelterProfileRow {
 interface AdoptionUpdateRow {
   id: string;
   animal_id: string;
-  adopter_name: string | null;
   message: string | null;
   created_at: string;
 }
@@ -76,7 +75,7 @@ export default function ShelterDashboard() {
     queryFn: async () => {
       const { data } = await supabase
         .from("adoption_updates")
-        .select("id, animal_id, adopter_name, message, created_at")
+        .select("id, animal_id, message, created_at")
         .eq("shelter_user_id", user!.id)
         .order("created_at", { ascending: false })
         .limit(5);
@@ -220,7 +219,7 @@ export default function ShelterDashboard() {
                     <CardContent className="p-3">
                       <div className="flex items-center justify-between mb-1">
                         <p className="text-xs font-medium text-foreground">
-                          {animalData?.name || "Animal"} — {update.adopter_name || "Adoptant"}
+                          {animalData?.name || "Animal"} — Adoptant
                         </p>
                         <span className="text-[10px] text-muted-foreground">
                           {format(new Date(update.created_at), "dd/MM/yyyy", { locale: fr })}
