@@ -400,47 +400,29 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2"><Rocket className="h-4 w-4 text-primary" /> Sync production complète</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <p className="text-xs text-muted-foreground">Aligne l'environnement actuellement ouvert. Le vrai Live est mis à jour au moment du Publish via la synchronisation automatique backend.</p>
-                <Button
-                  onClick={async () => {
-                    setSyncing(true);
-                    try {
-                      const { data: { session } } = await supabase.auth.getSession();
-                      if (!session?.access_token) throw new Error("Session expirée");
-                      const { data, error } = await supabase.functions.invoke("post-publish-sync", {
-                        headers: { Authorization: `Bearer ${session.access_token}` },
-                      });
-                      if (error) throw error;
-                      if (data?.error) throw new Error(data.error);
-                      const v = data?.verification;
-                      const isReady = v?.production_ready === true;
-                      if (isReady) {
-                        toast({ title: "✅ Production prête", description: `${v.total_exercises} exercices, ${v.subscription_plans} plans, ${v.subscription_plan_prices} prix. Tout est aligné.` });
-                      } else {
-                        const issues: string[] = [];
-                        if (!v?.exercises_target_met) issues.push(`Exercices: ${v?.total_exercises ?? 0}/480`);
-                        if (!v?.plans_ok) issues.push(`Plans: ${v?.subscription_plans ?? 0}/5`);
-                        if (!v?.prices_ok) issues.push(`Prix: ${v?.subscription_plan_prices ?? 0}/5`);
-                        toast({ title: "⚠️ Production incomplète", description: issues.join(" · "), variant: "destructive" });
-                      }
-                      queryClient.invalidateQueries({ queryKey: ["exercises_library"] });
-                      queryClient.invalidateQueries({ queryKey: ["admin_stats"] });
-                    } catch (err: any) {
-                      toast({ title: "Erreur sync production", description: err.message, variant: "destructive" });
-                    }
-                    setSyncing(false);
-                  }}
-                  disabled={syncing} className="w-full gap-2" size="sm" variant="default"
-                >
-                  <Rocket className="h-4 w-4" /> {syncing ? "Sync en cours..." : "Synchroniser l’environnement courant"}
-                </Button>
-              </CardContent>
-            </Card>
+            {(() => {
+              const isPublished = typeof window !== "undefined" && !window.location.hostname.includes("id-preview--");
+              return (
+                <Card className={isPublished ? "border-green-500/40" : "border-yellow-500/40"}>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Rocket className="h-4 w-4 text-primary" />
+                      Environnement actif : {isPublished ? "Live (publié)" : "Preview / Test"}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      {isPublished
+                        ? "Vous êtes sur l'application publiée. Toutes les actions modifient la base Live (vrais utilisateurs, vrais paiements, vrais crédits)."
+                        : "Vous êtes en Preview. Toutes les actions ne touchent que la base de Test. Pour intervenir en production, ouvrez l'application publiée puis l'admin."}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Cliquer sur « Publier » déploie le code (frontend, fonctions backend, schéma de base) vers Live. Les données ne sont jamais copiées entre Test et Live.
+                    </p>
+                  </CardContent>
+                </Card>
+              );
+            })()}
 
             <Card>
               <CardHeader className="pb-2">

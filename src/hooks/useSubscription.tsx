@@ -63,6 +63,19 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         headers: { Authorization: `Bearer ${token}` },
       });
 
+      // Stale/revoked session → purge local auth silently and stop polling
+      const isAuthError =
+        (error && (error as any)?.context?.status === 401) ||
+        data?.error === "auth_error";
+
+      if (isAuthError) {
+        setSubscribed(false);
+        setTier("starter");
+        setSubscriptionEnd(null);
+        await supabase.auth.signOut().catch(() => {});
+        return;
+      }
+
       if (error) throw error;
 
       setSubscribed(data.subscribed ?? false);
