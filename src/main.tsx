@@ -23,7 +23,8 @@ function reloadOnceForStaleAssets(reason: unknown) {
 
 window.addEventListener("vite:preloadError", (event) => {
   event.preventDefault();
-  reloadOnceForStaleAssets((event as CustomEvent).payload);
+  const preloadEvent = event as Event & { payload?: unknown };
+  reloadOnceForStaleAssets(preloadEvent.payload);
 });
 
 // Global unhandled error & rejection handlers for production monitoring
