@@ -551,19 +551,21 @@ function generateContextualTips(profile: DogProfile, day: PlanDay): string[] {
 }
 
 // ===== DAY GENERATION with sliding cooldown =====
-function generateDays(axes: PlanAxis[], profile: DogProfile): PlanDay[] {
+function generateDays(axes: PlanAxis[], profile: DogProfile, totalDays = 28): PlanDay[] {
   const mods = getProfileModifiers(profile);
   const days: PlanDay[] = [];
-  const foundationWeeks = mods.isRecentAdoption ? 2 : 1;
+  const totalWeeks = Math.max(1, Math.ceil(totalDays / 7));
+  const foundationWeeks = mods.isRecentAdoption ? Math.min(2, totalWeeks) : Math.min(1, totalWeeks);
 
   // Sliding window cooldown: tracks slugs used in the last N days
   const COOLDOWN_WINDOW = 3;
   const recentSlugsByDay: string[][] = [];
 
-  for (let week = 1; week <= 4; week++) {
+  for (let week = 1; week <= totalWeeks; week++) {
     for (let dayInWeek = 1; dayInWeek <= 7; dayInWeek++) {
       const dayNumber = (week - 1) * 7 + dayInWeek;
-      const isReview = dayInWeek === 7;
+      if (dayNumber > totalDays) break;
+      const isReview = dayInWeek === 7 || dayNumber === totalDays;
 
       // Build cooldown set from recent days
       const previousDaySlugs = recentSlugsByDay.length > 0
@@ -663,13 +665,17 @@ export function getAdaptiveSuggestions(signals: AdaptiveSignals): {
 }
 
 // ===== MAIN GENERATOR =====
-export function generatePersonalizedPlan(profile: DogProfile, options?: { tier?: string; behaviorData?: AdaptiveSignals }): PersonalizedPlan {
+export function generatePersonalizedPlan(
+  profile: DogProfile,
+  options?: { tier?: string; behaviorData?: AdaptiveSignals; totalDays?: number }
+): PersonalizedPlan {
+  const totalDays = Math.max(3, Math.min(90, options?.totalDays ?? 28));
   const securityLevel = calculateSecurityLevel(profile);
   const axes = determineAxes(profile);
   const precautions = determinePrecautions(profile);
   const { frequency, avgDuration } = determineDuration(profile);
   const prerequisitesMissing = checkPrerequisites(profile);
-  const days = generateDays(axes, profile);
+  const days = generateDays(axes, profile, totalDays);
   const priorityExplanation = buildPriorityExplanation(axes, profile);
 
   // Expert tier enhancements: analyze behavior data and adapt
@@ -724,18 +730,19 @@ export function generatePersonalizedPlan(profile: DogProfile, options?: { tier?:
     ? ` Analyse comportementale : tension ${options.behaviorData.avgTension.toFixed(1)}/5, focus ${options.behaviorData.focusScore}%, ${options.behaviorData.daysCompleted} jours complétés.`
     : "";
 
+  const weekCount = Math.ceil(totalDays / 7);
   const summary = securityLevel === "critique"
     ? `Plan sécurisé pour ${profile.dog.name}. Priorité absolue à la sécurité. Axes : ${topAxes}.${behaviorInsight}`
     : securityLevel === "élevé"
       ? `Plan adapté pour ${profile.dog.name} avec précautions renforcées. Axes : ${topAxes}.${behaviorInsight}`
-      : `Plan personnalisé pour ${profile.dog.name} axé sur ${topAxes}. Progression sur 4 semaines.${behaviorInsight}`;
+      : `Plan personnalisé pour ${profile.dog.name} axé sur ${topAxes}. Progression sur ${totalDays} jours (${weekCount} sem.).${behaviorInsight}`;
 
   return {
     id: `plan-${profile.dog.id}-${Date.now()}`,
     dogName: profile.dog.name,
     summary, axes, precautions, frequency,
     averageDuration: avgDuration,
-    totalDays: 28,
+    totalDays,
     securityLevel, days,
     prerequisitesMissing,
     priorityExplanation,
