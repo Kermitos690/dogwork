@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS public.admin_subscriptions_one_active_per_user_idx;
