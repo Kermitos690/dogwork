@@ -300,16 +300,20 @@ function UsersTab() {
 
   const adjustCredits = useMutation({
     mutationFn: async ({ userId, credits, description }: { userId: string; credits: number; description: string }) => {
-      const { data, error } = await supabase.functions.invoke("admin-live-proxy", {
-        body: { action: "credit_wallet", user_id: userId, credits, description },
+      const { data, error } = await supabase.rpc("credit_ai_wallet", {
+        _user_id: userId,
+        _credits: credits,
+        _operation_type: "admin_adjustment",
+        _description: description,
+        _metadata: { source: "admin-ui", env: ENV_LABEL },
       });
       if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      return data?.new_balance as number;
+      return data as number;
     },
     onSuccess: (newBalance) => {
-      queryClient.invalidateQueries({ queryKey: ["admin-live-users"] });
-      toast.success(`Crédits ajustés sur Production ✅ Nouveau solde : ${newBalance}`);
+      queryClient.invalidateQueries({ queryKey: ["admin-users-current-env"] });
+      queryClient.invalidateQueries({ queryKey: ["ai-balance"] });
+      toast.success(`Crédits ajustés (${ENV_LABEL}) ✅ Nouveau solde : ${newBalance}`);
       setAdjustOpen(false);
       setCreditAmount("10");
       setReason("Crédits offerts");
@@ -330,10 +334,6 @@ function UsersTab() {
       toast.error("Montant invalide");
       return;
     }
-    const confirmed = window.confirm(
-      `Cet ajustement modifie le solde réel de ${targetUser.name} sur PRODUCTION (visible immédiatement dans l'application publiée). Continuer ?`,
-    );
-    if (!confirmed) return;
     adjustCredits.mutate({ userId: targetUser.id, credits: n, description: reason || "Ajustement admin" });
   };
 
@@ -341,10 +341,12 @@ function UsersTab() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-primary/30 bg-primary/10 p-3 text-xs">
-        <strong className="text-foreground">Cible : Production (Live)</strong>
+      <div className={`rounded-lg border p-3 text-xs ${IS_PUBLISHED ? "border-green-500/40 bg-green-500/10" : "border-yellow-500/40 bg-yellow-500/10"}`}>
+        <strong className="text-foreground">Environnement actif : {ENV_LABEL}</strong>
         <div className="mt-1 text-muted-foreground">
-          Toute opération ci-dessous écrit directement dans la base de production utilisée par l'application publiée — quel que soit l'environnement où vous travaillez (Preview ou Live).
+          {IS_PUBLISHED
+            ? "Vous êtes sur l'application publiée. Les ajustements modifient les vrais soldes des utilisateurs en production."
+            : "Vous êtes en Preview. Les ajustements ne touchent que la base de Test. Pour modifier la production, ouvrez l'application publiée puis l'admin."}
         </div>
       </div>
       <div className="relative">
