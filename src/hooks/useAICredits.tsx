@@ -62,21 +62,48 @@ export function useAIBalance() {
   return useQuery({
     queryKey: ["ai-balance", user?.id],
     queryFn: async (): Promise<AIWallet> => {
-      const { data, error } = await supabase.rpc("get_my_credit_balance" as any);
+      if (!user) throw new Error("Non connecté");
 
-      if (error) throw error;
+      const normalizeWallet = (row?: Partial<AIWallet> | null): AIWallet => ({
+        balance: row?.balance ?? 0,
+        lifetime_purchased: row?.lifetime_purchased ?? 0,
+        lifetime_consumed: row?.lifetime_consumed ?? 0,
+        lifetime_refunded: row?.lifetime_refunded ?? 0,
+      });
 
-      const row = Array.isArray(data) ? data[0] : data;
-      if (!row) {
-        return { balance: 0, lifetime_purchased: 0, lifetime_consumed: 0, lifetime_refunded: 0 };
+      const { data: walletRow, error: walletError } = await supabase
+        .from("ai_credit_wallets")
+        .select("balance, lifetime_purchased, lifetime_consumed, lifetime_refunded")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!walletError && walletRow) {
+        return normalizeWallet(walletRow);
       }
 
-      return {
-        balance: row.balance ?? 0,
-        lifetime_purchased: row.lifetime_purchased ?? 0,
-        lifetime_consumed: row.lifetime_consumed ?? 0,
-        lifetime_refunded: row.lifetime_refunded ?? 0,
-      };
+      const { data: rpcData, error: rpcError } = await supabase.rpc("get_my_credit_balance" as any);
+      const rpcRow = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+
+      if (!rpcError && rpcRow) {
+        return normalizeWallet(rpcRow);
+      }
+
+      const { error: ensureError } = await supabase.rpc("ensure_credit_wallet" as any);
+      if (ensureError) {
+        throw walletError || rpcError || ensureError;
+      }
+
+      const { data: ensuredWallet, error: ensuredWalletError } = await supabase
+        .from("ai_credit_wallets")
+        .select("balance, lifetime_purchased, lifetime_consumed, lifetime_refunded")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (ensuredWalletError) {
+        throw walletError || rpcError || ensuredWalletError;
+      }
+
+      return normalizeWallet(ensuredWallet);
     },
     enabled: !!user,
     staleTime: 15_000,
