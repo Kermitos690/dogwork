@@ -258,56 +258,48 @@ function UsersTab() {
   const [targetUser, setTargetUser] = useState<{ id: string; name: string; balance: number } | null>(null);
   const [creditAmount, setCreditAmount] = useState<string>("10");
   const [reason, setReason] = useState<string>("Crédits offerts");
-  const isPreviewEnv = typeof window !== "undefined" && window.location.hostname.includes("preview");
-  const envLabel = isPreviewEnv ? "Test" : "Production";
-
-  const { data: wallets, isLoading } = useQuery({
-    queryKey: ["admin-ai-wallets"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("ai_credit_wallets").select("*").order("lifetime_consumed", { ascending: false }).limit(50);
-      if (error) throw error;
-      return data as any[];
-    },
-  });
-  const userIds = wallets?.map(w => w.user_id) || [];
-  const { data: profiles } = useQuery({
-    queryKey: ["admin-ai-profiles", userIds],
-    queryFn: async () => {
-      if (!userIds.length) return [];
-      const { data } = await supabase.from("profiles").select("user_id, display_name").in("user_id", userIds);
-      return data || [];
-    },
-    enabled: userIds.length > 0,
-  });
-  const profileMap = new Map((profiles || []).map(p => [p.user_id, p.display_name]));
   const queryClient = useQueryClient();
+
+  // Always query LIVE via the cross-env proxy — the only source of truth users actually see
+  const { data: liveUsers, isLoading, refetch } = useQuery({
+    queryKey: ["admin-live-users", search],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("admin-live-proxy", {
+        body: { action: "list_users", search },
+      });
+      if (error) throw error;
+      return (data?.users ?? []) as Array<{
+        user_id: string;
+        email: string;
+        display_name: string;
+        wallet: { balance: number; lifetime_consumed: number; lifetime_purchased: number } | null;
+      }>;
+    },
+    staleTime: 30_000,
+  });
 
   const adjustCredits = useMutation({
     mutationFn: async ({ userId, credits, description }: { userId: string; credits: number; description: string }) => {
-      const { data, error } = await supabase.rpc("credit_ai_wallet", {
-        _user_id: userId,
-        _credits: credits,
-        _operation_type: "admin_adjustment",
-        _description: description,
-      } as any);
+      const { data, error } = await supabase.functions.invoke("admin-live-proxy", {
+        body: { action: "credit_wallet", user_id: userId, credits, description },
+      });
       if (error) throw error;
-      return data;
+      if (data?.error) throw new Error(data.error);
+      return data?.new_balance as number;
     },
     onSuccess: (newBalance) => {
-      queryClient.invalidateQueries({ queryKey: ["admin-ai-wallets"] });
-      queryClient.invalidateQueries({ queryKey: ["ai-balance"] });
-      toast.success(`Crédits ajustés ✅ Nouveau solde : ${newBalance}`);
+      queryClient.invalidateQueries({ queryKey: ["admin-live-users"] });
+      toast.success(`Crédits ajustés sur Production ✅ Nouveau solde : ${newBalance}`);
       setAdjustOpen(false);
       setCreditAmount("10");
       setReason("Crédits offerts");
+      refetch();
     },
-    onError: (err: any) => {
-      toast.error(`Échec : ${err?.message || "Erreur inconnue"}`);
-    },
+    onError: (err: any) => toast.error(`Échec : ${err?.message || "Erreur inconnue"}`),
   });
 
-  const openAdjust = (w: any) => {
-    setTargetUser({ id: w.user_id, name: profileMap.get(w.user_id) || "Utilisateur", balance: w.balance });
+  const openAdjust = (u: { user_id: string; display_name: string; wallet: any }) => {
+    setTargetUser({ id: u.user_id, name: u.display_name, balance: u.wallet?.balance ?? 0 });
     setAdjustOpen(true);
   };
 
@@ -318,11 +310,9 @@ function UsersTab() {
       toast.error("Montant invalide");
       return;
     }
-    if (isPreviewEnv) {
-      toast.error("Ajout manuel désactivé en Test. Ouvrez l’application publiée pour modifier le solde réel.");
-      return;
-    }
-    const confirmed = window.confirm("Vous êtes sur l’environnement PRODUCTION. Cet ajustement modifiera le solde réel de cet utilisateur. Continuer ?");
+    const confirmed = window.confirm(
+      `Cet ajustement modifie le solde réel de ${targetUser.name} sur PRODUCTION (visible immédiatement dans l'application publiée). Continuer ?`,
+    );
     if (!confirmed) return;
     adjustCredits.mutate({ userId: targetUser.id, credits: n, description: reason || "Ajustement admin" });
   };
@@ -331,31 +321,32 @@ function UsersTab() {
 
   return (
     <div className="space-y-4">
-      <div className={`rounded-lg border p-3 text-xs ${isPreviewEnv ? "border-destructive/30 bg-destructive/10 text-destructive" : "border-primary/30 bg-primary/10 text-foreground"}`}>
-        <strong>Environnement {envLabel}</strong>
+      <div className="rounded-lg border border-primary/30 bg-primary/10 p-3 text-xs">
+        <strong className="text-foreground">Cible : Production (Live)</strong>
         <div className="mt-1 text-muted-foreground">
-          {isPreviewEnv
-            ? "Les crédits ajoutés ici restent en Test et ne sont jamais envoyés vers la production publiée."
-            : "Les crédits ajoutés ici modifient le solde réel utilisé par l’application publiée."}
+          Toute opération ci-dessous écrit directement dans la base de production utilisée par l'application publiée — quel que soit l'environnement où vous travaillez (Preview ou Live).
         </div>
       </div>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Rechercher..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
+        <Input placeholder="Rechercher (nom ou email)..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
       </div>
       <div className="space-y-2">
-        {wallets?.filter(w => !search || (profileMap.get(w.user_id) || "").toLowerCase().includes(search.toLowerCase())).map(w => (
-          <Card key={w.id}>
+        {!liveUsers?.length ? (
+          <p className="text-sm text-muted-foreground text-center py-6">Aucun utilisateur trouvé en production.</p>
+        ) : liveUsers.map(u => (
+          <Card key={u.user_id}>
             <CardContent className="p-4 flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="font-medium truncate">{profileMap.get(w.user_id) || "Utilisateur"}</p>
+                <p className="font-medium truncate">{u.display_name}</p>
+                <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mt-1">
-                  <span>Solde : <strong className="text-foreground">{w.balance}</strong></span>
-                  <span>Consommé : {w.lifetime_consumed}</span>
-                  <span>Acheté : {w.lifetime_purchased}</span>
+                  <span>Solde : <strong className="text-foreground">{u.wallet?.balance ?? 0}</strong></span>
+                  <span>Consommé : {u.wallet?.lifetime_consumed ?? 0}</span>
+                  <span>Acheté : {u.wallet?.lifetime_purchased ?? 0}</span>
                 </div>
               </div>
-              <Button variant="outline" size="sm" className="gap-1 shrink-0" onClick={() => openAdjust(w)} disabled={isPreviewEnv}>
+              <Button variant="outline" size="sm" className="gap-1 shrink-0" onClick={() => openAdjust(u)}>
                 <Gift className="h-4 w-4" /> Ajuster
               </Button>
             </CardContent>
@@ -366,9 +357,9 @@ function UsersTab() {
       <Dialog open={adjustOpen} onOpenChange={setAdjustOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Ajuster les crédits IA</DialogTitle>
+            <DialogTitle>Ajuster les crédits IA (Production)</DialogTitle>
             <DialogDescription>
-              {targetUser ? <>Environnement&nbsp;: <strong>{envLabel}</strong> · Utilisateur&nbsp;: <strong>{targetUser.name}</strong> — solde actuel <strong>{targetUser.balance}</strong></> : null}
+              {targetUser ? <>Utilisateur&nbsp;: <strong>{targetUser.name}</strong> — solde actuel <strong>{targetUser.balance}</strong></> : null}
             </DialogDescription>
           </DialogHeader>
 
@@ -407,8 +398,8 @@ function UsersTab() {
 
           <DialogFooter>
             <Button variant="ghost" onClick={() => setAdjustOpen(false)}>Annuler</Button>
-            <Button onClick={submitAdjust} disabled={adjustCredits.isPending || isPreviewEnv}>
-              {adjustCredits.isPending ? "Application…" : "Appliquer"}
+            <Button onClick={submitAdjust} disabled={adjustCredits.isPending}>
+              {adjustCredits.isPending ? "Application…" : "Appliquer sur Production"}
             </Button>
           </DialogFooter>
         </DialogContent>

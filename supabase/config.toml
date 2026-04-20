@@ -1,6 +1,8 @@
 project_id = "dcwbqsfeouvghcnvhrpj"
 
 [functions]
+  [functions.admin-live-proxy]
+    verify_jwt = false
   [functions.admin-stripe]
     verify_jwt = false
   [functions.ai-with-credits]
