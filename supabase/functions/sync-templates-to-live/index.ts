@@ -47,7 +47,8 @@ Deno.serve(async (req) => {
     // Insert new templates (chunk by 10 for safety)
     const rows = (templates as any[]).map((t) => ({
       ...t,
-      user_id: "00000000-0000-0000-0000-000000000000", // template owner placeholder
+      user_id: null,
+      dog_id: null,
       is_active: false,
     }));
 
