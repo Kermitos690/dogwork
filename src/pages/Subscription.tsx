@@ -25,7 +25,10 @@ export default function Subscription() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { session } = useAuth();
-  const { tier: currentTier, subscribed, subscriptionEnd, loading: subLoading, checkSubscription } = useSubscription();
+  const { tier: rawTier, subscribed, subscriptionEnd, loading: subLoading, checkSubscription } = useSubscription();
+  // Narrow to OwnerTier for PLANS lookup. Educator/Shelter overrides are treated as Expert for display.
+  const currentTier: OwnerTier =
+    rawTier === "educator" || rawTier === "shelter" ? "expert" : (rawTier as OwnerTier);
   const [checkoutLoading, setCheckoutLoading] = useState<TierKey | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
 
