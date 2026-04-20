@@ -111,19 +111,11 @@ export interface AIImageResult {
  */
 export async function generateImage(options: AIImageOptions): Promise<AIImageResult> {
   // Use direct Gemini API (5000 req/day quota on GOOGLE_AI_API_KEY).
-  // Lovable Gateway is only used as fallback if Gemini key is missing.
-  if (Deno.env.get("GOOGLE_AI_API_KEY")) {
-    const result = await generateImageViaNative(options);
-    if (result.imageData) return result;
-    // If native fails and gateway key exists, try gateway as last resort
-    const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-    if (lovableKey) return generateImageViaGateway(lovableKey, options);
-    return result;
+  // No fallback to Gateway: it has been blocked by 402 and would just waste retries.
+  if (!Deno.env.get("GOOGLE_AI_API_KEY")) {
+    return { imageData: null, error: "GOOGLE_AI_API_KEY not configured" };
   }
-
-  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-  if (lovableKey) return generateImageViaGateway(lovableKey, options);
-  return { imageData: null, error: "No AI provider key configured" };
+  return generateImageViaNative(options);
 }
 
 async function generateImageViaGateway(apiKey: string, options: AIImageOptions): Promise<AIImageResult> {
