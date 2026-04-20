@@ -625,13 +625,36 @@ Deno.serve(async (req) => {
 
     console.log(`[ai-with-credits] Calling Gemini: model=${feature.model}`);
 
-    let response: Response;
+    // Fallback chain: si le modèle principal est saturé (429/503), on essaie des modèles alternatifs.
+    const modelChain: string[] = [feature.model];
+    if (!modelChain.includes("google/gemini-2.5-flash-lite")) modelChain.push("google/gemini-2.5-flash-lite");
+    if (!modelChain.includes("google/gemini-2.5-pro")) modelChain.push("google/gemini-2.5-pro");
+
+    let response: Response | null = null;
+    let lastStatus = 0;
+    let lastBody = "";
     try {
-      response = await callAI({
-        model: feature.model,
-        messages: [...systemMessages, ...messages],
-        stream,
-      });
+      for (const model of modelChain) {
+        const attempt = await callAI({
+          model,
+          messages: [...systemMessages, ...messages],
+          stream,
+        });
+        if (attempt.ok) {
+          response = attempt;
+          if (model !== feature.model) {
+            console.log(`[ai-with-credits] Fallback model used: ${model}`);
+          }
+          break;
+        }
+        lastStatus = attempt.status;
+        lastBody = await attempt.text();
+        console.error(`[ai-with-credits] Model ${model} failed: ${attempt.status} ${lastBody.slice(0, 200)}`);
+        // Ne tenter le fallback que pour les erreurs de capacité/débit.
+        if (attempt.status !== 429 && attempt.status !== 503) {
+          break;
+        }
+      }
     } catch (configErr) {
       console.error("[ai-with-credits] AI provider config error:", configErr);
       await admin.rpc("credit_ai_wallet", {
@@ -643,26 +666,27 @@ Deno.serve(async (req) => {
       throw configErr;
     }
 
-    if (!response.ok) {
-      console.error(`[ai-with-credits] AI provider error: ${response.status}`);
+    if (!response) {
+      console.error(`[ai-with-credits] All AI models failed, last status: ${lastStatus}`);
 
       await admin.rpc("credit_ai_wallet", {
         _user_id: userId,
         _credits: creditsCost,
         _operation_type: "refund",
-        _description: `Remboursement auto — erreur fournisseur IA (${response.status})`,
+        _description: `Remboursement auto — erreur fournisseur IA (${lastStatus})`,
       });
       console.log("[ai-with-credits] Credits refunded after AI error");
 
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Trop de requêtes IA, réessayez dans quelques instants." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      if (lastStatus === 429 || lastStatus === 503) {
+        return new Response(JSON.stringify({
+          error: "L'IA est momentanément saturée. Réessayez dans quelques instants — vos crédits ont été remboursés.",
+        }), {
+          status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      const t = await response.text();
-      console.error("[ai-with-credits] AI body:", t.slice(0, 500));
-      return new Response(JSON.stringify({ error: "Erreur du service IA" }), {
+      console.error("[ai-with-credits] AI body:", lastBody.slice(0, 500));
+      return new Response(JSON.stringify({ error: "Erreur du service IA — vos crédits ont été remboursés." }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
