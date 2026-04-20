@@ -59,8 +59,8 @@ Deno.serve(async (req) => {
     const ADMIN_EMAIL = Deno.env.get("ADMIN_EMAIL") || "teba.gaetan@gmail.com";
 
     // --- Role checks for privileged notification types ---
-    const privilegedTypes = ["course_approved", "course_rejected"];
-    if (privilegedTypes.includes(type)) {
+    const adminOnlyTypes = ["course_approved", "course_rejected"];
+    if (adminOnlyTypes.includes(type)) {
       const { data: isAdmin } = await supabaseAdmin.rpc("has_role", {
         _user_id: userId,
         _role: "admin",
@@ -68,6 +68,24 @@ Deno.serve(async (req) => {
       if (!isAdmin) {
         return new Response(
           JSON.stringify({ error: "Forbidden: admin role required" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // course_created: only educators can notify admins about new courses
+    if (type === "course_created") {
+      const { data: isEducator } = await supabaseAdmin.rpc("has_role", {
+        _user_id: userId,
+        _role: "educator",
+      });
+      const { data: isAdmin } = await supabaseAdmin.rpc("has_role", {
+        _user_id: userId,
+        _role: "admin",
+      });
+      if (!isEducator && !isAdmin) {
+        return new Response(
+          JSON.stringify({ error: "Forbidden: educator role required" }),
           { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
