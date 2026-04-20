@@ -1,10 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
-import { 
-  Brain, Calendar, ShieldCheck, Users, PawPrint, BarChart3, 
+import {
+  Brain, Calendar, ShieldCheck, Users, PawPrint, BarChart3,
   Building2, GraduationCap, Star, ArrowRight, CheckCircle2,
-  Zap, Sparkles, Crown, Heart, Mail
+  Zap, Sparkles, Crown, Heart, Mail, Bot, MessageCircle,
+  Wand2, LineChart, Coins
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -25,6 +26,33 @@ export default function Landing() {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
+  const AI_CAPABILITIES = [
+    {
+      icon: Bot,
+      title: "Chatbot IA 24/7",
+      desc: "Posez n'importe quelle question sur votre chien. L'IA connaît son profil, sa race, ses problématiques et son historique.",
+      cost: "1 crédit / message",
+    },
+    {
+      icon: Wand2,
+      title: "Plans d'entraînement IA",
+      desc: "Génération automatique d'un plan 28 jours personnalisé selon le profil, les problèmes et les objectifs du chien.",
+      cost: "5 crédits / plan",
+    },
+    {
+      icon: LineChart,
+      title: "Analyse comportementale",
+      desc: "L'IA analyse votre journal et vos évaluations pour détecter les tendances et recommander des ajustements.",
+      cost: "3 crédits / analyse",
+    },
+    {
+      icon: Sparkles,
+      title: "Suggestions contextuelles",
+      desc: "Aide intelligente partout dans l'app : adaptation d'exercices, explication des échecs, alternatives sur mesure.",
+      cost: "1 crédit / suggestion",
+    },
+  ];
+
   const FEATURES = [
     { icon: Brain, title: t("landing.feat1Title"), desc: t("landing.feat1Desc"), color: "text-primary" },
     { icon: BarChart3, title: t("landing.feat2Title"), desc: t("landing.feat2Desc"), color: "text-accent" },
@@ -41,10 +69,10 @@ export default function Landing() {
   ];
 
   const STATS = [
-    { num: "480+", label: t("landing.statsExercises") },
-    { num: "28", label: t("landing.statsDays") },
-    { num: "4", label: t("landing.statsRoles") },
-    { num: "Freemium", label: "Plan Starter gratuit" },
+    { num: "IA", label: "Coach intelligent intégré" },
+    { num: "480+", label: "Exercices enrichis" },
+    { num: "28", label: "Jours de programme" },
+    { num: "0 CHF", label: "Pour démarrer" },
   ];
 
   return (
@@ -59,6 +87,7 @@ export default function Landing() {
             </span>
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
+            <a href="#ai" className="hover:text-foreground transition-colors">IA</a>
             <a href="#features" className="hover:text-foreground transition-colors">{t("landing.navFeatures")}</a>
             <a href="#testimonials" className="hover:text-foreground transition-colors">{t("landing.navTestimonials")}</a>
             <a href="#pricing" className="hover:text-foreground transition-colors">{t("landing.navPricing")}</a>
@@ -72,7 +101,7 @@ export default function Landing() {
         </div>
       </nav>
 
-      {/* ========== HERO ========== */}
+      {/* ========== HERO IA-FIRST ========== */}
       <section className="relative pt-24 pb-16 md:pt-32 md:pb-24 px-4">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute w-[600px] h-[600px] rounded-full bg-primary/10 blur-[120px] -top-40 left-1/2 -translate-x-1/2" />
@@ -83,37 +112,43 @@ export default function Landing() {
           <div className="flex-1 text-center md:text-left">
             <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0}
               className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-6">
-              <PawPrint className="w-4 h-4" />
-              {t("landing.badge")}
+              <Sparkles className="w-4 h-4" />
+              Coach canin propulsé par l'IA
             </motion.div>
 
             <motion.h1 variants={fadeUp} custom={1} initial="hidden" animate="visible"
               className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight leading-[1.05] mb-6">
-              {t("landing.heroTitle1")}
+              L'IA qui éduque
               <br />
               <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
-                {t("landing.heroTitle2")}
+                votre chien avec vous.
               </span>
             </motion.h1>
 
             <motion.p variants={fadeUp} custom={2} initial="hidden" animate="visible"
               className="text-lg md:text-xl text-muted-foreground max-w-lg mx-auto md:mx-0 mb-8 leading-relaxed">
-              {t("landing.heroDesc")}
+              Chatbot intelligent 24/7, plans d'entraînement générés sur mesure, analyse comportementale automatique.
+              DogWork transforme l'éducation canine grâce à l'intelligence artificielle.
             </motion.p>
 
             <motion.div variants={fadeUp} custom={3} initial="hidden" animate="visible"
               className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
               <Button onClick={() => navigate("/auth")} size="lg"
                 className="rounded-full px-8 text-base bg-gradient-to-r from-primary to-accent hover:opacity-90 shadow-lg shadow-primary/25">
-                {t("landing.cta")}
+                Essayer l'IA gratuitement
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
               <Button onClick={() => {
-                document.getElementById("features")?.scrollIntoView({ behavior: "smooth" });
+                document.getElementById("ai")?.scrollIntoView({ behavior: "smooth" });
               }} variant="outline" size="lg" className="rounded-full px-8 text-base border-border/60">
-                {t("landing.discover")}
+                Voir l'IA en action
               </Button>
             </motion.div>
+
+            <motion.p variants={fadeUp} custom={4} initial="hidden" animate="visible"
+              className="text-xs text-muted-foreground mt-4">
+              10 crédits IA offerts à l'inscription · Aucune carte requise
+            </motion.p>
           </div>
 
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
@@ -123,16 +158,97 @@ export default function Landing() {
               <div className="absolute -inset-4 bg-gradient-to-br from-primary/20 via-transparent to-accent/20 rounded-[2rem] blur-2xl" />
               <img src={heroStaffie} alt="Staffie bleu"
                 className="relative w-full rounded-3xl shadow-2xl shadow-primary/20 object-cover aspect-square" />
-              <div className="absolute -bottom-4 -left-4 bg-card border border-border/60 rounded-2xl px-4 py-3 shadow-xl flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[hsl(var(--success))]/20 flex items-center justify-center">
-                  <CheckCircle2 className="w-5 h-5 text-[hsl(var(--success))]" />
+              <div className="absolute -bottom-4 -left-4 bg-card border border-border/60 rounded-2xl px-4 py-3 shadow-xl flex items-center gap-3 max-w-[260px]">
+                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                  <Bot className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <div className="text-sm font-semibold">{t("landing.planGenerated")}</div>
-                  <div className="text-xs text-muted-foreground">{t("landing.planDaysCustom")}</div>
+                  <div className="text-sm font-semibold">Plan IA généré</div>
+                  <div className="text-xs text-muted-foreground">28 jours sur mesure pour votre chien</div>
                 </div>
               </div>
             </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ========== STATS BAR ========== */}
+      <section className="py-12 border-y border-border/30 bg-card/30">
+        <div className="max-w-5xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-8">
+          {STATS.map((stat, i) => (
+            <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }}
+              variants={fadeUp} custom={i} className="text-center">
+              <div className="text-3xl md:text-4xl font-black text-primary">{stat.num}</div>
+              <div className="text-sm text-muted-foreground mt-1">{stat.label}</div>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* ========== AI CAPABILITIES (NOUVEAU — section dédiée IA) ========== */}
+      <section id="ai" className="py-20 md:py-28 px-4 relative">
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute w-[500px] h-[500px] rounded-full bg-primary/5 blur-[140px] top-1/2 left-1/4 -translate-y-1/2" />
+        </div>
+
+        <div className="relative max-w-7xl mx-auto">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }}
+            variants={fadeUp} custom={0} className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold mb-4">
+              <Sparkles className="w-3.5 h-3.5" />
+              Notre force : l'intelligence artificielle
+            </div>
+            <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4">
+              4 IA au service de votre chien<span className="text-primary">.</span>
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              DogWork intègre une suite complète de fonctionnalités IA, accessibles via un système de crédits transparent.
+              Pas de surcoût caché, vous payez uniquement ce que vous utilisez.
+            </p>
+          </motion.div>
+
+          <div className="grid sm:grid-cols-2 gap-5 mb-12">
+            {AI_CAPABILITIES.map((cap, i) => (
+              <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }}
+                variants={fadeUp} custom={i}
+                className="group p-6 rounded-2xl bg-gradient-to-br from-card/80 to-card/40 border border-border/40 hover:border-primary/40 transition-all duration-300">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-primary/15 border border-primary/20 flex items-center justify-center text-primary shrink-0 group-hover:scale-110 transition-transform">
+                    <cap.icon className="w-6 h-6" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <h3 className="text-lg font-bold">{cap.title}</h3>
+                      <span className="text-[10px] uppercase tracking-wider font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full whitespace-nowrap">
+                        {cap.cost}
+                      </span>
+                    </div>
+                    <p className="text-muted-foreground text-sm leading-relaxed">{cap.desc}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }}
+            variants={fadeUp} custom={5}
+            className="rounded-2xl bg-gradient-to-br from-primary/10 via-card/60 to-accent/10 border border-primary/20 p-6 md:p-8 flex flex-col md:flex-row items-center gap-6">
+            <div className="w-16 h-16 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center text-primary shrink-0">
+              <Coins className="w-8 h-8" />
+            </div>
+            <div className="flex-1 text-center md:text-left">
+              <h3 className="text-xl font-bold mb-2">Système de crédits IA transparent</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                <strong className="text-foreground">10 crédits offerts</strong> à l'inscription.
+                Les abonnements Pro et Expert incluent des crédits mensuels.
+                Besoin de plus ? Achetez des packs ponctuels (Découverte, Standard, Premium) sans engagement.
+              </p>
+            </div>
+            <Button onClick={() => navigate("/auth")}
+              className="rounded-full px-6 shrink-0 bg-gradient-to-r from-primary to-accent">
+              Tester gratuitement
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
           </motion.div>
         </div>
       </section>
@@ -163,19 +279,6 @@ export default function Landing() {
               <source src="/dogwork-promo-vertical.mp4" type="video/mp4" />
             </video>
           </motion.div>
-        </div>
-      </section>
-
-      {/* ========== STATS BAR ========== */}
-      <section className="py-12 border-y border-border/30 bg-card/30">
-        <div className="max-w-5xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-8">
-          {STATS.map((stat, i) => (
-            <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }}
-              variants={fadeUp} custom={i} className="text-center">
-              <div className="text-3xl md:text-4xl font-black text-primary">{stat.num}</div>
-              <div className="text-sm text-muted-foreground mt-1">{stat.label}</div>
-            </motion.div>
-          ))}
         </div>
       </section>
 
@@ -302,7 +405,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ========== PRICING ========== */}
+      {/* ========== PRICING (aligné sur src/lib/plans.ts) ========== */}
       <section id="pricing" className="py-20 md:py-28 px-4">
         <div className="max-w-6xl mx-auto">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }}
@@ -322,7 +425,7 @@ export default function Landing() {
             </span>
           </div>
           <div className="grid md:grid-cols-3 gap-5 mb-14">
-            {/* Starter */}
+            {/* Freemium */}
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }}
               variants={fadeUp} custom={0}
               className="p-6 rounded-2xl bg-card/60 border border-border/40 flex flex-col">
@@ -344,6 +447,7 @@ export default function Landing() {
                   "Journal d'entraînement",
                   "Suivi de progression basique",
                   "Statistiques essentielles",
+                  "10 crédits IA offerts à l'inscription",
                 ].map((f, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm">
                     <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 text-[hsl(var(--success))]" />
@@ -366,19 +470,21 @@ export default function Landing() {
                 </div>
                 <div>
                   <h3 className="font-bold text-lg">Pro</h3>
-                  <p className="text-xs text-muted-foreground">Pour aller plus loin</p>
+                  <p className="text-xs text-muted-foreground">L'essentiel pour éduquer sérieusement</p>
                 </div>
               </div>
               <div className="text-3xl font-black mb-1">9.90 <span className="text-lg font-semibold text-muted-foreground">CHF/mois</span></div>
               <div className="text-sm text-muted-foreground mb-5">Annulable à tout moment</div>
               <ul className="space-y-2.5 mb-6 flex-1">
                 {[
-                  "Tout le plan Starter, plus :",
-                  "Jusqu'à 3 chiens",
+                  "Tout le plan Freemium, plus :",
+                  "1 profil chien",
                   "150 exercices (basiques + intermédiaires)",
                   "Évaluation comportementale complète",
                   "Objectifs & problèmes personnalisés",
                   "Statistiques avancées",
+                  "Export PDF des plans",
+                  "5 crédits IA inclus / mois",
                 ].map((f, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm">
                     <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
@@ -397,7 +503,7 @@ export default function Landing() {
               variants={fadeUp} custom={2}
               className="relative p-6 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 border border-accent/30 shadow-lg shadow-primary/10 flex flex-col">
               <div className="absolute top-4 right-4 bg-accent text-accent-foreground text-xs font-bold px-3 py-1 rounded-full">
-                Populaire
+                Accès complet
               </div>
               <div className="flex items-center gap-3 mb-4">
                 <div className="rounded-lg p-2 bg-accent/20 text-accent">
@@ -405,7 +511,7 @@ export default function Landing() {
                 </div>
                 <div>
                   <h3 className="font-bold text-lg">Expert</h3>
-                  <p className="text-xs text-muted-foreground">L'expérience complète</p>
+                  <p className="text-xs text-muted-foreground">Toute la puissance DogWork</p>
                 </div>
               </div>
               <div className="text-3xl font-black mb-1">19.90 <span className="text-lg font-semibold text-muted-foreground">CHF/mois</span></div>
@@ -415,9 +521,10 @@ export default function Landing() {
                   "Tout le plan Pro, plus :",
                   "Chiens illimités",
                   "480+ exercices (toute la bibliothèque)",
-                  "Plans IA personnalisés",
+                  "Plans IA personnalisés (28 jours)",
                   "Chatbot IA 24/7",
-                  "Support prioritaire",
+                  "Analyse comportementale avancée",
+                  "30 crédits IA inclus / mois",
                 ].map((f, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm">
                     <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 text-accent" />
@@ -431,6 +538,42 @@ export default function Landing() {
               </Button>
             </motion.div>
           </div>
+
+          {/* AI Credit Packs (NOUVEAU) */}
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }}
+            variants={fadeUp} custom={0}
+            className="rounded-2xl bg-gradient-to-br from-primary/5 to-accent/5 border border-primary/15 p-6 md:p-8 mb-14">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="rounded-lg p-2 bg-primary/20 text-primary">
+                <Coins className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg">Packs de crédits IA</h3>
+                <p className="text-xs text-muted-foreground">À la carte, sans engagement, valables sans limite de temps</p>
+              </div>
+            </div>
+            <div className="grid sm:grid-cols-3 gap-4">
+              <div className="p-4 rounded-xl bg-card/60 border border-border/40 text-center">
+                <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-1">Découverte</div>
+                <div className="text-2xl font-black">25 crédits</div>
+                <div className="text-sm text-primary font-semibold mt-1">2.90 CHF</div>
+              </div>
+              <div className="p-4 rounded-xl bg-card/80 border border-primary/30 text-center relative">
+                <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] font-bold uppercase px-2 py-0.5 rounded-full">Populaire</div>
+                <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-1">Standard</div>
+                <div className="text-2xl font-black">100 crédits</div>
+                <div className="text-sm text-primary font-semibold mt-1">9.90 CHF</div>
+              </div>
+              <div className="p-4 rounded-xl bg-card/60 border border-border/40 text-center">
+                <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-1">Premium</div>
+                <div className="text-2xl font-black">300 crédits</div>
+                <div className="text-sm text-primary font-semibold mt-1">24.90 CHF</div>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground text-center mt-4">
+              1 crédit ≈ 1 message chatbot · 5 crédits = 1 plan IA · 3 crédits = 1 analyse comportementale
+            </p>
+          </motion.div>
 
           {/* Professional tiers */}
           <div className="text-center mb-6">
@@ -454,7 +597,7 @@ export default function Landing() {
               </div>
               <div className="text-3xl font-black mb-1">200 <span className="text-lg font-semibold text-muted-foreground">CHF/an</span></div>
               <div className="text-sm text-muted-foreground mb-1">Facturation annuelle</div>
-              <div className="text-xs text-muted-foreground/70 mb-5 italic">-30 % si rattaché à un refuge partenaire (140 CHF/an)</div>
+              <div className="text-xs text-muted-foreground/70 mb-5 italic">Tarif réduit si rattaché à un refuge partenaire</div>
               <ul className="space-y-2.5 mb-6 flex-1">
                 {[
                   "Gestion complète de vos clients",
@@ -542,16 +685,17 @@ export default function Landing() {
           className="relative max-w-3xl mx-auto text-center">
           <img src={logoDogwork} alt="DogWork" className="w-16 h-16 rounded-2xl mx-auto mb-6" />
           <h2 className="text-4xl md:text-6xl font-black tracking-tight mb-6">
-            {t("landing.ctaTitle1")}
+            Prêt à laisser l'IA
             <br />
-            <span className="text-primary">{t("landing.ctaTitle2")}</span>
+            <span className="text-primary">éduquer votre chien ?</span>
           </h2>
           <p className="text-muted-foreground text-lg mb-8 max-w-lg mx-auto">
-            {t("landing.ctaDesc")}
+            Inscrivez-vous gratuitement, recevez 10 crédits IA offerts et testez notre coach intelligent dès maintenant.
           </p>
           <Button onClick={() => navigate("/auth")} size="lg"
             className="rounded-full px-10 text-lg bg-gradient-to-r from-primary to-accent hover:opacity-90 shadow-xl shadow-primary/25">
-            {t("landing.ctaButton")}
+            <MessageCircle className="w-5 h-5 mr-2" />
+            Démarrer gratuitement
             <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
         </motion.div>
