@@ -421,7 +421,7 @@ function UsersTab() {
           <DialogFooter>
             <Button variant="ghost" onClick={() => setAdjustOpen(false)}>Annuler</Button>
             <Button onClick={submitAdjust} disabled={adjustCredits.isPending}>
-              {adjustCredits.isPending ? "Application…" : "Appliquer sur Production"}
+              {adjustCredits.isPending ? "Application…" : `Appliquer (${ENV_LABEL})`}
             </Button>
           </DialogFooter>
         </DialogContent>
