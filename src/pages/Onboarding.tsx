@@ -594,28 +594,10 @@ export default function Onboarding() {
       }));
       if (objRows.length > 0) await supabase.from("dog_objectives").insert(objRows);
 
-      const profile: DogProfile = {
-        dog: { ...dogData, id: createdDog.id, user_id: user.id } as DogType,
-        problems: problemRows.map((p) => ({ problem_key: p.problem_key, intensity: p.intensity, frequency: p.frequency })),
-        objectives: objRows.map((o) => ({ objective_key: o.objective_key, is_priority: o.is_priority })),
-        evaluation: evaluation,
-      };
-      const plan = generatePersonalizedPlan(profile);
-      setGeneratedPlan(plan);
-
-      await supabase.from("training_plans").insert({
-        dog_id: createdDog.id, user_id: user.id,
-        title: plan.summary.slice(0, 100),
-        summary: plan.summary,
-        axes: plan.axes as any,
-        precautions: plan.precautions as any,
-        days: plan.days as any,
-        frequency: plan.frequency,
-        average_duration: plan.averageDuration,
-        total_days: plan.totalDays,
-        security_level: plan.securityLevel,
-        is_active: true,
-      });
+      // NOTE: Plan generation is no longer automatic.
+      // The user will trigger it on demand from the /plan page (Expert tier),
+      // or activate one of the 5 free / 30 pro templates.
+      setGeneratedPlan(null);
 
       // === Post-adoption: create adopter_link + weekly check-ins ===
       if (adoptedFromShelter && matchedAnimal && selectedShelterId) {
@@ -670,7 +652,9 @@ export default function Onboarding() {
 
   const finishOnboarding = () => {
     clearOnboardingState();
-    navigate("/");
+    // Send the user to the Plan page so they can choose a template
+    // or generate an Expert AI plan on demand.
+    navigate("/plan");
   };
 
   // ===== RENDER =====
