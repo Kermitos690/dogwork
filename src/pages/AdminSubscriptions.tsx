@@ -89,12 +89,21 @@ export default function AdminSubscriptions() {
         notes,
       });
       if (error) throw error;
-      toast({ title: "Abonnement activé ✅", description: `Tier ${selectedTier} attribué gratuitement.` });
+      toast({
+        title: "Abonnement activé ✅",
+        description: `Tier ${selectedTier} attribué. Demande à l'utilisateur de se reconnecter pour application immédiate (sinon prise en compte sous 5 min).`,
+      });
       setSelectedUserId("");
       setSelectedTier("");
       setNotes("");
       setSearchQuery("");
-      await Promise.all([refetch(), queryClient.invalidateQueries({ queryKey: ["admin_subscriptions"] })]);
+      await Promise.all([
+        refetch(),
+        queryClient.invalidateQueries({ queryKey: ["admin_subscriptions"] }),
+        queryClient.invalidateQueries({ queryKey: ["subscription"] }),
+        queryClient.invalidateQueries({ queryKey: ["privileged-role"] }),
+        queryClient.invalidateQueries({ queryKey: ["is_admin"] }),
+      ]);
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
     }

@@ -9,13 +9,13 @@ import { PLANS, PLAN_ORDER, type OwnerTier } from "@/lib/plans";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
-const tierIcons: Record<TierKey, React.ReactNode> = {
+const tierIcons: Record<OwnerTier, React.ReactNode> = {
   starter: <Zap className="h-6 w-6" />,
   pro: <Sparkles className="h-6 w-6" />,
   expert: <Crown className="h-6 w-6" />,
 };
 
-const tierColors: Record<TierKey, string> = {
+const tierColors: Record<OwnerTier, string> = {
   starter: "border-border",
   pro: "border-primary ring-2 ring-primary/20",
   expert: "border-accent ring-2 ring-accent/20",

@@ -159,6 +159,14 @@ export function canAccessFeature(tier: OwnerTier, feature: keyof PlanFeatures): 
   return !!PLANS[tier].features[feature];
 }
 
+/**
+ * Returns true for tiers that grant full premium access (Expert + B2B Educator/Shelter).
+ * Used by feature gates so an admin-granted Educator/Shelter override unlocks all owner features.
+ */
+export function tierGrantsFullAccess(tier: string | null | undefined): boolean {
+  return tier === "expert" || tier === "educator" || tier === "shelter";
+}
+
 export function getFeatureLimit(tier: OwnerTier, feature: "dogs_limit" | "exercise_library_limit"): number {
   return PLANS[tier].features[feature];
 }
