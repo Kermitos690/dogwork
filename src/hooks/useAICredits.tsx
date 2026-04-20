@@ -25,6 +25,7 @@ export interface AILedgerEntry {
   public_price_chf: number | null;
   status: string;
   created_at: string;
+  metadata?: Record<string, unknown> | null;
 }
 
 export interface AIFeature {
@@ -71,18 +72,29 @@ export function useAIBalance() {
         lifetime_refunded: row?.lifetime_refunded ?? 0,
       });
 
-      const { data: walletRow, error: walletError } = await supabase
-        .from("ai_credit_wallets")
-        .select("balance, lifetime_purchased, lifetime_consumed, lifetime_refunded")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const readWalletDirect = async () => {
+        const { data, error } = await supabase
+          .from("ai_credit_wallets")
+          .select("balance, lifetime_purchased, lifetime_consumed, lifetime_refunded")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        return { data, error };
+      };
+
+      const readWalletViaRpc = async () => {
+        const { data, error } = await supabase.rpc("get_my_credit_balance" as any);
+        const row = Array.isArray(data) ? data[0] : data;
+        return { data: row as Partial<AIWallet> | null | undefined, error };
+      };
+
+      const { data: walletRow, error: walletError } = await readWalletDirect();
 
       if (!walletError && walletRow) {
         return normalizeWallet(walletRow);
       }
 
-      const { data: rpcData, error: rpcError } = await supabase.rpc("get_my_credit_balance" as any);
-      const rpcRow = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+      const { data: rpcRow, error: rpcError } = await readWalletViaRpc();
 
       if (!rpcError && rpcRow) {
         return normalizeWallet(rpcRow);
@@ -93,17 +105,22 @@ export function useAIBalance() {
         throw walletError || rpcError || ensureError;
       }
 
-      const { data: ensuredWallet, error: ensuredWalletError } = await supabase
-        .from("ai_credit_wallets")
-        .select("balance, lifetime_purchased, lifetime_consumed, lifetime_refunded")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const { data: ensuredWallet, error: ensuredWalletError } = await readWalletDirect();
 
       if (ensuredWalletError) {
         throw walletError || rpcError || ensuredWalletError;
       }
 
-      return normalizeWallet(ensuredWallet);
+      if (ensuredWallet) {
+        return normalizeWallet(ensuredWallet);
+      }
+
+      const { data: ensuredRpcWallet, error: ensuredRpcError } = await readWalletViaRpc();
+      if (ensuredRpcError) {
+        throw walletError || rpcError || ensureError || ensuredRpcError;
+      }
+
+      return normalizeWallet(ensuredRpcWallet);
     },
     enabled: !!user,
     staleTime: 15_000,
