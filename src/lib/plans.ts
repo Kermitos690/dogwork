@@ -64,9 +64,9 @@ export const PLANS: Record<OwnerTier, PlanConfig> = {
       tagline: "Découvrez DogWork gratuitement",
       highlights: [
         "1 profil chien",
-        "15 exercices fondamentaux",
-        "Journal d'entraînement",
-        "Suivi de progression basique",
+        "5 programmes d'entraînement essentiels",
+        "Bibliothèque d'exercices fondamentaux",
+        "Journal et suivi quotidien",
         "Statistiques essentielles",
       ],
     },
@@ -95,7 +95,7 @@ export const PLANS: Record<OwnerTier, PlanConfig> = {
       tagline: "L'essentiel pour éduquer sérieusement",
       highlights: [
         "1 profil chien",
-        "150 exercices (basiques + intermédiaires)",
+        "30 programmes Pro structurés",
         "Évaluation comportementale complète",
         "Objectifs & problèmes personnalisés",
         "Statistiques avancées",
@@ -128,7 +128,7 @@ export const PLANS: Record<OwnerTier, PlanConfig> = {
       highlights: [
         "Chiens illimités",
         "480+ exercices (toute la bibliothèque)",
-        "Plans IA personnalisés",
+        "Plan IA personnalisé sur demande (durée au choix)",
         "Chatbot IA 24/7",
         "Analyse comportementale avancée",
         "Tout le plan Pro inclus",

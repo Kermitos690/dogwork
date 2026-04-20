@@ -10,11 +10,12 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Target, ClipboardCheck, AlertTriangle, BookOpen, Zap, Shield, ChevronRight, ChevronDown, Loader2, Info, Sparkles, Lock, Crown, Star } from "lucide-react";
-import { useHasFeature, useSubscription } from "@/hooks/useSubscription";
+import { useSubscription } from "@/hooks/useSubscription";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PROGRAM } from "@/data/program";
 import { generatePersonalizedPlan, setDbExercises, type PersonalizedPlan } from "@/lib/planGenerator";
+import { tierGrantsFullAccess } from "@/lib/plans";
 import { toast } from "@/hooks/use-toast";
 
 const statusColors: Record<string, string> = {
@@ -38,8 +39,10 @@ export default function PlanPage() {
   const [generating, setGenerating] = useState(false);
   const [showPrecautions, setShowPrecautions] = useState(false);
   const [showPrereqs, setShowPrereqs] = useState(false);
-  const hasAiPlan = useHasFeature("ai_plan");
+  const [durationDays, setDurationDays] = useState(28);
   const { tier } = useSubscription();
+  // Personalized AI plan is reserved for Expert / Educator / Shelter (full access tiers)
+  const hasAiPlan = tierGrantsFullAccess(tier);
   const adaptiveSuggestion = useAdaptiveSuggestion();
 
   const { data: savedPlan, refetch: refetchPlan } = useQuery({
@@ -156,9 +159,9 @@ export default function PlanPage() {
         setDbExercises(dbExercises);
       }
 
-      // For Expert tier, gather behavior data for adaptive generation
+      // For Expert / Educator / Shelter, gather behavior data for adaptive generation
       let behaviorData = undefined;
-      if (tier === "expert") {
+      if (tierGrantsFullAccess(tier)) {
         const { data: logs } = await supabase
           .from("behavior_logs")
           .select("*")
@@ -201,10 +204,10 @@ export default function PlanPage() {
         problems: problems.map(p => ({ problem_key: p.problem_key, intensity: p.intensity, frequency: p.frequency })),
         objectives: (objectives || []).map(o => ({ objective_key: o.objective_key, is_priority: o.is_priority || false })),
         evaluation: evaluation || null,
-      }, { tier, behaviorData });
+      }, { tier, behaviorData, totalDays: durationDays });
       await supabase.from("training_plans").update({ is_active: false }).eq("dog_id", activeDog.id).eq("user_id", user.id);
       await supabase.from("training_plans").insert({
-        dog_id: activeDog.id, user_id: user.id, plan_type: tier === "expert" ? "expert" : "personalized",
+        dog_id: activeDog.id, user_id: user.id, plan_type: tierGrantsFullAccess(tier) ? "expert" : "personalized",
         title: plan.dogName, summary: plan.summary,
         axes: plan.axes as any, precautions: plan.precautions as any,
         frequency: plan.frequency, average_duration: plan.averageDuration,
@@ -212,7 +215,7 @@ export default function PlanPage() {
         days: plan.days as any,
       });
       refetchPlan();
-      toast({ title: tier === "expert" ? "✨ Plan Expert généré" : "✓ Plan généré", description: `Plan pour ${activeDog.name} enregistré.` });
+      toast({ title: "✨ Plan IA généré", description: `Plan ${plan.totalDays} jours pour ${activeDog.name}.` });
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
     } finally {
@@ -282,11 +285,12 @@ export default function PlanPage() {
                 <Card className="rounded-2xl">
                   <CardContent className="p-6 space-y-4 text-center">
                     <div className="w-16 h-16 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center">
-                      <Zap className="h-8 w-8 text-primary" />
+                      <Sparkles className="h-8 w-8 text-primary" />
                     </div>
-                    <h2 className="text-lg font-bold text-foreground">Générer mon plan</h2>
+                    <h2 className="text-lg font-bold text-foreground">Plan IA personnalisé</h2>
                     <p className="text-sm text-muted-foreground">
-                      Un plan sur mesure basé sur le profil de {activeDog.name}, ses problématiques et vos objectifs.
+                      Une intelligence parcourt les 480+ exercices et compose un plan sur mesure pour {activeDog.name},
+                      en tenant compte de son profil, ses problèmes et vos objectifs.
                     </p>
                     {!canGenerate && (
                       <div className="rounded-xl bg-warning/10 border border-warning/20 p-3">
@@ -294,14 +298,57 @@ export default function PlanPage() {
                       </div>
                     )}
                     {!hasAiPlan ? (
-                      <Button onClick={() => navigate("/subscription")} className="w-full h-12 rounded-xl text-base bg-accent hover:bg-accent/90">
-                        <Lock className="h-5 w-5" /> Débloquer avec le plan Pro
-                      </Button>
+                      <>
+                        <div className="rounded-xl bg-accent/10 border border-accent/20 p-3 text-left">
+                          <p className="text-xs text-foreground font-medium flex items-center gap-1.5">
+                            <Crown className="h-3.5 w-3.5 text-accent" />
+                            Réservé au plan Expert
+                          </p>
+                          <p className="text-[11px] text-muted-foreground mt-1">
+                            Le plan IA personnalisé est inclus dans Expert (19,90 CHF/mois) et tous les paliers professionnels.
+                          </p>
+                        </div>
+                        <Button onClick={() => navigate("/subscription")} className="w-full h-12 rounded-xl text-base bg-accent hover:bg-accent/90">
+                          <Lock className="h-5 w-5" /> Passer à Expert
+                        </Button>
+                      </>
                     ) : (
-                      <Button onClick={handleGenerate} disabled={!canGenerate || generating} className="w-full h-12 rounded-xl text-base">
-                        {generating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Zap className="h-5 w-5" />}
-                        {generating ? "Génération..." : "Générer mon plan"}
-                      </Button>
+                      <>
+                        <div className="space-y-2 text-left">
+                          <label className="text-xs font-medium text-foreground">Durée du plan</label>
+                          <div className="grid grid-cols-4 gap-2">
+                            {[7, 14, 21, 28].map(d => (
+                              <button
+                                key={d}
+                                type="button"
+                                onClick={() => setDurationDays(d)}
+                                className={`rounded-xl border-2 py-2 text-xs font-medium transition-all ${
+                                  durationDays === d
+                                    ? "border-primary bg-primary/10 text-primary"
+                                    : "border-border bg-card text-muted-foreground"
+                                }`}
+                              >
+                                {d}j
+                              </button>
+                            ))}
+                          </div>
+                          <div className="flex items-center gap-2 pt-1">
+                            <input
+                              type="number"
+                              min={3}
+                              max={90}
+                              value={durationDays}
+                              onChange={(e) => setDurationDays(Math.max(3, Math.min(90, Number(e.target.value) || 28)))}
+                              className="flex-1 h-9 rounded-lg border border-border bg-background px-3 text-sm"
+                            />
+                            <span className="text-xs text-muted-foreground">jours (3 à 90)</span>
+                          </div>
+                        </div>
+                        <Button onClick={handleGenerate} disabled={!canGenerate || generating} className="w-full h-12 rounded-xl text-base">
+                          {generating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
+                          {generating ? "Génération..." : `Générer mon plan (${durationDays}j)`}
+                        </Button>
+                      </>
                     )}
                   </CardContent>
                 </Card>
@@ -513,7 +560,8 @@ function TemplatesList({ onActivated }: { onActivated: () => void }) {
   const { user } = useAuth();
   const activeDog = useActiveDog();
   const { tier } = useSubscription();
-  const isPro = tier === "pro" || tier === "expert";
+  // Pro templates accessible to: pro, expert, educator, shelter
+  const isPro = tier === "pro" || tierGrantsFullAccess(tier);
 
   const { data: templates = [], isLoading } = useQuery({
     queryKey: ["plan-templates"],
@@ -571,9 +619,12 @@ function TemplatesList({ onActivated }: { onActivated: () => void }) {
       <div className="space-y-2">
         <div className="flex items-center gap-2">
           <Star className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-semibold text-foreground">Programmes Starter</h3>
-          <Badge variant="secondary" className="text-[10px] rounded-full">Gratuit</Badge>
+          <h3 className="text-sm font-semibold text-foreground">Programmes Freemium</h3>
+          <Badge variant="secondary" className="text-[10px] rounded-full">{freeTemplates.length} gratuits</Badge>
         </div>
+        {freeTemplates.length === 0 && (
+          <p className="text-xs text-muted-foreground italic">Aucun programme disponible pour le moment.</p>
+        )}
         {freeTemplates.map((t: any) => (
           <Card key={t.id} className="rounded-2xl card-press" onClick={() => handleActivate(t)}>
             <CardContent className="p-3">
@@ -595,13 +646,13 @@ function TemplatesList({ onActivated }: { onActivated: () => void }) {
         <div className="flex items-center gap-2">
           <Crown className="h-4 w-4 text-warning" />
           <h3 className="text-sm font-semibold text-foreground">Programmes Pro</h3>
-          <Badge className="text-[10px] rounded-full bg-warning/15 text-warning border-0">Pro</Badge>
+          <Badge className="text-[10px] rounded-full bg-warning/15 text-warning border-0">{proTemplates.length} programmes</Badge>
         </div>
         {!isPro && (
           <div className="rounded-2xl border border-warning/20 bg-warning/5 p-3 flex items-center gap-3">
             <Lock className="h-4 w-4 text-warning shrink-0" />
             <div className="flex-1">
-              <p className="text-xs text-foreground font-medium">50 programmes exclusifs</p>
+              <p className="text-xs text-foreground font-medium">{proTemplates.length} programmes exclusifs</p>
               <p className="text-[10px] text-muted-foreground">Débloquez avec l'abonnement Pro</p>
             </div>
             <Button size="sm" variant="outline" className="shrink-0 text-xs" onClick={() => navigate("/subscription")}>
