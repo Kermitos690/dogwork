@@ -15,7 +15,7 @@ import {
   Calendar, User, HelpCircle, CreditCard, GraduationCap, Shield,
   MessageSquare, FileText, Users, LayoutDashboard, CalendarDays,
   Target, AlertTriangle, Dumbbell, LogOut, Settings, Star, X, Heart, ShoppingBag,
-  Coins, LayoutGrid
+  Coins, LayoutGrid, Sparkles, BookMarked
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -113,6 +113,13 @@ export function SlideMenu() {
         { label: t("nav.evaluation"), icon: Target, path: "/evaluation" },
         { label: t("nav.problems"), icon: AlertTriangle, path: "/problems" },
         { label: t("nav.objectives"), icon: Star, path: "/objectives" },
+      ],
+    },
+    {
+      title: "Outils IA",
+      items: [
+        { label: "Outils IA", icon: Sparkles, path: "/outils" },
+        { label: "Mes documents", icon: BookMarked, path: "/documents" },
       ],
     },
     {
