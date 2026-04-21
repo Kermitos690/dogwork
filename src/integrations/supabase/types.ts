@@ -604,6 +604,57 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_generated_documents: {
+        Row: {
+          content: Json
+          created_at: string
+          credits_spent: number
+          document_type: string
+          dog_id: string | null
+          feature_code: string
+          id: string
+          is_archived: boolean
+          metadata: Json
+          model_used: string | null
+          summary: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          credits_spent?: number
+          document_type: string
+          dog_id?: string | null
+          feature_code: string
+          id?: string
+          is_archived?: boolean
+          metadata?: Json
+          model_used?: string | null
+          summary?: string | null
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          credits_spent?: number
+          document_type?: string
+          dog_id?: string | null
+          feature_code?: string
+          id?: string
+          is_archived?: boolean
+          metadata?: Json
+          model_used?: string | null
+          summary?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_messages: {
         Row: {
           content: string
