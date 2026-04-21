@@ -15,6 +15,8 @@ import {
   AlertTriangle, CheckCircle2, Flame, BarChart3, Lock,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useFeatureGate } from "@/hooks/useFeatureGate";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 
@@ -372,7 +374,7 @@ export default function Stats() {
         </div>
 
         {/* ─── Tendances : répartition vert/orange/rouge + chrono + top exercices ─── */}
-        <TrendsSection stats={stats} dogId={activeDog.id} />
+        <TrendsSection stats={stats} />
 
         {/* Advanced KPIs — gated */}
         {hasAdvanced ? (
