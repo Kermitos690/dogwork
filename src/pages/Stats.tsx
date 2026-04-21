@@ -242,8 +242,10 @@ export default function Stats() {
         <div className="grid grid-cols-3 gap-2">
           <KPICard label="Jours validés" value={stats.completedDays} delay={0.1} />
           <KPICard label="Séances" value={stats.totalSessions} delay={0.15} />
-          <KPICard label="Série" value={`${stats.streakDays}j`} delay={0.2} />
         </div>
+
+        {/* ─── Tendances : répartition vert/orange/rouge + chrono + top exercices ─── */}
+        <TrendsSection stats={stats} dogId={activeDog.id} />
 
         {/* Advanced KPIs — gated */}
         {hasAdvanced ? (
