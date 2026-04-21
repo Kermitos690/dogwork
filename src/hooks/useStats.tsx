@@ -28,7 +28,14 @@ export interface StatsSummary {
   recommendations: Recommendation[];
   planScore: PlanScore;
   recentHighlights: Highlight[];
+  // ─── Nouveaux KPI tendances ───
+  dayStatusBreakdown: { green: number; orange: number; red: number; pending: number; greenPct: number; orangePct: number; redPct: number };
+  totalTrainingSeconds: number;
+  avgSessionSeconds: number;
+  completedSessionsCount: number;
+  exerciseProgress: { exercise_id: string; total: number; completed: number; rate: number; totalSeconds: number }[];
 }
+
 
 export interface Recommendation {
   type: "success" | "warning" | "info" | "danger";
@@ -106,7 +113,7 @@ export function useStats(period: "7" | "14" | "30" | "all" = "all", loadAdvanced
     queryKey: ["stats_sessions", activeDog?.id],
     queryFn: async () => {
       const { data } = await supabase.from("exercise_sessions")
-        .select("id, completed, duration_actual")
+        .select("id, exercise_id, completed, duration_actual, day_id")
         .eq("dog_id", activeDog!.id);
       return data || [];
     },
@@ -141,6 +148,49 @@ export function useStats(period: "7" | "14" | "30" | "all" = "all", loadAdvanced
     const totalDays = progress.length || 1;
     const completionRate = Math.round((completedDays / Math.max(totalDays, 1)) * 100);
     const totalSessions = sessions.length;
+
+    // ─── Répartition vert/orange/rouge des journées ───
+    // Convention : validated=true → green, status="in_progress" → orange, status="todo" mais entrée présente → red (manquée), absence d'entrée → pending
+    const greenDays = progress.filter(p => p.validated || p.status === "done").length;
+    const orangeDays = progress.filter(p => !p.validated && p.status === "in_progress").length;
+    const redDays = progress.filter(p => !p.validated && p.status === "todo" && Array.isArray(p.completed_exercises) && p.completed_exercises.length > 0).length;
+    const pendingDays = Math.max(0, progress.length - greenDays - orangeDays - redDays);
+    const totalTracked = greenDays + orangeDays + redDays || 1;
+    const dayStatusBreakdown = {
+      green: greenDays,
+      orange: orangeDays,
+      red: redDays,
+      pending: pendingDays,
+      greenPct: Math.round((greenDays / totalTracked) * 100),
+      orangePct: Math.round((orangeDays / totalTracked) * 100),
+      redPct: Math.round((redDays / totalTracked) * 100),
+    };
+
+    // ─── Durée au chronomètre ───
+    const durations = sessions.map(s => s.duration_actual || 0).filter(d => d > 0);
+    const totalTrainingSeconds = durations.reduce((a, b) => a + b, 0);
+    const completedSessionsCount = sessions.filter(s => s.completed).length;
+    const avgSessionSeconds = durations.length ? Math.round(totalTrainingSeconds / durations.length) : 0;
+
+    // ─── Progression par exercice ───
+    const byExercise = new Map<string, { total: number; completed: number; totalSeconds: number }>();
+    for (const s of sessions) {
+      if (!s.exercise_id) continue;
+      const cur = byExercise.get(s.exercise_id) || { total: 0, completed: 0, totalSeconds: 0 };
+      cur.total += 1;
+      if (s.completed) cur.completed += 1;
+      cur.totalSeconds += s.duration_actual || 0;
+      byExercise.set(s.exercise_id, cur);
+    }
+    const exerciseProgress = Array.from(byExercise.entries())
+      .map(([exercise_id, v]) => ({
+        exercise_id,
+        total: v.total,
+        completed: v.completed,
+        totalSeconds: v.totalSeconds,
+        rate: v.total ? Math.round((v.completed / v.total) * 100) : 0,
+      }))
+      .sort((a, b) => b.total - a.total);
 
     // Averages
     const tensions = filteredLogs.map(l => l.tension_level).filter((v): v is number => v != null && v > 0);
@@ -305,6 +355,8 @@ export function useStats(period: "7" | "14" | "30" | "all" = "all", loadAdvanced
       tensionTrend, reactionTrend, distanceTrend,
       streakDays, tensionChart, distanceChart, weeklyData,
       recommendations, planScore, recentHighlights,
+      dayStatusBreakdown, totalTrainingSeconds, avgSessionSeconds, completedSessionsCount,
+      exerciseProgress,
     };
   }, [activeDog, progressData, behaviorData, sessionsData, journalData, period]);
 }
