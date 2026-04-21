@@ -17,6 +17,7 @@ import { PROGRAM } from "@/data/program";
 import { generatePersonalizedPlan, setDbExercises, type PersonalizedPlan } from "@/lib/planGenerator";
 import { tierGrantsFullAccess } from "@/lib/plans";
 import { toast } from "@/hooks/use-toast";
+import { useSaveAIDocument } from "@/hooks/useAIDocuments";
 
 const statusColors: Record<string, string> = {
   done: "bg-success text-success-foreground",
@@ -44,6 +45,7 @@ export default function PlanPage() {
   // Personalized AI plan is reserved for Expert / Educator / Shelter (full access tiers)
   const hasAiPlan = tierGrantsFullAccess(tier);
   const adaptiveSuggestion = useAdaptiveSuggestion();
+  const saveDoc = useSaveAIDocument();
 
   const { data: savedPlan, refetch: refetchPlan } = useQuery({
     queryKey: ["training_plan", activeDog?.id],
@@ -215,7 +217,22 @@ export default function PlanPage() {
         days: plan.days as any,
       });
       refetchPlan();
-      toast({ title: "✨ Plan IA généré", description: `Plan ${plan.totalDays} jours pour ${activeDog.name}.` });
+      // Auto-save to global AI document library
+      try {
+        await saveDoc.mutateAsync({
+          dog_id: activeDog.id,
+          feature_code: tierGrantsFullAccess(tier) ? "ai_plan_generation" : "ai_plan_generation",
+          document_type: "training_plan",
+          title: `Plan ${plan.totalDays}j — ${activeDog.name}`,
+          summary: plan.summary,
+          content: plan as any,
+          credits_spent: 0,
+          metadata: { duration_days: plan.totalDays, tier },
+        });
+      } catch (e) {
+        console.error("[Plan] auto-save failed:", e);
+      }
+      toast({ title: "✨ Plan IA généré", description: `Plan ${plan.totalDays} jours pour ${activeDog.name}. Sauvegardé dans Mes documents.` });
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
     } finally {
