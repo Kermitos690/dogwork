@@ -261,6 +261,24 @@ RÈGLES :
       });
     }
 
+    // Auto-save to AI document library
+    try {
+      await admin.from("ai_generated_documents").insert({
+        user_id: userId,
+        dog_id: null,
+        feature_code: FEATURE_CODE,
+        document_type: "adoption_plan",
+        title: plan.title || `Plan d'adoption — ${animal.name}`,
+        summary: plan.description || "",
+        content: plan,
+        credits_spent: creditsCost,
+        model_used: feature.model,
+        metadata: { animal_id, animal_name: animal.name },
+      });
+    } catch (saveErr) {
+      console.error("[generate-adoption-plan] auto-save failed:", saveErr);
+    }
+
     return new Response(JSON.stringify({ success: true, plan }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
