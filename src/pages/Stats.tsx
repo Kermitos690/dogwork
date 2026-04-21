@@ -171,6 +171,133 @@ function ChartTooltip({ active, payload, label }: any) {
   );
 }
 
+// ─── Tendances : répartition jours, chrono, progression par exercice ──────
+
+function formatDuration(totalSeconds: number) {
+  if (!totalSeconds || totalSeconds <= 0) return "0 min";
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  if (h > 0) return `${h}h ${m.toString().padStart(2, "0")}`;
+  return `${m} min`;
+}
+
+function useExerciseNames(ids: string[]) {
+  return useQuery({
+    queryKey: ["exercise-names", ids.sort().join(",")],
+    queryFn: async () => {
+      if (!ids.length) return {};
+      const { data } = await supabase
+        .from("exercises")
+        .select("id, name, slug")
+        .in("id", ids);
+      const map: Record<string, string> = {};
+      (data || []).forEach((e: any) => { map[e.id] = e.name || e.slug || "Exercice"; });
+      return map;
+    },
+    enabled: ids.length > 0,
+    staleTime: 5 * 60_000,
+  });
+}
+
+function TrendsSection({ stats }: { stats: any }) {
+  const top = (stats.exerciseProgress as any[]).slice(0, 5);
+  const exerciseIds = top.map(e => e.exercise_id);
+  const { data: exerciseNames } = useExerciseNames(exerciseIds);
+  const breakdown = stats.dayStatusBreakdown;
+  const totalDaysTracked = breakdown.green + breakdown.orange + breakdown.red;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.22 }}
+      className="space-y-3"
+    >
+      <h2 className="text-sm font-semibold text-foreground">Tendances</h2>
+
+      <div className="rounded-2xl border border-border/30 bg-card/60 backdrop-blur-sm p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-medium text-foreground">Répartition des journées</p>
+          <span className="text-[10px] text-muted-foreground">{totalDaysTracked} jour{totalDaysTracked > 1 ? "s" : ""}</span>
+        </div>
+        {totalDaysTracked === 0 ? (
+          <p className="text-xs text-muted-foreground">Validez vos premières journées pour voir la répartition.</p>
+        ) : (
+          <>
+            <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted/30">
+              {breakdown.greenPct > 0 && <div className="h-full bg-emerald-500 transition-all" style={{ width: `${breakdown.greenPct}%` }} />}
+              {breakdown.orangePct > 0 && <div className="h-full bg-amber-500 transition-all" style={{ width: `${breakdown.orangePct}%` }} />}
+              {breakdown.redPct > 0 && <div className="h-full bg-red-500 transition-all" style={{ width: `${breakdown.redPct}%` }} />}
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div>
+                <p className="text-base font-bold text-emerald-400">{breakdown.green}</p>
+                <p className="text-[10px] text-muted-foreground">Validées · {breakdown.greenPct}%</p>
+              </div>
+              <div>
+                <p className="text-base font-bold text-amber-400">{breakdown.orange}</p>
+                <p className="text-[10px] text-muted-foreground">En cours · {breakdown.orangePct}%</p>
+              </div>
+              <div>
+                <p className="text-base font-bold text-red-400">{breakdown.red}</p>
+                <p className="text-[10px] text-muted-foreground">Manquées · {breakdown.redPct}%</p>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        <div className="rounded-2xl border border-border/30 bg-card/60 backdrop-blur-sm p-3">
+          <p className="text-[10px] text-muted-foreground mb-1">Temps total</p>
+          <p className="text-base font-bold text-foreground">{formatDuration(stats.totalTrainingSeconds)}</p>
+        </div>
+        <div className="rounded-2xl border border-border/30 bg-card/60 backdrop-blur-sm p-3">
+          <p className="text-[10px] text-muted-foreground mb-1">Moy. / séance</p>
+          <p className="text-base font-bold text-foreground">{formatDuration(stats.avgSessionSeconds)}</p>
+        </div>
+        <div className="rounded-2xl border border-border/30 bg-card/60 backdrop-blur-sm p-3">
+          <p className="text-[10px] text-muted-foreground mb-1">Séances OK</p>
+          <p className="text-base font-bold text-foreground">{stats.completedSessionsCount}<span className="text-xs text-muted-foreground">/{stats.totalSessions}</span></p>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-border/30 bg-card/60 backdrop-blur-sm p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="h-4 w-4 text-primary" />
+          <p className="text-xs font-medium text-foreground flex-1">Progression par exercice</p>
+        </div>
+        {top.length === 0 ? (
+          <p className="text-xs text-muted-foreground">Lancez vos premières séances chronométrées pour suivre la progression par exercice.</p>
+        ) : (
+          <div className="space-y-2.5">
+            {top.map((ex: any) => {
+              const name = exerciseNames?.[ex.exercise_id] || "Exercice";
+              const color = ex.rate >= 70 ? "from-emerald-500 to-emerald-400"
+                : ex.rate >= 40 ? "from-amber-500 to-amber-400"
+                : "from-red-500 to-red-400";
+              return (
+                <div key={ex.exercise_id} className="space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-foreground truncate flex-1">{name}</span>
+                    <span className="text-[10px] text-muted-foreground shrink-0">
+                      {ex.completed}/{ex.total} · {formatDuration(ex.totalSeconds)}
+                    </span>
+                    <span className="text-xs font-bold text-foreground shrink-0 w-9 text-right">{ex.rate}%</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-muted/30 overflow-hidden">
+                    <div className={`h-full rounded-full bg-gradient-to-r ${color} transition-all`} style={{ width: `${ex.rate}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 // ─── Main ──────
 
 export default function Stats() {
