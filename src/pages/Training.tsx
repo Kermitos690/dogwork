@@ -115,6 +115,9 @@ export default function Training() {
   const goNext = () => { if (currentIndex < totalExercises - 1) { setCurrentIndex(currentIndex + 1); setReps(0); setShowSteps(false); } };
   const goPrev = () => { if (currentIndex > 0) { setCurrentIndex(currentIndex - 1); setReps(0); setShowSteps(false); } };
 
+  // Centralized lock state (Phase 2A) — same source of truth as DayDetail / Plan
+  const lockSnapshot = useDayLockState(id);
+
   if (!activeDog) {
     return (
       <AppLayout>
@@ -122,6 +125,35 @@ export default function Training() {
           title="Séance d'entraînement"
           description="Sélectionnez un chien pour démarrer sa séance du jour."
         />
+      </AppLayout>
+    );
+  }
+
+  if (lockSnapshot.locked) {
+    return (
+      <AppLayout>
+        <div className="pt-4 text-center space-y-6 animate-fade-in">
+          <div className="mx-auto w-20 h-20 rounded-3xl bg-muted flex items-center justify-center">
+            <Lock className="h-10 w-10 text-muted-foreground" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold text-foreground">Jour {id} verrouillé</h1>
+            <p className="text-sm text-muted-foreground">
+              Validez le Jour {id - 1} avant de démarrer cette séance.
+            </p>
+          </div>
+          <div className="space-y-3 max-w-xs mx-auto">
+            <Button
+              className="w-full h-12 rounded-xl"
+              onClick={() => navigate(source === "plan" ? `/day/${id - 1}?source=plan` : `/day/${id - 1}`)}
+            >
+              <ArrowLeft className="h-5 w-5" /> Aller au Jour {id - 1}
+            </Button>
+            <Button variant="ghost" className="w-full h-12 rounded-xl" onClick={() => navigate("/plan")}>
+              Retour au plan
+            </Button>
+          </div>
+        </div>
       </AppLayout>
     );
   }
