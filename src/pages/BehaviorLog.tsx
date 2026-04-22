@@ -7,6 +7,8 @@ import { useActiveDog } from "@/hooks/useDogs";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { ZoneSelector } from "@/components/ZoneSelector";
+import { zoneFromTension, type Zone } from "@/lib/zones";
 
 function ToggleGroup({ label, value, options, onChange }: {
   label: string; value: string; options: { value: string; label: string }[];
@@ -98,6 +100,7 @@ type LogData = {
   comfort_distance_meters: number;
   recovery_after_trigger: string;
   comments: string;
+  zone_state: Zone | null;
 };
 
 const defaultLog: LogData = {
@@ -106,6 +109,7 @@ const defaultLog: LogData = {
   leash_walk_quality: "moyenne", tension_level: 3, dog_reaction_level: 3,
   human_reaction_level: 3,
   comfort_distance_meters: 20, recovery_after_trigger: "moyenne", comments: "",
+  zone_state: null,
 };
 
 export default function BehaviorLogPage() {
@@ -136,6 +140,7 @@ export default function BehaviorLogPage() {
             comfort_distance_meters: data.comfort_distance_meters || 20,
             recovery_after_trigger: data.recovery_after_trigger || "moyenne",
             comments: data.comments || "",
+            zone_state: ((data as any).zone_state as Zone) || null,
           });
         }
       });
@@ -209,6 +214,16 @@ export default function BehaviorLogPage() {
             <SliderInput label="Niveau de tension" value={log.tension_level} min={1} max={5} onChange={(v) => update("tension_level", v)} />
             <SliderInput label="Réactivité chiens" value={log.dog_reaction_level} min={1} max={5} onChange={(v) => update("dog_reaction_level", v)} />
             <SliderInput label="Réactivité humains" value={log.human_reaction_level} min={1} max={5} onChange={(v) => update("human_reaction_level", v)} />
+          </div>
+
+          {/* Zone — auto-suggestion + manual override */}
+          <div className="rounded-xl border border-border bg-card p-4">
+            <ZoneSelector
+              value={log.zone_state}
+              onChange={(z) => update("zone_state", z)}
+              suggestion={zoneFromTension(log.tension_level)}
+              label="Zone du jour (vert / orange / rouge)"
+            />
           </div>
 
           {/* Distance */}
