@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
-import { ArrowLeft, ChevronLeft, ChevronRight, ChevronDown, Plus, Minus, CheckCircle2, BookOpen } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, ChevronDown, Plus, Minus, CheckCircle2, BookOpen, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { AppLayout } from "@/components/AppLayout";
@@ -162,6 +162,14 @@ export default function Training() {
           </button>
           <span className="text-xs font-bold text-primary">Exercice {currentIndex + 1}/{totalExercises}</span>
         </div>
+
+        {/* Field training mode — distraction-free, full-screen */}
+        <Button
+          className="w-full h-12 rounded-2xl text-sm font-semibold"
+          onClick={() => navigate(source === "plan" ? `/training/session/${id}?source=plan` : `/training/session/${id}`)}
+        >
+          <Play className="h-4 w-4" /> Mode terrain — plein écran
+        </Button>
 
         <Progress value={sessionPct} className="h-2" />
 
