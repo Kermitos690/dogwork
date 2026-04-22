@@ -28,6 +28,9 @@ export default function Training() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [reps, setReps] = useState(0);
   const [showSteps, setShowSteps] = useState(false);
+  const [sessionZone, setSessionZone] = useState<Zone | null>(null);
+  const [zoneSaving, setZoneSaving] = useState(false);
+
 
   const { data: planDay } = useQuery({
     queryKey: ["training_plan_day", activeDog?.id, id],
@@ -245,15 +248,59 @@ export default function Training() {
 
         {/* All done */}
         {allDone && (
-          <div className="rounded-2xl border-2 border-success/30 bg-success/5 p-5 text-center space-y-3 animate-fade-in">
-            <CheckCircle2 className="h-10 w-10 text-success mx-auto" />
-            <p className="text-base font-bold text-success">Séance terminée !</p>
-            <p className="text-xs text-muted-foreground">Pensez au suivi comportemental.</p>
-            <div className="flex gap-2">
-              <Button variant="outline" className="flex-1 rounded-xl" onClick={() => navigate(`/behavior/${id}`)}>
-                Suivi
+          <div className="rounded-2xl border-2 border-success/30 bg-success/5 p-5 space-y-4 animate-fade-in">
+            <div className="text-center space-y-2">
+              <CheckCircle2 className="h-10 w-10 text-success mx-auto" />
+              <p className="text-base font-bold text-success">Séance terminée !</p>
+              <p className="text-xs text-muted-foreground">
+                Comment était votre chien pendant cette séance ?
+              </p>
+            </div>
+
+            <ZoneSelector
+              value={sessionZone}
+              onChange={async (z) => {
+                setSessionZone(z);
+                if (!z || !activeDog) return;
+                setZoneSaving(true);
+                try {
+                  const { data: lastSession } = await supabase
+                    .from("exercise_sessions")
+                    .select("id")
+                    .eq("dog_id", activeDog.id)
+                    .eq("day_id", id)
+                    .order("created_at", { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                  if (lastSession?.id) {
+                    await supabase
+                      .from("exercise_sessions")
+                      .update({ zone_state: z })
+                      .eq("id", lastSession.id);
+                  }
+                  toast({
+                    title: "Zone enregistrée",
+                    description: `Cette séance : ${z === "green" ? "🟢 verte" : z === "orange" ? "🟠 orange" : "🔴 rouge"}`,
+                  });
+                } catch {
+                  toast({ title: "Erreur", description: "Zone non sauvegardée.", variant: "destructive" });
+                } finally {
+                  setZoneSaving(false);
+                }
+              }}
+              label="Zone observée pendant la séance"
+            />
+            {sessionZone && (
+              <div className="flex justify-center">
+                <ZoneBadge zone={sessionZone} size="md" />
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-1">
+              <Button variant="outline" className="flex-1 rounded-xl" onClick={() => navigate(`/behavior/${id}`)} disabled={zoneSaving}>
+                Suivi détaillé
               </Button>
-              <Button className="flex-1 rounded-xl" onClick={() => navigate(backUrl)}>
+              <Button className="flex-1 rounded-xl" onClick={() => navigate(backUrl)} disabled={zoneSaving}>
                 Retour au jour
               </Button>
             </div>
