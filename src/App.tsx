@@ -97,6 +97,7 @@ const LegalPage = lazy(() => import("./pages/Legal"));
 const ShopPage = lazy(() => import("./pages/Shop"));
 const OutilsPage = lazy(() => import("./pages/Outils"));
 const DocumentsPage = lazy(() => import("./pages/Documents"));
+const AgentsPage = lazy(() => import("./pages/Agents"));
 
 export const queryClient = new QueryClient();
 
