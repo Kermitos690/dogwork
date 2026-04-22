@@ -133,7 +133,7 @@ export function useStats(period: "7" | "14" | "30" | "all" = "all", loadAdvanced
     queryKey: ["stats_behavior", activeDog?.id],
     queryFn: async () => {
       const { data } = await supabase.from("behavior_logs")
-        .select("day_id, tension_level, dog_reaction_level, human_reaction_level, comfort_distance_meters, stop_response, no_response, focus_quality, leash_walk_quality, recovery_after_trigger, jump_on_human, barking, created_at")
+        .select("day_id, tension_level, dog_reaction_level, human_reaction_level, comfort_distance_meters, stop_response, no_response, focus_quality, leash_walk_quality, recovery_after_trigger, jump_on_human, barking, created_at, zone_state")
         .eq("dog_id", activeDog!.id)
         .order("created_at");
       return data || [];
@@ -145,7 +145,7 @@ export function useStats(period: "7" | "14" | "30" | "all" = "all", loadAdvanced
     queryKey: ["stats_sessions", activeDog?.id],
     queryFn: async () => {
       const { data } = await supabase.from("exercise_sessions")
-        .select("id, exercise_id, completed, duration_actual, day_id")
+        .select("id, exercise_id, completed, duration_actual, day_id, zone_state, created_at")
         .eq("dog_id", activeDog!.id);
       return data || [];
     },
