@@ -186,6 +186,7 @@ function AIChatBotInner() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
+  const [savedMessages, setSavedMessages] = useState<Set<number>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
