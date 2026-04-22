@@ -1,6 +1,14 @@
 project_id = "dcwbqsfeouvghcnvhrpj"
 
 [functions]
+  [functions.agent-behavior-analysis]
+    verify_jwt = false
+  [functions.agent-progress-report]
+    verify_jwt = false
+  [functions.agent-plan-adjustment]
+    verify_jwt = false
+  [functions.agent-dog-insights]
+    verify_jwt = false
   [functions.admin-stripe]
     verify_jwt = false
   [functions.ai-with-credits]
