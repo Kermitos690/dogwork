@@ -2273,6 +2273,48 @@ export type Database = {
           },
         ]
       }
+      shelter_animal_adopter_info: {
+        Row: {
+          adopter_email: string | null
+          adopter_name: string | null
+          animal_id: string
+          created_at: string
+          shelter_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          adopter_email?: string | null
+          adopter_name?: string | null
+          animal_id: string
+          created_at?: string
+          shelter_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          adopter_email?: string | null
+          adopter_name?: string | null
+          animal_id?: string
+          created_at?: string
+          shelter_user_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shelter_animal_adopter_info_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: true
+            referencedRelation: "shelter_animals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shelter_animal_adopter_info_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: true
+            referencedRelation: "shelter_animals_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shelter_animal_evaluations: {
         Row: {
           adoption_ready: boolean | null
@@ -3139,54 +3181,6 @@ export type Database = {
           updated_at: string | null
           user_id: string | null
           weight_kg: number | null
-        }
-        Insert: {
-          adopter_email?: never
-          adopter_name?: never
-          arrival_date?: string | null
-          behavior_notes?: string | null
-          breed?: string | null
-          chip_id?: string | null
-          created_at?: string | null
-          departure_date?: string | null
-          departure_reason?: string | null
-          description?: string | null
-          estimated_age?: string | null
-          health_notes?: string | null
-          id?: string | null
-          is_sterilized?: boolean | null
-          name?: string | null
-          photo_url?: string | null
-          sex?: string | null
-          species?: string | null
-          status?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-          weight_kg?: number | null
-        }
-        Update: {
-          adopter_email?: never
-          adopter_name?: never
-          arrival_date?: string | null
-          behavior_notes?: string | null
-          breed?: string | null
-          chip_id?: string | null
-          created_at?: string | null
-          departure_date?: string | null
-          departure_reason?: string | null
-          description?: string | null
-          estimated_age?: string | null
-          health_notes?: string | null
-          id?: string | null
-          is_sterilized?: boolean | null
-          name?: string | null
-          photo_url?: string | null
-          sex?: string | null
-          species?: string | null
-          status?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-          weight_kg?: number | null
         }
         Relationships: []
       }
