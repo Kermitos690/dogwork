@@ -379,6 +379,105 @@ export function useStats(period: "7" | "14" | "30" | "all" = "all", loadAdvanced
       recentHighlights.push({ type: "alert", text: "Tension élevée persistante. Vigilance renforcée." });
     }
 
+    // ─── Real zone aggregation (behavior_logs.zone_state + exercise_sessions.zone_state) ───
+    // Prefer explicit persisted zone_state. Fallback only when missing AND tension_level is present.
+    const filteredSessions = cutoff
+      ? sessions.filter((s: any) => s.created_at && isAfter(parseISO(s.created_at), cutoff))
+      : sessions;
+
+    const emptyDist: ZoneDistribution = { green: 0, orange: 0, red: 0, total: 0, greenPct: 0, orangePct: 0, redPct: 0 };
+    const finalize = (g: number, o: number, r: number): ZoneDistribution => {
+      const total = g + o + r;
+      if (!total) return { ...emptyDist };
+      return {
+        green: g, orange: o, red: r, total,
+        greenPct: Math.round((g / total) * 100),
+        orangePct: Math.round((o / total) * 100),
+        redPct: Math.round((r / total) * 100),
+      };
+    };
+
+    let explicitCount = 0;
+    let derivedCount = 0;
+
+    const collectZones = (rows: any[], hasTension: boolean) => {
+      let g = 0, o = 0, r = 0;
+      for (const row of rows) {
+        let z: Zone | null = (row.zone_state as Zone | null) ?? null;
+        if (z) {
+          explicitCount++;
+        } else if (hasTension) {
+          z = zoneFromTension(row.tension_level);
+          if (z) derivedCount++;
+        }
+        if (z === "green") g++;
+        else if (z === "orange") o++;
+        else if (z === "red") r++;
+      }
+      return finalize(g, o, r);
+    };
+
+    const behaviorZoneDistribution = collectZones(filteredLogs, true);
+    const sessionZoneDistribution = collectZones(filteredSessions, false);
+    const combinedZoneDistribution = finalize(
+      behaviorZoneDistribution.green + sessionZoneDistribution.green,
+      behaviorZoneDistribution.orange + sessionZoneDistribution.orange,
+      behaviorZoneDistribution.red + sessionZoneDistribution.red,
+    );
+
+    const zoneTotal = explicitCount + derivedCount;
+    const zoneDataQuality = {
+      explicit: explicitCount,
+      derived: derivedCount,
+      total: zoneTotal,
+      explicitPct: zoneTotal ? Math.round((explicitCount / zoneTotal) * 100) : 0,
+    };
+
+    // Day-by-day zone trend (combined sources)
+    const trendBuckets = new Map<string, { green: number; orange: number; red: number }>();
+    const pushTrend = (rows: any[], hasTension: boolean) => {
+      for (const row of rows) {
+        if (!row.created_at) continue;
+        const day = format(parseISO(row.created_at), "yyyy-MM-dd");
+        let z: Zone | null = (row.zone_state as Zone | null) ?? null;
+        if (!z && hasTension) z = zoneFromTension(row.tension_level);
+        if (!z) continue;
+        const cur = trendBuckets.get(day) || { green: 0, orange: 0, red: 0 };
+        cur[z] += 1;
+        trendBuckets.set(day, cur);
+      }
+    };
+    pushTrend(filteredLogs, true);
+    pushTrend(filteredSessions, false);
+
+    const zoneTrend: ZoneTrendPoint[] = Array.from(trendBuckets.entries())
+      .sort(([a], [b]) => (a < b ? -1 : 1))
+      .map(([date, counts]) => ({ date, ...counts }));
+
+    // Recent dominant zone (last 7 days)
+    const recentCutoff = subDays(new Date(), 7);
+    const recentBuckets = zoneTrend.filter((p) => isAfter(parseISO(p.date), recentCutoff));
+    let recentDominantZone: Zone | null = null;
+    if (recentBuckets.length) {
+      const totals = recentBuckets.reduce(
+        (acc, p) => ({ green: acc.green + p.green, orange: acc.orange + p.orange, red: acc.red + p.red }),
+        { green: 0, orange: 0, red: 0 },
+      );
+      const maxVal = Math.max(totals.green, totals.orange, totals.red);
+      if (maxVal > 0) {
+        recentDominantZone = totals.red === maxVal ? "red" : totals.orange === maxVal ? "orange" : "green";
+      }
+    }
+
+    // Zone-aware highlights (only add when we have meaningful zone data)
+    if (combinedZoneDistribution.total >= 5) {
+      if (combinedZoneDistribution.greenPct >= 70) {
+        recentHighlights.push({ type: "improvement", text: `Zone verte dominante (${combinedZoneDistribution.greenPct}% des observations).` });
+      } else if (combinedZoneDistribution.redPct >= 40) {
+        recentHighlights.push({ type: "alert", text: `Zone rouge fréquente (${combinedZoneDistribution.redPct}%). Réduire la pression.` });
+      }
+    }
+
     return {
       completedDays, totalSessions, completionRate,
       avgTension, avgDogReaction, avgHumanReaction,
@@ -389,6 +488,8 @@ export function useStats(period: "7" | "14" | "30" | "all" = "all", loadAdvanced
       recommendations, planScore, recentHighlights,
       dayStatusBreakdown, totalTrainingSeconds, avgSessionSeconds, completedSessionsCount,
       exerciseProgress,
+      behaviorZoneDistribution, sessionZoneDistribution, combinedZoneDistribution,
+      zoneTrend, recentDominantZone, zoneDataQuality,
     };
   }, [activeDog, progressData, behaviorData, sessionsData, journalData, period]);
 }
