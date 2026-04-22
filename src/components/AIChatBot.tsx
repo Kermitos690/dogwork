@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, X, Bot, Sparkles, Loader2, Clock, History, Plus, Trash2, MessageSquare, NotebookPen } from "lucide-react";
+import { Send, X, Bot, Sparkles, Loader2, Clock, History, Plus, Trash2, MessageSquare, NotebookPen, Check } from "lucide-react";
 import { saveAiTextToJournal } from "@/lib/aiDestinations";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
