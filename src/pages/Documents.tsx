@@ -194,19 +194,38 @@ export default function Documents() {
 
         {/* View dialog */}
         <Dialog open={!!viewing} onOpenChange={(o) => !o && setViewing(null)}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
+          <DialogContent className="max-w-3xl max-h-[88vh] overflow-hidden flex flex-col p-0 gap-0">
+            <DialogHeader className="px-6 pt-6 pb-3 border-b border-border">
               <DialogTitle>{viewing?.title}</DialogTitle>
               <DialogDescription>
                 {viewing && new Date(viewing.created_at).toLocaleString("fr-CH")}
+                {viewing && viewing.credits_spent > 0 &&
+                  ` · ${viewing.credits_spent} crédit${viewing.credits_spent > 1 ? "s" : ""}`}
               </DialogDescription>
             </DialogHeader>
-            {viewing?.summary && (
-              <p className="text-sm text-muted-foreground italic border-l-2 border-primary/40 pl-3">{viewing.summary}</p>
+            <div className="flex-1 overflow-y-auto px-6 py-5">
+              {viewing && (
+                <AIDocumentViewer
+                  content={viewing.content}
+                  summary={viewing.summary}
+                  printable
+                />
+              )}
+            </div>
+            {viewing && (
+              <div className="border-t border-border px-6 py-3 bg-muted/20">
+                <AIPostGenerationActions
+                  title={viewing.title}
+                  summary={viewing.summary}
+                  text={
+                    typeof (viewing.content as any)?.text === "string"
+                      ? (viewing.content as any).text
+                      : JSON.stringify(viewing.content, null, 2)
+                  }
+                  showOpenLibrary={false}
+                />
+              </div>
             )}
-            <pre className="text-xs bg-muted/50 rounded-lg p-3 overflow-x-auto whitespace-pre-wrap font-mono">
-              {viewing && JSON.stringify(viewing.content, null, 2)}
-            </pre>
           </DialogContent>
         </Dialog>
 
