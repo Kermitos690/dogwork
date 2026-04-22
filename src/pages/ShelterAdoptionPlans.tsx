@@ -64,6 +64,14 @@ export default function ShelterAdoptionPlans() {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [newTask, setNewTask] = useState({ title: "", description: "", type: "observation", week: 1 });
   const [generatingAI, setGeneratingAI] = useState(false);
+  const [aiResult, setAiResult] = useState<{
+    plan: AiPlanShape;
+    raw: unknown;
+    animal_id: string;
+    adopter_user_id: string;
+    creditsSpent: number;
+  } | null>(null);
+  const [savingAi, setSavingAi] = useState(false);
   const credit = useCreditConfirmation();
 
   // Form state for new plan
