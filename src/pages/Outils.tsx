@@ -1,13 +1,23 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useActiveDog } from "@/hooks/useDogs";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { useAIBalance, useAIFeatures } from "@/hooks/useAICredits";
+import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
+import { fr } from "date-fns/locale";
 import {
   Sparkles, BookOpen, Brain, ClipboardCheck, Heart,
-  TrendingUp, ImageIcon, Coins, BookMarked, ArrowRight
+  TrendingUp, ImageIcon, Coins, BookMarked, ArrowRight,
+  Bot, Loader2, Clock,
 } from "lucide-react";
 
 interface ToolDef {
@@ -70,13 +80,89 @@ const TOOLS: ToolDef[] = [
   },
 ];
 
+interface AgentDef {
+  code: string;
+  functionName: string;
+  needsDog: boolean;
+}
+
+const AGENTS: AgentDef[] = [
+  { code: "agent_behavior_analysis", functionName: "agent-behavior-analysis", needsDog: false },
+  { code: "agent_progress_report",   functionName: "agent-progress-report",   needsDog: false },
+  { code: "agent_plan_adjustment",   functionName: "agent-plan-adjustment",   needsDog: false },
+  { code: "agent_dog_insights",      functionName: "agent-dog-insights",      needsDog: true  },
+];
+
 export default function Outils() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const currentDog = useActiveDog();
+  const qc = useQueryClient();
   const { data: wallet } = useAIBalance();
   const { data: features } = useAIFeatures();
+  const [running, setRunning] = useState<string | null>(null);
+
+  useEffect(() => {
+    document.title = "Outils IA — DogWork";
+  }, []);
 
   const getCost = (code: string) =>
     features?.find((f) => f.code === code)?.credits_cost ?? 0;
+
+  const getMeta = (code: string) =>
+    features?.find((f) => f.code === code);
+
+  const { data: prefs } = useQuery({
+    queryKey: ["ai-agent-preferences", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ai_agent_preferences")
+        .select("agent_code, enabled, last_run_at")
+        .eq("user_id", user!.id);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const togglePref = useMutation({
+    mutationFn: async ({ code, enabled }: { code: string; enabled: boolean }) => {
+      if (!user) throw new Error("Non connecté");
+      const { error } = await supabase
+        .from("ai_agent_preferences")
+        .upsert({ user_id: user.id, agent_code: code, enabled }, { onConflict: "user_id,agent_code" });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["ai-agent-preferences", user?.id] }),
+    onError: (e: any) => toast.error(e.message ?? "Erreur"),
+  });
+
+  const runAgent = async (def: AgentDef) => {
+    if (def.needsDog && !currentDog) {
+      toast.error("Sélectionnez un chien d'abord.");
+      return;
+    }
+    setRunning(def.code);
+    try {
+      const { data, error } = await supabase.functions.invoke(def.functionName, {
+        body: { dog_id: currentDog?.id ?? null },
+      });
+      if (error) {
+        const msg = (error as any).context?.body
+          ? JSON.parse((error as any).context.body)?.error
+          : error.message;
+        throw new Error(msg ?? error.message);
+      }
+      toast.success(`Agent terminé · ${data.credits_spent} crédits débités. Document sauvegardé.`);
+      qc.invalidateQueries({ queryKey: ["ai-agent-preferences", user?.id] });
+      qc.invalidateQueries({ queryKey: ["ai-balance"] });
+      qc.invalidateQueries({ queryKey: ["ai-documents"] });
+    } catch (e: any) {
+      toast.error(e.message ?? "Échec de l'agent");
+    } finally {
+      setRunning(null);
+    }
+  };
 
   return (
     <AppLayout>
@@ -92,7 +178,7 @@ export default function Outils() {
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Outils IA</h1>
           </div>
           <p className="text-sm text-muted-foreground max-w-2xl">
-            Tous les générateurs intelligents de DogWork au même endroit.
+            Tous les générateurs intelligents et agents autonomes de DogWork au même endroit.
             Chaque création est sauvegardée automatiquement dans ta bibliothèque.
           </p>
         </motion.div>
@@ -133,6 +219,9 @@ export default function Outils() {
         </div>
 
         {/* Tools grid */}
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+          Générateurs à la demande
+        </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {TOOLS.map((tool, idx) => {
             const cost = getCost(tool.feature_code);
@@ -172,6 +261,88 @@ export default function Outils() {
               </motion.div>
             );
           })}
+        </div>
+
+        {/* Autonomous agents */}
+        <div className="mt-8">
+          <div className="flex items-center gap-2 mb-1">
+            <Bot className="h-5 w-5 text-primary" />
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Agents IA autonomes
+            </h2>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">
+            Active un agent (off par défaut), puis lance-le manuellement quand tu en as besoin. Les crédits sont débités uniquement au lancement.
+          </p>
+
+          <div className="grid gap-3">
+            {AGENTS.map((def) => {
+              const meta = getMeta(def.code);
+              const cost = meta?.credits_cost ?? 0;
+              const pref = prefs?.find((p) => p.agent_code === def.code);
+              const enabled = pref?.enabled ?? false;
+              const isRunning = running === def.code;
+              const insufficient = (wallet?.balance ?? 0) < cost;
+
+              return (
+                <Card key={def.code} className="p-4 border-border/60">
+                  <div className="flex items-start justify-between gap-4 mb-3">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                        <Sparkles className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-foreground">
+                          {meta?.label ?? def.code}
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {meta?.description}
+                        </p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={enabled}
+                      onCheckedChange={(v) => togglePref.mutate({ code: def.code, enabled: v })}
+                      disabled={togglePref.isPending}
+                    />
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="secondary" className="text-[10px] gap-1">
+                        <Coins className="h-3 w-3" />
+                        {cost} crédit{cost > 1 ? "s" : ""}
+                      </Badge>
+                      {def.needsDog && (
+                        <Badge variant="outline" className="text-[10px]">Chien requis</Badge>
+                      )}
+                      {pref?.last_run_at && (
+                        <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          {formatDistanceToNow(new Date(pref.last_run_at), { addSuffix: true, locale: fr })}
+                        </span>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => runAgent(def)}
+                      disabled={!enabled || isRunning || insufficient}
+                    >
+                      {isRunning ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          En cours…
+                        </>
+                      ) : insufficient ? (
+                        "Crédits insuffisants"
+                      ) : (
+                        "Lancer maintenant"
+                      )}
+                    </Button>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
         </div>
 
         {/* Footer note */}
