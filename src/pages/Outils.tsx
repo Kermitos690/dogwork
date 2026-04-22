@@ -421,6 +421,31 @@ export default function Outils() {
         summary={result?.summary}
         content={result?.content}
         creditsSpent={result?.creditsSpent}
+        extraActions={
+          result && user && result.dogId && result.text
+            ? [
+                {
+                  label: `Sauver dans le journal${currentDog ? ` de ${currentDog.name}` : ""}`,
+                  icon: NotebookPen,
+                  variant: "default",
+                  onClick: async () => {
+                    try {
+                      await saveAiTextToJournal({
+                        dogId: result.dogId!,
+                        userId: user.id,
+                        title: result.title,
+                        text: result.text!,
+                      });
+                      qc.invalidateQueries({ queryKey: ["journal_entries"] });
+                      toast.success("Ajouté au journal du chien.");
+                    } catch (e: any) {
+                      toast.error(e.message ?? "Échec de l'enregistrement");
+                    }
+                  },
+                },
+              ]
+            : undefined
+        }
       />
     </AppLayout>
   );
