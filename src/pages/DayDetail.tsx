@@ -199,6 +199,36 @@ export default function DayDetail() {
 
   const isDayLocked = id > 1 && !prevDayProgress?.validated;
 
+  // Today's behavioural zones for this day (sessions + behaviour log)
+  const { data: dayZones } = useQuery({
+    queryKey: ["day_zones", activeDog?.id, id],
+    queryFn: async () => {
+      const [{ data: sess }, { data: logs }] = await Promise.all([
+        supabase
+          .from("exercise_sessions")
+          .select("zone_state, created_at")
+          .eq("dog_id", activeDog!.id)
+          .eq("day_id", id),
+        supabase
+          .from("behavior_logs")
+          .select("zone_state, tension_level, created_at")
+          .eq("dog_id", activeDog!.id)
+          .eq("day_id", id),
+      ]);
+      const zones: Zone[] = [];
+      (sess || []).forEach((s: any) => { if (s.zone_state) zones.push(s.zone_state as Zone); });
+      (logs || []).forEach((l: any) => {
+        if (l.zone_state) zones.push(l.zone_state as Zone);
+        else {
+          const z = zoneFromTension(l.tension_level);
+          if (z) zones.push(z);
+        }
+      });
+      return zones;
+    },
+    enabled: !!activeDog && !!id,
+  });
+
   useEffect(() => { if (progress?.notes) setNotes(progress.notes); }, [progress]);
 
   // Auto-create progress row on first visit — but only once, using upsert
