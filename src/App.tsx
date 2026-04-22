@@ -306,6 +306,7 @@ function ProtectedRoutes() {
         <Route path="/coach/support" element={<Suspense fallback={<PageLoader />}><CoachGuard><SupportTickets /></CoachGuard></Suspense>} />
         <Route path="/coach/shelter-animals" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachShelterAnimals /></CoachGuard></Suspense>} />
         <Route path="/coach/shelter-animal/:animalId" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachShelterAnimalEval /></CoachGuard></Suspense>} />
+        <Route path="/coach/exercise-preview/:slug" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachExercisePreview /></CoachGuard></Suspense>} />
         
         <Route path="/admin" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminDashboard /></AdminGuard></Suspense>} />
         <Route path="/admin/treasury" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminTreasury /></AdminGuard></Suspense>} />
