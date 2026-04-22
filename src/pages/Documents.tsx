@@ -22,6 +22,8 @@ import {
   BookMarked, Search, Archive, ArchiveRestore, Pencil, Trash2,
   BookOpen, Brain, ClipboardCheck, Heart, TrendingUp, ImageIcon, FileText, Eye,
 } from "lucide-react";
+import { AIDocumentViewer } from "@/components/AIDocumentViewer";
+import { AIPostGenerationActions } from "@/components/AIPostGenerationActions";
 
 const TYPE_META: Record<AIDocumentType, { label: string; icon: React.ElementType; color: string }> = {
   training_plan: { label: "Plan", icon: BookOpen, color: "bg-blue-500/15 text-blue-600 dark:text-blue-300" },
