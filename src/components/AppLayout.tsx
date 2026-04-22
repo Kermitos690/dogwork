@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { SlideMenu } from "@/components/SlideMenu";
 import { FloatingReadAloud } from "@/components/FloatingReadAloud";
+import { DogSwitcher } from "@/components/DogSwitcher";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -46,11 +47,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   const hideNav = location.pathname === "/onboarding";
+  // The Dashboard already renders its own DogSwitcher in-page → avoid a duplicate at the top.
+  const showTopDogSwitcher = !hideNav && !!activeDog && location.pathname !== "/";
 
   return (
     <div className="min-h-screen bg-background pb-20">
       <SlideMenu />
       <FloatingReadAloud />
+      {showTopDogSwitcher && (
+        <div className="fixed top-3 right-3 z-40">
+          <DogSwitcher />
+        </div>
+      )}
       <div className="mx-auto max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-6xl px-4 pt-16">
         {children}
       </div>
@@ -89,3 +97,4 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+
