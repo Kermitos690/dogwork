@@ -97,7 +97,6 @@ const LegalPage = lazy(() => import("./pages/Legal"));
 const ShopPage = lazy(() => import("./pages/Shop"));
 const OutilsPage = lazy(() => import("./pages/Outils"));
 const DocumentsPage = lazy(() => import("./pages/Documents"));
-const AgentsPage = lazy(() => import("./pages/Agents"));
 
 export const queryClient = new QueryClient();
 
@@ -243,7 +242,7 @@ function ProtectedRoutes() {
           <Route path="/shop" element={<ShopPage />} />
           <Route path="/outils" element={<OutilsPage />} />
           <Route path="/documents" element={<DocumentsPage />} />
-          <Route path="/agents" element={<AgentsPage />} />
+          <Route path="/agents" element={<Navigate to="/outils" replace />} />
           <Route path="/program" element={<Navigate to="/plan" replace />} />
           <Route path="*" element={<Navigate to="/shelter" replace />} />
         </Routes>
@@ -289,7 +288,7 @@ function ProtectedRoutes() {
         <Route path="/shop" element={<ShopPage />} />
         <Route path="/outils" element={<OutilsPage />} />
         <Route path="/documents" element={<DocumentsPage />} />
-        <Route path="/agents" element={<AgentsPage />} />
+        <Route path="/agents" element={<Navigate to="/outils" replace />} />
         <Route path="/force-password-change" element={<ForcePasswordChange />} />
         <Route path="/program" element={<Navigate to="/plan" replace />} />
         {/* Coach / Educator routes */}

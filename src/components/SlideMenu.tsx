@@ -119,7 +119,6 @@ export function SlideMenu() {
       title: "Outils IA",
       items: [
         { label: "Outils IA", icon: Sparkles, path: "/outils" },
-        { label: "Agents IA", icon: Sparkles, path: "/agents" },
         { label: "Mes documents", icon: BookMarked, path: "/documents" },
       ],
     },
