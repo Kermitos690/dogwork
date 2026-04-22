@@ -100,7 +100,13 @@ export default function TrainingSession() {
   const [flash, setFlash] = useState<Result | null>(null);
   const [completedIds, setCompletedIds] = useState<string[]>([]);
   const [journalOpen, setJournalOpen] = useState(false);
+  const [persisting, setPersisting] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  // Wall-clock fallback for duration tracking when no timer is configured.
+  const exerciseStartedAtRef = useRef<number>(Date.now());
+  // Tracks which exercise ids already produced an exercise_sessions row to
+  // avoid duplicate inserts if the user double-taps a result button.
+  const persistedIdsRef = useRef<Set<string>>(new Set());
 
   // Load personalized plan day if applicable, else fall back to standard.
   const { data: planDay, isLoading: planLoading } = useQuery({
