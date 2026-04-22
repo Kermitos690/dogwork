@@ -10,13 +10,15 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2 } from "lucide-react";
+import { Loader2, WifiOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveDog } from "@/hooks/useDogs";
 import { toast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { zoneFromTension, ZONE_CLASSES, ZONE_META, type Zone } from "@/lib/zones";
+import { enqueue } from "@/lib/offlineQueue";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 interface QuickJournalSheetProps {
   open: boolean;
@@ -30,6 +32,13 @@ interface QuickJournalSheetProps {
  * Quick behavioral log capture optimized for outdoor / one-thumb usage.
  * Targets sub-5s entry: 3 sliders, 1 distance, 3 toggles, optional note.
  * Auto-derives zone_state from tension before insert into behavior_logs.
+ *
+ * Phase 2C — `avoidance` is now a real column on `behavior_logs`.
+ *   The Phase 1 sentinel string in `recovery_after_trigger` has been
+ *   migrated and is no longer written.
+ *
+ * Phase 3 — offline-first: when offline, the entry is queued locally and
+ *   replayed on reconnect. The user gets immediate confirmation either way.
  */
 export function QuickJournalSheet({
   open,
@@ -40,6 +49,7 @@ export function QuickJournalSheet({
   const { user } = useAuth();
   const activeDog = useActiveDog();
   const qc = useQueryClient();
+  const online = useOnlineStatus();
 
   const [tension, setTension] = useState(2);
   const [dogReact, setDogReact] = useState(1);
@@ -75,39 +85,62 @@ export function QuickJournalSheet({
       return;
     }
     setSaving(true);
+
+    const payload = {
+      user_id: user.id,
+      dog_id: activeDog.id,
+      day_id: dayId,
+      tension_level: tension,
+      dog_reaction_level: dogReact,
+      human_reaction_level: humanReact,
+      comfort_distance_meters: distance,
+      barking,
+      jump_on_human: jumping,
+      // Phase 2C: dedicated boolean column. The temporary
+      // `recovery_after_trigger='avoidance'` workaround is gone.
+      avoidance,
+      comments: note || null,
+      zone_state: zone,
+    };
+
     try {
-      const { error } = await supabase.from("behavior_logs").insert({
-        user_id: user.id,
-        dog_id: activeDog.id,
-        day_id: dayId,
-        tension_level: tension,
-        dog_reaction_level: dogReact,
-        human_reaction_level: humanReact,
-        comfort_distance_meters: distance,
-        barking,
-        jump_on_human: jumping,
-        // ⚠️ TEMPORARY (Phase 1) — `behavior_logs` has no dedicated `avoidance`
-        // boolean column yet. We piggy-back on `recovery_after_trigger` (a
-        // free-text field) using the sentinel string "avoidance" so the
-        // signal is captured without widening the schema during this UX pass.
-        // TODO(Phase 2): add a real `avoidance boolean` column on
-        // `behavior_logs` + migrate this sentinel back into it, then drop
-        // the magic string here. Stats / read-side already only checks
-        // existence so the migration will be straightforward.
-        recovery_after_trigger: avoidance ? "avoidance" : null,
-        comments: note || null,
-        zone_state: zone,
-      });
-      if (error) throw error;
+      if (!online) {
+        // Skip the network entirely when we already know we're offline.
+        enqueue({ kind: "insert", table: "behavior_logs", payload });
+        toast({
+          title: "Journal mis en file d'attente",
+          description: `Hors-ligne — synchronisation automatique au retour du réseau.`,
+        });
+      } else {
+        const { error } = await supabase.from("behavior_logs").insert(payload);
+        if (error) {
+          // Network-class failure → queue + tell the user we'll retry.
+          const msg = String(error.message || "");
+          const looksOffline =
+            msg.includes("Failed to fetch") ||
+            msg.includes("NetworkError") ||
+            msg.includes("network error");
+          if (looksOffline) {
+            enqueue({ kind: "insert", table: "behavior_logs", payload });
+            toast({
+              title: "Journal mis en file d'attente",
+              description: `Réseau instable — synchronisation au retour.`,
+            });
+          } else {
+            throw error;
+          }
+        } else {
+          toast({
+            title: "Journal enregistré",
+            description: `Zone ${meta.short.toLowerCase()} — ${meta.description}`,
+          });
+        }
+      }
 
       qc.invalidateQueries({ queryKey: ["day_zones", activeDog.id, dayId] });
       qc.invalidateQueries({ queryKey: ["behavior_logs"] });
-      qc.invalidateQueries({ queryKey: ["stats"] });
+      qc.invalidateQueries({ queryKey: ["stats_behavior"] });
 
-      toast({
-        title: "Journal enregistré",
-        description: `Zone ${meta.short.toLowerCase()} — ${meta.description}`,
-      });
       reset();
       onSaved?.();
       onOpenChange(false);
@@ -134,11 +167,19 @@ export function QuickJournalSheet({
           <SheetDescription className="text-left text-xs">
             Comment était {activeDog?.name ?? "votre chien"} pendant cette séance ?
           </SheetDescription>
-          <div
-            className={`mt-2 inline-flex items-center gap-2 self-start rounded-full border px-3 py-1 text-xs font-medium ${ZONE_CLASSES[zone]}`}
-          >
-            <span>{meta.emoji}</span>
-            <span>{meta.label}</span>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <div
+              className={`inline-flex items-center gap-2 self-start rounded-full border px-3 py-1 text-xs font-medium ${ZONE_CLASSES[zone]}`}
+            >
+              <span>{meta.emoji}</span>
+              <span>{meta.label}</span>
+            </div>
+            {!online && (
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-warning/40 bg-warning/10 px-2.5 py-1 text-[11px] font-medium text-warning">
+                <WifiOff className="h-3 w-3" />
+                Hors-ligne — sera synchronisé
+              </div>
+            )}
           </div>
         </SheetHeader>
 
