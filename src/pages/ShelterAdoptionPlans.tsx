@@ -317,7 +317,8 @@ export default function ShelterAdoptionPlans() {
                               return;
                             }
                             if (data?.error) throw new Error(data.error);
-                            const plan = data.plan;
+                            const plan = (data.plan ?? {}) as AiPlanShape;
+                            // Pre-fill the form so the user can still tweak before saving manually.
                             setForm(f => ({
                               ...f,
                               title: plan.title || f.title,
@@ -325,8 +326,14 @@ export default function ShelterAdoptionPlans() {
                               duration_weeks: plan.duration_weeks || f.duration_weeks,
                               objectives: plan.objectives?.length ? plan.objectives : f.objectives,
                             }));
-                            (window as any).__aiPlanTasks = plan.tasks || [];
-                            toast({ title: "Plan IA généré ✨", description: `${plan.tasks?.length || 0} tâches proposées sur ${plan.duration_weeks} semaines.` });
+                            // Also surface the full result with a real "Save as plan" CTA.
+                            setAiResult({
+                              plan,
+                              raw: data.plan,
+                              animal_id: form.animal_id,
+                              adopter_user_id: form.adopter_user_id,
+                              creditsSpent: data.credits_spent ?? 0,
+                            });
                           } catch (err: any) {
                             toast({ title: "Erreur IA", description: err.message, variant: "destructive" });
                           } finally {
@@ -338,33 +345,7 @@ export default function ShelterAdoptionPlans() {
                     {generatingAI ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                     {generatingAI ? "Génération..." : "Générer avec IA"}
                   </Button>
-                  <Button className="flex-1" onClick={async () => {
-                    await createPlan.mutateAsync();
-                    // If AI tasks were generated, insert them
-                    const aiTasks = (window as any).__aiPlanTasks;
-                    if (aiTasks?.length) {
-                      const { data: plans } = await supabase
-                        .from("adoption_plans")
-                        .select("id")
-                        .eq("shelter_user_id", user!.id)
-                        .eq("animal_id", form.animal_id)
-                        .order("created_at", { ascending: false })
-                        .limit(1);
-                      if (plans?.[0]) {
-                        for (const task of aiTasks) {
-                          await supabase.from("adoption_plan_tasks").insert({
-                            plan_id: plans[0].id,
-                            week_number: task.week_number,
-                            title: task.title,
-                            description: task.description,
-                            task_type: task.task_type || "observation",
-                            sort_order: task.sort_order || 0,
-                          });
-                        }
-                      }
-                      delete (window as any).__aiPlanTasks;
-                    }
-                  }}
+                  <Button className="flex-1" onClick={() => createPlan.mutate()}
                     disabled={!form.animal_id || createPlan.isPending}>
                     Créer le plan
                   </Button>
