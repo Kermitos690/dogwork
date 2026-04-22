@@ -390,6 +390,28 @@ export default function DayDetail() {
           </Card>
         )}
 
+        {/* Today's behavioural zone summary */}
+        {dayZones && dayZones.length > 0 && (
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-foreground">Zones observées aujourd'hui</span>
+              <span className="text-[10px] text-muted-foreground">{dayZones.length} obs.</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {(["green", "orange", "red"] as const).map((z) => {
+                const n = dayZones.filter((x) => x === z).length;
+                if (n === 0) return null;
+                return (
+                  <span key={z} className="flex items-center gap-1">
+                    <ZoneBadge zone={z} size="sm" />
+                    <span className="text-[10px] text-muted-foreground">×{n}</span>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="rounded-2xl border border-border bg-card p-4">
           <div className="flex items-center justify-between text-sm mb-2">
             <span className="font-medium text-foreground">Exercices</span>
@@ -443,16 +465,39 @@ export default function DayDetail() {
           <Button variant="outline" size="sm" className="rounded-xl" onClick={saveNotes}>Enregistrer</Button>
         </div>
 
-        <div className="flex flex-col gap-2 pb-4">
-          <Button className="w-full h-14 rounded-xl text-base" onClick={() => navigate(trainingUrl)}>
-            <Play className="h-5 w-5" /> Mode entraînement
-          </Button>
+        {/* Bottom action stack — sticky CTA highlights the next meaningful step */}
+        <div className="flex flex-col gap-2 pb-24">
           <Button variant="outline" className="w-full h-12 rounded-xl" onClick={() => navigate(`/behavior/${id}`)}>
             Suivi comportemental
           </Button>
-          {!progress?.validated && (
-            <Button className="w-full h-14 rounded-xl bg-success hover:bg-success/90 text-success-foreground text-base font-semibold" onClick={validateDay}>
-              <CheckCircle2 className="h-5 w-5" /> Valider ce jour
+        </div>
+
+        {/* Sticky next-step CTA */}
+        <div className="fixed left-0 right-0 bottom-16 z-30 border-t border-border/40 bg-background/95 backdrop-blur-md px-4 py-3 mx-auto max-w-lg">
+          {progress?.validated ? (
+            id < 28 ? (
+              <Button
+                className="w-full h-12 rounded-xl text-sm font-semibold"
+                onClick={() => navigate(nextDayUrl)}
+              >
+                <ChevronRight className="h-4 w-4" /> Jour suivant — J{id + 1}
+              </Button>
+            ) : (
+              <Button variant="outline" className="w-full h-12 rounded-xl" onClick={() => navigate("/stats")}>
+                Voir vos statistiques
+              </Button>
+            )
+          ) : completedCount < totalExercises ? (
+            <Button className="w-full h-12 rounded-xl text-sm font-semibold" onClick={() => navigate(trainingUrl)}>
+              <Play className="h-4 w-4" />
+              {completedCount === 0 ? "Démarrer la séance" : "Reprendre la séance"}
+            </Button>
+          ) : (
+            <Button
+              className="w-full h-12 rounded-xl bg-success hover:bg-success/90 text-success-foreground text-sm font-semibold"
+              onClick={validateDay}
+            >
+              <CheckCircle2 className="h-4 w-4" /> Valider ce jour
             </Button>
           )}
         </div>
