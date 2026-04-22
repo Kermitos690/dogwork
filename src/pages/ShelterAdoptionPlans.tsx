@@ -17,6 +17,8 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useCreditConfirmation } from "@/hooks/useCreditConfirmation";
 import { CreditConfirmDialog } from "@/components/CreditConfirmDialog";
+import { AIResultDialog } from "@/components/AIResultDialog";
+import { createAdoptionPlanFromAi, extractPlanShape, type AiPlanShape } from "@/lib/aiDestinations";
 
 const TASK_TEMPLATES = [
   { title: "Observer le comportement au repas", type: "observation", desc: "Notez comment l'animal se comporte pendant les repas" },
@@ -62,6 +64,14 @@ export default function ShelterAdoptionPlans() {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [newTask, setNewTask] = useState({ title: "", description: "", type: "observation", week: 1 });
   const [generatingAI, setGeneratingAI] = useState(false);
+  const [aiResult, setAiResult] = useState<{
+    plan: AiPlanShape;
+    raw: unknown;
+    animal_id: string;
+    adopter_user_id: string;
+    creditsSpent: number;
+  } | null>(null);
+  const [savingAi, setSavingAi] = useState(false);
   const credit = useCreditConfirmation();
 
   // Form state for new plan
@@ -307,7 +317,8 @@ export default function ShelterAdoptionPlans() {
                               return;
                             }
                             if (data?.error) throw new Error(data.error);
-                            const plan = data.plan;
+                            const plan = (data.plan ?? {}) as AiPlanShape;
+                            // Pre-fill the form so the user can still tweak before saving manually.
                             setForm(f => ({
                               ...f,
                               title: plan.title || f.title,
@@ -315,8 +326,14 @@ export default function ShelterAdoptionPlans() {
                               duration_weeks: plan.duration_weeks || f.duration_weeks,
                               objectives: plan.objectives?.length ? plan.objectives : f.objectives,
                             }));
-                            (window as any).__aiPlanTasks = plan.tasks || [];
-                            toast({ title: "Plan IA généré ✨", description: `${plan.tasks?.length || 0} tâches proposées sur ${plan.duration_weeks} semaines.` });
+                            // Also surface the full result with a real "Save as plan" CTA.
+                            setAiResult({
+                              plan,
+                              raw: data.plan,
+                              animal_id: form.animal_id,
+                              adopter_user_id: form.adopter_user_id,
+                              creditsSpent: data.credits_spent ?? 0,
+                            });
                           } catch (err: any) {
                             toast({ title: "Erreur IA", description: err.message, variant: "destructive" });
                           } finally {
@@ -328,33 +345,7 @@ export default function ShelterAdoptionPlans() {
                     {generatingAI ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                     {generatingAI ? "Génération..." : "Générer avec IA"}
                   </Button>
-                  <Button className="flex-1" onClick={async () => {
-                    await createPlan.mutateAsync();
-                    // If AI tasks were generated, insert them
-                    const aiTasks = (window as any).__aiPlanTasks;
-                    if (aiTasks?.length) {
-                      const { data: plans } = await supabase
-                        .from("adoption_plans")
-                        .select("id")
-                        .eq("shelter_user_id", user!.id)
-                        .eq("animal_id", form.animal_id)
-                        .order("created_at", { ascending: false })
-                        .limit(1);
-                      if (plans?.[0]) {
-                        for (const task of aiTasks) {
-                          await supabase.from("adoption_plan_tasks").insert({
-                            plan_id: plans[0].id,
-                            week_number: task.week_number,
-                            title: task.title,
-                            description: task.description,
-                            task_type: task.task_type || "observation",
-                            sort_order: task.sort_order || 0,
-                          });
-                        }
-                      }
-                      delete (window as any).__aiPlanTasks;
-                    }
-                  }}
+                  <Button className="flex-1" onClick={() => createPlan.mutate()}
                     disabled={!form.animal_id || createPlan.isPending}>
                     Créer le plan
                   </Button>
@@ -498,6 +489,89 @@ export default function ShelterAdoptionPlans() {
         benefit={credit.benefit}
         loading={credit.loading || generatingAI}
       />
+
+      {aiResult && (
+        <AIResultDialog
+          open={!!aiResult}
+          onOpenChange={(o) => !o && setAiResult(null)}
+          title={aiResult.plan.title || "Plan post-adoption généré"}
+          summary={
+            aiResult.plan.tasks?.length
+              ? `${aiResult.plan.tasks.length} tâches sur ${aiResult.plan.duration_weeks ?? 8} semaines`
+              : aiResult.plan.description ?? null
+          }
+          content={aiResult.raw}
+          creditsSpent={aiResult.creditsSpent}
+          extraActions={[
+            {
+              label: savingAi ? "Création..." : "Créer le plan complet",
+              icon: Plus,
+              variant: "default",
+              disabled: savingAi || !user,
+              onClick: async () => {
+                if (!user) return;
+                setSavingAi(true);
+                try {
+                  const planId = await createAdoptionPlanFromAi({
+                    shelterUserId: user.id,
+                    adopterUserId: aiResult.adopter_user_id,
+                    animalId: aiResult.animal_id,
+                    plan: aiResult.plan,
+                    status: "active",
+                  });
+                  qc.invalidateQueries({ queryKey: ["shelter-adoption-plans"] });
+                  qc.invalidateQueries({ queryKey: ["adoption-plan-tasks"] });
+                  toast({
+                    title: "Plan créé ✨",
+                    description: `${aiResult.plan.tasks?.length ?? 0} tâches insérées.`,
+                  });
+                  setAiResult(null);
+                  setCreateOpen(false);
+                  setSelectedPlan(planId);
+                } catch (err: any) {
+                  toast({
+                    title: "Erreur",
+                    description: err.message ?? "Impossible de créer le plan",
+                    variant: "destructive",
+                  });
+                } finally {
+                  setSavingAi(false);
+                }
+              },
+            },
+            {
+              label: "Sauver comme brouillon",
+              icon: ClipboardList,
+              variant: "outline",
+              disabled: savingAi || !user,
+              onClick: async () => {
+                if (!user) return;
+                setSavingAi(true);
+                try {
+                  await createAdoptionPlanFromAi({
+                    shelterUserId: user.id,
+                    adopterUserId: aiResult.adopter_user_id,
+                    animalId: aiResult.animal_id,
+                    plan: aiResult.plan,
+                    status: "draft",
+                  });
+                  qc.invalidateQueries({ queryKey: ["shelter-adoption-plans"] });
+                  toast({ title: "Brouillon sauvegardé" });
+                  setAiResult(null);
+                } catch (err: any) {
+                  toast({
+                    title: "Erreur",
+                    description: err.message ?? "Échec",
+                    variant: "destructive",
+                  });
+                } finally {
+                  setSavingAi(false);
+                }
+              },
+            },
+          ]}
+        />
+      )}
     </ShelterLayout>
   );
 }

@@ -14,13 +14,14 @@ import { useAIBalance, useAIFeatures } from "@/hooks/useAICredits";
 import { useCreditConfirmation } from "@/hooks/useCreditConfirmation";
 import { CreditConfirmDialog } from "@/components/CreditConfirmDialog";
 import { AIResultDialog } from "@/components/AIResultDialog";
+import { saveAiTextToJournal } from "@/lib/aiDestinations";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
   Sparkles, BookOpen, Brain, ClipboardCheck, Heart,
   TrendingUp, ImageIcon, Coins, BookMarked, ArrowRight,
-  Bot, Loader2, Clock,
+  Bot, Loader2, Clock, NotebookPen,
 } from "lucide-react";
 
 interface AgentResult {
@@ -28,6 +29,10 @@ interface AgentResult {
   summary?: string | null;
   content: unknown;
   creditsSpent: number;
+  /** Plain text extracted from the result, used by destination actions. */
+  text?: string;
+  /** Dog this result is tied to (active dog at run time). */
+  dogId?: string | null;
 }
 
 interface ToolDef {
@@ -164,11 +169,14 @@ export default function Outils() {
         throw new Error(msg ?? error.message);
       }
       const meta = getMeta(def.code);
+      const text = typeof data.text === "string" ? data.text : "";
       setResult({
         title: `${meta?.label ?? def.code}${data.dog_name ? ` · ${data.dog_name}` : ""}`,
-        summary: typeof data.text === "string" ? data.text.slice(0, 180) : null,
-        content: { text: data.text, dog_profile: data.dog_profile, params: data.params_used },
+        summary: text ? text.slice(0, 180) : null,
+        content: { text, dog_profile: data.dog_profile, params: data.params_used },
         creditsSpent: data.credits_spent ?? meta?.credits_cost ?? 0,
+        text,
+        dogId: currentDog?.id ?? null,
       });
       toast.success("Génération terminée — sauvegardée dans vos documents.");
       qc.invalidateQueries({ queryKey: ["ai-agent-preferences", user?.id] });
@@ -413,6 +421,31 @@ export default function Outils() {
         summary={result?.summary}
         content={result?.content}
         creditsSpent={result?.creditsSpent}
+        extraActions={
+          result && user && result.dogId && result.text
+            ? [
+                {
+                  label: `Sauver dans le journal${currentDog ? ` de ${currentDog.name}` : ""}`,
+                  icon: NotebookPen,
+                  variant: "default",
+                  onClick: async () => {
+                    try {
+                      await saveAiTextToJournal({
+                        dogId: result.dogId!,
+                        userId: user.id,
+                        title: result.title,
+                        text: result.text!,
+                      });
+                      qc.invalidateQueries({ queryKey: ["journal_entries"] });
+                      toast.success("Ajouté au journal du chien.");
+                    } catch (e: any) {
+                      toast.error(e.message ?? "Échec de l'enregistrement");
+                    }
+                  },
+                },
+              ]
+            : undefined
+        }
       />
     </AppLayout>
   );
