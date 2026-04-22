@@ -36,6 +36,8 @@ export interface StatsSummary {
   avgComfortDistance: number;
   avgRecovery: string;
   incidentRate: number;
+  avoidanceRate: number;
+  avoidanceCount: number;
   tensionTrend: "improving" | "worsening" | "stable";
   reactionTrend: "improving" | "worsening" | "stable";
   distanceTrend: "improving" | "worsening" | "stable";
