@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, X, Bot, Sparkles, Loader2, Clock, History, Plus, Trash2, MessageSquare } from "lucide-react";
+import { Send, X, Bot, Sparkles, Loader2, Clock, History, Plus, Trash2, MessageSquare, NotebookPen } from "lucide-react";
+import { saveAiTextToJournal } from "@/lib/aiDestinations";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -193,6 +194,7 @@ function AIChatBotInner() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const { data: dogs } = useDogs();
   const activeDog = useActiveDog();
@@ -519,7 +521,7 @@ function AIChatBotInner() {
                     </div>
                   )}
                   {messages.map((m, i) => (
-                    <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div key={i} className={`flex flex-col ${m.role === "user" ? "items-end" : "items-start"}`}>
                       <div
                         className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
                           m.role === "user"
@@ -529,6 +531,29 @@ function AIChatBotInner() {
                       >
                         {m.role === "assistant" ? <ReactMarkdown>{m.content}</ReactMarkdown> : m.content}
                       </div>
+                      {m.role === "assistant" && m.content.trim().length > 40 && activeDog && user && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await saveAiTextToJournal({
+                                dogId: activeDog.id,
+                                userId: user.id,
+                                title: `Échange IA — ${new Date().toLocaleDateString("fr-FR")}`,
+                                text: m.content,
+                              });
+                              queryClient.invalidateQueries({ queryKey: ["journal_entries"] });
+                              toast({ title: "Ajouté au journal", description: `Sauvegardé pour ${activeDog.name}.` });
+                            } catch (e: any) {
+                              toast({ title: "Erreur", description: e.message ?? "Échec", variant: "destructive" });
+                            }
+                          }}
+                          className="mt-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <NotebookPen className="h-3 w-3" />
+                          Sauver dans le journal de {activeDog.name}
+                        </button>
+                      )}
                     </div>
                   ))}
                   {loading && draftMessages.length === 0 && (
