@@ -2,6 +2,11 @@
  * Shared utilities for autonomous AI agents.
  * Each agent: validates user, checks opt-in, debits credits, calls Gemini,
  * persists result in ai_generated_documents, updates last_run_at.
+ *
+ * v2: auto-resolves the active dog (most recently updated for the user) when
+ * dog_id is not provided, and enriches context with a normalized dog profile
+ * (age, threshold, reactivity, sociability...). Last-run parameters are
+ * persisted in ai_agent_preferences.metadata for next executions.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { callAI } from "./ai-provider.ts";
@@ -30,6 +35,118 @@ export async function authenticateUser(req: Request) {
   return data.user;
 }
 
+export interface DogProfileSummary {
+  id: string;
+  name: string;
+  breed: string | null;
+  age_years: number | null;
+  size: string | null;
+  sex: string | null;
+  is_neutered: boolean | null;
+  activity_level: string | null;
+  // behavioural axis
+  reactivity_level: number | null;       // dog_reaction_level proxy from evaluation/triggers
+  threshold_distance_m: number | null;   // comfort_distance_meters
+  sociability_dogs: number | null;
+  sociability_humans: number | null;
+  excitement_level: number | null;
+  frustration_level: number | null;
+  noise_sensitivity: number | null;
+  obedience_level: number | null;
+  recovery_capacity: number | null;
+  separation_sensitivity: number | null;
+  bite_history: boolean | null;
+  muzzle_required: boolean | null;
+  health_flags: string[];
+}
+
+function ageYears(birth?: string | null): number | null {
+  if (!birth) return null;
+  const ms = Date.now() - new Date(birth).getTime();
+  if (Number.isNaN(ms) || ms <= 0) return null;
+  return Math.round((ms / (1000 * 60 * 60 * 24 * 365.25)) * 10) / 10;
+}
+
+async function resolveActiveDogId(
+  supabase: any,
+  userId: string,
+  requestedDogId?: string | null
+): Promise<string | null> {
+  if (requestedDogId) return requestedDogId;
+  const { data } = await supabase
+    .from("dogs")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("is_active", true)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data?.id ?? null;
+}
+
+async function loadDogProfile(
+  supabase: any,
+  dogId: string
+): Promise<DogProfileSummary | null> {
+  const { data: dog } = await supabase
+    .from("dogs")
+    .select("*")
+    .eq("id", dogId)
+    .maybeSingle();
+  if (!dog) return null;
+
+  const { data: evalRow } = await supabase
+    .from("dog_evaluations")
+    .select("comfort_distance_meters, problem_intensity, recovery_time, main_trigger")
+    .eq("dog_id", dogId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const healthFlags: string[] = [];
+  if (dog.bite_history) healthFlags.push("antécédent morsure");
+  if (dog.muzzle_required) healthFlags.push("muselière requise");
+  if (dog.epilepsy) healthFlags.push("épilepsie");
+  if (dog.heart_problems) healthFlags.push("cardiaque");
+  if (dog.joint_pain) healthFlags.push("articulations");
+  if (dog.overweight) healthFlags.push("surpoids");
+
+  return {
+    id: dog.id,
+    name: dog.name,
+    breed: dog.breed,
+    age_years: ageYears(dog.birth_date),
+    size: dog.size,
+    sex: dog.sex,
+    is_neutered: dog.is_neutered,
+    activity_level: dog.activity_level,
+    reactivity_level: evalRow?.problem_intensity ?? null,
+    threshold_distance_m: evalRow?.comfort_distance_meters ?? null,
+    sociability_dogs: dog.sociability_dogs,
+    sociability_humans: dog.sociability_humans,
+    excitement_level: dog.excitement_level,
+    frustration_level: dog.frustration_level,
+    noise_sensitivity: dog.noise_sensitivity,
+    obedience_level: dog.obedience_level,
+    recovery_capacity: dog.recovery_capacity,
+    separation_sensitivity: dog.separation_sensitivity,
+    bite_history: dog.bite_history,
+    muzzle_required: dog.muzzle_required,
+    health_flags: healthFlags,
+  };
+}
+
+export interface AgentRunContext {
+  /** Normalized active-dog profile injected automatically when available. */
+  dogProfile: DogProfileSummary | null;
+  /** Persisted preferences from previous executions (metadata bag). */
+  savedParams: Record<string, unknown>;
+  /** User-provided body params (excluding dog_id). */
+  bodyParams: Record<string, unknown>;
+  /** Resolved dog id (active dog or explicit). */
+  dogId: string | null;
+}
+
 export interface AgentConfig {
   code: string;
   label: string;
@@ -37,12 +154,25 @@ export interface AgentConfig {
   model: string;
   systemPrompt: string;
   buildUserPrompt: (context: any) => string;
-  fetchContext: (supabase: any, userId: string, dogId?: string) => Promise<any>;
+  /**
+   * Fetch domain context. Receives the resolved dogId AND the auto-loaded
+   * dog profile + saved params so each agent can adapt its data fetch.
+   */
+  fetchContext: (
+    supabase: any,
+    userId: string,
+    dogId: string | null,
+    extras: { dogProfile: DogProfileSummary | null; savedParams: Record<string, unknown> }
+  ) => Promise<any>;
 }
 
 /**
  * Standard runner. Returns Response.
- * Body in: { dog_id?: string }
+ * Body in: { dog_id?: string, ...customParams }
+ *   - When dog_id is omitted, the active dog (most recently updated, is_active=true)
+ *     is auto-selected.
+ *   - All non-reserved body params are persisted in
+ *     ai_agent_preferences.metadata.last_params for the next execution.
  */
 export async function runAgent(req: Request, agent: AgentConfig): Promise<Response> {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -50,12 +180,13 @@ export async function runAgent(req: Request, agent: AgentConfig): Promise<Respon
   try {
     const user = await authenticateUser(req);
     const supabase = getServiceClient();
-    const { dog_id } = await req.json().catch(() => ({}));
+    const body = await req.json().catch(() => ({} as Record<string, unknown>));
+    const { dog_id: explicitDogId, ...bodyParams } = body as { dog_id?: string };
 
-    // 1. Verify agent is enabled (opt-in)
+    // 1. Verify agent is enabled (opt-in) + load saved params
     const { data: pref } = await supabase
       .from("ai_agent_preferences")
-      .select("enabled")
+      .select("enabled, metadata")
       .eq("user_id", user.id)
       .eq("agent_code", agent.code)
       .maybeSingle();
@@ -66,6 +197,10 @@ export async function runAgent(req: Request, agent: AgentConfig): Promise<Respon
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const savedParams = (pref?.metadata as any)?.last_params ?? {};
+    // Merge: explicit body params override saved ones.
+    const effectiveParams = { ...savedParams, ...bodyParams };
 
     // 2. Get cost from catalog
     const { data: feature, error: featureError } = await supabase
@@ -82,16 +217,30 @@ export async function runAgent(req: Request, agent: AgentConfig): Promise<Respon
       );
     }
 
-    // 3. Build context
-    const context = await agent.fetchContext(supabase, user.id, dog_id);
+    // 3. Resolve active dog and load profile
+    const dogId = await resolveActiveDogId(supabase, user.id, explicitDogId);
+    const dogProfile = dogId ? await loadDogProfile(supabase, dogId) : null;
 
-    // 4. Debit credits BEFORE the AI call
+    // 4. Build agent-specific context
+    const context = await agent.fetchContext(supabase, user.id, dogId, {
+      dogProfile,
+      savedParams: effectiveParams,
+    });
+    // Always expose the dog profile to prompt builders
+    const enrichedContext = { ...context, dogProfile, savedParams: effectiveParams };
+
+    // 5. Debit credits BEFORE the AI call
     const { data: debited, error: debitError } = await supabase.rpc("debit_ai_credits", {
       _user_id: user.id,
       _feature_code: agent.code,
       _credits: feature.credits_cost,
       _provider_cost_usd: null,
-      _metadata: { agent: agent.code, dog_id: dog_id ?? null },
+      _metadata: {
+        agent: agent.code,
+        dog_id: dogId,
+        dog_name: dogProfile?.name ?? null,
+        params: effectiveParams,
+      },
     });
 
     if (debitError) {
@@ -108,12 +257,12 @@ export async function runAgent(req: Request, agent: AgentConfig): Promise<Respon
       );
     }
 
-    // 5. Call Gemini
+    // 6. Call Gemini
     const aiResponse = await callAI({
       model: feature.model || agent.model,
       messages: [
         { role: "system", content: agent.systemPrompt },
-        { role: "user", content: agent.buildUserPrompt(context) },
+        { role: "user", content: agent.buildUserPrompt(enrichedContext) },
       ],
       temperature: 0.5,
     });
@@ -137,29 +286,40 @@ export async function runAgent(req: Request, agent: AgentConfig): Promise<Respon
     const data = await aiResponse.json();
     const generatedText = data.choices?.[0]?.message?.content || "";
 
-    // 6. Persist in ai_generated_documents
-    const title = `${agent.label} — ${new Date().toLocaleDateString("fr-FR")}`;
+    // 7. Persist in ai_generated_documents
+    const title = `${agent.label}${dogProfile?.name ? ` · ${dogProfile.name}` : ""} — ${new Date().toLocaleDateString("fr-FR")}`;
     const { data: doc } = await supabase
       .from("ai_generated_documents")
       .insert({
         user_id: user.id,
-        dog_id: dog_id ?? null,
+        dog_id: dogId,
         document_type: agent.documentType,
         feature_code: agent.code,
         title,
         summary: generatedText.slice(0, 200),
-        content: { text: generatedText, context_summary: context?.summary ?? null },
+        content: {
+          text: generatedText,
+          context_summary: context?.summary ?? null,
+          dog_profile: dogProfile,
+          params: effectiveParams,
+        },
         credits_spent: feature.credits_cost,
         model_used: feature.model,
-        metadata: { agent: agent.code, autonomous: true },
+        metadata: { agent: agent.code, autonomous: true, dog_id: dogId },
       })
       .select("id")
       .single();
 
-    // 7. Update last_run_at
+    // 8. Update last_run_at + persist params for next run
+    const newPrefMetadata = {
+      ...(pref?.metadata as any ?? {}),
+      last_params: effectiveParams,
+      last_dog_id: dogId,
+      last_dog_name: dogProfile?.name ?? null,
+    };
     await supabase
       .from("ai_agent_preferences")
-      .update({ last_run_at: new Date().toISOString() })
+      .update({ last_run_at: new Date().toISOString(), metadata: newPrefMetadata })
       .eq("user_id", user.id)
       .eq("agent_code", agent.code);
 
@@ -169,6 +329,9 @@ export async function runAgent(req: Request, agent: AgentConfig): Promise<Respon
         document_id: doc?.id,
         text: generatedText,
         credits_spent: feature.credits_cost,
+        dog_id: dogId,
+        dog_name: dogProfile?.name ?? null,
+        params_used: effectiveParams,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
