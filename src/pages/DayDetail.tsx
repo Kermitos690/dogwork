@@ -18,6 +18,7 @@ import { ZoneBadge } from "@/components/ZoneBadge";
 import { zoneFromTension, type Zone } from "@/lib/zones";
 import { DayJourneyHeader } from "@/components/DayJourneyHeader";
 import { NoActiveDogState } from "@/components/NoActiveDogState";
+import { QuickJournalSheet } from "@/components/training/QuickJournalSheet";
 
 function ExerciseCard({ ex, done, onToggle }: { ex: any; done: boolean; onToggle: () => void }) {
   const [expanded, setExpanded] = useState(false);
@@ -110,6 +111,7 @@ export default function DayDetail() {
   const [notes, setNotes] = useState("");
   const [showValidation, setShowValidation] = useState(false);
   const [initDone, setInitDone] = useState(false);
+  const [journalOpen, setJournalOpen] = useState(false);
 
   const { data: planDay } = useQuery({
     queryKey: ["plan_day", activeDog?.id, id],
@@ -323,6 +325,7 @@ export default function DayDetail() {
   };
 
   const trainingUrl = source === "plan" ? `/training/${id}?source=plan` : `/training/${id}`;
+  const fieldUrl = source === "plan" ? `/training/session/${id}?source=plan` : `/training/session/${id}`;
   const nextDayUrl = source === "plan" ? `/day/${id + 1}?source=plan` : `/day/${id + 1}`;
 
   if (showValidation) {
@@ -483,8 +486,11 @@ export default function DayDetail() {
 
         {/* Bottom action stack — sticky CTA highlights the next meaningful step */}
         <div className="flex flex-col gap-2 pb-24">
-          <Button variant="outline" className="w-full h-12 rounded-xl" onClick={() => navigate(`/behavior/${id}`)}>
-            Suivi comportemental
+          <Button variant="outline" className="w-full h-12 rounded-xl" onClick={() => setJournalOpen(true)}>
+            Journal rapide
+          </Button>
+          <Button variant="ghost" className="w-full h-12 rounded-xl" onClick={() => navigate(`/behavior/${id}`)}>
+            Suivi comportemental détaillé
           </Button>
         </div>
 
@@ -504,7 +510,7 @@ export default function DayDetail() {
               </Button>
             )
           ) : completedCount < totalExercises ? (
-            <Button className="w-full h-12 rounded-xl text-sm font-semibold" onClick={() => navigate(trainingUrl)}>
+            <Button className="w-full h-12 rounded-xl text-sm font-semibold" onClick={() => navigate(fieldUrl)}>
               <Play className="h-4 w-4" />
               {completedCount === 0 ? "Démarrer la séance" : "Reprendre la séance"}
             </Button>
