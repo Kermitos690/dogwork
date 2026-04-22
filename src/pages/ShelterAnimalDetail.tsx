@@ -203,12 +203,19 @@ export default function ShelterAnimalDetail() {
         update.departure_date = new Date().toISOString().split("T")[0];
         update.departure_reason = status;
       }
-      if (status === "adopté") {
-        update.adopter_name = adopterName;
-        update.adopter_email = adopterEmail;
-      }
       const { error } = await supabase.from("shelter_animals" as any).update(update).eq("id", animalId!);
       if (error) throw error;
+
+      // Adopter PII is stored in a private RLS-protected table (owner/admin only).
+      if (status === "adopté") {
+        const { error: piiError } = await supabase.from("shelter_animal_adopter_info" as any).upsert({
+          animal_id: animalId,
+          shelter_user_id: user!.id,
+          adopter_name: adopterName,
+          adopter_email: adopterEmail,
+        } as any, { onConflict: "animal_id" });
+        if (piiError) throw piiError;
+      }
 
       // Create initial adoption update record + adopter link
       if (status === "adopté") {
