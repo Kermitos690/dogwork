@@ -15,6 +15,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, ClipboardList, ChevronRight, Calendar, Target, Trash2, PawPrint, Sparkles, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useCreditConfirmation } from "@/hooks/useCreditConfirmation";
+import { CreditConfirmDialog } from "@/components/CreditConfirmDialog";
 
 const TASK_TEMPLATES = [
   { title: "Observer le comportement au repas", type: "observation", desc: "Notez comment l'animal se comporte pendant les repas" },
