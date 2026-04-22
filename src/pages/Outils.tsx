@@ -11,6 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useAIBalance, useAIFeatures } from "@/hooks/useAICredits";
+import { useCreditConfirmation } from "@/hooks/useCreditConfirmation";
+import { CreditConfirmDialog } from "@/components/CreditConfirmDialog";
+import { AIResultDialog } from "@/components/AIResultDialog";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -19,6 +22,13 @@ import {
   TrendingUp, ImageIcon, Coins, BookMarked, ArrowRight,
   Bot, Loader2, Clock,
 } from "lucide-react";
+
+interface AgentResult {
+  title: string;
+  summary?: string | null;
+  content: unknown;
+  creditsSpent: number;
+}
 
 interface ToolDef {
   feature_code: string;
