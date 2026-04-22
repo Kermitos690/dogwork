@@ -17,6 +17,8 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useCreditConfirmation } from "@/hooks/useCreditConfirmation";
 import { CreditConfirmDialog } from "@/components/CreditConfirmDialog";
+import { AIResultDialog } from "@/components/AIResultDialog";
+import { createAdoptionPlanFromAi, extractPlanShape, type AiPlanShape } from "@/lib/aiDestinations";
 
 const TASK_TEMPLATES = [
   { title: "Observer le comportement au repas", type: "observation", desc: "Notez comment l'animal se comporte pendant les repas" },
