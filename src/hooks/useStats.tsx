@@ -493,6 +493,7 @@ export function useStats(period: "7" | "14" | "30" | "all" = "all", loadAdvanced
       avgTension, avgDogReaction, avgHumanReaction,
       stopScore, noScore, focusScore, leashScore,
       avgComfortDistance, avgRecovery, incidentRate,
+      avoidanceRate, avoidanceCount,
       tensionTrend, reactionTrend, distanceTrend,
       streakDays, tensionChart, distanceChart, weeklyData,
       recommendations, planScore, recentHighlights,
