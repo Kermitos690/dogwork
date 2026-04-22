@@ -117,6 +117,9 @@ export default function Outils() {
     document.title = "Outils IA — DogWork";
   }, []);
 
+  const credit = useCreditConfirmation();
+  const [result, setResult] = useState<AgentResult | null>(null);
+
   const getCost = (code: string) =>
     features?.find((f) => f.code === code)?.credits_cost ?? 0;
 
@@ -148,15 +151,9 @@ export default function Outils() {
     onError: (e: any) => toast.error(e.message ?? "Erreur"),
   });
 
-  const runAgent = async (def: AgentDef) => {
-    if (def.requiresDog && !currentDog) {
-      toast.error("Sélectionnez un chien d'abord.");
-      return;
-    }
+  const executeAgent = async (def: AgentDef) => {
     setRunning(def.code);
     try {
-      // dog_id omitted → backend auto-resolves the active dog.
-      // Saved params from previous runs are reapplied automatically.
       const { data, error } = await supabase.functions.invoke(def.functionName, {
         body: currentDog?.id ? { dog_id: currentDog.id } : {},
       });
@@ -166,7 +163,14 @@ export default function Outils() {
           : error.message;
         throw new Error(msg ?? error.message);
       }
-      toast.success(`Agent terminé · ${data.credits_spent} crédits débités. Document sauvegardé.`);
+      const meta = getMeta(def.code);
+      setResult({
+        title: `${meta?.label ?? def.code}${data.dog_name ? ` · ${data.dog_name}` : ""}`,
+        summary: typeof data.text === "string" ? data.text.slice(0, 180) : null,
+        content: { text: data.text, dog_profile: data.dog_profile, params: data.params_used },
+        creditsSpent: data.credits_spent ?? meta?.credits_cost ?? 0,
+      });
+      toast.success("Génération terminée — sauvegardée dans vos documents.");
       qc.invalidateQueries({ queryKey: ["ai-agent-preferences", user?.id] });
       qc.invalidateQueries({ queryKey: ["ai-balance"] });
       qc.invalidateQueries({ queryKey: ["ai-documents"] });
@@ -175,6 +179,19 @@ export default function Outils() {
     } finally {
       setRunning(null);
     }
+  };
+
+  const runAgent = (def: AgentDef) => {
+    if (def.requiresDog && !currentDog) {
+      toast.error("Sélectionnez un chien d'abord.");
+      return;
+    }
+    const meta = getMeta(def.code);
+    credit.requestConfirmation({
+      featureCode: def.code,
+      benefit: meta?.description ?? "Cette action consommera des crédits IA.",
+      onConfirm: () => executeAgent(def),
+    });
   };
 
   return (
