@@ -36,6 +36,8 @@ export interface StatsSummary {
   avgComfortDistance: number;
   avgRecovery: string;
   incidentRate: number;
+  avoidanceRate: number;
+  avoidanceCount: number;
   tensionTrend: "improving" | "worsening" | "stable";
   reactionTrend: "improving" | "worsening" | "stable";
   distanceTrend: "improving" | "worsening" | "stable";
@@ -133,7 +135,7 @@ export function useStats(period: "7" | "14" | "30" | "all" = "all", loadAdvanced
     queryKey: ["stats_behavior", activeDog?.id],
     queryFn: async () => {
       const { data } = await supabase.from("behavior_logs")
-        .select("day_id, tension_level, dog_reaction_level, human_reaction_level, comfort_distance_meters, stop_response, no_response, focus_quality, leash_walk_quality, recovery_after_trigger, jump_on_human, barking, created_at, zone_state")
+        .select("day_id, tension_level, dog_reaction_level, human_reaction_level, comfort_distance_meters, stop_response, no_response, focus_quality, leash_walk_quality, recovery_after_trigger, jump_on_human, barking, avoidance, created_at, zone_state")
         .eq("dog_id", activeDog!.id)
         .order("created_at");
       return data || [];
@@ -241,16 +243,24 @@ export function useStats(period: "7" | "14" | "30" | "all" = "all", loadAdvanced
     const focusScore = qualityScore(filteredLogs.map(l => l.focus_quality), "bon");
     const leashScore = qualityScore(filteredLogs.map(l => l.leash_walk_quality), "bonne");
 
-    // Recovery
-    const recoveries = filteredLogs.map(l => l.recovery_after_trigger).filter(Boolean) as string[];
+    // Recovery — Phase 2C: filter out the legacy "avoidance" sentinel so old
+    // rows that were not part of the migration still produce clean stats.
+    const recoveries = filteredLogs
+      .map(l => l.recovery_after_trigger)
+      .filter((r): r is string => !!r && r !== "avoidance");
     const avgRecovery = recoveries.length === 0 ? "–"
       : recoveries.filter(r => r === "rapide").length > recoveries.length / 2 ? "rapide"
       : recoveries.filter(r => r === "lente").length > recoveries.length / 2 ? "lente"
       : "moyenne";
 
-    // Incidents
-    const incidentCount = filteredLogs.filter(l => l.jump_on_human || l.barking).length;
+    // Incidents — Phase 2C: avoidance is now a real signal, included as
+    // an incident-class behaviour. Backward-compat: read both new column and
+    // legacy sentinel so pre-migration data still counts.
+    const isAvoidance = (l: any) => l.avoidance === true || l.recovery_after_trigger === "avoidance";
+    const incidentCount = filteredLogs.filter(l => l.jump_on_human || l.barking || isAvoidance(l)).length;
     const incidentRate = filteredLogs.length ? Math.round((incidentCount / filteredLogs.length) * 100) : 0;
+    const avoidanceCount = filteredLogs.filter(isAvoidance).length;
+    const avoidanceRate = filteredLogs.length ? Math.round((avoidanceCount / filteredLogs.length) * 100) : 0;
 
     // Trends (split in half)
     const mid = Math.floor(filteredLogs.length / 2);

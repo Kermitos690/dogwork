@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 const AIChatBot = lazy(() => import("@/components/AIChatBot").then(m => ({ default: m.AIChatBot })));
 const GuidedTour = lazy(() => import("@/components/GuidedTour").then(m => ({ default: m.GuidedTour })));
 import { NotificationToast } from "@/components/NotificationToast";
+import { OfflineQueueRunner } from "@/components/OfflineQueueRunner";
 
 // Eagerly loaded (critical path)
 import Auth from "./pages/Auth";
@@ -339,6 +340,7 @@ function ProtectedRoutes() {
       </Routes>
       <AIChatBot />
       <NotificationToast />
+      <OfflineQueueRunner />
     </Suspense>
   );
 }
