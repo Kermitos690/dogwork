@@ -368,6 +368,7 @@ export type Database = {
           enabled: boolean
           id: string
           last_run_at: string | null
+          metadata: Json
           updated_at: string
           user_id: string
         }
@@ -377,6 +378,7 @@ export type Database = {
           enabled?: boolean
           id?: string
           last_run_at?: string | null
+          metadata?: Json
           updated_at?: string
           user_id: string
         }
@@ -386,6 +388,7 @@ export type Database = {
           enabled?: boolean
           id?: string
           last_run_at?: string | null
+          metadata?: Json
           updated_at?: string
           user_id?: string
         }
