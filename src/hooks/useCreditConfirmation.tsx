@@ -45,6 +45,12 @@ export function useCreditConfirmation() {
     setPending(null);
   }, []);
 
+  const trigger: UpsellTrigger | null = resolveUpsellTrigger({
+    balance,
+    requiredCredits: cost > 0 ? cost : undefined,
+  });
+  const suggestedPath = suggestMonetizationPath({ balance });
+
   return {
     open: !!pending,
     cost,
@@ -52,6 +58,9 @@ export function useCreditConfirmation() {
     featureLabel: feature?.label ?? "Action IA",
     benefit: pending?.benefit,
     loading,
+    trigger,
+    suggestedPath,
+    hasEnough: balance >= cost,
     requestConfirmation,
     handleConfirm,
     handleCancel,
