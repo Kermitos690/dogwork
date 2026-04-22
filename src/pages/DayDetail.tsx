@@ -14,6 +14,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import type { PlanDay } from "@/lib/planGenerator";
 import { upsertDayProgress } from "@/lib/dayProgress";
+import { ZoneBadge } from "@/components/ZoneBadge";
+import { zoneFromTension, type Zone } from "@/lib/zones";
 
 function ExerciseCard({ ex, done, onToggle }: { ex: any; done: boolean; onToggle: () => void }) {
   const [expanded, setExpanded] = useState(false);
