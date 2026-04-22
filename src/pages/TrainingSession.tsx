@@ -129,7 +129,8 @@ export default function TrainingSession() {
   const exercises = useMemo<SessionExercise[]>(() => {
     if (planDay) {
       return planDay.exercises.map((e: any, i: number) => ({
-        id: e.id || `plan-ex-${i}`,
+        // Stable id priority: slug (survives plan regeneration) → db id → index fallback.
+        id: e.slug || e.id || `plan-ex-${id}-${i}`,
         name: e.name,
         shortInstruction: trimToTwoLines(e.instructions || e.description || ""),
         repetitionsTarget: e.repetitions ?? 5,
@@ -138,12 +139,13 @@ export default function TrainingSession() {
       }));
     }
     const std = getDayById(id);
-    return (std?.exercises || []).map((e: any) => ({
-      id: e.id,
+    return (std?.exercises || []).map((e: any, i: number) => ({
+      id: e.slug || e.id || `std-ex-${id}-${i}`,
       name: e.name,
       shortInstruction: "",
       repetitionsTarget: e.repetitionsTarget ?? 5,
       timerSeconds: e.timerSuggested,
+      slug: e.slug,
     }));
   }, [planDay, id]);
 
