@@ -65,6 +65,7 @@ const CoachSubscription = lazy(() => import("./pages/CoachSubscription"));
 const CoachShelterAnimals = lazy(() => import("./pages/CoachShelterAnimals"));
 const CoachShelterAnimalEval = lazy(() => import("./pages/CoachShelterAnimalEval"));
 const CoachExercisePreview = lazy(() => import("./pages/CoachExercisePreview"));
+const CoachExercises = lazy(() => import("./pages/CoachExercises"));
 const MessagesPage = lazy(() => import("./pages/Messages"));
 const SettingsPage = lazy(() => import("./pages/Settings"));
 const PreferencesPage = lazy(() => import("./pages/Preferences"));
@@ -307,6 +308,7 @@ function ProtectedRoutes() {
         <Route path="/coach/shelter-animals" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachShelterAnimals /></CoachGuard></Suspense>} />
         <Route path="/coach/shelter-animal/:animalId" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachShelterAnimalEval /></CoachGuard></Suspense>} />
         <Route path="/coach/exercise-preview/:slug" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachExercisePreview /></CoachGuard></Suspense>} />
+        <Route path="/coach/exercises" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachExercises /></CoachGuard></Suspense>} />
         
         <Route path="/admin" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminDashboard /></AdminGuard></Suspense>} />
         <Route path="/admin/treasury" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminTreasury /></AdminGuard></Suspense>} />

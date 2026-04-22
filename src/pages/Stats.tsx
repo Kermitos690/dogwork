@@ -19,6 +19,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useFeatureGate } from "@/hooks/useFeatureGate";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
+import { ZoneInsightCard } from "@/components/ZoneInsightCard";
 
 // ─── Sub-components ──────
 
@@ -372,6 +373,15 @@ export default function Stats() {
           <KPICard label="Jours validés" value={stats.completedDays} delay={0.1} />
           <KPICard label="Séances" value={stats.totalSessions} delay={0.15} />
         </div>
+
+        {/* ─── Zones comportementales (vert/orange/rouge réelles) ─── */}
+        <ZoneInsightCard
+          distribution={stats.combinedZoneDistribution}
+          trend={stats.zoneTrend}
+          recentDominant={stats.recentDominantZone}
+          dataQuality={stats.zoneDataQuality}
+          delay={0.18}
+        />
 
         {/* ─── Tendances : répartition vert/orange/rouge + chrono + top exercices ─── */}
         <TrendsSection stats={stats} />
