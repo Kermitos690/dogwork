@@ -243,6 +243,7 @@ function ProtectedRoutes() {
           <Route path="/shop" element={<ShopPage />} />
           <Route path="/outils" element={<OutilsPage />} />
           <Route path="/documents" element={<DocumentsPage />} />
+          <Route path="/agents" element={<AgentsPage />} />
           <Route path="/program" element={<Navigate to="/plan" replace />} />
           <Route path="*" element={<Navigate to="/shelter" replace />} />
         </Routes>
