@@ -117,6 +117,8 @@ export default function Outils() {
   const { data: wallet } = useAIBalance();
   const { data: features } = useAIFeatures();
   const [running, setRunning] = useState<string | null>(null);
+  const [savingToJournal, setSavingToJournal] = useState(false);
+  const [savedToJournal, setSavedToJournal] = useState(false);
 
   useEffect(() => {
     document.title = "Outils IA — DogWork";
@@ -416,7 +418,12 @@ export default function Outils() {
 
       <AIResultDialog
         open={!!result}
-        onOpenChange={(o) => !o && setResult(null)}
+        onOpenChange={(o) => {
+          if (!o) {
+            setResult(null);
+            setSavedToJournal(false);
+          }
+        }}
         title={result?.title ?? "Résultat"}
         summary={result?.summary}
         content={result?.content}
@@ -425,10 +432,15 @@ export default function Outils() {
           result && user && result.dogId && result.text
             ? [
                 {
-                  label: `Sauver dans le journal${currentDog ? ` de ${currentDog.name}` : ""}`,
+                  label: savedToJournal
+                    ? "Sauvegardé ✓"
+                    : `Sauver dans le journal${currentDog ? ` de ${currentDog.name}` : ""}`,
                   icon: NotebookPen,
                   variant: "default",
+                  loading: savingToJournal,
+                  disabled: savingToJournal || savedToJournal,
                   onClick: async () => {
+                    setSavingToJournal(true);
                     try {
                       await saveAiTextToJournal({
                         dogId: result.dogId!,
@@ -437,9 +449,12 @@ export default function Outils() {
                         text: result.text!,
                       });
                       qc.invalidateQueries({ queryKey: ["journal_entries"] });
+                      setSavedToJournal(true);
                       toast.success("Ajouté au journal du chien.");
                     } catch (e: any) {
                       toast.error(e.message ?? "Échec de l'enregistrement");
+                    } finally {
+                      setSavingToJournal(false);
                     }
                   },
                 },

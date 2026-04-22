@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, X, Bot, Sparkles, Loader2, Clock, History, Plus, Trash2, MessageSquare, NotebookPen } from "lucide-react";
+import { Send, X, Bot, Sparkles, Loader2, Clock, History, Plus, Trash2, MessageSquare, NotebookPen, Check } from "lucide-react";
 import { saveAiTextToJournal } from "@/lib/aiDestinations";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
@@ -186,6 +186,7 @@ function AIChatBotInner() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
+  const [savedMessages, setSavedMessages] = useState<Set<number>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -258,12 +259,14 @@ function AIChatBotInner() {
     setDraftMessages([]);
     setShowHistory(false);
     setInput("");
+    setSavedMessages(new Set());
   }, []);
 
   const openConversation = useCallback((id: string) => {
     setConversationId(id);
     setDraftMessages([]);
     setShowHistory(false);
+    setSavedMessages(new Set());
   }, []);
 
   const executeSend = useCallback(async (text: string) => {
@@ -532,27 +535,35 @@ function AIChatBotInner() {
                         {m.role === "assistant" ? <ReactMarkdown>{m.content}</ReactMarkdown> : m.content}
                       </div>
                       {m.role === "assistant" && m.content.trim().length > 40 && activeDog && user && (
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            try {
-                              await saveAiTextToJournal({
-                                dogId: activeDog.id,
-                                userId: user.id,
-                                title: `Échange IA — ${new Date().toLocaleDateString("fr-FR")}`,
-                                text: m.content,
-                              });
-                              queryClient.invalidateQueries({ queryKey: ["journal_entries"] });
-                              toast({ title: "Ajouté au journal", description: `Sauvegardé pour ${activeDog.name}.` });
-                            } catch (e: any) {
-                              toast({ title: "Erreur", description: e.message ?? "Échec", variant: "destructive" });
-                            }
-                          }}
-                          className="mt-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          <NotebookPen className="h-3 w-3" />
-                          Sauver dans le journal de {activeDog.name}
-                        </button>
+                        savedMessages.has(i) ? (
+                          <span className="mt-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                            <Check className="h-3 w-3 text-primary" />
+                            Sauvegardé dans le journal
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                await saveAiTextToJournal({
+                                  dogId: activeDog.id,
+                                  userId: user.id,
+                                  title: `Échange IA — ${new Date().toLocaleDateString("fr-FR")}`,
+                                  text: m.content,
+                                });
+                                queryClient.invalidateQueries({ queryKey: ["journal_entries"] });
+                                setSavedMessages(prev => new Set(prev).add(i));
+                                toast({ title: "Ajouté au journal", description: `Sauvegardé pour ${activeDog.name}.` });
+                              } catch (e: any) {
+                                toast({ title: "Erreur", description: e.message ?? "Échec", variant: "destructive" });
+                              }
+                            }}
+                            className="mt-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <NotebookPen className="h-3 w-3" />
+                            Sauver dans le journal de {activeDog.name}
+                          </button>
+                        )
                       )}
                     </div>
                   ))}
