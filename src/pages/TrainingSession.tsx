@@ -200,10 +200,26 @@ export default function TrainingSession() {
   const persistResult = useCallback(
     async (result: Result) => {
       if (!exercise || !activeDog || !user) return;
+      // Guard against double-tap / re-entry: a single exercise must produce
+      // at most one exercise_sessions row per visit.
+      if (persistedIdsRef.current.has(exercise.id)) return;
+      persistedIdsRef.current.add(exercise.id);
+
       const newCompleted = completedIds.includes(exercise.id)
         ? completedIds
         : [...completedIds, exercise.id];
       setCompletedIds(newCompleted);
+
+      // duration_actual: prefer timer delta; otherwise fall back to wall-clock
+      // since the exercise card was mounted (more accurate than null for stats).
+      const wallClockSec = Math.max(
+        1,
+        Math.round((Date.now() - exerciseStartedAtRef.current) / 1000),
+      );
+      const durationActual = exercise.timerSeconds
+        ? exercise.timerSeconds - (timerSeconds ?? exercise.timerSeconds)
+        : wallClockSec;
+
       try {
         await supabase.from("exercise_sessions").insert({
           dog_id: activeDog.id,
@@ -211,9 +227,7 @@ export default function TrainingSession() {
           day_id: id,
           exercise_id: exercise.id,
           repetitions_done: exercise.repetitionsTarget,
-          duration_actual: exercise.timerSeconds
-            ? exercise.timerSeconds - (timerSeconds ?? exercise.timerSeconds)
-            : null,
+          duration_actual: durationActual,
           completed: result === "success" || result === "difficult",
         });
         if (result !== "skip") {
@@ -223,6 +237,8 @@ export default function TrainingSession() {
           });
         }
       } catch (err) {
+        // Roll back the dedupe guard so the user can retry.
+        persistedIdsRef.current.delete(exercise.id);
         console.error("TrainingSession persist error:", err);
         toast({
           title: "Erreur",
@@ -235,22 +251,26 @@ export default function TrainingSession() {
   );
 
   const handleResult = useCallback(
-    async (result: Result) => {
+    (result: Result) => {
+      // Block re-entry while a previous tap is still being persisted.
+      if (persisting || flash) return;
       const meta = RESULT_META[result];
       if (navigator.vibrate) navigator.vibrate(meta.vibrate);
       setFlash(result);
       tts.stop();
-      await persistResult(result);
+      setPersisting(true);
+      // Fire-and-forget: persistence runs in parallel with the flash so the
+      // visual feedback stays snappy even on slow networks.
+      void persistResult(result).finally(() => setPersisting(false));
 
-      // Brief visual feedback then advance.
       window.setTimeout(() => {
         setFlash(null);
         if (currentIndex < total - 1) {
           setCurrentIndex((i) => i + 1);
         }
-      }, 450);
+      }, 380);
     },
-    [persistResult, currentIndex, total, tts],
+    [persistResult, currentIndex, total, tts, persisting, flash],
   );
 
   const exitSession = () => {
