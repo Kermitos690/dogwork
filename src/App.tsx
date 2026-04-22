@@ -31,6 +31,7 @@ const ObjectivesPage = lazy(() => import("./pages/Objectives"));
 const PlanPage = lazy(() => import("./pages/Plan"));
 const DayDetail = lazy(() => import("./pages/DayDetail"));
 const Training = lazy(() => import("./pages/Training"));
+const TrainingSession = lazy(() => import("./pages/TrainingSession"));
 const BehaviorLog = lazy(() => import("./pages/BehaviorLog"));
 const Journal = lazy(() => import("./pages/Journal"));
 const Stats = lazy(() => import("./pages/Stats"));
@@ -225,6 +226,7 @@ function ProtectedRoutes() {
           <Route path="/day/:dayId" element={<DayDetail />} />
           <Route path="/training" element={<Training />} />
           <Route path="/training/:dayId" element={<Training />} />
+          <Route path="/training/session/:dayId" element={<TrainingSession />} />
           <Route path="/behavior/:dayId" element={<BehaviorLog />} />
           <Route path="/journal" element={<Journal />} />
           <Route path="/stats" element={<Stats />} />
@@ -271,6 +273,7 @@ function ProtectedRoutes() {
         <Route path="/day/:dayId" element={<DayDetail />} />
         <Route path="/training" element={<Training />} />
         <Route path="/training/:dayId" element={<Training />} />
+        <Route path="/training/session/:dayId" element={<TrainingSession />} />
         <Route path="/behavior/:dayId" element={<BehaviorLog />} />
         <Route path="/journal" element={<Journal />} />
         <Route path="/stats" element={<Stats />} />
