@@ -18,6 +18,7 @@ import { generatePersonalizedPlan, setDbExercises, type PersonalizedPlan } from 
 import { tierGrantsFullAccess } from "@/lib/plans";
 import { toast } from "@/hooks/use-toast";
 import { useSaveAIDocument } from "@/hooks/useAIDocuments";
+import { NoActiveDogState } from "@/components/NoActiveDogState";
 
 const statusColors: Record<string, string> = {
   done: "bg-success text-success-foreground",
@@ -243,10 +244,10 @@ export default function PlanPage() {
   if (!activeDog) {
     return (
       <AppLayout>
-        <div className="pt-4 text-center space-y-4">
-          <p className="text-muted-foreground">Ajoutez d'abord un chien.</p>
-          <Button onClick={() => navigate("/dogs/new")}>Ajouter un chien</Button>
-        </div>
+        <NoActiveDogState
+          title="Plan d'entraînement"
+          description="Sélectionnez un chien pour générer ou consulter son plan personnalisé."
+        />
       </AppLayout>
     );
   }
