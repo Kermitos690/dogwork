@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, Dog, FileText, BarChart3, BookOpen, CreditCard, Building2, HelpCircle } from "lucide-react";
+import { LayoutDashboard, Users, Dog, FileText, BarChart3, BookOpen, CreditCard, Building2, HelpCircle, Sparkles } from "lucide-react";
 
 const tabs = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/coach" },
@@ -7,6 +7,7 @@ const tabs = [
   { label: "Chiens", icon: Dog, path: "/coach/dogs" },
   { label: "Refuges", icon: Building2, path: "/coach/shelter-animals" },
   { label: "Cours", icon: BookOpen, path: "/coach/courses" },
+  { label: "Exercices", icon: Sparkles, path: "/coach/exercises" },
   { label: "Notes", icon: FileText, path: "/coach/notes" },
   { label: "Stats", icon: BarChart3, path: "/coach/stats" },
   { label: "Support", icon: HelpCircle, path: "/coach/support" },
