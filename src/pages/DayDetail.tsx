@@ -524,6 +524,8 @@ export default function DayDetail() {
           )}
         </div>
       </div>
+
+      <QuickJournalSheet open={journalOpen} onOpenChange={setJournalOpen} dayId={id} />
     </AppLayout>
   );
 }
