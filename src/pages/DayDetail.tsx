@@ -19,6 +19,7 @@ import { zoneFromTension, type Zone } from "@/lib/zones";
 import { DayJourneyHeader } from "@/components/DayJourneyHeader";
 import { NoActiveDogState } from "@/components/NoActiveDogState";
 import { QuickJournalSheet } from "@/components/training/QuickJournalSheet";
+import { useDayLockState } from "@/hooks/useDayLockState";
 
 function ExerciseCard({ ex, done, onToggle }: { ex: any; done: boolean; onToggle: () => void }) {
   const [expanded, setExpanded] = useState(false);
@@ -191,17 +192,10 @@ export default function DayDetail() {
     enabled: !!activeDog,
   });
 
-  const { data: prevDayProgress } = useQuery({
-    queryKey: ["day_progress", activeDog?.id, id - 1],
-    queryFn: async () => {
-      const { data } = await supabase.from("day_progress").select("validated")
-        .eq("dog_id", activeDog!.id).eq("day_id", id - 1).maybeSingle();
-      return data;
-    },
-    enabled: !!activeDog && id > 1,
-  });
-
-  const isDayLocked = id > 1 && !prevDayProgress?.validated;
+  // Centralized lock + state resolution (Phase 2A) — single source of truth
+  // shared with Plan grid, Training and TrainingSession.
+  const lockSnapshot = useDayLockState(id);
+  const isDayLocked = lockSnapshot.locked;
 
   // Today's behavioural zones for this day (sessions + behaviour log)
   const { data: dayZones } = useQuery({

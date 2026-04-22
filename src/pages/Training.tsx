@@ -18,6 +18,8 @@ import { ZoneBadge } from "@/components/ZoneBadge";
 import type { Zone } from "@/lib/zones";
 import { DayJourneyHeader } from "@/components/DayJourneyHeader";
 import { NoActiveDogState } from "@/components/NoActiveDogState";
+import { useDayLockState } from "@/hooks/useDayLockState";
+import { Lock } from "lucide-react";
 
 export default function Training() {
   const { dayId } = useParams();
