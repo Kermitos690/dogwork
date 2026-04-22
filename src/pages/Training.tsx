@@ -16,6 +16,8 @@ import { upsertDayProgress } from "@/lib/dayProgress";
 import { ZoneSelector } from "@/components/ZoneSelector";
 import { ZoneBadge } from "@/components/ZoneBadge";
 import type { Zone } from "@/lib/zones";
+import { DayJourneyHeader } from "@/components/DayJourneyHeader";
+import { NoActiveDogState } from "@/components/NoActiveDogState";
 
 export default function Training() {
   const { dayId } = useParams();
@@ -111,6 +113,17 @@ export default function Training() {
   const goNext = () => { if (currentIndex < totalExercises - 1) { setCurrentIndex(currentIndex + 1); setReps(0); setShowSteps(false); } };
   const goPrev = () => { if (currentIndex > 0) { setCurrentIndex(currentIndex - 1); setReps(0); setShowSteps(false); } };
 
+  if (!activeDog) {
+    return (
+      <AppLayout>
+        <NoActiveDogState
+          title="Séance d'entraînement"
+          description="Sélectionnez un chien pour démarrer sa séance du jour."
+        />
+      </AppLayout>
+    );
+  }
+
   if ((!standardDay && !planDay) || exercises.length === 0 || !exercise) {
     return (
       <AppLayout>
@@ -130,12 +143,24 @@ export default function Training() {
   return (
     <AppLayout>
       <div className="animate-fade-in space-y-4 pt-4">
-        {/* Header */}
+        {/* Premium day journey header keeps continuity with DayDetail */}
+        <DayJourneyHeader
+          dayId={id}
+          totalDays={28}
+          week={(planDay as any)?.week ?? standardDay?.week}
+          state={progress?.validated ? "done" : (allDone ? "done" : (completedCount > 0 ? "in_progress" : "in_progress"))}
+          completion={totalExercises > 0 ? completedCount / totalExercises : 0}
+          hasPrev={id > 1}
+          hasNext={id < 28 && (progress?.validated ?? false)}
+          source={source}
+        />
+
+        {/* Quick header — focused session controls */}
         <div className="flex items-center justify-between">
-          <button onClick={() => navigate(backUrl)} className="flex items-center gap-1 text-sm text-muted-foreground">
-            <ArrowLeft className="h-4 w-4" /> Jour {id}
+          <button onClick={() => navigate(backUrl)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft className="h-3.5 w-3.5" /> Vue du jour
           </button>
-          <span className="text-xs font-bold text-primary">{currentIndex + 1}/{totalExercises}</span>
+          <span className="text-xs font-bold text-primary">Exercice {currentIndex + 1}/{totalExercises}</span>
         </div>
 
         <Progress value={sessionPct} className="h-2" />
