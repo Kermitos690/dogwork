@@ -86,9 +86,14 @@ export function QuickJournalSheet({
         comfort_distance_meters: distance,
         barking,
         jump_on_human: jumping,
-        // We reuse `recovery_after_trigger` as a soft signal for avoidance —
-        // the schema does not have a dedicated column and adding one is
-        // out of scope for this UX-only pass.
+        // ⚠️ TEMPORARY (Phase 1) — `behavior_logs` has no dedicated `avoidance`
+        // boolean column yet. We piggy-back on `recovery_after_trigger` (a
+        // free-text field) using the sentinel string "avoidance" so the
+        // signal is captured without widening the schema during this UX pass.
+        // TODO(Phase 2): add a real `avoidance boolean` column on
+        // `behavior_logs` + migrate this sentinel back into it, then drop
+        // the magic string here. Stats / read-side already only checks
+        // existence so the migration will be straightforward.
         recovery_after_trigger: avoidance ? "avoidance" : null,
         comments: note || null,
         zone_state: zone,
