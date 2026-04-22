@@ -11,6 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useAIBalance, useAIFeatures } from "@/hooks/useAICredits";
+import { useCreditConfirmation } from "@/hooks/useCreditConfirmation";
+import { CreditConfirmDialog } from "@/components/CreditConfirmDialog";
+import { AIResultDialog } from "@/components/AIResultDialog";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -19,6 +22,13 @@ import {
   TrendingUp, ImageIcon, Coins, BookMarked, ArrowRight,
   Bot, Loader2, Clock,
 } from "lucide-react";
+
+interface AgentResult {
+  title: string;
+  summary?: string | null;
+  content: unknown;
+  creditsSpent: number;
+}
 
 interface ToolDef {
   feature_code: string;
@@ -107,6 +117,9 @@ export default function Outils() {
     document.title = "Outils IA — DogWork";
   }, []);
 
+  const credit = useCreditConfirmation();
+  const [result, setResult] = useState<AgentResult | null>(null);
+
   const getCost = (code: string) =>
     features?.find((f) => f.code === code)?.credits_cost ?? 0;
 
@@ -138,15 +151,9 @@ export default function Outils() {
     onError: (e: any) => toast.error(e.message ?? "Erreur"),
   });
 
-  const runAgent = async (def: AgentDef) => {
-    if (def.requiresDog && !currentDog) {
-      toast.error("Sélectionnez un chien d'abord.");
-      return;
-    }
+  const executeAgent = async (def: AgentDef) => {
     setRunning(def.code);
     try {
-      // dog_id omitted → backend auto-resolves the active dog.
-      // Saved params from previous runs are reapplied automatically.
       const { data, error } = await supabase.functions.invoke(def.functionName, {
         body: currentDog?.id ? { dog_id: currentDog.id } : {},
       });
@@ -156,7 +163,14 @@ export default function Outils() {
           : error.message;
         throw new Error(msg ?? error.message);
       }
-      toast.success(`Agent terminé · ${data.credits_spent} crédits débités. Document sauvegardé.`);
+      const meta = getMeta(def.code);
+      setResult({
+        title: `${meta?.label ?? def.code}${data.dog_name ? ` · ${data.dog_name}` : ""}`,
+        summary: typeof data.text === "string" ? data.text.slice(0, 180) : null,
+        content: { text: data.text, dog_profile: data.dog_profile, params: data.params_used },
+        creditsSpent: data.credits_spent ?? meta?.credits_cost ?? 0,
+      });
+      toast.success("Génération terminée — sauvegardée dans vos documents.");
       qc.invalidateQueries({ queryKey: ["ai-agent-preferences", user?.id] });
       qc.invalidateQueries({ queryKey: ["ai-balance"] });
       qc.invalidateQueries({ queryKey: ["ai-documents"] });
@@ -165,6 +179,19 @@ export default function Outils() {
     } finally {
       setRunning(null);
     }
+  };
+
+  const runAgent = (def: AgentDef) => {
+    if (def.requiresDog && !currentDog) {
+      toast.error("Sélectionnez un chien d'abord.");
+      return;
+    }
+    const meta = getMeta(def.code);
+    credit.requestConfirmation({
+      featureCode: def.code,
+      benefit: meta?.description ?? "Cette action consommera des crédits IA.",
+      onConfirm: () => executeAgent(def),
+    });
   };
 
   return (
@@ -367,6 +394,26 @@ export default function Outils() {
           </button>.
         </p>
       </div>
+
+      <CreditConfirmDialog
+        open={credit.open}
+        onOpenChange={credit.setOpen}
+        onConfirm={credit.handleConfirm}
+        cost={credit.cost}
+        balance={credit.balance}
+        featureLabel={credit.featureLabel}
+        benefit={credit.benefit}
+        loading={credit.loading || running !== null}
+      />
+
+      <AIResultDialog
+        open={!!result}
+        onOpenChange={(o) => !o && setResult(null)}
+        title={result?.title ?? "Résultat"}
+        summary={result?.summary}
+        content={result?.content}
+        creditsSpent={result?.creditsSpent}
+      />
     </AppLayout>
   );
 }
