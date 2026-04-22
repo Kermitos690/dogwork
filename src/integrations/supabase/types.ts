@@ -361,6 +361,36 @@ export type Database = {
           },
         ]
       }
+      ai_agent_preferences: {
+        Row: {
+          agent_code: string
+          created_at: string
+          enabled: boolean
+          id: string
+          last_run_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agent_code: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agent_code?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_conversations: {
         Row: {
           created_at: string
