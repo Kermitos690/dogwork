@@ -194,6 +194,7 @@ function AIChatBotInner() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const { data: dogs } = useDogs();
   const activeDog = useActiveDog();
