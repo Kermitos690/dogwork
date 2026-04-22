@@ -259,12 +259,14 @@ function AIChatBotInner() {
     setDraftMessages([]);
     setShowHistory(false);
     setInput("");
+    setSavedMessages(new Set());
   }, []);
 
   const openConversation = useCallback((id: string) => {
     setConversationId(id);
     setDraftMessages([]);
     setShowHistory(false);
+    setSavedMessages(new Set());
   }, []);
 
   const executeSend = useCallback(async (text: string) => {
@@ -533,27 +535,35 @@ function AIChatBotInner() {
                         {m.role === "assistant" ? <ReactMarkdown>{m.content}</ReactMarkdown> : m.content}
                       </div>
                       {m.role === "assistant" && m.content.trim().length > 40 && activeDog && user && (
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            try {
-                              await saveAiTextToJournal({
-                                dogId: activeDog.id,
-                                userId: user.id,
-                                title: `Échange IA — ${new Date().toLocaleDateString("fr-FR")}`,
-                                text: m.content,
-                              });
-                              queryClient.invalidateQueries({ queryKey: ["journal_entries"] });
-                              toast({ title: "Ajouté au journal", description: `Sauvegardé pour ${activeDog.name}.` });
-                            } catch (e: any) {
-                              toast({ title: "Erreur", description: e.message ?? "Échec", variant: "destructive" });
-                            }
-                          }}
-                          className="mt-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          <NotebookPen className="h-3 w-3" />
-                          Sauver dans le journal de {activeDog.name}
-                        </button>
+                        savedMessages.has(i) ? (
+                          <span className="mt-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                            <Check className="h-3 w-3 text-primary" />
+                            Sauvegardé dans le journal
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                await saveAiTextToJournal({
+                                  dogId: activeDog.id,
+                                  userId: user.id,
+                                  title: `Échange IA — ${new Date().toLocaleDateString("fr-FR")}`,
+                                  text: m.content,
+                                });
+                                queryClient.invalidateQueries({ queryKey: ["journal_entries"] });
+                                setSavedMessages(prev => new Set(prev).add(i));
+                                toast({ title: "Ajouté au journal", description: `Sauvegardé pour ${activeDog.name}.` });
+                              } catch (e: any) {
+                                toast({ title: "Erreur", description: e.message ?? "Échec", variant: "destructive" });
+                              }
+                            }}
+                            className="mt-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <NotebookPen className="h-3 w-3" />
+                            Sauver dans le journal de {activeDog.name}
+                          </button>
+                        )
                       )}
                     </div>
                   ))}
