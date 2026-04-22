@@ -2,7 +2,25 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveDog } from "@/hooks/useDogs";
-import { subDays, parseISO, isAfter } from "date-fns";
+import { subDays, parseISO, isAfter, format } from "date-fns";
+import { zoneFromTension, type Zone } from "@/lib/zones";
+
+export interface ZoneDistribution {
+  green: number;
+  orange: number;
+  red: number;
+  total: number;
+  greenPct: number;
+  orangePct: number;
+  redPct: number;
+}
+
+export interface ZoneTrendPoint {
+  date: string;          // ISO date (yyyy-MM-dd)
+  green: number;
+  orange: number;
+  red: number;
+}
 
 export interface StatsSummary {
   completedDays: number;
@@ -34,7 +52,21 @@ export interface StatsSummary {
   avgSessionSeconds: number;
   completedSessionsCount: number;
   exerciseProgress: { exercise_id: string; total: number; completed: number; rate: number; totalSeconds: number }[];
+  // ─── Nouveau : zones comportementales réelles ───
+  /** Zone distribution from behavior_logs.zone_state (fallback: derived from tension_level). */
+  behaviorZoneDistribution: ZoneDistribution;
+  /** Zone distribution from exercise_sessions.zone_state. */
+  sessionZoneDistribution: ZoneDistribution;
+  /** Combined distribution across both sources — primary indicator. */
+  combinedZoneDistribution: ZoneDistribution;
+  /** Day-by-day zone counts over the period (for trend line/area chart). */
+  zoneTrend: ZoneTrendPoint[];
+  /** Dominant zone over the most recent 7 days, or null if no data. */
+  recentDominantZone: Zone | null;
+  /** Share of zone observations that came from explicit zone_state vs derived fallback. */
+  zoneDataQuality: { explicit: number; derived: number; total: number; explicitPct: number };
 }
+
 
 
 export interface Recommendation {
