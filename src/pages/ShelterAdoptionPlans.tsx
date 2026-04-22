@@ -488,6 +488,16 @@ export default function ShelterAdoptionPlans() {
           </div>
         )}
       </div>
+      <CreditConfirmDialog
+        open={credit.open}
+        onOpenChange={credit.setOpen}
+        onConfirm={credit.handleConfirm}
+        cost={credit.cost}
+        balance={credit.balance}
+        featureLabel={credit.featureLabel}
+        benefit={credit.benefit}
+        loading={credit.loading || generatingAI}
+      />
     </ShelterLayout>
   );
 }
