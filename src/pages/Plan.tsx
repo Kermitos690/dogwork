@@ -19,6 +19,7 @@ import { tierGrantsFullAccess } from "@/lib/plans";
 import { toast } from "@/hooks/use-toast";
 import { useSaveAIDocument } from "@/hooks/useAIDocuments";
 import { NoActiveDogState } from "@/components/NoActiveDogState";
+import { resolveDayState } from "@/hooks/useDayLockState";
 
 const statusColors: Record<string, string> = {
   done: "bg-success text-success-foreground",
@@ -467,10 +468,9 @@ export default function PlanPage() {
                   <div key={week} className="space-y-2">
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Semaine {week}</h3>
                 {plan.days.filter((d: any) => d.week === week).map((day: any) => {
-                      const p = progress?.[day.dayNumber];
-                      const status = p?.status || "todo";
-                      const prevDayProgress = day.dayNumber > 1 ? progress?.[day.dayNumber - 1] : null;
-                      const isLocked = day.dayNumber > 1 && !prevDayProgress?.validated;
+                      const snap = resolveDayState(day.dayNumber, progress || {});
+                      const status = snap.validated ? "done" : (snap.state === "in_progress" ? "in_progress" : "todo");
+                      const isLocked = snap.locked;
                       const firstUnlocked = plan.days.findIndex((d: any) => {
                         const dp = progress?.[d.dayNumber];
                         return !dp?.validated;
@@ -530,10 +530,9 @@ export default function PlanPage() {
               <div key={week} className="space-y-2">
                 <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Semaine {week}</h2>
                 {PROGRAM.filter(d => d.week === week).map((day, i) => {
-                  const p = progress?.[day.id];
-                  const status = p?.status || "todo";
-                  const prevProgress = day.id > 1 ? progress?.[day.id - 1] : null;
-                  const isLocked = day.id > 1 && !prevProgress?.validated;
+                  const snap = resolveDayState(day.id, progress || {});
+                  const status = snap.validated ? "done" : (snap.state === "in_progress" ? "in_progress" : "todo");
+                  const isLocked = snap.locked;
                   return (
                     <Card
                       key={day.id}

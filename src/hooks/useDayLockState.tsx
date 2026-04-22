@@ -85,3 +85,33 @@ export function useDayLockState(dayId: number): DayLockSnapshot {
 
   return { state, locked, completedCount, previousValidated, validated, rawStatus };
 }
+
+/**
+ * Pure resolver — same lock rule as `useDayLockState` but operating on a
+ * pre-fetched map of day_id → progress row. Used by the Plan grid where we
+ * already bulk-load all rows in one query and don't want N hooks.
+ *
+ * Keeping this in the same module guarantees the rule stays in sync with
+ * the per-day hook.
+ */
+export function resolveDayState(
+  dayId: number,
+  progressMap: Record<number, { status?: string | null; validated?: boolean | null; completed_exercises?: string[] | null } | undefined>,
+): DayLockSnapshot {
+  const current = progressMap[dayId];
+  const prev = dayId > 1 ? progressMap[dayId - 1] : undefined;
+  const previousValidated = dayId <= 1 ? true : !!prev?.validated;
+  const locked = !previousValidated;
+  const completed = (current?.completed_exercises as string[] | null) ?? [];
+  const completedCount = completed.length;
+  const validated = !!current?.validated;
+  const rawStatus = (current?.status as string) ?? "todo";
+
+  let state: DayState;
+  if (locked) state = "locked";
+  else if (validated) state = "done";
+  else if (completedCount > 0 || rawStatus === "in_progress") state = "in_progress";
+  else state = "todo";
+
+  return { state, locked, completedCount, previousValidated, validated, rawStatus };
+}
