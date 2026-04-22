@@ -29,7 +29,7 @@ const AGENTS: AgentDef[] = [
 
 export default function Agents() {
   const { user } = useAuth();
-  const { data: currentDog } = useActiveDog();
+  const currentDog = useActiveDog();
   const qc = useQueryClient();
   const [running, setRunning] = useState<string | null>(null);
 
