@@ -1,5 +1,10 @@
 import { useState, useCallback } from "react";
 import { useAIBalance, useAIFeatures } from "@/hooks/useAICredits";
+import {
+  resolveUpsellTrigger,
+  suggestMonetizationPath,
+  type UpsellTrigger,
+} from "@/lib/monetization";
 
 interface PendingAction {
   featureCode: string;
