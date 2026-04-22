@@ -394,6 +394,26 @@ export default function Outils() {
           </button>.
         </p>
       </div>
+
+      <CreditConfirmDialog
+        open={credit.open}
+        onOpenChange={credit.setOpen}
+        onConfirm={credit.handleConfirm}
+        cost={credit.cost}
+        balance={credit.balance}
+        featureLabel={credit.featureLabel}
+        benefit={credit.benefit}
+        loading={credit.loading || running !== null}
+      />
+
+      <AIResultDialog
+        open={!!result}
+        onOpenChange={(o) => !o && setResult(null)}
+        title={result?.title ?? "Résultat"}
+        summary={result?.summary}
+        content={result?.content}
+        creditsSpent={result?.creditsSpent}
+      />
     </AppLayout>
   );
 }
