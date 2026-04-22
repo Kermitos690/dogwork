@@ -83,14 +83,15 @@ const TOOLS: ToolDef[] = [
 interface AgentDef {
   code: string;
   functionName: string;
-  needsDog: boolean;
+  /** Strict: agent fails without an active dog (e.g. dog-only insights). */
+  requiresDog: boolean;
 }
 
 const AGENTS: AgentDef[] = [
-  { code: "agent_behavior_analysis", functionName: "agent-behavior-analysis", needsDog: false },
-  { code: "agent_progress_report",   functionName: "agent-progress-report",   needsDog: false },
-  { code: "agent_plan_adjustment",   functionName: "agent-plan-adjustment",   needsDog: false },
-  { code: "agent_dog_insights",      functionName: "agent-dog-insights",      needsDog: true  },
+  { code: "agent_behavior_analysis", functionName: "agent-behavior-analysis", requiresDog: false },
+  { code: "agent_progress_report",   functionName: "agent-progress-report",   requiresDog: false },
+  { code: "agent_plan_adjustment",   functionName: "agent-plan-adjustment",   requiresDog: false },
+  { code: "agent_dog_insights",      functionName: "agent-dog-insights",      requiresDog: true  },
 ];
 
 export default function Outils() {
@@ -118,7 +119,7 @@ export default function Outils() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("ai_agent_preferences")
-        .select("agent_code, enabled, last_run_at")
+        .select("agent_code, enabled, last_run_at, metadata")
         .eq("user_id", user!.id);
       if (error) throw error;
       return data ?? [];
@@ -138,14 +139,16 @@ export default function Outils() {
   });
 
   const runAgent = async (def: AgentDef) => {
-    if (def.needsDog && !currentDog) {
+    if (def.requiresDog && !currentDog) {
       toast.error("Sélectionnez un chien d'abord.");
       return;
     }
     setRunning(def.code);
     try {
+      // dog_id omitted → backend auto-resolves the active dog.
+      // Saved params from previous runs are reapplied automatically.
       const { data, error } = await supabase.functions.invoke(def.functionName, {
-        body: { dog_id: currentDog?.id ?? null },
+        body: currentDog?.id ? { dog_id: currentDog.id } : {},
       });
       if (error) {
         const msg = (error as any).context?.body
@@ -272,7 +275,7 @@ export default function Outils() {
             </h2>
           </div>
           <p className="text-xs text-muted-foreground mb-3">
-            Active un agent (off par défaut), puis lance-le manuellement quand tu en as besoin. Les crédits sont débités uniquement au lancement.
+            Active un agent (off par défaut), puis lance-le quand tu en as besoin. Chaque agent utilise automatiquement le profil du chien actif (âge, seuil, réactivité) et mémorise tes paramètres pour la prochaine exécution. Les crédits sont débités uniquement au lancement.
           </p>
 
           <div className="grid gap-3">
@@ -312,8 +315,18 @@ export default function Outils() {
                         <Coins className="h-3 w-3" />
                         {cost} crédit{cost > 1 ? "s" : ""}
                       </Badge>
-                      {def.needsDog && (
+                      {def.requiresDog && (
                         <Badge variant="outline" className="text-[10px]">Chien requis</Badge>
+                      )}
+                      {currentDog && (
+                        <Badge variant="outline" className="text-[10px]">
+                          Chien actif : {currentDog.name}
+                        </Badge>
+                      )}
+                      {(pref?.metadata as any)?.last_dog_name && (pref?.metadata as any)?.last_dog_name !== currentDog?.name && (
+                        <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                          Dernier run : {(pref?.metadata as any).last_dog_name}
+                        </Badge>
                       )}
                       {pref?.last_run_at && (
                         <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
