@@ -25,6 +25,8 @@ import type { PlanDay } from "@/lib/planGenerator";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { QuickJournalSheet } from "@/components/training/QuickJournalSheet";
+import { enqueue } from "@/lib/offlineQueue";
+import { SyncStatusBadge } from "@/components/SyncStatusBadge";
 
 type Result = "success" | "difficult" | "fail" | "skip";
 
@@ -220,23 +222,67 @@ export default function TrainingSession() {
         ? exercise.timerSeconds - (timerSeconds ?? exercise.timerSeconds)
         : wallClockSec;
 
+      const sessionPayload = {
+        dog_id: activeDog.id,
+        user_id: user.id,
+        day_id: id,
+        exercise_id: exercise.id,
+        repetitions_done: exercise.repetitionsTarget,
+        duration_actual: durationActual,
+        completed: result === "success" || result === "difficult",
+      };
+
+      // Offline path: queue everything and confirm locally. The replay
+      // runner will flush when the network returns.
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        enqueue({ kind: "insert", table: "exercise_sessions", payload: sessionPayload });
+        if (result !== "skip") {
+          enqueue({
+            kind: "upsertDayProgress",
+            dogId: activeDog.id,
+            userId: user.id,
+            dayId: id,
+            updates: {
+              completed_exercises: newCompleted,
+              status: newCompleted.length >= total ? "done" : "in_progress",
+            },
+          });
+        }
+        return;
+      }
+
       try {
-        await supabase.from("exercise_sessions").insert({
-          dog_id: activeDog.id,
-          user_id: user.id,
-          day_id: id,
-          exercise_id: exercise.id,
-          repetitions_done: exercise.repetitionsTarget,
-          duration_actual: durationActual,
-          completed: result === "success" || result === "difficult",
-        });
+        const { error } = await supabase.from("exercise_sessions").insert(sessionPayload);
+        if (error) throw error;
         if (result !== "skip") {
           await upsertDayProgress(activeDog.id, user.id, id, {
             completed_exercises: newCompleted,
             status: newCompleted.length >= total ? "done" : "in_progress",
           });
         }
-      } catch (err) {
+      } catch (err: any) {
+        const msg = String(err?.message || err);
+        const looksOffline =
+          msg.includes("Failed to fetch") ||
+          msg.includes("NetworkError") ||
+          msg.includes("network error");
+        if (looksOffline) {
+          // Network blip: queue both writes so the user keeps their flow.
+          enqueue({ kind: "insert", table: "exercise_sessions", payload: sessionPayload });
+          if (result !== "skip") {
+            enqueue({
+              kind: "upsertDayProgress",
+              dogId: activeDog.id,
+              userId: user.id,
+              dayId: id,
+              updates: {
+                completed_exercises: newCompleted,
+                status: newCompleted.length >= total ? "done" : "in_progress",
+              },
+            });
+          }
+          return;
+        }
         // Roll back the dedupe guard so the user can retry.
         persistedIdsRef.current.delete(exercise.id);
         console.error("TrainingSession persist error:", err);
