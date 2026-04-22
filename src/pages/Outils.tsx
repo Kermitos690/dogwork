@@ -14,13 +14,14 @@ import { useAIBalance, useAIFeatures } from "@/hooks/useAICredits";
 import { useCreditConfirmation } from "@/hooks/useCreditConfirmation";
 import { CreditConfirmDialog } from "@/components/CreditConfirmDialog";
 import { AIResultDialog } from "@/components/AIResultDialog";
+import { saveAiTextToJournal } from "@/lib/aiDestinations";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
   Sparkles, BookOpen, Brain, ClipboardCheck, Heart,
   TrendingUp, ImageIcon, Coins, BookMarked, ArrowRight,
-  Bot, Loader2, Clock,
+  Bot, Loader2, Clock, NotebookPen,
 } from "lucide-react";
 
 interface AgentResult {
@@ -28,6 +29,10 @@ interface AgentResult {
   summary?: string | null;
   content: unknown;
   creditsSpent: number;
+  /** Plain text extracted from the result, used by destination actions. */
+  text?: string;
+  /** Dog this result is tied to (active dog at run time). */
+  dogId?: string | null;
 }
 
 interface ToolDef {
