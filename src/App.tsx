@@ -288,6 +288,7 @@ function ProtectedRoutes() {
         <Route path="/shop" element={<ShopPage />} />
         <Route path="/outils" element={<OutilsPage />} />
         <Route path="/documents" element={<DocumentsPage />} />
+        <Route path="/agents" element={<AgentsPage />} />
         <Route path="/force-password-change" element={<ForcePasswordChange />} />
         <Route path="/program" element={<Navigate to="/plan" replace />} />
         {/* Coach / Educator routes */}
