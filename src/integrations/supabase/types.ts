@@ -788,6 +788,7 @@ export type Database = {
       }
       behavior_logs: {
         Row: {
+          avoidance: boolean
           barking: boolean | null
           comfort_distance_meters: number | null
           comments: string | null
@@ -808,6 +809,7 @@ export type Database = {
           zone_state: Database["public"]["Enums"]["behavior_zone"] | null
         }
         Insert: {
+          avoidance?: boolean
           barking?: boolean | null
           comfort_distance_meters?: number | null
           comments?: string | null
@@ -828,6 +830,7 @@ export type Database = {
           zone_state?: Database["public"]["Enums"]["behavior_zone"] | null
         }
         Update: {
+          avoidance?: boolean
           barking?: boolean | null
           comfort_distance_meters?: number | null
           comments?: string | null
