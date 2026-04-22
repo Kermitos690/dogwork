@@ -169,11 +169,14 @@ export default function Outils() {
         throw new Error(msg ?? error.message);
       }
       const meta = getMeta(def.code);
+      const text = typeof data.text === "string" ? data.text : "";
       setResult({
         title: `${meta?.label ?? def.code}${data.dog_name ? ` · ${data.dog_name}` : ""}`,
-        summary: typeof data.text === "string" ? data.text.slice(0, 180) : null,
-        content: { text: data.text, dog_profile: data.dog_profile, params: data.params_used },
+        summary: text ? text.slice(0, 180) : null,
+        content: { text, dog_profile: data.dog_profile, params: data.params_used },
         creditsSpent: data.credits_spent ?? meta?.credits_cost ?? 0,
+        text,
+        dogId: currentDog?.id ?? null,
       });
       toast.success("Génération terminée — sauvegardée dans vos documents.");
       qc.invalidateQueries({ queryKey: ["ai-agent-preferences", user?.id] });
