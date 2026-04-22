@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
-  Copy, Printer, BookMarked, Check, ExternalLink, Sparkles,
+  Copy, Printer, BookMarked, Check, ExternalLink, Sparkles, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -11,6 +11,7 @@ interface ExtraAction {
   icon?: React.ElementType;
   onClick: () => void;
   disabled?: boolean;
+  loading?: boolean;
   variant?: "default" | "secondary" | "outline" | "ghost";
 }
 
@@ -108,39 +109,47 @@ export function AIPostGenerationActions({
   };
 
   return (
-    <div className={`flex flex-wrap items-center gap-2 ${className ?? ""}`}>
-      {/* Universal actions */}
-      <Button size="sm" variant="outline" onClick={handleCopy}>
-        {copied ? <Check className="h-3.5 w-3.5 mr-1.5" /> : <Copy className="h-3.5 w-3.5 mr-1.5" />}
-        {copied ? "Copié" : "Copier"}
-      </Button>
-      <Button size="sm" variant="outline" onClick={handlePrint}>
-        <Printer className="h-3.5 w-3.5 mr-1.5" />
-        Exporter PDF
-      </Button>
-
-      {/* Contextual integration actions */}
+    <div className={`flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 ${className ?? ""}`}>
+      {/* Contextual integration actions — primary, full-width on mobile */}
       {extraActions.map((a, i) => {
         const Icon = a.icon ?? Sparkles;
+        const isLoading = !!a.loading;
         return (
           <Button
             key={i}
             size="sm"
             variant={a.variant ?? "default"}
             onClick={a.onClick}
-            disabled={a.disabled}
+            disabled={a.disabled || isLoading}
+            className="w-full sm:w-auto justify-center"
           >
-            <Icon className="h-3.5 w-3.5 mr-1.5" />
+            {isLoading ? (
+              <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+            ) : (
+              <Icon className="h-3.5 w-3.5 mr-1.5" />
+            )}
             {a.label}
           </Button>
         );
       })}
 
+      {/* Universal actions — secondary, side-by-side on mobile */}
+      <div className="flex items-center gap-2 w-full sm:w-auto">
+        <Button size="sm" variant="outline" onClick={handleCopy} className="flex-1 sm:flex-none justify-center">
+          {copied ? <Check className="h-3.5 w-3.5 mr-1.5" /> : <Copy className="h-3.5 w-3.5 mr-1.5" />}
+          {copied ? "Copié" : "Copier"}
+        </Button>
+        <Button size="sm" variant="outline" onClick={handlePrint} className="flex-1 sm:flex-none justify-center">
+          <Printer className="h-3.5 w-3.5 mr-1.5" />
+          PDF
+        </Button>
+      </div>
+
       {showOpenLibrary && (
         <Button
           size="sm"
           variant="ghost"
-          className="ml-auto"
+          className="w-full sm:w-auto sm:ml-auto justify-center text-muted-foreground hover:text-foreground"
           onClick={() => navigate("/documents")}
         >
           <BookMarked className="h-3.5 w-3.5 mr-1.5" />
