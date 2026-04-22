@@ -805,6 +805,7 @@ export type Database = {
           stop_response: string | null
           tension_level: number | null
           user_id: string
+          zone_state: Database["public"]["Enums"]["behavior_zone"] | null
         }
         Insert: {
           barking?: boolean | null
@@ -824,6 +825,7 @@ export type Database = {
           stop_response?: string | null
           tension_level?: number | null
           user_id: string
+          zone_state?: Database["public"]["Enums"]["behavior_zone"] | null
         }
         Update: {
           barking?: boolean | null
@@ -843,6 +845,7 @@ export type Database = {
           stop_response?: string | null
           tension_level?: number | null
           user_id?: string
+          zone_state?: Database["public"]["Enums"]["behavior_zone"] | null
         }
         Relationships: [
           {
@@ -1719,6 +1722,7 @@ export type Database = {
           repetitions_done: number | null
           started_at: string
           user_id: string
+          zone_state: Database["public"]["Enums"]["behavior_zone"] | null
         }
         Insert: {
           completed?: boolean | null
@@ -1732,6 +1736,7 @@ export type Database = {
           repetitions_done?: number | null
           started_at?: string
           user_id: string
+          zone_state?: Database["public"]["Enums"]["behavior_zone"] | null
         }
         Update: {
           completed?: boolean | null
@@ -1745,6 +1750,7 @@ export type Database = {
           repetitions_done?: number | null
           started_at?: string
           user_id?: string
+          zone_state?: Database["public"]["Enums"]["behavior_zone"] | null
         }
         Relationships: [
           {
@@ -3490,6 +3496,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      derive_behavior_zone: {
+        Args: { _tension: number }
+        Returns: Database["public"]["Enums"]["behavior_zone"]
+      }
       end_shelter_space_assignment: {
         Args: { _space_id: string }
         Returns: undefined
@@ -3645,6 +3655,7 @@ export type Database = {
         | "admin_adjustment"
         | "monthly_grant"
       app_role: "owner" | "educator" | "admin" | "shelter" | "shelter_employee"
+      behavior_zone: "green" | "orange" | "red"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3781,6 +3792,7 @@ export const Constants = {
         "monthly_grant",
       ],
       app_role: ["owner", "educator", "admin", "shelter", "shelter_employee"],
+      behavior_zone: ["green", "orange", "red"],
     },
   },
 } as const
