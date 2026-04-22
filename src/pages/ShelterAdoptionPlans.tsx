@@ -489,6 +489,89 @@ export default function ShelterAdoptionPlans() {
         benefit={credit.benefit}
         loading={credit.loading || generatingAI}
       />
+
+      {aiResult && (
+        <AIResultDialog
+          open={!!aiResult}
+          onOpenChange={(o) => !o && setAiResult(null)}
+          title={aiResult.plan.title || "Plan post-adoption généré"}
+          summary={
+            aiResult.plan.tasks?.length
+              ? `${aiResult.plan.tasks.length} tâches sur ${aiResult.plan.duration_weeks ?? 8} semaines`
+              : aiResult.plan.description ?? null
+          }
+          content={aiResult.raw}
+          creditsSpent={aiResult.creditsSpent}
+          extraActions={[
+            {
+              label: savingAi ? "Création..." : "Créer le plan complet",
+              icon: Plus,
+              variant: "default",
+              disabled: savingAi || !user,
+              onClick: async () => {
+                if (!user) return;
+                setSavingAi(true);
+                try {
+                  const planId = await createAdoptionPlanFromAi({
+                    shelterUserId: user.id,
+                    adopterUserId: aiResult.adopter_user_id,
+                    animalId: aiResult.animal_id,
+                    plan: aiResult.plan,
+                    status: "active",
+                  });
+                  qc.invalidateQueries({ queryKey: ["shelter-adoption-plans"] });
+                  qc.invalidateQueries({ queryKey: ["adoption-plan-tasks"] });
+                  toast({
+                    title: "Plan créé ✨",
+                    description: `${aiResult.plan.tasks?.length ?? 0} tâches insérées.`,
+                  });
+                  setAiResult(null);
+                  setCreateOpen(false);
+                  setSelectedPlan(planId);
+                } catch (err: any) {
+                  toast({
+                    title: "Erreur",
+                    description: err.message ?? "Impossible de créer le plan",
+                    variant: "destructive",
+                  });
+                } finally {
+                  setSavingAi(false);
+                }
+              },
+            },
+            {
+              label: "Sauver comme brouillon",
+              icon: ClipboardList,
+              variant: "outline",
+              disabled: savingAi || !user,
+              onClick: async () => {
+                if (!user) return;
+                setSavingAi(true);
+                try {
+                  await createAdoptionPlanFromAi({
+                    shelterUserId: user.id,
+                    adopterUserId: aiResult.adopter_user_id,
+                    animalId: aiResult.animal_id,
+                    plan: aiResult.plan,
+                    status: "draft",
+                  });
+                  qc.invalidateQueries({ queryKey: ["shelter-adoption-plans"] });
+                  toast({ title: "Brouillon sauvegardé" });
+                  setAiResult(null);
+                } catch (err: any) {
+                  toast({
+                    title: "Erreur",
+                    description: err.message ?? "Échec",
+                    variant: "destructive",
+                  });
+                } finally {
+                  setSavingAi(false);
+                }
+              },
+            },
+          ]}
+        />
+      )}
     </ShelterLayout>
   );
 }
