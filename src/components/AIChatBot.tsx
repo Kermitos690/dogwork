@@ -542,7 +542,7 @@ function AIChatBotInner() {
                                 title: `Échange IA — ${new Date().toLocaleDateString("fr-FR")}`,
                                 text: m.content,
                               });
-                              qc.invalidateQueries({ queryKey: ["journal_entries"] });
+                              queryClient.invalidateQueries({ queryKey: ["journal_entries"] });
                               toast({ title: "Ajouté au journal", description: `Sauvegardé pour ${activeDog.name}.` });
                             } catch (e: any) {
                               toast({ title: "Erreur", description: e.message ?? "Échec", variant: "destructive" });
