@@ -18,6 +18,7 @@ import { generatePersonalizedPlan, setDbExercises, type PersonalizedPlan } from 
 import { tierGrantsFullAccess } from "@/lib/plans";
 import { toast } from "@/hooks/use-toast";
 import { useSaveAIDocument } from "@/hooks/useAIDocuments";
+import { NoActiveDogState } from "@/components/NoActiveDogState";
 
 const statusColors: Record<string, string> = {
   done: "bg-success text-success-foreground",
@@ -243,10 +244,10 @@ export default function PlanPage() {
   if (!activeDog) {
     return (
       <AppLayout>
-        <div className="pt-4 text-center space-y-4">
-          <p className="text-muted-foreground">Ajoutez d'abord un chien.</p>
-          <Button onClick={() => navigate("/dogs/new")}>Ajouter un chien</Button>
-        </div>
+        <NoActiveDogState
+          title="Plan d'entraînement"
+          description="Sélectionnez un chien pour générer ou consulter son plan personnalisé."
+        />
       </AppLayout>
     );
   }
@@ -478,7 +479,9 @@ export default function PlanPage() {
                       return (
                         <Card
                           key={day.dayNumber}
-                          className={`rounded-2xl ${isLocked ? "opacity-50" : "card-press"}`}
+                          className={`rounded-2xl overflow-hidden transition-all ${
+                            isLocked ? "opacity-50" : "card-press"
+                          } ${isCurrentDay && !isLocked ? "ring-2 ring-primary/40 border-primary/30" : ""}`}
                           onClick={() => {
                             if (isLocked) {
                               toast({ title: "🔒 Jour verrouillé", description: "Validez le jour précédent pour débloquer celui-ci.", variant: "destructive" });
@@ -487,16 +490,22 @@ export default function PlanPage() {
                             navigate(`/day/${day.dayNumber}?source=plan`);
                           }}
                         >
-                          <CardContent className="p-3 flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold ${isLocked ? "bg-muted text-muted-foreground" : statusColors[status]}`}>
+                          <CardContent className="p-3 flex items-center gap-3 relative">
+                            {isCurrentDay && !isLocked && (
+                              <span className="absolute left-0 top-2 bottom-2 w-1 rounded-full bg-primary" aria-hidden />
+                            )}
+                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ${isLocked ? "bg-muted text-muted-foreground" : statusColors[status]}`}>
                               {isLocked ? <Lock className="h-3.5 w-3.5" /> : day.dayNumber}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-foreground break-words">{day.title}</p>
-                              <p className="text-xs text-muted-foreground">{day.duration} · {day.difficulty}</p>
+                              <p className="text-sm font-semibold text-foreground break-words leading-snug">{day.title}</p>
+                              <p className="text-[11px] text-muted-foreground mt-0.5">{day.duration} · {day.difficulty}</p>
                             </div>
-                            {isCurrentDay && !isLocked && <Badge className="text-[10px] shrink-0 rounded-full bg-primary/15 text-primary border-0">En cours</Badge>}
-                            {!isCurrentDay && <Badge variant="secondary" className="text-[10px] shrink-0 rounded-full">{isLocked ? "🔒" : statusLabels[status]}</Badge>}
+                            {isCurrentDay && !isLocked ? (
+                              <Badge className="text-[10px] shrink-0 rounded-full bg-primary text-primary-foreground border-0">Aujourd'hui</Badge>
+                            ) : (
+                              <Badge variant="secondary" className="text-[10px] shrink-0 rounded-full">{isLocked ? "Verrouillé" : statusLabels[status]}</Badge>
+                            )}
                           </CardContent>
                         </Card>
                       );

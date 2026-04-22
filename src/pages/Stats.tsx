@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useFeatureGate } from "@/hooks/useFeatureGate";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { ZoneInsightCard } from "@/components/ZoneInsightCard";
+import { NoActiveDogState } from "@/components/NoActiveDogState";
 
 // ─── Sub-components ──────
 
@@ -314,7 +315,10 @@ export default function Stats() {
   if (!activeDog) {
     return (
       <AppLayout>
-        <div className="pt-4 text-center text-muted-foreground">Ajoutez d'abord un chien.</div>
+        <NoActiveDogState
+          title="Statistiques"
+          description="Sélectionnez un chien pour visualiser sa progression et ses zones comportementales."
+        />
       </AppLayout>
     );
   }
