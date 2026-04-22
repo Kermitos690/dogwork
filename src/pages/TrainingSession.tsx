@@ -153,10 +153,11 @@ export default function TrainingSession() {
   const exercise = exercises[currentIndex];
   const allDone = total > 0 && completedIds.length >= total;
 
-  // Initialise timer when exercise changes.
+  // Initialise timer + wall-clock when the active exercise changes.
   useEffect(() => {
     setTimerSeconds(exercise?.timerSeconds ?? null);
     setTimerRunning(false);
+    exerciseStartedAtRef.current = Date.now();
   }, [currentIndex, exercise?.timerSeconds]);
 
   // Voice playback when toggled or exercise changes.
