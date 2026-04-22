@@ -37,30 +37,32 @@ export function AIResultDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[88vh] overflow-hidden flex flex-col p-0 gap-0">
-        <DialogHeader className="px-6 pt-6 pb-3 border-b border-border">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="h-7 w-7 rounded-full bg-primary/15 flex items-center justify-center">
+      <DialogContent className="max-w-3xl max-h-[92vh] sm:max-h-[88vh] overflow-hidden flex flex-col p-0 gap-0">
+        <DialogHeader className="px-4 sm:px-6 pt-5 pb-3 border-b border-border space-y-1.5">
+          <div className="flex items-start gap-2">
+            <div className="h-7 w-7 rounded-full bg-primary/15 flex items-center justify-center shrink-0 mt-0.5">
               <Sparkles className="h-3.5 w-3.5 text-primary" />
             </div>
-            <DialogTitle className="text-lg">{title}</DialogTitle>
-            {creditsSpent != null && creditsSpent > 0 && (
-              <Badge variant="secondary" className="ml-2 gap-1 text-[10px]">
-                <Coins className="h-3 w-3" />
-                {creditsSpent} crédit{creditsSpent > 1 ? "s" : ""}
-              </Badge>
-            )}
+            <div className="flex-1 min-w-0">
+              <DialogTitle className="text-base sm:text-lg leading-tight break-words text-left">{title}</DialogTitle>
+              {creditsSpent != null && creditsSpent > 0 && (
+                <Badge variant="secondary" className="mt-1.5 gap-1 text-[10px]">
+                  <Coins className="h-3 w-3" />
+                  {creditsSpent} crédit{creditsSpent > 1 ? "s" : ""}
+                </Badge>
+              )}
+            </div>
           </div>
-          <DialogDescription className="text-xs">
+          <DialogDescription className="text-xs text-left">
             Aperçu du résultat. Vous pouvez le copier, l'exporter ou le retrouver dans votre bibliothèque.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-5">
           <AIDocumentViewer content={content} summary={summary} printable />
         </div>
 
-        <div className="border-t border-border px-6 py-3 bg-muted/20">
+        <div className="border-t border-border px-4 sm:px-6 py-3 bg-muted/20">
           <AIPostGenerationActions
             title={title}
             summary={summary}

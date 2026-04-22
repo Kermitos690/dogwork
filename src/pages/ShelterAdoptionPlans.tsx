@@ -504,9 +504,10 @@ export default function ShelterAdoptionPlans() {
           creditsSpent={aiResult.creditsSpent}
           extraActions={[
             {
-              label: savingAi ? "Création..." : "Créer le plan complet",
+              label: "Créer le plan complet",
               icon: Plus,
               variant: "default",
+              loading: savingAi,
               disabled: savingAi || !user,
               onClick: async () => {
                 if (!user) return;
@@ -543,6 +544,7 @@ export default function ShelterAdoptionPlans() {
               label: "Sauver comme brouillon",
               icon: ClipboardList,
               variant: "outline",
+              loading: savingAi,
               disabled: savingAi || !user,
               onClick: async () => {
                 if (!user) return;
