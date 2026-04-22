@@ -431,9 +431,12 @@ export default function TrainingSession() {
               transition={{ duration: 0.3 }}
             />
           </div>
-          <p className="mt-1 text-[10px] text-center text-muted-foreground tabular-nums">
-            {currentIndex + 1} / {total}
-          </p>
+          <div className="mt-1 flex items-center justify-center gap-2">
+            <p className="text-[10px] text-muted-foreground tabular-nums">
+              {currentIndex + 1} / {total}
+            </p>
+            <SyncStatusBadge compact />
+          </div>
         </div>
 
         <button
