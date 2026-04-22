@@ -16,6 +16,8 @@ import type { PlanDay } from "@/lib/planGenerator";
 import { upsertDayProgress } from "@/lib/dayProgress";
 import { ZoneBadge } from "@/components/ZoneBadge";
 import { zoneFromTension, type Zone } from "@/lib/zones";
+import { DayJourneyHeader } from "@/components/DayJourneyHeader";
+import { NoActiveDogState } from "@/components/NoActiveDogState";
 
 function ExerciseCard({ ex, done, onToggle }: { ex: any; done: boolean; onToggle: () => void }) {
   const [expanded, setExpanded] = useState(false);
@@ -242,7 +244,7 @@ export default function DayDetail() {
   }, [activeDog, user, progress, id, initDone]);
 
   if (!standardDay && !planDay) return <AppLayout><p className="pt-4 text-center text-muted-foreground">Jour non trouvé</p></AppLayout>;
-  if (!activeDog) return <AppLayout><p className="pt-4 text-center text-muted-foreground">Ajoutez d'abord un chien.</p></AppLayout>;
+  if (!activeDog) return <AppLayout><NoActiveDogState title="Aucun chien actif" description="Sélectionnez un chien pour suivre sa progression du jour." /></AppLayout>;
 
   if (isDayLocked) {
     return (
@@ -359,15 +361,29 @@ export default function DayDetail() {
           <ArrowLeft className="h-4 w-4" /> Retour
         </button>
 
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-xs text-muted-foreground">Jour {id} — Semaine {dayWeek}{isPersonalized ? " · Personnalisé" : ""}</p>
-            <h1 className="text-xl font-bold text-foreground">{dayTitle}</h1>
-          </div>
-          <StatusBadge status={status as "todo" | "in_progress" | "done"} />
-        </div>
+        {/* Premium day journey header — replaces basic title strip */}
+        <DayJourneyHeader
+          dayId={id}
+          totalDays={28}
+          week={dayWeek}
+          state={progress?.validated ? "done" : (status as "todo" | "in_progress" | "done")}
+          completion={totalExercises > 0 ? completedCount / totalExercises : 0}
+          hasPrev={id > 1}
+          hasNext={id < 28 && (progress?.validated ?? false)}
+          source={source}
+        />
 
-        <p className="text-sm text-muted-foreground">{dayObjective}</p>
+        <div>
+          <h1 className="text-xl font-bold text-foreground leading-tight">
+            {dayTitle}
+            {isPersonalized && (
+              <span className="ml-2 align-middle inline-block text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md">
+                Personnalisé
+              </span>
+            )}
+          </h1>
+          {dayObjective && <p className="text-sm text-muted-foreground mt-1">{dayObjective}</p>}
+        </div>
 
         <div className="flex flex-wrap gap-1.5">
           <span className="rounded-full bg-muted px-3 py-1 text-xs">⏱ {dayDuration}</span>
