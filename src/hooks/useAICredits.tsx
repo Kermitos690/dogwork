@@ -191,14 +191,36 @@ export function useAIFeatures() {
   return useQuery({
     queryKey: ["ai-features"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ai_feature_catalog_public" as any)
-        .select("code, label, description, credits_cost, is_active")
-        .eq("is_active", true)
-        .order("credits_cost");
+      const readPublicView = async () => {
+        const { data, error } = await supabase
+          .from("ai_feature_catalog_public" as any)
+          .select("code, label, description, credits_cost, is_active")
+          .eq("is_active", true)
+          .order("credits_cost");
 
-      if (error) throw error;
-      return (data || []) as unknown as AIFeature[];
+        return { data, error };
+      };
+
+      const readTableFallback = async () => {
+        const { data, error } = await supabase
+          .from("ai_feature_catalog")
+          .select("code, label, description, credits_cost, is_active")
+          .eq("is_active", true)
+          .order("credits_cost");
+
+        return { data, error };
+      };
+
+      const { data, error } = await readPublicView();
+
+      if (!error) {
+        return (data || []) as unknown as AIFeature[];
+      }
+
+      const { data: fallbackData, error: fallbackError } = await readTableFallback();
+
+      if (fallbackError) throw fallbackError;
+      return (fallbackData || []) as unknown as AIFeature[];
     },
     staleTime: 5 * 60_000,
   });
