@@ -276,11 +276,15 @@ export function useAICall() {
       messages,
       systemPrompt,
       stream = false,
+      activeDogId,
+      dogNames,
     }: {
       featureCode: string;
       messages: Array<{ role: string; content: string }>;
       systemPrompt?: string;
       stream?: boolean;
+      activeDogId?: string | null;
+      dogNames?: string[];
     }) => {
       const session = (await supabase.auth.getSession()).data.session;
       if (!session) throw new Error("Non connecté");
@@ -299,6 +303,8 @@ export function useAICall() {
           messages,
           system_prompt: systemPrompt,
           stream,
+          active_dog_id: activeDogId,
+          dog_names: dogNames,
         }),
       });
 

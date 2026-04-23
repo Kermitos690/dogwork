@@ -9,6 +9,15 @@ const corsHeaders = {
 
 // ─── Dog context builder ───────────────────────────────────
 
+const DOG_SCOPED_FEATURE_CODES = new Set([
+  "ai_behavior_analysis",
+  "ai_evaluation_scoring",
+  "ai_progress_report",
+  "ai_adoption_plan",
+  "ai_plan_generation",
+  "dog_analysis",
+]);
+
 interface DogContext {
   dog: any;
   evaluation?: any;
@@ -426,6 +435,133 @@ Deno.serve(async (req) => {
       .limit(1)
       .single();
 
+    let dogContextPrompt = "";
+    const requiresStrictDogScope = DOG_SCOPED_FEATURE_CODES.has(feature_code);
+    let resolvedDogContexts: DogContext[] = [];
+
+    try {
+      const dogIdsToLoad: Set<string> = new Set();
+      let shelterAnimalMatches: any[] = [];
+
+      if (active_dog_id) dogIdsToLoad.add(active_dog_id);
+
+      const shouldLoadMentionedDogs = feature_code.startsWith("chat") || feature_code === "dog_analysis";
+
+      if (shouldLoadMentionedDogs) {
+        let allNames: string[] = Array.isArray(dog_names) && dog_names.length > 0 ? dog_names : [];
+
+        if (allNames.length === 0) {
+          const { data: userDogs } = await admin.from("dogs").select("name").eq("user_id", userId);
+          allNames = (userDogs || []).map((d: any) => d.name);
+          console.log(`[ai-with-credits] Auto-discovered ${allNames.length} dog names for user`);
+
+          if (roleList.includes("shelter")) {
+            const { data: sa } = await admin.from("shelter_animals").select("name").eq("user_id", userId);
+            const saNames = (sa || []).map((a: any) => a.name);
+            allNames.push(...saNames);
+            console.log(`[ai-with-credits] Added ${saNames.length} shelter animal names`);
+          }
+
+          if (roleList.includes("admin") && allNames.length === 0) {
+            const potentialNames = new Set<string>();
+            for (const msg of messages) {
+              if (msg.role !== "user") continue;
+              const words = msg.content.match(/[A-ZÀ-Ü][a-zà-ü]{1,}/g) || [];
+              words.forEach((w: string) => potentialNames.add(w));
+            }
+
+            if (potentialNames.size > 0) {
+              const nameArr = Array.from(potentialNames);
+              console.log(`[ai-with-credits] Admin: searching for potential names: ${nameArr.join(", ")}`);
+
+              try {
+                for (const name of nameArr) {
+                  const { data: matchedDogs, error: dogErr } = await admin
+                    .from("dogs")
+                    .select("id, name, user_id")
+                    .ilike("name", name);
+
+                  if (dogErr) {
+                    console.error(`[ai-with-credits] Admin dog search error for "${name}":`, dogErr.message);
+                  } else if (matchedDogs?.length) {
+                    allNames.push(...matchedDogs.map((d: any) => d.name));
+                  }
+
+                  const { data: matchedSA, error: saErr } = await admin
+                    .from("shelter_animals")
+                    .select("id, name, user_id, breed, sex, species, status, estimated_age, weight_kg, behavior_notes, health_notes, description, is_sterilized, arrival_date")
+                    .ilike("name", name);
+
+                  if (saErr) {
+                    console.error(`[ai-with-credits] Admin shelter search error for "${name}":`, saErr.message);
+                  } else if (matchedSA?.length) {
+                    allNames.push(...matchedSA.map((a: any) => a.name));
+                  }
+                }
+              } catch (searchErr) {
+                console.error(`[ai-with-credits] Admin name search failed:`, searchErr);
+              }
+            }
+          }
+        }
+
+        const mentionedNames = extractMentionedNames(messages, allNames);
+        if (mentionedNames.length > 0) {
+          const mentionedDogs = await findDogsByName(admin, userId, roleList, mentionedNames);
+          for (const d of mentionedDogs) {
+            if (d._source === "shelter_animal") shelterAnimalMatches.push(d);
+            else dogIdsToLoad.add(d.id);
+          }
+        }
+      }
+
+      if (dogIdsToLoad.size > 0 || shelterAnimalMatches.length > 0) {
+        resolvedDogContexts = await loadDogContexts(admin, userId, Array.from(dogIdsToLoad), roleList, shelterAnimalMatches);
+      }
+    } catch (ctxErr) {
+      console.error("[ai-with-credits] Dog context loading failed:", ctxErr);
+      if (requiresStrictDogScope) {
+        return new Response(JSON.stringify({ error: "Impossible de charger le chien sélectionné pour cet outil IA." }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    if (requiresStrictDogScope) {
+      if (!active_dog_id) {
+        return new Response(JSON.stringify({ error: "Aucun chien sélectionné. Choisissez un chien avant de lancer cet outil IA." }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const primaryDogContext = resolvedDogContexts.find((ctx) => ctx?.dog?.id === active_dog_id);
+      if (!primaryDogContext) {
+        return new Response(JSON.stringify({ error: "Le chien sélectionné est introuvable ou inaccessible pour ce compte." }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      dogContextPrompt = "\n\n--- CHIEN SÉLECTIONNÉ (SOURCE UNIQUE DE VÉRITÉ) ---\n" +
+        buildDogContextPrompt(primaryDogContext) +
+        "\n--- FIN DU CONTEXTE CHIEN ---\n\n" +
+        "RÈGLES STRICTES :\n" +
+        `- Tu travailles exclusivement sur ce chien : ${primaryDogContext.dog.name} (id ${active_dog_id}).\n` +
+        "- N'invente jamais un autre chien, un autre nom, un propriétaire, une date ou une donnée absente du contexte.\n" +
+        "- Si une information manque, écris explicitement 'non renseigné' au lieu de la deviner.\n" +
+        "- Si la demande dépasse les données disponibles, reste dans les limites et signale la donnée manquante.\n";
+    } else if (resolvedDogContexts.length > 0) {
+      const contextParts = resolvedDogContexts.map(buildDogContextPrompt);
+      dogContextPrompt = "\n\n--- DONNÉES DES CHIENS DE L'UTILISATEUR ---\n" +
+        contextParts.join("\n\n---\n\n") +
+        "\n--- FIN DES DONNÉES ---\n\n" +
+        "INSTRUCTIONS IMPORTANTES :\n" +
+        "- Utilise ces données réelles pour personnaliser tes réponses.\n" +
+        "- Quand l'utilisateur parle d'un chien par son nom, réfère-toi à sa fiche.\n" +
+        "- Adapte tes conseils à son profil (âge, race, santé, comportement, problèmes).\n" +
+        "- Si le chien a des contre-indications médicales, mentionne-les dans tes recommandations.\n" +
+        "- Si le chien a un historique de morsure ou nécessite une muselière, priorise la sécurité.\n";
+    }
+
     if (lastCall) {
       const elapsed = (Date.now() - new Date(lastCall.created_at).getTime()) / 1000;
       if (elapsed < COOLDOWN_SECONDS) {
@@ -448,7 +584,13 @@ Deno.serve(async (req) => {
       _feature_code: feature_code,
       _credits: creditsCost,
       _provider_cost_usd: feature.cost_estimate_avg_usd,
-      _metadata: { model: feature.model, roles: roleList, public_price_chf: publicPriceChf },
+      _metadata: {
+        model: feature.model,
+        roles: roleList,
+        public_price_chf: publicPriceChf,
+        active_dog_id: active_dog_id ?? null,
+        active_dog_name: resolvedDogContexts.find((ctx) => ctx?.dog?.id === active_dog_id)?.dog?.name ?? null,
+      },
     });
 
     if (debitErr) {
@@ -473,136 +615,16 @@ Deno.serve(async (req) => {
 
     console.log(`[ai-with-credits] Credits debited successfully`);
 
-    // 5. Build dog context if chat feature
-    let dogContextPrompt = "";
-    
-    if (feature_code.startsWith("chat") || feature_code === "dog_analysis") {
-      try {
-        // Step A: Get all accessible dog names for mention detection
-        // If frontend didn't send names, auto-discover from DB
-        let allNames: string[] = Array.isArray(dog_names) && dog_names.length > 0 ? dog_names : [];
-        
-        if (allNames.length === 0) {
-          // Auto-discover dog names for the user
-          const { data: userDogs } = await admin.from("dogs").select("name").eq("user_id", userId);
-          allNames = (userDogs || []).map((d: any) => d.name);
-          console.log(`[ai-with-credits] Auto-discovered ${allNames.length} dog names for user`);
-          
-          // Shelter roles: also get shelter animal names
-          if (roleList.includes("shelter")) {
-            const { data: sa } = await admin.from("shelter_animals").select("name").eq("user_id", userId);
-            const saNames = (sa || []).map((a: any) => a.name);
-            allNames.push(...saNames);
-            console.log(`[ai-with-credits] Added ${saNames.length} shelter animal names`);
-          }
-          
-          // Admin: search ALL dogs and shelter animals by names mentioned in messages
-          if (roleList.includes("admin") && allNames.length === 0) {
-            // Extract potential names from messages (capitalized words ≥ 2 chars)
-            const potentialNames = new Set<string>();
-            for (const msg of messages) {
-              if (msg.role !== "user") continue;
-              const words = msg.content.match(/[A-ZÀ-Ü][a-zà-ü]{1,}/g) || [];
-              words.forEach((w: string) => potentialNames.add(w));
-            }
-            
-            if (potentialNames.size > 0) {
-              const nameArr = Array.from(potentialNames);
-              console.log(`[ai-with-credits] Admin: searching for potential names: ${nameArr.join(", ")}`);
-              
-              try {
-                // Search dogs table one name at a time to avoid .in() issues
-                for (const name of nameArr) {
-                  const { data: matchedDogs, error: dogErr } = await admin
-                    .from("dogs")
-                    .select("id, name, user_id")
-                    .ilike("name", name);
-                  
-                  if (dogErr) {
-                    console.error(`[ai-with-credits] Admin dog search error for "${name}":`, dogErr.message);
-                  } else if (matchedDogs?.length) {
-                    allNames.push(...matchedDogs.map((d: any) => d.name));
-                    console.log(`[ai-with-credits] Admin: found ${matchedDogs.length} dogs named "${name}"`);
-                  }
-                  
-                  const { data: matchedSA, error: saErr } = await admin
-                    .from("shelter_animals")
-                    .select("id, name, user_id, breed, sex, species, status, estimated_age, weight_kg, behavior_notes, health_notes, description, is_sterilized, arrival_date")
-                    .ilike("name", name);
-                  
-                  if (saErr) {
-                    console.error(`[ai-with-credits] Admin shelter search error for "${name}":`, saErr.message);
-                  } else if (matchedSA?.length) {
-                    allNames.push(...matchedSA.map((a: any) => a.name));
-                    console.log(`[ai-with-credits] Admin: found ${matchedSA.length} shelter animals named "${name}"`);
-                  }
-                }
-              } catch (searchErr) {
-                console.error(`[ai-with-credits] Admin name search failed:`, searchErr);
-              }
-            }
-          }
-        }
-        
-        console.log(`[ai-with-credits] Total names for matching: ${allNames.length} [${allNames.join(", ")}]`);
-        
-        // Step B: Detect mentioned dog names in messages
-        const mentionedNames = extractMentionedNames(messages, allNames);
-        console.log(`[ai-with-credits] Mentioned names detected: [${mentionedNames.join(", ")}]`);
-        
-        // Step C: Find mentioned dogs + active dog
-        const dogIdsToLoad: Set<string> = new Set();
-        let shelterAnimalMatches: any[] = [];
-        
-        if (active_dog_id) dogIdsToLoad.add(active_dog_id);
-        
-        if (mentionedNames.length > 0) {
-          const mentionedDogs = await findDogsByName(admin, userId, roleList, mentionedNames);
-          console.log(`[ai-with-credits] findDogsByName returned ${mentionedDogs.length} matches`);
-          for (const d of mentionedDogs) {
-            if (d._source === "shelter_animal") {
-              shelterAnimalMatches.push(d);
-            } else {
-              dogIdsToLoad.add(d.id);
-            }
-          }
-        }
-        
-        console.log(`[ai-with-credits] Loading context: ${dogIdsToLoad.size} dogs + ${shelterAnimalMatches.length} shelter animals`);
-        
-        // Step D: Load full context for each dog
-        if (dogIdsToLoad.size > 0 || shelterAnimalMatches.length > 0) {
-          const contexts = await loadDogContexts(admin, userId, Array.from(dogIdsToLoad), roleList, shelterAnimalMatches);
-          
-          if (contexts.length > 0) {
-            const contextParts = contexts.map(buildDogContextPrompt);
-            dogContextPrompt = "\n\n--- DONNÉES DES CHIENS DE L'UTILISATEUR ---\n" +
-              contextParts.join("\n\n---\n\n") +
-              "\n--- FIN DES DONNÉES ---\n\n" +
-              "INSTRUCTIONS IMPORTANTES :\n" +
-              "- Utilise ces données réelles pour personnaliser tes réponses.\n" +
-              "- Quand l'utilisateur parle d'un chien par son nom, réfère-toi à sa fiche.\n" +
-              "- Adapte tes conseils à son profil (âge, race, santé, comportement, problèmes).\n" +
-              "- Si le chien a des contre-indications médicales, mentionne-les dans tes recommandations.\n" +
-              "- Si le chien a un historique de morsure ou nécessite une muselière, priorise la sécurité.\n";
-            
-            console.log(`[ai-with-credits] Dog context loaded: ${contexts.length} dog(s), ${dogContextPrompt.length} chars`);
-          }
-        }
-      } catch (ctxErr) {
-        console.error("[ai-with-credits] Dog context loading failed (non-blocking):", ctxErr);
-      }
-    }
-
     // 6. Call AI provider (Gemini via adapter)
     const baseSystemPrompt = system_prompt || 
       "Tu es DogWork AI 🐾, un assistant chaleureux et expert en éducation canine positive intégré à la plateforme DogWork. " +
       "Tu es enjoué, souriant et bienveillant — comme un ami passionné qui adore les chiens ! 😊\n\n" +
       "CAPACITÉS TECHNIQUES IMPORTANTES :\n" +
       "- Tu as ACCÈS à la base de données DogWork. Quand des données de chiens te sont fournies ci-dessous, ce sont des données RÉELLES extraites de la plateforme.\n" +
-      "- Ne dis JAMAIS que tu n'as pas accès aux données ou que tu ne peux pas consulter de base de données. C'est FAUX — le système te fournit automatiquement les fiches des chiens mentionnés.\n" +
-      "- Si aucune donnée de chien n'est fournie ci-dessous, c'est simplement que le chien mentionné n'est pas encore enregistré sur la plateforme.\n" +
-      "- Dans ce cas, propose à l'utilisateur d'enregistrer son chien dans l'application pour bénéficier de conseils personnalisés.\n\n" +
+      "- Ne dis JAMAIS que tu n'as pas accès aux données ou que tu ne peux pas consulter de base de données. C'est FAUX — le système te fournit automatiquement les fiches nécessaires.\n" +
+      (requiresStrictDogScope
+        ? "- Pour cette demande, tu dois travailler exclusivement sur le chien sélectionné fourni dans le contexte, et sur aucun autre.\n\n"
+        : "- Si aucune donnée de chien n'est fournie ci-dessous, c'est simplement que le chien mentionné n'est pas encore enregistré sur la plateforme.\n- Dans ce cas, propose à l'utilisateur d'enregistrer son chien dans l'application pour bénéficier de conseils personnalisés.\n\n") +
       "STYLE DE COMMUNICATION :\n" +
       "- Sois ultra friendly, chaleureux et encourageant 🌟\n" +
       "- Utilise des emojis avec parcimonie mais régulièrement (🐕 🎯 ✅ 💡 ⚠️ 🏆 💪 etc.)\n" +
