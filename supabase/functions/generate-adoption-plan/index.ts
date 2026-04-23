@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
-import { callAI } from "../_shared/ai-provider.ts";
+import { callAI, callAIGateway } from "../_shared/ai-provider.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -201,19 +201,34 @@ RÈGLES :
 - Sois concret, bienveillant et professionnel
 - Réponds UNIQUEMENT en JSON valide, sans commentaire`;
 
-    // 6. Call AI via adapter
+    // 6. Call AI via adapter (with Lovable AI Gateway fallback on 429/503)
+    const aiMessages = [
+      { role: "system", content: "Tu es un éducateur canin expert. Réponds uniquement en JSON valide." },
+      { role: "user", content: prompt },
+    ];
     let aiResponse: Response;
     try {
       aiResponse = await callAI({
         model: feature.model,
-        messages: [
-          { role: "system", content: "Tu es un éducateur canin expert. Réponds uniquement en JSON valide." },
-          { role: "user", content: prompt },
-        ],
+        messages: aiMessages,
         temperature: 0.7,
         max_tokens: 4000,
         stream: false,
       });
+
+      // Direct Gemini quota exhausted → fallback to Lovable AI Gateway
+      if ((aiResponse.status === 429 || aiResponse.status === 503) ) {
+        const errText = await aiResponse.clone().text();
+        console.warn("[generate-adoption-plan] Gemini direct returned", aiResponse.status, "— falling back to Lovable AI Gateway. Detail:", errText.slice(0, 300));
+        const fallback = await callAIGateway({
+          model: "google/gemini-2.5-flash",
+          messages: aiMessages,
+          temperature: 0.7,
+          max_tokens: 4000,
+          stream: false,
+        });
+        if (fallback) aiResponse = fallback;
+      }
     } catch (configErr) {
       await admin.rpc("credit_ai_wallet", {
         _user_id: userId,
@@ -233,8 +248,25 @@ RÈGLES :
       });
       const errText = await aiResponse.text();
       console.error("AI provider error:", aiResponse.status, errText);
-      return new Response(JSON.stringify({ error: "Erreur du service IA" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+
+      if (aiResponse.status === 429) {
+        return new Response(JSON.stringify({
+          error: "Service IA temporairement saturé. Vos crédits ont été remboursés. Réessayez dans quelques instants.",
+          code: "AI_RATE_LIMITED",
+        }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (aiResponse.status === 402) {
+        return new Response(JSON.stringify({
+          error: "Crédits IA fournisseur épuisés. Vos crédits ont été remboursés. L'équipe a été notifiée.",
+          code: "AI_PROVIDER_PAYMENT_REQUIRED",
+        }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ error: "Erreur du service IA. Vos crédits ont été remboursés." }), {
+        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
