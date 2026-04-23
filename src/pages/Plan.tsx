@@ -53,6 +53,13 @@ export default function PlanPage() {
   const hasAiPlan = tierGrantsFullAccess(tier);
   const adaptiveSuggestion = useAdaptiveSuggestion();
   const saveDoc = useSaveAIDocument();
+  const { data: wallet } = useAIBalance();
+  const { data: features } = useAIFeatures();
+  const credit = useCreditConfirmation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const planFeature = features?.find((f) => f.code === "ai_plan_generation");
+  const planCost = planFeature?.credits_cost ?? 10;
+  const planBalance = wallet?.balance ?? 0;
 
   const { data: savedPlan, refetch: refetchPlan } = useQuery({
     queryKey: ["training_plan", activeDog?.id],
