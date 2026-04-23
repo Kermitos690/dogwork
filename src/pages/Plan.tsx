@@ -627,6 +627,17 @@ export default function PlanPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <CreditConfirmDialog
+        open={credit.open}
+        onOpenChange={credit.setOpen}
+        onConfirm={credit.handleConfirm}
+        cost={credit.cost || planCost}
+        balance={credit.balance || planBalance}
+        featureLabel={credit.featureLabel || "Plan d'entraînement IA"}
+        benefit={credit.benefit}
+        loading={credit.loading || generating}
+      />
     </AppLayout>
   );
 }
