@@ -118,27 +118,38 @@ ALTER TABLE public.journal_entries
 -- ============================================================
 
 -- Step A: ledger rows whose user_id no longer exists in auth.users
-DELETE FROM public.ai_credit_ledger
-WHERE user_id NOT IN (SELECT id FROM auth.users);
+DELETE FROM public.ai_credit_ledger l
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM auth.users u
+  WHERE u.id = l.user_id
+);
 
 -- Step B: ledger rows pointing to a wallet that does not exist
 DELETE FROM public.ai_credit_ledger l
 WHERE NOT EXISTS (
-  SELECT 1 FROM public.ai_credit_wallets w WHERE w.id = l.wallet_id
+  SELECT 1
+  FROM public.ai_credit_wallets w
+  WHERE w.id = l.wallet_id
 );
 
--- Step C: ledger rows whose wallet's owner no longer exists in auth.users
---         (covers wallets still present but whose owner is gone — they will
---          be deleted in step D, and we cannot rely on CASCADE yet because
---          the FK is not in place.)
+-- Step C: ledger rows attached to wallets whose owner no longer exists
 DELETE FROM public.ai_credit_ledger l
 USING public.ai_credit_wallets w
 WHERE l.wallet_id = w.id
-  AND w.user_id NOT IN (SELECT id FROM auth.users);
+  AND NOT EXISTS (
+    SELECT 1
+    FROM auth.users u
+    WHERE u.id = w.user_id
+  );
 
 -- Step D: wallets whose owner no longer exists in auth.users
-DELETE FROM public.ai_credit_wallets
-WHERE user_id NOT IN (SELECT id FROM auth.users);
+DELETE FROM public.ai_credit_wallets w
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM auth.users u
+  WHERE u.id = w.user_id
+);
 
 -- Step E: FK ai_credit_wallets.user_id → auth.users.id (CASCADE)
 ALTER TABLE public.ai_credit_wallets
