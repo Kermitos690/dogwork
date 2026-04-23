@@ -1319,6 +1319,51 @@ export type Database = {
         }
         Relationships: []
       }
+      cron_run_logs: {
+        Row: {
+          created_at: string
+          credited_count: number
+          details: Json
+          eligible_count: number
+          error_count: number
+          finished_at: string | null
+          id: string
+          job_name: string
+          period_key: string | null
+          skipped_count: number
+          started_at: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          credited_count?: number
+          details?: Json
+          eligible_count?: number
+          error_count?: number
+          finished_at?: string | null
+          id?: string
+          job_name: string
+          period_key?: string | null
+          skipped_count?: number
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          credited_count?: number
+          details?: Json
+          eligible_count?: number
+          error_count?: number
+          finished_at?: string | null
+          id?: string
+          job_name?: string
+          period_key?: string | null
+          skipped_count?: number
+          started_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
       day_progress: {
         Row: {
           completed_exercises: string[] | null
