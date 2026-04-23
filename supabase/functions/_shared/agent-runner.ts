@@ -67,19 +67,34 @@ function ageYears(birth?: string | null): number | null {
   return Math.round((ms / (1000 * 60 * 60 * 24 * 365.25)) * 10) / 10;
 }
 
+/**
+ * Resolve the dog the agent must work on.
+ * - If the client passed `dog_id`, we verify the dog belongs to this user
+ *   (no impersonation, no cross-account leak) and return it.
+ * - Otherwise we fall back to the user's currently active dog (the one
+ *   selected in the DogSwitcher → `is_active = true`). We do NOT silently
+ *   pick "the most recent dog" anymore: the result must always match the
+ *   dog the user actually selected in the UI.
+ */
 async function resolveActiveDogId(
   supabase: any,
   userId: string,
   requestedDogId?: string | null
 ): Promise<string | null> {
-  if (requestedDogId) return requestedDogId;
+  if (requestedDogId) {
+    const { data } = await supabase
+      .from("dogs")
+      .select("id")
+      .eq("id", requestedDogId)
+      .eq("user_id", userId)
+      .maybeSingle();
+    return data?.id ?? null;
+  }
   const { data } = await supabase
     .from("dogs")
     .select("id")
     .eq("user_id", userId)
     .eq("is_active", true)
-    .order("updated_at", { ascending: false })
-    .limit(1)
     .maybeSingle();
   return data?.id ?? null;
 }
