@@ -53,19 +53,24 @@ async function fetchAllRows<T>(
 
 async function fetchAllUserIds(liveClient: ReturnType<typeof createClient>): Promise<Set<string>> {
   const validUserIds = new Set<string>();
-  let page = 1;
+  let from = 0;
 
   while (true) {
-    const { data, error } = await liveClient.auth.admin.listUsers({ page, perPage: PAGE_SIZE });
+    const { data, error } = await liveClient
+      .schema("auth")
+      .from("users")
+      .select("id")
+      .range(from, from + PAGE_SIZE - 1);
+
     if (error) throw new Error(`Lecture auth.users impossible: ${error.message}`);
 
-    const users = data?.users ?? [];
+    const users = data ?? [];
     for (const user of users) {
       if (user?.id) validUserIds.add(user.id);
     }
 
     if (users.length < PAGE_SIZE) break;
-    page += 1;
+    from += users.length;
   }
 
   return validUserIds;
