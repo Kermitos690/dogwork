@@ -503,13 +503,6 @@ export type Database = {
             referencedRelation: "ai_credit_wallets"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "ai_credit_ledger_wallet_id_fkey"
-            columns: ["wallet_id"]
-            isOneToOne: false
-            referencedRelation: "ai_credit_wallets"
-            referencedColumns: ["id"]
-          },
         ]
       }
       ai_credit_packs: {
