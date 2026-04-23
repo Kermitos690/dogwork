@@ -11,6 +11,10 @@ type LedgerRow = {
   wallet_id: string;
 };
 
+type CleanupRequest = {
+  orphanUserIds?: string[];
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -127,11 +131,50 @@ function computeOrphans(
   };
 }
 
+function computeTargetedOrphans(
+  wallets: WalletRow[],
+  ledger: LedgerRow[],
+  orphanUserIds: string[],
+) {
+  const orphanUserIdSet = new Set(orphanUserIds);
+  const walletIds = new Set(wallets.map((wallet) => wallet.id));
+  const invalidWalletIds = wallets
+    .filter((wallet) => orphanUserIdSet.has(wallet.user_id))
+    .map((wallet) => wallet.id);
+  const invalidWalletIdSet = new Set(invalidWalletIds);
+
+  const ledgerMissingUserIds = ledger
+    .filter((entry) => orphanUserIdSet.has(entry.user_id))
+    .map((entry) => entry.id);
+
+  const ledgerMissingWalletIds = ledger
+    .filter((entry) => !walletIds.has(entry.wallet_id))
+    .map((entry) => entry.id);
+
+  const ledgerWithInvalidWalletOwnerIds = ledger
+    .filter((entry) => invalidWalletIdSet.has(entry.wallet_id))
+    .map((entry) => entry.id);
+
+  return {
+    invalidWalletIds,
+    ledgerMissingUserIds,
+    ledgerMissingWalletIds,
+    ledgerWithInvalidWalletOwnerIds,
+    summary: {
+      orphan_wallets: invalidWalletIds.length,
+      orphan_ledger_missing_user: ledgerMissingUserIds.length,
+      orphan_ledger_missing_wallet: ledgerMissingWalletIds.length,
+      orphan_ledger_wallet_owner_missing_user: ledgerWithInvalidWalletOwnerIds.length,
+    },
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   try {
+    const requestBody = await req.json().catch(() => ({})) as CleanupRequest;
     const liveServiceKey = Deno.env.get("LIVE_SERVICE_ROLE_KEY");
 
     if (!liveServiceKey) {
@@ -142,11 +185,16 @@ Deno.serve(async (req) => {
       auth: { persistSession: false },
     });
 
-    const validUserIds = await fetchAllUserIds(liveClient);
     const walletsBefore = await fetchAllRows<WalletRow>(liveClient, "ai_credit_wallets", "id,user_id");
     const ledgerBefore = await fetchAllRows<LedgerRow>(liveClient, "ai_credit_ledger", "id,user_id,wallet_id");
 
-    const before = computeOrphans(walletsBefore, ledgerBefore, validUserIds);
+    const validUserIds = requestBody.orphanUserIds?.length
+      ? null
+      : await fetchAllUserIds(liveClient);
+
+    const before = requestBody.orphanUserIds?.length
+      ? computeTargetedOrphans(walletsBefore, ledgerBefore, requestBody.orphanUserIds)
+      : computeOrphans(walletsBefore, ledgerBefore, validUserIds);
     const ledgerDeleteIds = [...new Set([
       ...before.ledgerMissingUserIds,
       ...before.ledgerMissingWalletIds,
@@ -158,7 +206,9 @@ Deno.serve(async (req) => {
 
     const walletsAfter = await fetchAllRows<WalletRow>(liveClient, "ai_credit_wallets", "id,user_id");
     const ledgerAfter = await fetchAllRows<LedgerRow>(liveClient, "ai_credit_ledger", "id,user_id,wallet_id");
-    const after = computeOrphans(walletsAfter, ledgerAfter, validUserIds);
+    const after = requestBody.orphanUserIds?.length
+      ? computeTargetedOrphans(walletsAfter, ledgerAfter, requestBody.orphanUserIds)
+      : computeOrphans(walletsAfter, ledgerAfter, validUserIds);
 
     return json({
       success: true,
