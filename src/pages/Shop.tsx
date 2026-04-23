@@ -129,7 +129,7 @@ export default function Shop() {
               {wallet?.balance ?? 0} crédits disponibles
             </Badge>
             <Badge variant="outline" className="text-sm">
-              {subscribed ? `Plan ${PLANS[tier].name}` : "Aucun abonnement actif"}
+              {subscribed ? `Plan ${PLANS[tier as keyof typeof PLANS]?.name ?? tier}` : "Aucun abonnement actif"}
             </Badge>
           </div>
         </div>
@@ -144,7 +144,7 @@ export default function Shop() {
                 <h2 className="text-lg font-semibold">Abonnement & renouvellement</h2>
                 <p className="text-sm text-muted-foreground">
                   {subscribed
-                    ? `Plan ${PLANS[tier].name} actif${subscriptionEnd ? ` · prochain renouvellement le ${new Date(subscriptionEnd).toLocaleDateString("fr-CH")}` : ""}`
+                    ? `Plan ${PLANS[tier as keyof typeof PLANS]?.name ?? tier} actif${subscriptionEnd ? ` · prochain renouvellement le ${new Date(subscriptionEnd).toLocaleDateString("fr-CH")}` : ""}`
                     : "Choisissez un plan DogWork ou gérez votre renouvellement depuis cet espace."}
                 </p>
               </div>

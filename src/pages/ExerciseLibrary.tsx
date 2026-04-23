@@ -58,8 +58,12 @@ export default function ExerciseLibrary() {
     },
   });
 
-  const allowedTiers = PLANS[tier].features.allowed_exercise_tiers;
-  const isPrivileged = privilegedGate.allowed && tier === "starter"; // means admin/educator bypass
+  // Educator / shelter tiers grant full library access (treated as expert).
+  const effectiveTier: keyof typeof PLANS = (tier === "educator" || tier === "shelter")
+    ? "expert"
+    : (PLANS[tier as keyof typeof PLANS] ? (tier as keyof typeof PLANS) : "starter");
+  const allowedTiers = PLANS[effectiveTier].features.allowed_exercise_tiers;
+  const isPrivileged = privilegedGate.allowed && effectiveTier === "starter"; // means admin/educator bypass
 
   const filtered = useMemo(() => {
     let list = exercises || [];
