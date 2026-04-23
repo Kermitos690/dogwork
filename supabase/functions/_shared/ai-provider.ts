@@ -88,6 +88,38 @@ export async function callAI(options: AICompletionOptions): Promise<Response> {
   });
 }
 
+/**
+ * Lovable AI Gateway fallback — used when Gemini direct API returns 429/503.
+ * Routes through openai/gpt-5-mini by default for chat completions.
+ * Returns null if LOVABLE_API_KEY is not configured.
+ */
+export async function callAIGateway(options: AICompletionOptions): Promise<Response | null> {
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!apiKey) return null;
+
+  const body: Record<string, any> = {
+    model: options.model.startsWith("openai/") || options.model.startsWith("google/")
+      ? options.model
+      : "openai/gpt-5-mini",
+    messages: options.messages,
+    stream: options.stream ?? false,
+  };
+
+  if (options.temperature !== undefined) body.temperature = options.temperature;
+  if (options.max_tokens !== undefined) body.max_tokens = options.max_tokens;
+  if (options.tools) body.tools = options.tools;
+  if (options.tool_choice) body.tool_choice = options.tool_choice;
+
+  return fetch(LOVABLE_GATEWAY, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+}
+
 // ─── Image Generation (Lovable AI Gateway) ─────────────────
 
 const LOVABLE_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
