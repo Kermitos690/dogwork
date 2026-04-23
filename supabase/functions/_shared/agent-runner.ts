@@ -232,11 +232,23 @@ export async function runAgent(req: Request, agent: AgentConfig): Promise<Respon
       );
     }
 
-    // 3. Resolve active dog and load profile
+    // 3. Resolve active dog and load profile.
+    //    Every IA tool is strictly scoped to ONE dog: refuse if we cannot
+    //    identify the dog the user wants to analyze.
     const dogId = await resolveActiveDogId(supabase, user.id, explicitDogId);
-    const dogProfile = dogId ? await loadDogProfile(supabase, dogId) : null;
+    if (!dogId) {
+      return new Response(
+        JSON.stringify({
+          error: explicitDogId
+            ? "Chien introuvable ou non autorisé pour ce compte."
+            : "Aucun chien sélectionné. Choisissez un chien actif avant de lancer cet outil IA.",
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    const dogProfile = await loadDogProfile(supabase, dogId);
 
-    // 4. Build agent-specific context
+    // 4. Build agent-specific context (always scoped to the resolved dog)
     const context = await agent.fetchContext(supabase, user.id, dogId, {
       dogProfile,
       savedParams: effectiveParams,
@@ -272,14 +284,25 @@ export async function runAgent(req: Request, agent: AgentConfig): Promise<Respon
       );
     }
 
-    // 6. Call Gemini
+    // 6. Call Gemini — strict anti-hallucination guardrail prepended to
+    //    the agent's own system prompt. The model must stay on THIS dog
+    //    and refuse to invent missing data.
+    const guardrail =
+      `Tu travailles EXCLUSIVEMENT sur le chien fourni dans le contexte` +
+      (dogProfile?.name ? ` (« ${dogProfile.name} », id ${dogId})` : ` (id ${dogId})`) +
+      `. Règles strictes :\n` +
+      `- Ne mentionne aucun autre chien, aucun autre utilisateur.\n` +
+      `- N'invente jamais une race, un âge, un antécédent, un comportement, une donnée de santé ou un événement qui n'apparaît pas explicitement dans le contexte.\n` +
+      `- Si une information manque, dis-le clairement (« non renseigné ») et propose comment la collecter, sans la deviner.\n` +
+      `- Reste dans les limites de ton outil : ne déborde pas sur d'autres analyses ou recommandations hors de ta mission.\n\n`;
+
     const aiResponse = await callAI({
       model: feature.model || agent.model,
       messages: [
-        { role: "system", content: agent.systemPrompt },
+        { role: "system", content: guardrail + agent.systemPrompt },
         { role: "user", content: agent.buildUserPrompt(enrichedContext) },
       ],
-      temperature: 0.5,
+      temperature: 0.3,
     });
 
     if (!aiResponse.ok) {
