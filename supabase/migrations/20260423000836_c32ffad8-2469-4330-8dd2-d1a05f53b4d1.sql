@@ -58,7 +58,7 @@ $function$;
 
 -- ============================================================
 -- 3. Foreign keys with ON DELETE CASCADE
---    Strategy: clean orphans first, then add FK.
+--    Strategy: clean orphans first (in strict order), then add FK.
 -- ============================================================
 
 -- behavior_logs.dog_id → dogs.id
@@ -110,16 +110,50 @@ ALTER TABLE public.journal_entries
   ADD CONSTRAINT journal_entries_dog_fk
     FOREIGN KEY (dog_id) REFERENCES public.dogs(id) ON DELETE CASCADE;
 
--- ai_credit_wallets.user_id → auth.users.id
-DELETE FROM public.ai_credit_wallets WHERE user_id NOT IN (SELECT id FROM auth.users);
+-- ============================================================
+-- AI CREDITS: cleanup orphans in STRICT order, then add FKs.
+-- Order is critical because orphan wallets on Live still have
+-- ledger rows referencing them, and the existing FK without
+-- CASCADE would block any DELETE on ai_credit_wallets.
+-- ============================================================
+
+-- Step A: ledger rows whose user_id no longer exists in auth.users
+DELETE FROM public.ai_credit_ledger
+WHERE user_id NOT IN (SELECT id FROM auth.users);
+
+-- Step B: ledger rows pointing to a wallet that does not exist
+DELETE FROM public.ai_credit_ledger l
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.ai_credit_wallets w WHERE w.id = l.wallet_id
+);
+
+-- Step C: ledger rows whose wallet's owner no longer exists in auth.users
+--         (covers wallets still present but whose owner is gone — they will
+--          be deleted in step D, and we cannot rely on CASCADE yet because
+--          the FK is not in place.)
+DELETE FROM public.ai_credit_ledger l
+USING public.ai_credit_wallets w
+WHERE l.wallet_id = w.id
+  AND w.user_id NOT IN (SELECT id FROM auth.users);
+
+-- Step D: wallets whose owner no longer exists in auth.users
+DELETE FROM public.ai_credit_wallets
+WHERE user_id NOT IN (SELECT id FROM auth.users);
+
+-- Step E: FK ai_credit_wallets.user_id → auth.users.id (CASCADE)
 ALTER TABLE public.ai_credit_wallets
-  DROP CONSTRAINT IF EXISTS ai_credit_wallets_user_fk,
+  DROP CONSTRAINT IF EXISTS ai_credit_wallets_user_fk;
+ALTER TABLE public.ai_credit_wallets
+  DROP CONSTRAINT IF EXISTS ai_credit_wallets_user_id_fkey;
+ALTER TABLE public.ai_credit_wallets
   ADD CONSTRAINT ai_credit_wallets_user_fk
     FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
--- ai_credit_ledger.wallet_id → ai_credit_wallets.id
-DELETE FROM public.ai_credit_ledger WHERE wallet_id NOT IN (SELECT id FROM public.ai_credit_wallets);
+-- Step F: FK ai_credit_ledger.wallet_id → ai_credit_wallets.id (CASCADE)
 ALTER TABLE public.ai_credit_ledger
-  DROP CONSTRAINT IF EXISTS ai_credit_ledger_wallet_fk,
+  DROP CONSTRAINT IF EXISTS ai_credit_ledger_wallet_fk;
+ALTER TABLE public.ai_credit_ledger
+  DROP CONSTRAINT IF EXISTS ai_credit_ledger_wallet_id_fkey;
+ALTER TABLE public.ai_credit_ledger
   ADD CONSTRAINT ai_credit_ledger_wallet_fk
     FOREIGN KEY (wallet_id) REFERENCES public.ai_credit_wallets(id) ON DELETE CASCADE;
