@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
-import { callAI } from "../_shared/ai-provider.ts";
+import { callAI, callAIGateway } from "../_shared/ai-provider.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -627,7 +627,8 @@ Deno.serve(async (req) => {
 
     console.log(`[ai-with-credits] Calling Gemini: model=${feature.model}, public_price_chf=${publicPriceChf}`);
 
-    // Fallback chain: si le modèle principal est saturé (429/503), on essaie des modèles alternatifs.
+    // Fallback chain: si le modèle principal est saturé (429/503), on essaie des modèles alternatifs Gemini,
+    // puis OpenAI gpt-5-mini via Lovable Gateway en dernier recours.
     const modelChain: string[] = [feature.model];
     if (!modelChain.includes("google/gemini-2.5-flash-lite")) modelChain.push("google/gemini-2.5-flash-lite");
     if (!modelChain.includes("google/gemini-2.5-pro")) modelChain.push("google/gemini-2.5-pro");
@@ -635,6 +636,8 @@ Deno.serve(async (req) => {
     let response: Response | null = null;
     let lastStatus = 0;
     let lastBody = "";
+    let providerUsed = "gemini";
+    let modelUsed = feature.model;
     try {
       for (const model of modelChain) {
         const attempt = await callAI({
@@ -644,8 +647,9 @@ Deno.serve(async (req) => {
         });
         if (attempt.ok) {
           response = attempt;
+          modelUsed = model;
           if (model !== feature.model) {
-            console.log(`[ai-with-credits] Fallback model used: ${model}`);
+            console.log(`[ai-with-credits] Fallback Gemini model used: ${model}`);
           }
           break;
         }
@@ -657,27 +661,49 @@ Deno.serve(async (req) => {
           break;
         }
       }
+
+      // Last resort: Lovable AI Gateway (OpenAI gpt-5-mini) when all Gemini paths failed with 429/503.
+      if (!response && (lastStatus === 429 || lastStatus === 503)) {
+        console.log("[ai-with-credits] Trying Lovable Gateway fallback (openai/gpt-5-mini)");
+        const gw = await callAIGateway({
+          model: "openai/gpt-5-mini",
+          messages: [...systemMessages, ...messages],
+          stream,
+        });
+        if (gw && gw.ok) {
+          response = gw;
+          providerUsed = "lovable_gateway";
+          modelUsed = "openai/gpt-5-mini";
+          console.log("[ai-with-credits] Lovable Gateway fallback succeeded");
+        } else if (gw) {
+          lastStatus = gw.status;
+          lastBody = await gw.text();
+          console.error(`[ai-with-credits] Lovable Gateway failed: ${gw.status} ${lastBody.slice(0, 200)}`);
+        }
+      }
     } catch (configErr) {
       console.error("[ai-with-credits] AI provider config error:", configErr);
       await admin.rpc("credit_ai_wallet", {
         _user_id: userId,
         _credits: creditsCost,
         _operation_type: "refund",
-        _description: "Remboursement automatique — erreur de configuration serveur",
+        _description: `Remboursement automatique (${feature_code}) — erreur de configuration serveur`,
+        _metadata: { feature_code, reason: "config_error", model: feature.model },
       });
       throw configErr;
     }
 
     if (!response) {
-      console.error(`[ai-with-credits] All AI models failed, last status: ${lastStatus}`);
+      console.error(`[ai-with-credits] All AI providers failed, last status: ${lastStatus}`);
 
       await admin.rpc("credit_ai_wallet", {
         _user_id: userId,
         _credits: creditsCost,
         _operation_type: "refund",
-        _description: `Remboursement auto — erreur fournisseur IA (${lastStatus})`,
+        _description: `Remboursement auto (${feature_code}) — fournisseur IA saturé (${lastStatus})`,
+        _metadata: { feature_code, reason: "provider_unavailable", status: lastStatus, model: feature.model },
       });
-      console.log("[ai-with-credits] Credits refunded after AI error");
+      console.log(`[ai-with-credits] Credits refunded after AI error (feature=${feature_code})`);
 
       if (lastStatus === 429 || lastStatus === 503) {
         return new Response(JSON.stringify({
@@ -693,7 +719,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`[ai-with-credits] AI responded OK, stream=${stream}`);
+    console.log(`[ai-with-credits] AI responded OK via ${providerUsed} (${modelUsed}), stream=${stream}`);
 
     if (stream) {
       return new Response(response.body, {

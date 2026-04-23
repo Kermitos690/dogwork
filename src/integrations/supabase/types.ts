@@ -497,6 +497,13 @@ export type Database = {
             referencedColumns: ["code"]
           },
           {
+            foreignKeyName: "ai_credit_ledger_wallet_fk"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "ai_credit_wallets"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ai_credit_ledger_wallet_id_fkey"
             columns: ["wallet_id"]
             isOneToOne: false
@@ -851,6 +858,13 @@ export type Database = {
           zone_state?: Database["public"]["Enums"]["behavior_zone"] | null
         }
         Relationships: [
+          {
+            foreignKeyName: "behavior_logs_dog_fk"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "behavior_logs_dog_id_fkey"
             columns: ["dog_id"]
@@ -1344,6 +1358,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "day_progress_dog_fk"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "day_progress_dog_id_fkey"
             columns: ["dog_id"]
             isOneToOne: false
@@ -1424,6 +1445,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "dog_evaluations_dog_fk"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "dog_evaluations_dog_id_fkey"
             columns: ["dog_id"]
             isOneToOne: false
@@ -1458,6 +1486,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "dog_objectives_dog_fk"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "dog_objectives_dog_id_fkey"
             columns: ["dog_id"]
@@ -1499,6 +1534,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "dog_problems_dog_fk"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "dog_problems_dog_id_fkey"
             columns: ["dog_id"]
@@ -1756,6 +1798,13 @@ export type Database = {
           zone_state?: Database["public"]["Enums"]["behavior_zone"] | null
         }
         Relationships: [
+          {
+            foreignKeyName: "exercise_sessions_dog_fk"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "exercise_sessions_dog_id_fkey"
             columns: ["dog_id"]
@@ -2053,6 +2102,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "journal_entries_dog_fk"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "journal_entries_dog_id_fkey"
             columns: ["dog_id"]
