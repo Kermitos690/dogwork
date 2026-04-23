@@ -1,0 +1,110 @@
+// ai-debit: server-side credit debit for AI features that run client-side
+// (e.g. the local plan generator). Validates JWT, debits via SECURITY DEFINER
+// RPC using the authenticated user_id only — never trusts a client-supplied id.
+import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  try {
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const jwt = authHeader.replace(/^Bearer\s+/i, "");
+    if (!jwt) {
+      return new Response(JSON.stringify({ error: "Non authentifié" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userClient = createClient(SUPABASE_URL, ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${jwt}` } },
+    });
+    const { data: userData, error: userErr } = await userClient.auth.getUser(jwt);
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Session invalide" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userId = userData.user.id;
+
+    const body = await req.json().catch(() => ({}));
+    const featureCode = String(body?.feature_code ?? "").trim();
+    const metadata = (body?.metadata && typeof body.metadata === "object") ? body.metadata : {};
+    if (!featureCode) {
+      return new Response(JSON.stringify({ error: "feature_code requis" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+
+    // Resolve cost from canonical catalog (single source of truth).
+    const { data: feature, error: featErr } = await admin
+      .from("ai_feature_catalog")
+      .select("code, label, credits_cost, is_active")
+      .eq("code", featureCode)
+      .maybeSingle();
+
+    if (featErr || !feature || !feature.is_active) {
+      return new Response(JSON.stringify({ error: `Fonctionnalité IA introuvable: ${featureCode}` }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const credits = feature.credits_cost;
+
+    const { data: debited, error: debitErr } = await admin.rpc("debit_ai_credits", {
+      _user_id: userId,
+      _feature_code: featureCode,
+      _credits: credits,
+      _provider_cost_usd: null,
+      _metadata: { ...metadata, source: "ai-debit", feature_label: feature.label },
+    });
+
+    if (debitErr) {
+      return new Response(JSON.stringify({ error: debitErr.message }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (debited === false) {
+      const { data: wallet } = await admin
+        .from("ai_credit_wallets")
+        .select("balance")
+        .eq("user_id", userId)
+        .maybeSingle();
+      return new Response(
+        JSON.stringify({
+          error: "Crédits insuffisants",
+          code: "INSUFFICIENT_CREDITS",
+          balance: wallet?.balance ?? 0,
+          required: credits,
+        }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    return new Response(
+      JSON.stringify({ ok: true, credits_spent: credits, feature_code: featureCode, label: feature.label }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  } catch (e) {
+    return new Response(JSON.stringify({ error: (e as Error).message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});
