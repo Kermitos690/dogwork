@@ -20,6 +20,11 @@ import { toast } from "@/hooks/use-toast";
 import { useSaveAIDocument } from "@/hooks/useAIDocuments";
 import { NoActiveDogState } from "@/components/NoActiveDogState";
 import { resolveDayState } from "@/hooks/useDayLockState";
+import { useAIBalance, useAIFeatures } from "@/hooks/useAICredits";
+import { useCreditConfirmation } from "@/hooks/useCreditConfirmation";
+import { CreditConfirmDialog } from "@/components/CreditConfirmDialog";
+import { useSearchParams } from "react-router-dom";
+import { useEffect } from "react";
 
 const statusColors: Record<string, string> = {
   done: "bg-success text-success-foreground",
