@@ -57,3 +57,5 @@ project_id = "dcwbqsfeouvghcnvhrpj"
     verify_jwt = false
   [functions.sync-from-test]
     verify_jwt = false
+  [functions.cleanup-live-ai-credit-orphans]
+    verify_jwt = false
