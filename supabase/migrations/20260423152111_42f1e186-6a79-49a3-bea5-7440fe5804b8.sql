@@ -1,13 +1,3 @@
--- 1. Cleanup orphan wallets blocking FK creation in Live
-DELETE FROM public.ai_credit_ledger
-WHERE user_id IN ('9aa77aa0-cf30-494c-913f-a689b71d4482', '73935353-0e14-4e25-9896-e44e3dad01a8')
-  AND NOT EXISTS (SELECT 1 FROM auth.users u WHERE u.id = ai_credit_ledger.user_id);
-
-DELETE FROM public.ai_credit_wallets
-WHERE user_id IN ('9aa77aa0-cf30-494c-913f-a689b71d4482', '73935353-0e14-4e25-9896-e44e3dad01a8')
-  AND NOT EXISTS (SELECT 1 FROM auth.users u WHERE u.id = ai_credit_wallets.user_id);
-
--- 2. Cron run log table
 CREATE TABLE IF NOT EXISTS public.cron_run_logs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   job_name text NOT NULL,
@@ -33,5 +23,3 @@ CREATE POLICY "Admins read cron logs"
   ON public.cron_run_logs FOR SELECT
   TO authenticated
   USING (public.is_admin());
-
--- Writes are performed by edge functions via service role (bypasses RLS).
