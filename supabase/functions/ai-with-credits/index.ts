@@ -18,6 +18,14 @@ const DOG_SCOPED_FEATURE_CODES = new Set([
   "dog_analysis",
 ]);
 
+const LEGACY_FEATURE_CODE_MAP: Record<string, string> = {
+  ai_plan_generation: "plan_generator",
+  ai_behavior_analysis: "behavior_analysis",
+  ai_evaluation_scoring: "dog_profile_analysis",
+  ai_adoption_plan: "adoption_plan",
+  ai_progress_report: "behavior_summary",
+};
+
 interface DogContext {
   dog: any;
   evaluation?: any;
@@ -380,6 +388,7 @@ Deno.serve(async (req) => {
     // 2. Parse body
     const body = await req.json();
     const { feature_code, messages, stream = true, system_prompt, active_dog_id, dog_names } = body;
+    const resolvedFeatureCode = LEGACY_FEATURE_CODE_MAP[feature_code] ?? feature_code;
 
     if (!feature_code || !messages) {
       console.warn("[ai-with-credits] Missing feature_code or messages");
@@ -388,7 +397,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`[ai-with-credits] Feature: ${feature_code}, messages: ${messages.length}, stream: ${stream}`);
+    console.log(`[ai-with-credits] Feature: ${feature_code} -> ${resolvedFeatureCode}, messages: ${messages.length}, stream: ${stream}`);
 
     // 3. Service role client for DB ops
     const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
@@ -397,12 +406,12 @@ Deno.serve(async (req) => {
     const { data: feature, error: featureErr } = await admin
       .from("ai_feature_catalog")
       .select("*")
-      .eq("code", feature_code)
+      .eq("code", resolvedFeatureCode)
       .eq("is_active", true)
       .single();
 
     if (featureErr || !feature) {
-      console.error(`[ai-with-credits] Feature "${feature_code}" not found:`, featureErr?.message);
+      console.error(`[ai-with-credits] Feature "${feature_code}" (resolved ${resolvedFeatureCode}) not found:`, featureErr?.message);
       return new Response(JSON.stringify({ error: "Fonctionnalité IA non disponible" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -436,7 +445,7 @@ Deno.serve(async (req) => {
       .single();
 
     let dogContextPrompt = "";
-    const requiresStrictDogScope = DOG_SCOPED_FEATURE_CODES.has(feature_code);
+    const requiresStrictDogScope = DOG_SCOPED_FEATURE_CODES.has(feature_code) || DOG_SCOPED_FEATURE_CODES.has(resolvedFeatureCode);
     let resolvedDogContexts: DogContext[] = [];
 
     try {
@@ -445,7 +454,7 @@ Deno.serve(async (req) => {
 
       if (active_dog_id) dogIdsToLoad.add(active_dog_id);
 
-      const shouldLoadMentionedDogs = feature_code.startsWith("chat") || feature_code === "dog_analysis";
+      const shouldLoadMentionedDogs = resolvedFeatureCode.startsWith("chat") || resolvedFeatureCode === "dog_analysis" || feature_code === "dog_analysis";
 
       if (shouldLoadMentionedDogs) {
         let allNames: string[] = Array.isArray(dog_names) && dog_names.length > 0 ? dog_names : [];
@@ -581,7 +590,7 @@ Deno.serve(async (req) => {
 
     const { data: debited, error: debitErr } = await admin.rpc("debit_ai_credits", {
       _user_id: userId,
-      _feature_code: feature_code,
+       _feature_code: resolvedFeatureCode,
       _credits: creditsCost,
       _provider_cost_usd: feature.cost_estimate_avg_usd,
       _metadata: {
