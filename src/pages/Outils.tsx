@@ -271,9 +271,11 @@ export default function Outils() {
     try {
       const data = await aiCall.mutateAsync({
         featureCode: tool.feature_code,
-        systemPrompt: `Tu es un expert canin DogWork. Réponds en français, de façon premium, structurée, exploitable et sans JSON.`,
+        systemPrompt: `Tu es un expert canin DogWork. Réponds en français, de façon premium, structurée, exploitable et sans JSON. Tu travailles uniquement à partir des données réelles du chien sélectionné. Si une information manque, indique qu'elle n'est pas renseignée et n'invente jamais.`,
         messages: [{ role: "user", content: config.prompt }],
         stream: false,
+        activeDogId: currentDog?.id ?? null,
+        dogNames: currentDog?.name ? [currentDog.name] : [],
       });
 
       const text =
