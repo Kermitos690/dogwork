@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { useAIBalance, useAIFeatures } from "@/hooks/useAICredits";
+import { useAIBalance, useAICall, useAIFeatures } from "@/hooks/useAICredits";
 import { useCreditConfirmation } from "@/hooks/useCreditConfirmation";
 import { CreditConfirmDialog } from "@/components/CreditConfirmDialog";
 import { AIResultDialog } from "@/components/AIResultDialog";
@@ -40,8 +40,8 @@ interface ToolDef {
   icon: React.ElementType;
   title: string;
   description: string;
-  route: string;
   accent: string;
+  requiresDog?: boolean;
 }
 
 const TOOLS: ToolDef[] = [
@@ -50,31 +50,30 @@ const TOOLS: ToolDef[] = [
     icon: BookOpen,
     title: "Plan d'entraînement",
     description: "Génère un programme personnalisé pour ton chien sur la durée de ton choix.",
-    route: "/plan",
     accent: "from-blue-500/20 to-indigo-500/10",
+    requiresDog: true,
   },
   {
     feature_code: "ai_behavior_analysis",
     icon: Brain,
     title: "Analyse comportementale",
     description: "Lecture en profondeur du comportement et recommandations d'éducation.",
-    route: "/stats",
     accent: "from-purple-500/20 to-pink-500/10",
+    requiresDog: true,
   },
   {
     feature_code: "ai_evaluation_scoring",
     icon: ClipboardCheck,
     title: "Évaluation IA scoring",
     description: "Bilan structuré et noté de la posture, focus, sociabilité de ton chien.",
-    route: "/evaluation",
     accent: "from-emerald-500/20 to-teal-500/10",
+    requiresDog: true,
   },
   {
     feature_code: "ai_adoption_plan",
     icon: Heart,
     title: "Plan post-adoption",
     description: "Programme structuré pour les premières semaines d'un chien adopté.",
-    route: "/adoption-followup",
     accent: "from-rose-500/20 to-orange-500/10",
   },
   {
@@ -82,15 +81,14 @@ const TOOLS: ToolDef[] = [
     icon: TrendingUp,
     title: "Rapport de progression",
     description: "Synthèse claire des progrès sur la période choisie.",
-    route: "/stats",
     accent: "from-amber-500/20 to-yellow-500/10",
+    requiresDog: true,
   },
   {
     feature_code: "ai_image_generation",
     icon: ImageIcon,
     title: "Génération d'image",
     description: "Crée des illustrations sur mesure pour tes contenus.",
-    route: "/outils",
     accent: "from-cyan-500/20 to-sky-500/10",
   },
 ];
@@ -116,6 +114,7 @@ export default function Outils() {
   const qc = useQueryClient();
   const { data: wallet } = useAIBalance();
   const { data: features } = useAIFeatures();
+  const aiCall = useAICall();
   const [running, setRunning] = useState<string | null>(null);
   const [savingToJournal, setSavingToJournal] = useState(false);
   const [savedToJournal, setSavedToJournal] = useState(false);
@@ -132,6 +131,37 @@ export default function Outils() {
 
   const getMeta = (code: string) =>
     features?.find((f) => f.code === code);
+
+  const toolPrompts = useMemo(() => {
+    const dogLabel = currentDog?.name ? ` pour ${currentDog.name}` : "";
+    return {
+      ai_plan_generation: {
+        title: `Plan d'entraînement${dogLabel}`,
+        benefit: "Génère un plan concret, structuré et directement exploitable.",
+        prompt: `Crée un plan d'entraînement canin premium, directement exploitable, en français. Structure la réponse avec: 1) Diagnostic rapide, 2) Objectifs prioritaires, 3) Plan sur 4 semaines, 4) Exercices concrets, 5) Points de vigilance. N'écris pas de JSON.`,
+      },
+      ai_behavior_analysis: {
+        title: `Analyse comportementale${dogLabel}`,
+        benefit: "Produit une lecture comportementale claire avec recommandations utiles.",
+        prompt: `Rédige une analyse comportementale canine premium en français. Structure avec: 1) Lecture du profil, 2) Hypothèses comportementales, 3) Déclencheurs probables, 4) Recommandations immédiates, 5) Priorités des 7 prochains jours. N'écris pas de JSON.`,
+      },
+      ai_evaluation_scoring: {
+        title: `Évaluation IA scoring${dogLabel}`,
+        benefit: "Donne un bilan noté et lisible, pas un dump technique.",
+        prompt: `Rédige une évaluation canine scorée en français. Structure avec: 1) Score global /100, 2) Scores détaillés (obéissance, focus, sociabilité, récupération, gestion émotionnelle), 3) Forces, 4) Fragilités, 5) Plan d'amélioration. N'écris pas de JSON.`,
+      },
+      ai_adoption_plan: {
+        title: "Plan post-adoption",
+        benefit: "Prépare un suivi post-adoption clair et progressif.",
+        prompt: `Crée un plan post-adoption en français, directement lisible. Structure avec: 1) Priorités des 72 premières heures, 2) Routine de la première semaine, 3) Points de vigilance, 4) Exercices doux, 5) Indicateurs de bonne adaptation. N'écris pas de JSON.`,
+      },
+      ai_progress_report: {
+        title: `Rapport de progression${dogLabel}`,
+        benefit: "Fournit une synthèse claire des progrès et des prochains axes.",
+        prompt: `Rédige un rapport de progression canin en français. Structure avec: 1) Résumé, 2) Progrès constatés, 3) Blocages actuels, 4) Recommandations concrètes, 5) Prochaine priorité. N'écris pas de JSON.`,
+      },
+    } as const;
+  }, [currentDog?.name]);
 
   const { data: prefs } = useQuery({
     queryKey: ["ai-agent-preferences", user?.id],
@@ -165,9 +195,17 @@ export default function Outils() {
         body: currentDog?.id ? { dog_id: currentDog.id } : {},
       });
       if (error) {
-        const msg = (error as any).context?.body
-          ? JSON.parse((error as any).context.body)?.error
-          : error.message;
+        const rawBody = (error as any).context?.body;
+        let msg = error.message;
+        if (typeof rawBody === "string") {
+          try {
+            msg = JSON.parse(rawBody)?.error ?? rawBody;
+          } catch {
+            msg = rawBody;
+          }
+        } else if (rawBody && typeof rawBody === "object") {
+          msg = (rawBody as { error?: string }).error ?? error.message;
+        }
         throw new Error(msg ?? error.message);
       }
       const meta = getMeta(def.code);
@@ -201,6 +239,59 @@ export default function Outils() {
       featureCode: def.code,
       benefit: meta?.description ?? "Cette action consommera des crédits IA.",
       onConfirm: () => executeAgent(def),
+    });
+  };
+
+  const executeTool = async (tool: ToolDef) => {
+    const config = toolPrompts[tool.feature_code as keyof typeof toolPrompts];
+    if (!config) {
+      navigate("/documents");
+      return;
+    }
+
+    setRunning(tool.feature_code);
+    try {
+      const data = await aiCall.mutateAsync({
+        featureCode: tool.feature_code,
+        systemPrompt: `Tu es un expert canin DogWork. Réponds en français, de façon premium, structurée, exploitable et sans JSON.`,
+        messages: [{ role: "user", content: config.prompt }],
+        stream: false,
+      });
+
+      const text =
+        typeof data?.choices?.[0]?.message?.content === "string"
+          ? data.choices[0].message.content
+          : Array.isArray(data?.choices?.[0]?.message?.content)
+            ? data.choices[0].message.content.map((part: any) => part?.text || part?.content || "").join("\n")
+            : "";
+
+      setResult({
+        title: config.title,
+        summary: text ? text.slice(0, 180) : tool.description,
+        content: text || tool.description,
+        creditsSpent: getCost(tool.feature_code),
+        text,
+        dogId: currentDog?.id ?? null,
+      });
+      toast.success("Résultat IA généré.");
+      qc.invalidateQueries({ queryKey: ["ai-documents"] });
+    } catch (e: any) {
+      toast.error(e.message ?? "Échec de la génération");
+    } finally {
+      setRunning(null);
+    }
+  };
+
+  const runTool = (tool: ToolDef) => {
+    if (tool.requiresDog && !currentDog) {
+      toast.error("Sélectionnez un chien d'abord.");
+      return;
+    }
+    const meta = getMeta(tool.feature_code);
+    credit.requestConfirmation({
+      featureCode: tool.feature_code,
+      benefit: toolPrompts[tool.feature_code as keyof typeof toolPrompts]?.benefit ?? meta?.description ?? tool.description,
+      onConfirm: () => executeTool(tool),
     });
   };
 
@@ -274,10 +365,7 @@ export default function Outils() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.04 }}
               >
-                <Card
-                  className={`p-4 h-full flex flex-col bg-gradient-to-br ${tool.accent} border-border/50 hover:border-primary/40 transition-all cursor-pointer group`}
-                  onClick={() => navigate(tool.route)}
-                >
+                 <Card className={`p-4 h-full flex flex-col bg-gradient-to-br ${tool.accent} border-border/50 hover:border-primary/40 transition-all group`}>
                   <div className="flex items-start justify-between mb-3">
                     <div className="w-10 h-10 rounded-xl bg-background/80 backdrop-blur flex items-center justify-center shadow-sm">
                       <Icon className="h-5 w-5 text-foreground" />
@@ -292,11 +380,18 @@ export default function Outils() {
                   <p className="text-xs text-muted-foreground leading-relaxed flex-1">
                     {tool.description}
                   </p>
-                  <div className="mt-3 flex items-center justify-between text-xs">
-                    <span className={insufficient ? "text-destructive" : "text-primary font-medium"}>
-                      {insufficient ? "Crédits insuffisants" : "Lancer →"}
-                    </span>
-                  </div>
+                   <div className="mt-4">
+                     <Button
+                       size="sm"
+                       onClick={() => runTool(tool)}
+                       disabled={insufficient || running === tool.feature_code}
+                       className="w-full"
+                     >
+                       {running === tool.feature_code ? (
+                         <><Loader2 className="mr-2 h-4 w-4 animate-spin" />En cours…</>
+                       ) : insufficient ? "Crédits insuffisants" : "Lancer maintenant"}
+                     </Button>
+                   </div>
                 </Card>
               </motion.div>
             );
