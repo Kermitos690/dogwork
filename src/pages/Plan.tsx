@@ -428,7 +428,7 @@ export default function PlanPage() {
                         </div>
                         <Button onClick={handleGenerate} disabled={!canGenerate || generating} className="w-full h-12 rounded-xl text-base">
                           {generating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
-                          {generating ? "Génération..." : `Générer mon plan (${durationDays}j)`}
+                          {generating ? "Génération..." : `Générer mon plan (${durationDays}j) · −${planCost} crédit${planCost > 1 ? "s" : ""}`}
                         </Button>
                       </>
                     )}
