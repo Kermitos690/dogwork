@@ -1,137 +1,50 @@
 
-Objectif: débloquer la publication Live, fiabiliser définitivement le système de crédits IA, finaliser le cron mensuel, puis corriger les pages les plus exposées aux bugs autour de la monétisation et des redirections.
 
-1. Corriger le vrai bloqueur de publication Live
-- Le blocage actuel vient de la migration `20260423000836_c32ffad8-2469-4330-8dd2-d1a05f53b4d1.sql`.
-- Cette migration exécute un `DELETE FROM public.ai_credit_wallets WHERE user_id NOT IN (SELECT id FROM auth.users);` avant d’ajouter la FK `ai_credit_wallets_user_fk`.
-- En Live, il existe encore 2 wallets orphelins et 19 lignes de ledger liées, ce qui casse l’application de la contrainte et fait échouer le publish.
-- Travail prévu:
-  - remplacer cette stratégie fragile par une migration de nettoyage robuste, ordonnée et idempotente:
-    - suppression d’abord des lignes `public.ai_credit_ledger` liées aux wallets orphelins
-    - suppression ensuite des lignes `public.ai_credit_wallets` orphelines
-    - ajout enfin de la FK `ai_credit_wallets_user_fk ON DELETE CASCADE`
-  - sécuriser la migration pour qu’elle passe même si des données orphelines existent déjà en Live
-  - conserver le reste des FK de la migration après nettoyage correct
+# Plan d'exécution — Déblocage Publish Live
 
-2. Durcir l’infrastructure SQL du wallet IA
-Rôle des objets concernés:
-- `public.ensure_ai_wallet(_user_id)`: crée ou retrouve le wallet d’un utilisateur
-- `public.credit_ai_wallet(...)`: crédite le wallet et écrit le ledger
-- `public.debit_ai_credits(...)`: débite le wallet et écrit le ledger
-- `public.get_my_credit_balance()`: lecture sécurisée du solde courant
-- `public.ai_credit_wallets`: solde courant
-- `public.ai_credit_ledger`: historique comptable
+## Cause racine confirmée du dernier échec
+Supabase a rejoué la migration historique `20260423000836` AVANT la nouvelle `20260423163840`. La migration `163840` a bien été enrichie avec le nettoyage idempotent, mais elle s'exécute trop tard : `20260423000836` essaie d'ajouter la FK `ai_credit_wallets_user_fk` sur des wallets orphelins → échec 23503.
 
-Travail prévu:
-- ajouter une migration de durcissement qui garantit l’intégrité dans le bon ordre:
-  - nettoyage des lignes ledger pointant vers un wallet inexistant
-  - nettoyage des wallets dont le `user_id` n’existe plus
-  - création/recréation explicite des FK manquantes si nécessaire
-  - index utiles pour la lecture du ledger mensuel et l’idempotence du cron
-- vérifier que `ensure_ai_wallet`, `credit_ai_wallet` et `debit_ai_credits` restent compatibles avec la FK vers `auth.users`
-- éviter toute logique qui recrée implicitement un wallet pour un utilisateur supprimé
+**Solution :** déplacer le nettoyage à l'intérieur même de `20260423000836` pour qu'il s'exécute avant l'ADD CONSTRAINT.
 
-3. Finaliser le cron mensuel de crédits
-Éléments déjà présents:
-- la fonction backend `monthly-credit-grant` existe
-- la table `public.cron_run_logs` existe en Test via la migration `20260423152111_42f1e186-6a79-49a3-bea5-7440fe5804b8.sql`
-- en Live, `public.cron_run_logs` est absente
-- `pg_cron` et `pg_net` sont déjà actifs en Live
-- aucun job `monthly-credit-grant-daily` n’existe en Live
+## Actions à exécuter (en mode default)
 
-Travail prévu:
-- vérifier et, si nécessaire, compléter la migration `cron_run_logs`
-- durcir la fonction `monthly-credit-grant` pour qu’elle reste tolérante si l’écriture du log d’exécution échoue
-- préparer l’appel cron idempotent quotidien
-- après déblocage de la publication, déployer la fonction et tester:
-  - appel manuel via JWT admin
-  - idempotence par `metadata.period_key`
-  - écriture correcte dans `cron_run_logs`
+### 1. Réécriture de `supabase/migrations/20260423000836_c32ffad8-...sql`
+Remplacer son contenu par, dans cet ordre strict et idempotent :
+- `DELETE FROM public.ai_credit_ledger WHERE user_id NOT IN (SELECT id FROM auth.users);`
+- `DELETE FROM public.ai_credit_ledger l WHERE NOT EXISTS (SELECT 1 FROM public.ai_credit_wallets w WHERE w.id = l.wallet_id);`
+- `DELETE FROM public.ai_credit_wallets WHERE user_id NOT IN (SELECT id FROM auth.users);`
+- `ALTER TABLE … DROP CONSTRAINT IF EXISTS ai_credit_wallets_user_fk;`
+- `ALTER TABLE … DROP CONSTRAINT IF EXISTS ai_credit_wallets_user_id_fkey;`
+- `ALTER TABLE … ADD CONSTRAINT ai_credit_wallets_user_fk FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;`
+- même pattern pour la FK `ai_credit_ledger.wallet_id → ai_credit_wallets.id` ON DELETE CASCADE
 
-4. Corriger les pages front liées aux crédits et aux redirections
-Zones identifiées à sécuriser:
-- `src/hooks/useAICredits.tsx`
-  - rôle: source canonique côté front pour le solde, le ledger, les packs, les features et les achats
-  - travail: renforcer les fallbacks, les erreurs explicites et la cohérence des invalidations React Query
-- `src/hooks/useCreditConfirmation.tsx`
-  - rôle: orchestration de la confirmation avant déduction
-  - travail: éviter tout état incohérent si les features ne sont pas encore chargées ou si le coût vaut 0 par erreur
-- `src/components/CreditConfirmDialog.tsx`
-  - rôle: modal de confirmation avant dépense
-  - travail: sécuriser l’affichage des soldes, les cas insuffisants et les transitions vers `/shop`
-- `src/pages/Shop.tsx`
-  - rôle: hub commercial des crédits
-  - travail: fiabiliser la réconciliation post-checkout, les états de chargement, et les cas sans session
-- `src/pages/Subscription.tsx`
-  - rôle: gestion des plans et portail client
-  - travail: sécuriser les retours Stripe, la gestion du portail et les états d’erreur
-- `src/pages/Outils.tsx`
-  - rôle: exécution des agents IA payants
-  - travail: garantir que le coût affiché, la confirmation et l’exécution restent cohérents même si le catalogue de features tarde à charger
-- `src/pages/ShelterAdoptionPlans.tsx`
-  - rôle: génération IA de plans post-adoption
-  - travail: vérifier le flux confirmation -> génération -> sauvegarde pour éviter les états bloqués
-- `src/components/AIChatBot.tsx`
-  - rôle: consommation IA conversationnelle
-  - travail: fiabiliser les cas “crédits insuffisants”, cooldown et navigation vers le Shop
+### 2. Suppression de `supabase/migrations/20260423163840_...sql`
+Devient entièrement redondante. Supprimée pour garder un pipeline propre.
 
-5. Vérifier le routage et les pages de destination
-- contrôler que les routes utilisées par les CTA existent bien et répondent correctement:
-  - `/shop`
-  - `/subscription`
-  - `/outils`
-  - `/documents`
-  - `/shelter/adoption-plans`
-- ajouter, si nécessaire, des garde-fous pour éviter les redirections vers une page protégée sans session valide
-- vérifier que les layouts rôle-specific n’envoient pas l’utilisateur vers une route incompatible avec son rôle
+### 3. Nouvelle migration `…_cron_logs_and_indexes.sql` (idempotente)
+- `CREATE TABLE IF NOT EXISTS public.cron_run_logs (…)` + RLS admin-only
+- Index utiles : `idx_ai_credit_ledger_user_created`, `idx_ai_credit_ledger_operation_status`, `idx_ai_credit_ledger_period_key`, `idx_cron_run_logs_job_period`, `idx_cron_run_logs_started`
 
-6. Validation complète après implémentation
-Backend:
-- rejouer les migrations en Test
-- vérifier la création de `cron_run_logs`
-- déployer et tester `monthly-credit-grant`
-- confirmer qu’aucun wallet orphelin ne bloque plus la chaîne de publication
-Frontend:
-- test de navigation vers Shop / Subscription / Outils
-- test d’ouverture des modales de confirmation
-- test du parcours crédits insuffisants
-- test du retour après achat
-- test du flux agent IA et chatbot
-- correction des erreurs console éventuelles si elles apparaissent
+### 4. Cron schedule (NON automatisé via migration)
+Le `cron.schedule()` contient l'URL Live + le `CRON_SECRET` → **doit rester manuel** selon les règles Supabase (pas de données projet-spécifiques dans une migration partagée). Je fournirai le SQL final à coller dans le SQL Editor Live après Publish.
 
-7. Étapes manuelles réellement impossibles à automatiser
-- le nettoyage des données déjà présentes en Live reste manuel tant que l’environnement courant ne permet pas l’écriture directe sur Live
-- la création effective du job `monthly-credit-grant-daily` sur Live reste manuelle tant que l’écriture Live n’est pas disponible
-- une fois les corrections de code et migrations prêtes côté projet, les seules actions manuelles restantes seront:
-  - exécuter le SQL de nettoyage Live
-  - republier
-  - exécuter le SQL de planification cron Live
+### 5. Hardening RPC (vérification seulement)
+`ensure_ai_wallet`, `credit_ai_wallet`, `debit_ai_credits` : je vérifierai d'abord les vraies signatures Live via `read_query` sur `pg_proc`, puis je n'agirai que si une faille réelle existe. Pas de réécriture spéculative.
 
-Détails techniques
-```text
-Cause racine confirmée
-- Live:
-  - 2 wallets orphelins
-  - 118 crédits orphelins
-  - 19 lignes ledger associées
-  - pas de table public.cron_run_logs
-  - pas de job cron monthly-credit-grant-daily
-- Test:
-  - mêmes orphelins détectés côté données
-  - migration cron_run_logs déjà présente dans le code
-```
+### 6. Frontend (corrections ciblées, non-régressives)
+- `useAICredits.tsx` — fiabiliser invalidations React Query après refund/purchase
+- `useCreditConfirmation.tsx` — bloquer `handleConfirm` tant que `features` non chargées (évite cost=0)
+- `CreditConfirmDialog.tsx` — CTA "Recharger" → navigation `/shop` toujours disponible
+- `Shop.tsx` — fiabiliser réconciliation post-checkout (déjà partiel)
+- `AIChatBot.tsx` — mapping erreurs 402/429 → toast + redirection `/shop`
 
-```text
-Fichiers à modifier en priorité
-- supabase/migrations/20260423000836_c32ffad8-2469-4330-8dd2-d1a05f53b4d1.sql
-- supabase/migrations/20260423152111_42f1e186-6a79-49a3-bea5-7440fe5804b8.sql
-- supabase/functions/monthly-credit-grant/index.ts
-- src/hooks/useAICredits.tsx
-- src/hooks/useCreditConfirmation.tsx
-- src/components/CreditConfirmDialog.tsx
-- src/pages/Shop.tsx
-- src/pages/Subscription.tsx
-- src/pages/Outils.tsx
-- src/pages/ShelterAdoptionPlans.tsx
-- src/components/AIChatBot.tsx
-```
+## Ce qui restera manuel après mes modifications
+1. **Cliquer Publish** dans Lovable → applique `20260423000836` corrigée + nouvelle migration cron_logs sur Live
+2. **Vérifier secret `CRON_SECRET`** sur Live (je peux le détecter via `secrets--fetch_secrets`)
+3. **Coller le SQL `cron.schedule(...)` Live** que je fournirai (1 bloc, idempotent)
+
+## Verdict attendu
+- Avant exécution : NO GO
+- Après exécution + Publish réussi + planification cron : **GO production**
+
