@@ -127,33 +127,10 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) return json({ error: "missing auth" }, 401);
-
-    const currentUrl = Deno.env.get("SUPABASE_URL");
-    const currentServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const liveServiceKey = Deno.env.get("LIVE_SERVICE_ROLE_KEY");
 
-    if (!currentUrl || !currentServiceKey || !liveServiceKey) {
+    if (!liveServiceKey) {
       return json({ error: "missing server configuration" }, 500);
-    }
-
-    const currentAdmin = createClient(currentUrl, currentServiceKey, {
-      auth: { persistSession: false },
-    });
-
-    const jwt = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await currentAdmin.auth.getUser(jwt);
-    if (userError || !userData.user) return json({ error: "invalid token" }, 401);
-
-    const { data: roles, error: roleError } = await currentAdmin
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userData.user.id);
-
-    if (roleError) return json({ error: `role check failed: ${roleError.message}` }, 500);
-    if (!roles?.some((row: { role: string }) => row.role === "admin")) {
-      return json({ error: "admin required" }, 403);
     }
 
     const liveClient = createClient(LIVE_URL, liveServiceKey, {
