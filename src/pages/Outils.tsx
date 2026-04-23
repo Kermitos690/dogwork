@@ -254,6 +254,13 @@ export default function Outils() {
   };
 
   const executeTool = async (tool: ToolDef) => {
+    // Plan generation is handled by the canonical /plan generator
+    // (same engine, same price, real persistence into training_plans).
+    if (tool.feature_code === "ai_plan_generation") {
+      navigate("/plan?autogen=1");
+      return;
+    }
+
     const config = toolPrompts[tool.feature_code as keyof typeof toolPrompts];
     if (!config) {
       navigate("/documents");
@@ -276,16 +283,36 @@ export default function Outils() {
             ? data.choices[0].message.content.map((part: any) => part?.text || part?.content || "").join("\n")
             : "";
 
+      const creditsSpent = getCost(tool.feature_code);
+      const docType = FEATURE_TO_DOC_TYPE[tool.feature_code] ?? "other";
+
+      // Auto-save into the central AI documents library.
+      try {
+        await saveDoc.mutateAsync({
+          dog_id: currentDog?.id ?? null,
+          feature_code: tool.feature_code,
+          document_type: docType,
+          title: config.title,
+          summary: text ? text.slice(0, 200) : tool.description,
+          content: { text, dog_id: currentDog?.id ?? null, dog_name: currentDog?.name ?? null },
+          credits_spent: creditsSpent,
+          metadata: { dog_id: currentDog?.id ?? null, dog_name: currentDog?.name ?? null },
+        });
+      } catch (e) {
+        console.error("[Outils] auto-save failed:", e);
+      }
+
       setResult({
         title: config.title,
         summary: text ? text.slice(0, 180) : tool.description,
         content: text || tool.description,
-        creditsSpent: getCost(tool.feature_code),
+        creditsSpent,
         text,
         dogId: currentDog?.id ?? null,
       });
-      toast.success("Résultat IA généré.");
+      toast.success(`Résultat IA généré · ${creditsSpent} crédit${creditsSpent > 1 ? "s" : ""} débité${creditsSpent > 1 ? "s" : ""}.`);
       qc.invalidateQueries({ queryKey: ["ai-documents"] });
+      qc.invalidateQueries({ queryKey: ["ai-balance"] });
     } catch (e: any) {
       toast.error(e.message ?? "Échec de la génération");
     } finally {
@@ -296,6 +323,11 @@ export default function Outils() {
   const runTool = (tool: ToolDef) => {
     if (tool.requiresDog && !currentDog) {
       toast.error("Sélectionnez un chien d'abord.");
+      return;
+    }
+    // Plan generation: send straight to /plan (price + confirmation handled there).
+    if (tool.feature_code === "ai_plan_generation") {
+      navigate("/plan?autogen=1");
       return;
     }
     const meta = getMeta(tool.feature_code);
