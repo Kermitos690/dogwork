@@ -271,16 +271,53 @@ RÈGLES :
     }
 
     const aiData = await aiResponse.json();
-    const content = aiData.choices?.[0]?.message?.content || "";
 
-    // Extract JSON
-    let jsonStr = content;
-    const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (jsonMatch) jsonStr = jsonMatch[1];
+    const extractTextContent = (payload: any): string => {
+      const choiceContent = payload?.choices?.[0]?.message?.content;
+      if (typeof choiceContent === "string") return choiceContent;
+      if (Array.isArray(choiceContent)) {
+        return choiceContent
+          .map((part: any) => {
+            if (typeof part === "string") return part;
+            if (typeof part?.text === "string") return part.text;
+            if (typeof part?.content === "string") return part.content;
+            return "";
+          })
+          .filter(Boolean)
+          .join("\n");
+      }
+
+      const candidateParts = payload?.candidates?.[0]?.content?.parts;
+      if (Array.isArray(candidateParts)) {
+        return candidateParts
+          .map((part: any) => (typeof part?.text === "string" ? part.text : ""))
+          .filter(Boolean)
+          .join("\n");
+      }
+
+      return "";
+    };
+
+    const extractJsonPayload = (raw: string): string => {
+      const trimmed = raw.trim();
+      const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+      const source = (fencedMatch?.[1] ?? trimmed).trim();
+      const firstBrace = source.indexOf("{");
+      const lastBrace = source.lastIndexOf("}");
+
+      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        return source.slice(firstBrace, lastBrace + 1);
+      }
+
+      return source;
+    };
+
+    const content = extractTextContent(aiData);
+    const jsonStr = extractJsonPayload(content);
 
     let plan;
     try {
-      plan = JSON.parse(jsonStr.trim());
+      plan = JSON.parse(jsonStr);
     } catch {
       await admin.rpc("credit_ai_wallet", {
         _user_id: userId,
