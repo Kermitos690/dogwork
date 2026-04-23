@@ -15,6 +15,7 @@ import { useCreditConfirmation } from "@/hooks/useCreditConfirmation";
 import { CreditConfirmDialog } from "@/components/CreditConfirmDialog";
 import { AIResultDialog } from "@/components/AIResultDialog";
 import { saveAiTextToJournal } from "@/lib/aiDestinations";
+import { useSaveAIDocument, type AIDocumentType } from "@/hooks/useAIDocuments";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -118,6 +119,16 @@ export default function Outils() {
   const [running, setRunning] = useState<string | null>(null);
   const [savingToJournal, setSavingToJournal] = useState(false);
   const [savedToJournal, setSavedToJournal] = useState(false);
+  const saveDoc = useSaveAIDocument();
+
+  const FEATURE_TO_DOC_TYPE: Record<string, AIDocumentType> = {
+    ai_plan_generation: "training_plan",
+    ai_behavior_analysis: "behavior_analysis",
+    ai_evaluation_scoring: "evaluation_scoring",
+    ai_adoption_plan: "adoption_plan",
+    ai_progress_report: "progress_report",
+    ai_image_generation: "image",
+  };
 
   useEffect(() => {
     document.title = "Outils IA — DogWork";
