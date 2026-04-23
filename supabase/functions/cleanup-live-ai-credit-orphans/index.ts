@@ -19,11 +19,12 @@ const corsHeaders = {
 const LIVE_URL = "https://hdmmqwpypvhwohhhaqnf.supabase.co";
 const PAGE_SIZE = 1000;
 
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
 
 async function fetchAllRows<T>(
   client: ReturnType<typeof createClient>,
@@ -55,11 +56,7 @@ async function fetchAllUserIds(liveClient: ReturnType<typeof createClient>): Pro
   let page = 1;
 
   while (true) {
-    const { data, error } = await liveClient.auth.admin.listUsers({
-      page,
-      perPage: PAGE_SIZE,
-    });
-
+    const { data, error } = await liveClient.auth.admin.listUsers({ page, perPage: PAGE_SIZE });
     if (error) throw new Error(`Lecture auth.users impossible: ${error.message}`);
 
     const users = data?.users ?? [];
@@ -87,6 +84,42 @@ async function deleteByIds(
     const { error } = await client.from(table).delete().in(column, batch);
     if (error) throw new Error(`Suppression ${table} impossible: ${error.message}`);
   }
+}
+
+function computeOrphans(
+  wallets: WalletRow[],
+  ledger: LedgerRow[],
+  validUserIds: Set<string>,
+) {
+  const walletIds = new Set(wallets.map((wallet) => wallet.id));
+  const invalidWalletIds = new Set(
+    wallets.filter((wallet) => !validUserIds.has(wallet.user_id)).map((wallet) => wallet.id),
+  );
+
+  const ledgerMissingUserIds = ledger
+    .filter((entry) => !validUserIds.has(entry.user_id))
+    .map((entry) => entry.id);
+
+  const ledgerMissingWalletIds = ledger
+    .filter((entry) => !walletIds.has(entry.wallet_id))
+    .map((entry) => entry.id);
+
+  const ledgerWithInvalidWalletOwnerIds = ledger
+    .filter((entry) => invalidWalletIds.has(entry.wallet_id))
+    .map((entry) => entry.id);
+
+  return {
+    invalidWalletIds: [...invalidWalletIds],
+    ledgerMissingUserIds,
+    ledgerMissingWalletIds,
+    ledgerWithInvalidWalletOwnerIds,
+    summary: {
+      orphan_wallets: invalidWalletIds.size,
+      orphan_ledger_missing_user: ledgerMissingUserIds.length,
+      orphan_ledger_missing_wallet: ledgerMissingWalletIds.length,
+      orphan_ledger_wallet_owner_missing_user: ledgerWithInvalidWalletOwnerIds.length,
+    },
+  };
 }
 
 Deno.serve(async (req) => {
@@ -127,71 +160,32 @@ Deno.serve(async (req) => {
       auth: { persistSession: false },
     });
 
-    const [wallets, ledger, validUserIds] = await Promise.all([
-      fetchAllRows<WalletRow>(liveClient, "ai_credit_wallets", "id,user_id"),
-      fetchAllRows<LedgerRow>(liveClient, "ai_credit_ledger", "id,user_id,wallet_id"),
-      fetchAllUserIds(liveClient),
-    ]);
+    const validUserIds = await fetchAllUserIds(liveClient);
+    const walletsBefore = await fetchAllRows<WalletRow>(liveClient, "ai_credit_wallets", "id,user_id");
+    const ledgerBefore = await fetchAllRows<LedgerRow>(liveClient, "ai_credit_ledger", "id,user_id,wallet_id");
 
-    const walletIds = new Set(wallets.map((wallet) => wallet.id));
-    const invalidWalletIds = new Set(
-      wallets.filter((wallet) => !validUserIds.has(wallet.user_id)).map((wallet) => wallet.id),
-    );
-
-    const ledgerMissingUserIds = ledger
-      .filter((entry) => !validUserIds.has(entry.user_id))
-      .map((entry) => entry.id);
-
-    const ledgerMissingWalletIds = ledger
-      .filter((entry) => !walletIds.has(entry.wallet_id))
-      .map((entry) => entry.id);
-
-    const ledgerWithInvalidWalletOwnerIds = ledger
-      .filter((entry) => invalidWalletIds.has(entry.wallet_id))
-      .map((entry) => entry.id);
-
-    const uniqueLedgerDeleteIds = [...new Set([
-      ...ledgerMissingUserIds,
-      ...ledgerMissingWalletIds,
-      ...ledgerWithInvalidWalletOwnerIds,
+    const before = computeOrphans(walletsBefore, ledgerBefore, validUserIds);
+    const ledgerDeleteIds = [...new Set([
+      ...before.ledgerMissingUserIds,
+      ...before.ledgerMissingWalletIds,
+      ...before.ledgerWithInvalidWalletOwnerIds,
     ])];
 
-    const invalidWalletDeleteIds = [...invalidWalletIds];
+    await deleteByIds(liveClient, "ai_credit_ledger", "id", ledgerDeleteIds);
+    await deleteByIds(liveClient, "ai_credit_wallets", "id", before.invalidWalletIds);
 
-    await deleteByIds(liveClient, "ai_credit_ledger", "id", uniqueLedgerDeleteIds);
-    await deleteByIds(liveClient, "ai_credit_wallets", "id", invalidWalletDeleteIds);
-
-    const [remainingWallets, remainingLedgerMissingUser, remainingLedgerMissingWallet, remainingLedgerInvalidWalletOwner] = await Promise.all([
-      liveClient.from("ai_credit_wallets").select("id", { count: "exact", head: true }).not("user_id", "in", `(${[...validUserIds].slice(0, 1).map(() => "null").join(",")})`),
-      liveClient.from("ai_credit_ledger").select("id,user_id,wallet_id"),
-      liveClient.from("ai_credit_wallets").select("id,user_id"),
-      Promise.resolve(null),
-    ]);
-
-    const refreshedWalletRows = (remainingLedgerMissingWallet.data as WalletRow[] | null) ?? [];
-    const refreshedWalletIds = new Set(refreshedWalletRows.map((wallet) => wallet.id));
-    const refreshedInvalidWalletIds = new Set(
-      refreshedWalletRows.filter((wallet) => !validUserIds.has(wallet.user_id)).map((wallet) => wallet.id),
-    );
-    const refreshedLedgerRows = (remainingLedgerMissingUser.data as LedgerRow[] | null) ?? [];
-
-    const postCheck = {
-      orphan_wallets: refreshedWalletRows.filter((wallet) => !validUserIds.has(wallet.user_id)).length,
-      orphan_ledger_missing_user: refreshedLedgerRows.filter((entry) => !validUserIds.has(entry.user_id)).length,
-      orphan_ledger_missing_wallet: refreshedLedgerRows.filter((entry) => !refreshedWalletIds.has(entry.wallet_id)).length,
-      orphan_ledger_wallet_owner_missing_user: refreshedLedgerRows.filter((entry) => refreshedInvalidWalletIds.has(entry.wallet_id)).length,
-    };
+    const walletsAfter = await fetchAllRows<WalletRow>(liveClient, "ai_credit_wallets", "id,user_id");
+    const ledgerAfter = await fetchAllRows<LedgerRow>(liveClient, "ai_credit_ledger", "id,user_id,wallet_id");
+    const after = computeOrphans(walletsAfter, ledgerAfter, validUserIds);
 
     return json({
       success: true,
       deleted: {
-        ledger_missing_user: ledgerMissingUserIds.length,
-        ledger_missing_wallet: ledgerMissingWalletIds.length,
-        ledger_invalid_wallet_owner: ledgerWithInvalidWalletOwnerIds.length,
-        ledger_total_deleted: uniqueLedgerDeleteIds.length,
-        wallets_deleted: invalidWalletDeleteIds.length,
+        ledger_total_deleted: ledgerDeleteIds.length,
+        wallets_deleted: before.invalidWalletIds.length,
       },
-      remaining: postCheck,
+      before: before.summary,
+      after: after.summary,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "internal error";
