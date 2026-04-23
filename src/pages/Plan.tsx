@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useActiveDog } from "@/hooks/useDogs";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdaptiveSuggestion } from "@/hooks/useAdaptive";
@@ -20,6 +20,9 @@ import { toast } from "@/hooks/use-toast";
 import { useSaveAIDocument } from "@/hooks/useAIDocuments";
 import { NoActiveDogState } from "@/components/NoActiveDogState";
 import { resolveDayState } from "@/hooks/useDayLockState";
+import { useAIBalance, useAIFeatures } from "@/hooks/useAICredits";
+import { useCreditConfirmation } from "@/hooks/useCreditConfirmation";
+import { CreditConfirmDialog } from "@/components/CreditConfirmDialog";
 
 const statusColors: Record<string, string> = {
   done: "bg-success text-success-foreground",
@@ -48,6 +51,13 @@ export default function PlanPage() {
   const hasAiPlan = tierGrantsFullAccess(tier);
   const adaptiveSuggestion = useAdaptiveSuggestion();
   const saveDoc = useSaveAIDocument();
+  const { data: wallet } = useAIBalance();
+  const { data: features } = useAIFeatures();
+  const credit = useCreditConfirmation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const planFeature = features?.find((f) => f.code === "ai_plan_generation");
+  const planCost = planFeature?.credits_cost ?? 10;
+  const planBalance = wallet?.balance ?? 0;
 
   const { data: savedPlan, refetch: refetchPlan } = useQuery({
     queryKey: ["training_plan", activeDog?.id],
@@ -153,17 +163,43 @@ export default function PlanPage() {
 
   const canGenerate = activeDog && problems && problems.length > 0;
 
-  const handleGenerate = async () => {
+  const runGeneration = async () => {
     if (!activeDog || !problems || !user) return;
     setGenerating(true);
     try {
-      // Load all exercises from DB to feed the plan generator
+      // 1. Server-side debit FIRST (universal pricing, single source of truth).
+      const { data: debitData, error: debitErr } = await supabase.functions.invoke("ai-debit", {
+        body: {
+          feature_code: "ai_plan_generation",
+          metadata: { dog_id: activeDog.id, dog_name: activeDog.name, duration_days: durationDays, tier },
+        },
+      });
+      if (debitErr) {
+        const ctx = (debitErr as any).context?.body;
+        let msg = debitErr.message;
+        try {
+          const parsed = typeof ctx === "string" ? JSON.parse(ctx) : ctx;
+          if (parsed?.code === "INSUFFICIENT_CREDITS") {
+            toast({
+              title: "Crédits insuffisants",
+              description: `Il vous manque ${(parsed.required ?? 0) - (parsed.balance ?? 0)} crédit(s). Rechargez dans le Shop.`,
+              variant: "destructive",
+            });
+            return;
+          }
+          msg = parsed?.error ?? msg;
+        } catch { /* ignore */ }
+        throw new Error(msg);
+      }
+      const creditsSpent = (debitData as any)?.credits_spent ?? planCost;
+
+      // 2. Load exercises catalog for the generator.
       const { data: dbExercises } = await supabase.from("exercises").select("id, slug, name, description, objective, summary, dedication, short_instruction, steps, tutorial_steps, success_criteria, contraindications, priority_axis, tags, target_problems, level, difficulty, compatible_reactivity, compatible_senior, compatible_puppy, compatible_muzzle, exercise_type, is_professional");
       if (dbExercises && dbExercises.length > 0) {
         setDbExercises(dbExercises);
       }
 
-      // For Expert / Educator / Shelter, gather behavior data for adaptive generation
+      // 3. Adaptive behavior data (Expert / pro tiers).
       let behaviorData = undefined;
       if (tierGrantsFullAccess(tier)) {
         const { data: logs } = await supabase
@@ -203,12 +239,15 @@ export default function PlanPage() {
         }
       }
 
+      // 4. Generate plan (client-side intelligence engine).
       const plan = generatePersonalizedPlan({
         dog: activeDog,
         problems: problems.map(p => ({ problem_key: p.problem_key, intensity: p.intensity, frequency: p.frequency })),
         objectives: (objectives || []).map(o => ({ objective_key: o.objective_key, is_priority: o.is_priority || false })),
         evaluation: evaluation || null,
       }, { tier, behaviorData, totalDays: durationDays });
+
+      // 5. Persist as the active training plan.
       await supabase.from("training_plans").update({ is_active: false }).eq("dog_id", activeDog.id).eq("user_id", user.id);
       await supabase.from("training_plans").insert({
         dog_id: activeDog.id, user_id: user.id, plan_type: tierGrantsFullAccess(tier) ? "expert" : "personalized",
@@ -219,28 +258,52 @@ export default function PlanPage() {
         days: plan.days as any,
       });
       refetchPlan();
-      // Auto-save to global AI document library
+
+      // 6. Mirror in the AI documents library with the real price paid.
       try {
         await saveDoc.mutateAsync({
           dog_id: activeDog.id,
-          feature_code: tierGrantsFullAccess(tier) ? "ai_plan_generation" : "ai_plan_generation",
+          feature_code: "ai_plan_generation",
           document_type: "training_plan",
           title: `Plan ${plan.totalDays}j — ${activeDog.name}`,
           summary: plan.summary,
           content: plan as any,
-          credits_spent: 0,
-          metadata: { duration_days: plan.totalDays, tier },
+          credits_spent: creditsSpent,
+          metadata: { duration_days: plan.totalDays, tier, dog_id: activeDog.id, dog_name: activeDog.name },
         });
       } catch (e) {
         console.error("[Plan] auto-save failed:", e);
       }
-      toast({ title: "✨ Plan IA généré", description: `Plan ${plan.totalDays} jours pour ${activeDog.name}. Sauvegardé dans Mes documents.` });
+
+      qc.invalidateQueries({ queryKey: ["ai-balance"] });
+      qc.invalidateQueries({ queryKey: ["ai-documents"] });
+      toast({ title: "✨ Plan IA généré", description: `Plan ${plan.totalDays} jours pour ${activeDog.name}. ${creditsSpent} crédit${creditsSpent > 1 ? "s" : ""} débité${creditsSpent > 1 ? "s" : ""}. Disponible dans Mes documents.` });
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message, variant: "destructive" });
     } finally {
       setGenerating(false);
     }
   };
+
+  const handleGenerate = () => {
+    if (!canGenerate) return;
+    credit.requestConfirmation({
+      featureCode: "ai_plan_generation",
+      benefit: `Génère un plan ${durationDays} jours sur mesure pour ${activeDog?.name}, basé sur ses problématiques, objectifs et évaluation.`,
+      onConfirm: () => runGeneration(),
+    });
+  };
+
+  // Auto-trigger from Outils hub (?autogen=1)
+  useEffect(() => {
+    if (searchParams.get("autogen") === "1" && canGenerate && !generating && hasAiPlan) {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("autogen");
+      setSearchParams(newParams, { replace: true });
+      handleGenerate();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, canGenerate, hasAiPlan]);
 
   if (!activeDog) {
     return (
@@ -365,7 +428,7 @@ export default function PlanPage() {
                         </div>
                         <Button onClick={handleGenerate} disabled={!canGenerate || generating} className="w-full h-12 rounded-xl text-base">
                           {generating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
-                          {generating ? "Génération..." : `Générer mon plan (${durationDays}j)`}
+                          {generating ? "Génération..." : `Générer mon plan (${durationDays}j) · −${planCost} crédit${planCost > 1 ? "s" : ""}`}
                         </Button>
                       </>
                     )}
@@ -564,6 +627,17 @@ export default function PlanPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <CreditConfirmDialog
+        open={credit.open}
+        onOpenChange={credit.setOpen}
+        onConfirm={credit.handleConfirm}
+        cost={credit.cost || planCost}
+        balance={credit.balance || planBalance}
+        featureLabel={credit.featureLabel || "Plan d'entraînement IA"}
+        benefit={credit.benefit}
+        loading={credit.loading || generating}
+      />
     </AppLayout>
   );
 }
