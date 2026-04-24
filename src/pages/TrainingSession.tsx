@@ -344,6 +344,18 @@ export default function TrainingSession() {
     );
   }
 
+  // Garde : URL invalide (ex. /training/session/undefined) → ne pas planter sur "Jour NaN".
+  if (!Number.isFinite(id) || id < 1) {
+    return (
+      <FullscreenShell onExit={() => navigate("/plan")}>
+        <div className="text-center space-y-3 max-w-sm">
+          <p className="text-sm text-muted-foreground">Séance introuvable. Reprenez depuis votre plan.</p>
+          <Button onClick={() => navigate("/plan")}>Retour au plan</Button>
+        </div>
+      </FullscreenShell>
+    );
+  }
+
   if (planLoading) {
     return (
       <FullscreenShell onExit={exitSession}>
