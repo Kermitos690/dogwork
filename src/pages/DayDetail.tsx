@@ -15,6 +15,7 @@ import { toast } from "@/hooks/use-toast";
 import type { PlanDay } from "@/lib/planGenerator";
 import { upsertDayProgress } from "@/lib/dayProgress";
 import { ZoneBadge } from "@/components/ZoneBadge";
+import { ZoneSafetyGuide } from "@/components/ZoneSafetyGuide";
 import { zoneFromTension, type Zone } from "@/lib/zones";
 import { DayJourneyHeader } from "@/components/DayJourneyHeader";
 import { NoActiveDogState } from "@/components/NoActiveDogState";
@@ -402,6 +403,36 @@ export default function DayDetail() {
             </CardContent>
           </Card>
         )}
+
+        {/* Avant séance — récapitulatif rapide pour cadrer la session */}
+        <section
+          aria-label="Avant la séance"
+          className="rounded-2xl border border-primary/15 bg-primary/5 p-4 space-y-2"
+        >
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">
+            Avant la séance
+          </p>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="rounded-xl bg-background/60 p-2">
+              <p className="text-[10px] text-muted-foreground">Durée</p>
+              <p className="text-sm font-semibold text-foreground">{dayDuration || "—"}</p>
+            </div>
+            <div className="rounded-xl bg-background/60 p-2">
+              <p className="text-[10px] text-muted-foreground">Exercices</p>
+              <p className="text-sm font-semibold text-foreground">{totalExercises}</p>
+            </div>
+            <div className="rounded-xl bg-background/60 p-2">
+              <p className="text-[10px] text-muted-foreground">Niveau</p>
+              <p className="text-sm font-semibold text-foreground">{dayDifficulty || "—"}</p>
+            </div>
+          </div>
+          <p className="text-xs text-foreground/85 leading-relaxed pt-1">
+            Vérifiez que votre chien est calme et disponible. Préparez vos récompenses, choisissez un environnement adapté et lisez le guide des zones ci-dessous avant de démarrer.
+          </p>
+        </section>
+
+        {/* Pedagogical zone guide — folded by default */}
+        <ZoneSafetyGuide defaultOpen={false} />
 
         {/* Today's behavioural zone summary */}
         {dayZones && dayZones.length > 0 && (

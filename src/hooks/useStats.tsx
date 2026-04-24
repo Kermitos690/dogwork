@@ -116,7 +116,7 @@ const getDistanceTrend = (recent: number[], older: number[]): "improving" | "wor
   return diff < 0 ? "improving" : "worsening";
 };
 
-export function useStats(period: "7" | "14" | "30" | "all" = "all", loadAdvanced = true) {
+export function useStats(period: "7" | "14" | "28" | "30" | "all" = "all", loadAdvanced = true) {
   const activeDog = useActiveDog();
 
   const { data: progressData } = useQuery({

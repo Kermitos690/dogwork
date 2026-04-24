@@ -307,7 +307,7 @@ function TrendsSection({ stats }: { stats: any }) {
 export default function Stats() {
   const navigate = useNavigate();
   const activeDog = useActiveDog();
-  const [period, setPeriod] = useState<"7" | "14" | "30" | "all">("all");
+  const [period, setPeriod] = useState<"7" | "14" | "28" | "30" | "all">("all");
   const advStatsGate = useFeatureGate("advanced_stats");
   const stats = useStats(period, advStatsGate.allowed);
   const hasAdvanced = advStatsGate.allowed;
@@ -345,9 +345,10 @@ export default function Stats() {
         {/* Period filter */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="flex gap-2">
           {([
-            { v: "7" as const, l: "7 jours" },
-            { v: "14" as const, l: "14 jours" },
-            { v: "30" as const, l: "30 jours" },
+            { v: "7" as const, l: "7j" },
+            { v: "14" as const, l: "14j" },
+            { v: "28" as const, l: "28j" },
+            { v: "30" as const, l: "30j" },
             { v: "all" as const, l: "Tout" },
           ]).map(p => (
             <button
