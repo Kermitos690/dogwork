@@ -23,7 +23,7 @@ interface InviteEmailProps {
   confirmationUrl: string
 }
 
-const LOGO_URL = 'https://dcwbqsfeouvghcnvhrpj.supabase.co/storage/v1/object/public/email-assets/logo-dogwork.png'
+const LOGO_URL = 'https://www.dogwork-at-home.com/logo-dogwork.png'
 
 export const InviteEmail = ({
   siteName,
