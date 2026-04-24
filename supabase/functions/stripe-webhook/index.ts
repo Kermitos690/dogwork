@@ -35,6 +35,30 @@ async function resolveUserByEmail(supabaseAdmin: any, email: string): Promise<st
   return null;
 }
 
+// Helper: récupère email + display_name pour un user
+async function getUserContact(supabaseAdmin: any, userId: string): Promise<{ email: string | null; name: string | null }> {
+  try {
+    const { data: u } = await supabaseAdmin.auth.admin.getUserById(userId);
+    const email = u?.user?.email || null;
+    const { data: p } = await supabaseAdmin.from("profiles").select("display_name").eq("user_id", userId).maybeSingle();
+    const name = p?.display_name || (email ? email.split("@")[0] : null);
+    return { email, name };
+  } catch {
+    return { email: null, name: null };
+  }
+}
+
+// Helper: envoi transactional email (best-effort)
+async function sendEmail(supabaseAdmin: any, templateName: string, recipientEmail: string, idempotencyKey: string, templateData: Record<string, any>) {
+  if (!recipientEmail) return;
+  try {
+    await supabaseAdmin.functions.invoke("send-transactional-email", {
+      body: { templateName, recipientEmail, idempotencyKey, templateData },
+    });
+  } catch (e) {
+    console.error(`[email] ${templateName} failed:`, (e as Error).message);
+  }
+
 // Store full subscription details in stripe_customers
 async function syncSubscriptionDetails(
   stripe: Stripe,
