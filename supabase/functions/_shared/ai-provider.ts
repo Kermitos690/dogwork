@@ -1,13 +1,13 @@
 /**
  * Centralized AI Provider Adapter for DogWork.
  *
- * Multi-provider router with cascade fallback. Lovable AI Gateway is
- * intentionally NOT used — only free / direct provider tiers.
+ * Multi-provider router with cascade fallback. Lovable AI Gateway and
+ * OpenAI are intentionally NOT used — only free / direct provider tiers.
  *
  * Routing strategy by task type:
  *  - chat        → Groq → OpenRouter → Gemini → Mistral
- *  - reasoning   → Gemini 2.5 Pro → OpenAI gpt-5-mini → Mistral Large → Groq
- *  - tools       → OpenAI gpt-5-mini → Gemini → Groq → Mistral
+ *  - reasoning   → Gemini 2.5 Pro → Mistral Large → Groq → OpenRouter
+ *  - tools       → Gemini → Groq → OpenRouter → Mistral
  *  - image       → Gemini (only free image provider)
  *
  * Each provider is OpenAI-compatible (chat/completions schema), so the
