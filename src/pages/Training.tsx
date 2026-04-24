@@ -130,6 +130,30 @@ export default function Training() {
     );
   }
 
+  // Garde : URL invalide (ex. /training/undefined) → renvoyer au plan plutôt qu'afficher "Jour NaN".
+  if (!Number.isFinite(id) || id < 1) {
+    return (
+      <AppLayout>
+        <div className="pt-8 text-center space-y-6 animate-fade-in">
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold text-foreground">Séance introuvable</h1>
+            <p className="text-sm text-muted-foreground">
+              Le jour demandé n'est pas valide. Reprenez depuis votre plan d'entraînement.
+            </p>
+          </div>
+          <div className="space-y-3 max-w-xs mx-auto">
+            <Button className="w-full h-12 rounded-xl" onClick={() => navigate("/plan")}>
+              Retour au plan
+            </Button>
+            <Button variant="ghost" className="w-full h-12 rounded-xl" onClick={() => navigate("/")}>
+              Tableau de bord
+            </Button>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
   if (lockSnapshot.locked) {
     return (
       <AppLayout>
