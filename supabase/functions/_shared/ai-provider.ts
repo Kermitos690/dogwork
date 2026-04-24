@@ -21,11 +21,9 @@ const GEMINI_NATIVE_BASE = "https://generativelanguage.googleapis.com/v1beta";
 const GROQ_BASE = "https://api.groq.com/openai/v1";
 const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
 const MISTRAL_BASE = "https://api.mistral.ai/v1";
-const OPENAI_BASE = "https://api.openai.com/v1";
-
 // ─── Provider Identifiers ──────────────────────────────────
 
-type Provider = "groq" | "openrouter" | "gemini" | "mistral" | "openai";
+type Provider = "groq" | "openrouter" | "gemini" | "mistral";
 
 interface ProviderTarget {
   provider: Provider;
