@@ -54,11 +54,6 @@ const CATALOG = {
     reasoning: "mistral-large-latest",
     tools: "mistral-small-latest",
   },
-  openai: {
-    chat: "gpt-4o-mini",
-    reasoning: "gpt-4o-mini",
-    tools: "gpt-4o-mini",
-  },
 } as const;
 
 // ─── Task Routing (cascade order) ──────────────────────────
