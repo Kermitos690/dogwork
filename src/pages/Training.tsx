@@ -15,6 +15,7 @@ import type { PlanDay } from "@/lib/planGenerator";
 import { upsertDayProgress } from "@/lib/dayProgress";
 import { ZoneSelector } from "@/components/ZoneSelector";
 import { ZoneBadge } from "@/components/ZoneBadge";
+import { ZoneSafetyGuide } from "@/components/ZoneSafetyGuide";
 import type { Zone } from "@/lib/zones";
 import { DayJourneyHeader } from "@/components/DayJourneyHeader";
 import { NoActiveDogState } from "@/components/NoActiveDogState";
@@ -206,6 +207,9 @@ export default function Training() {
         </Button>
 
         <Progress value={sessionPct} className="h-2" />
+
+        <ZoneSafetyGuide />
+
 
         {/* Exercise card — enriched */}
         <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
