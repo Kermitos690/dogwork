@@ -155,7 +155,51 @@ export default function ShelterSpaces() {
     onError: (e: any) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
   });
 
-  const openEdit = (space: any) => {
+  const moveMutation = useMutation({
+    mutationFn: async ({ id, x, y }: { id: string; x: number; y: number }) => {
+      const { error } = await supabase.rpc("update_shelter_space_position" as any, {
+        _space_id: id, _x: x, _y: y,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => invalidateAll(),
+    onError: (e: any) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
+  });
+
+  // Spaces enrichis avec auto-layout pour ceux à (0,0) en collision
+  const spaces3D: Space3D[] = (() => {
+    const used = new Set<string>();
+    const result: Space3D[] = [];
+    const needsLayout: any[] = [];
+    for (const s of spaces as any[]) {
+      const x = s.position_x ?? 0;
+      const y = s.position_y ?? 0;
+      const key = `${x}-${y}`;
+      if (x === 0 && y === 0 && used.has(key)) {
+        needsLayout.push(s);
+      } else {
+        used.add(key);
+        result.push({ ...s, position_x: x, position_y: y });
+      }
+    }
+    // Auto-place collisions sur grille
+    let cursor = 0;
+    for (const s of needsLayout) {
+      while (cursor < 144) {
+        const x = cursor % 12;
+        const y = Math.floor(cursor / 12);
+        cursor++;
+        if (!used.has(`${x}-${y}`)) {
+          used.add(`${x}-${y}`);
+          result.push({ ...s, position_x: x, position_y: y });
+          break;
+        }
+      }
+    }
+    return result;
+  })();
+
+
     setEditId(space.id);
     setForm({ name: space.name, space_type: space.space_type, capacity: space.capacity || 1, notes: space.notes || "" });
     setDialogOpen(true);
