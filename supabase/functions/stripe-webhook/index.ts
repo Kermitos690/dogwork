@@ -194,6 +194,14 @@ serve(async (req) => {
               });
               await updateBillingEventUser(supabaseAdmin, event.id, userId);
               logStep("AI credits purchased", { userId, credits, packSlug, pricePaid });
+
+              // Email confirmation achat crédits
+              const { email, name } = await getUserContact(supabaseAdmin, userId);
+              if (email) {
+                await sendEmail(supabaseAdmin, "credits-purchased", email, `credits-${session.id}`, {
+                  name, credits, packLabel: packSlug, amountChf: pricePaid,
+                });
+              }
             } catch (e) {
               const errMsg = (e as Error).message;
               logStep("ERROR crediting wallet", { userId, error: errMsg });
@@ -218,6 +226,23 @@ serve(async (req) => {
             }).eq("stripe_event_id", event.id);
           } else {
             logStep("Course booking confirmed", { bookingId });
+            // Email confirmation réservation cours
+            if (userId) {
+              const { email, name } = await getUserContact(supabaseAdmin, userId);
+              const { data: booking } = await supabaseAdmin
+                .from("course_bookings")
+                .select("course_id, courses(title, next_session_at, location)")
+                .eq("id", bookingId)
+                .maybeSingle();
+              if (email) {
+                await sendEmail(supabaseAdmin, "course-booking-confirmed", email, `booking-${bookingId}`, {
+                  name,
+                  courseTitle: (booking as any)?.courses?.title || "Votre cours",
+                  sessionDate: (booking as any)?.courses?.next_session_at || null,
+                  location: (booking as any)?.courses?.location || null,
+                });
+              }
+            }
           }
           if (userId) await updateBillingEventUser(supabaseAdmin, event.id, userId);
           break;
@@ -246,6 +271,19 @@ serve(async (req) => {
             await updateBillingEventUser(supabaseAdmin, event.id, userId);
             await syncSubscriptionDetails(stripe, supabaseAdmin, customerId, userId);
             logStep("Subscription checkout completed", { userId, customerId });
+
+            // Email activation abonnement
+            const { data: sc } = await supabaseAdmin
+              .from("stripe_customers").select("current_tier, current_period_end")
+              .eq("user_id", userId).maybeSingle();
+            const { email, name } = await getUserContact(supabaseAdmin, userId);
+            if (email) {
+              await sendEmail(supabaseAdmin, "subscription-activated", email, `sub-active-${session.id}`, {
+                name,
+                tier: sc?.current_tier || "pro",
+                renewalDate: sc?.current_period_end || null,
+              });
+            }
           } else {
             logStep("WARNING: Could not resolve user for subscription checkout", { customerId, customerEmail });
             await supabaseAdmin.from("billing_events").update({
@@ -299,6 +337,15 @@ serve(async (req) => {
             current_tier: "starter", subscription_status: "canceled",
             cancel_at_period_end: false,
           }).eq("user_id", userId);
+
+          // Email annulation abonnement
+          const { email, name } = await getUserContact(supabaseAdmin, userId);
+          if (email) {
+            await sendEmail(supabaseAdmin, "subscription-canceled", email, `sub-cancel-${subscription.id}`, {
+              name,
+              endDate: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,
+            });
+          }
         }
         logStep("Subscription deleted, tier reset", { customerId, userId });
         break;
@@ -334,6 +381,18 @@ serve(async (req) => {
           await supabaseAdmin.from("stripe_customers").update({
             subscription_status: "past_due",
           }).eq("user_id", userId);
+
+          // Email échec paiement
+          const { email, name } = await getUserContact(supabaseAdmin, userId);
+          if (email) {
+            await sendEmail(supabaseAdmin, "payment-failed", email, `pay-failed-${invoice.id}`, {
+              name,
+              amountChf: ((invoice.amount_due || 0) / 100),
+              hostedInvoiceUrl: (invoice as any).hosted_invoice_url || null,
+              nextAttempt: (invoice as any).next_payment_attempt
+                ? new Date((invoice as any).next_payment_attempt * 1000).toISOString() : null,
+            });
+          }
         }
         logStep("Invoice payment failed", { customerId, userId });
         break;
