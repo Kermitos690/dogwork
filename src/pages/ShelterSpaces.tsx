@@ -11,8 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Grid3X3, Plus, Pencil, Trash2, PawPrint, LayoutGrid, BarChart3 } from "lucide-react";
+import { Grid3X3, Plus, Pencil, Trash2, PawPrint, LayoutGrid, BarChart3, Box, Move } from "lucide-react";
 import { motion } from "framer-motion";
+import { Spaces3DView, Space3D } from "@/components/shelter/Spaces3DView";
 
 const SPACE_TYPES = [
   { value: "box", label: "Box" },
@@ -51,6 +52,8 @@ export default function ShelterSpaces() {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<SpaceForm>(emptyForm);
   const [assignDialog, setAssignDialog] = useState<string | null>(null);
+  const [view, setView] = useState<"3d" | "2d">("3d");
+  const [editingLayout, setEditingLayout] = useState(false);
 
   // Use the SQL view for grid data
   const { data: spaces = [], isLoading } = useQuery({
@@ -151,6 +154,50 @@ export default function ShelterSpaces() {
     },
     onError: (e: any) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
   });
+
+  const moveMutation = useMutation({
+    mutationFn: async ({ id, x, y }: { id: string; x: number; y: number }) => {
+      const { error } = await supabase.rpc("update_shelter_space_position" as any, {
+        _space_id: id, _x: x, _y: y,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => invalidateAll(),
+    onError: (e: any) => toast({ title: "Erreur", description: e.message, variant: "destructive" }),
+  });
+
+  // Spaces enrichis avec auto-layout pour ceux à (0,0) en collision
+  const spaces3D: Space3D[] = (() => {
+    const used = new Set<string>();
+    const result: Space3D[] = [];
+    const needsLayout: any[] = [];
+    for (const s of spaces as any[]) {
+      const x = s.position_x ?? 0;
+      const y = s.position_y ?? 0;
+      const key = `${x}-${y}`;
+      if (x === 0 && y === 0 && used.has(key)) {
+        needsLayout.push(s);
+      } else {
+        used.add(key);
+        result.push({ ...s, position_x: x, position_y: y });
+      }
+    }
+    // Auto-place collisions sur grille
+    let cursor = 0;
+    for (const s of needsLayout) {
+      while (cursor < 144) {
+        const x = cursor % 12;
+        const y = Math.floor(cursor / 12);
+        cursor++;
+        if (!used.has(`${x}-${y}`)) {
+          used.add(`${x}-${y}`);
+          result.push({ ...s, position_x: x, position_y: y });
+          break;
+        }
+      }
+    }
+    return result;
+  })();
 
   const openEdit = (space: any) => {
     setEditId(space.id);
@@ -254,7 +301,42 @@ export default function ShelterSpaces() {
           </Card>
         )}
 
-        {/* Grid */}
+        {/* Toggle vue 2D / 3D */}
+        {spaces.length > 0 && (
+          <div className="flex items-center justify-between gap-2">
+            <div className="inline-flex rounded-lg border border-border bg-card p-0.5">
+              <button
+                onClick={() => { setView("3d"); }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                  view === "3d" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Box className="h-3.5 w-3.5" /> Plan 3D
+              </button>
+              <button
+                onClick={() => { setView("2d"); setEditingLayout(false); }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                  view === "2d" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Grid3X3 className="h-3.5 w-3.5" /> Liste
+              </button>
+            </div>
+            {view === "3d" && (
+              <Button
+                variant={editingLayout ? "default" : "outline"}
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setEditingLayout((v) => !v)}
+              >
+                <Move className="h-3.5 w-3.5" />
+                {editingLayout ? "Terminer" : "Éditer plan"}
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Vue */}
         {isLoading ? (
           <div className="animate-pulse text-muted-foreground text-center py-8">Chargement...</div>
         ) : spaces.length === 0 ? (
@@ -268,6 +350,13 @@ export default function ShelterSpaces() {
               </Button>
             </CardContent>
           </Card>
+        ) : view === "3d" ? (
+          <Spaces3DView
+            spaces={spaces3D}
+            editing={editingLayout}
+            onSelect={(s) => setAssignDialog(s.id)}
+            onMove={(id, x, y) => moveMutation.mutate({ id, x, y })}
+          />
         ) : (
           <div className="grid grid-cols-2 gap-2">
             {spaces.map((space: any) => {
