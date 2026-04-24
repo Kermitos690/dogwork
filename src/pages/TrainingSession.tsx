@@ -12,6 +12,8 @@ import {
   RotateCcw,
   X,
   Sparkles,
+  BookOpen,
+  ListChecks,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
@@ -25,6 +27,8 @@ import type { PlanDay } from "@/lib/planGenerator";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { QuickJournalSheet } from "@/components/training/QuickJournalSheet";
+import { SessionInstructionsSheet } from "@/components/training/SessionInstructionsSheet";
+import { SessionDayOutlineSheet } from "@/components/training/SessionDayOutlineSheet";
 import { enqueue } from "@/lib/offlineQueue";
 import { SyncStatusBadge } from "@/components/SyncStatusBadge";
 
