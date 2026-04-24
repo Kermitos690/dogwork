@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Home, Dog, BookOpen, Play, BarChart3 } from "lucide-react";
+import { Home, BookOpen, Play, Dumbbell, User } from "lucide-react";
 import { useActiveDog } from "@/hooks/useDogs";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,12 +15,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const activeDog = useActiveDog();
   const { t } = useTranslation();
 
+  // Mobile-first navigation: 5 onglets utiles au quotidien.
+  // - Accueil : tableau de bord du jour
+  // - Plan : vue programme complet
+  // - GO (centre) : démarre/continue le jour en cours
+  // - Exercices : bibliothèque accessible pendant l'entraînement
+  // - Profil : compte + raccourci menu complet
   const tabs = [
     { label: t("nav.home"), icon: Home, path: "/" },
-    { label: t("nav.dogs"), icon: Dog, path: "/dogs" },
-    { label: t("nav.go"), icon: Play, path: "/training", center: true },
     { label: t("nav.plan"), icon: BookOpen, path: "/plan" },
-    { label: t("nav.stats"), icon: BarChart3, path: "/stats" },
+    { label: "GO", icon: Play, path: "/training", center: true },
+    { label: t("nav.exercises"), icon: Dumbbell, path: "/exercises" },
+    { label: t("nav.profile"), icon: User, path: "/profile" },
   ];
 
   const { data: progress } = useQuery({
@@ -35,6 +41,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const validated = progress?.filter(p => p.validated).length || 0;
   const currentDay = validated + 1;
+  // Indique qu'une journée est en cours (non validée mais entamée).
+  const hasOngoingDay = !!progress?.some(p => p.status === "in_progress" && !p.validated);
 
   const isActive = (path: string) => {
     if (path === "/") return location.pathname === "/";
@@ -46,7 +54,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return tab.path;
   };
 
-  const hideNav = location.pathname === "/onboarding";
+  // Pages qui doivent masquer la nav globale (mode focus immersif).
+  // /training/session/:dayId rend sa propre barre d'action en bas.
+  const hideNav =
+    location.pathname === "/onboarding" ||
+    location.pathname.startsWith("/training/session/");
+
   // The Dashboard already renders its own DogSwitcher in-page → avoid a duplicate at the top.
   const showTopDogSwitcher = !hideNav && !!activeDog && location.pathname !== "/";
 
@@ -75,19 +88,33 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   className={`flex flex-col items-center gap-0.5 px-3 py-1.5 text-[10px] transition-colors duration-200 ${
                     active ? "text-primary" : "text-muted-foreground"
                   } ${tab.center ? "relative" : ""}`}
+                  aria-label={tab.label}
                 >
                   {tab.center ? (
-                    <div className={`w-12 h-12 -mt-6 rounded-2xl flex items-center justify-center transition-all shadow-lg ${
+                    <div className={`relative w-14 h-14 -mt-7 rounded-2xl flex items-center justify-center transition-all shadow-lg ${
                       active
                         ? "bg-primary neon-glow"
                         : "bg-card border border-border/60"
                     }`}>
-                      <tab.icon className={`h-5 w-5 ${active ? "text-primary-foreground" : "text-primary"}`} />
+                      <tab.icon className={`h-6 w-6 ${active ? "text-primary-foreground" : "text-primary"}`} />
+                      {/* Pastille indiquant la journée en cours / à démarrer */}
+                      {activeDog && (
+                        <span
+                          className={`absolute -top-1 -right-1 min-w-[22px] h-[18px] px-1 rounded-full text-[10px] font-bold leading-[18px] text-center shadow-md ${
+                            hasOngoingDay
+                              ? "bg-warning text-warning-foreground"
+                              : "bg-primary text-primary-foreground"
+                          }`}
+                          aria-label={`Jour ${currentDay}`}
+                        >
+                          J{currentDay}
+                        </span>
+                      )}
                     </div>
                   ) : (
                     <tab.icon className={`h-5 w-5 transition-colors ${active ? "text-primary" : ""}`} />
                   )}
-                  <span className={`${tab.center ? "mt-0.5" : ""} ${active ? "font-medium" : ""}`}>{tab.label}</span>
+                  <span className={`${tab.center ? "mt-1" : ""} ${active ? "font-medium" : ""}`}>{tab.label}</span>
                 </motion.button>
               );
             })}
@@ -97,4 +124,3 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-

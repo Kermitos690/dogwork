@@ -12,6 +12,8 @@ import {
   RotateCcw,
   X,
   Sparkles,
+  BookOpen,
+  ListChecks,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
@@ -25,6 +27,8 @@ import type { PlanDay } from "@/lib/planGenerator";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { QuickJournalSheet } from "@/components/training/QuickJournalSheet";
+import { SessionInstructionsSheet } from "@/components/training/SessionInstructionsSheet";
+import { SessionDayOutlineSheet } from "@/components/training/SessionDayOutlineSheet";
 import { enqueue } from "@/lib/offlineQueue";
 import { SyncStatusBadge } from "@/components/SyncStatusBadge";
 
@@ -102,6 +106,8 @@ export default function TrainingSession() {
   const [flash, setFlash] = useState<Result | null>(null);
   const [completedIds, setCompletedIds] = useState<string[]>([]);
   const [journalOpen, setJournalOpen] = useState(false);
+  const [instructionsOpen, setInstructionsOpen] = useState(false);
+  const [outlineOpen, setOutlineOpen] = useState(false);
   const [persisting, setPersisting] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   // Wall-clock fallback for duration tracking when no timer is configured.
@@ -412,17 +418,17 @@ export default function TrainingSession() {
   // ─── Active session screen ─────────────────────────────────────────
   return (
     <div className="fixed inset-0 z-[60] bg-background text-foreground flex flex-col overflow-hidden">
-      {/* Top bar */}
-      <header className="px-4 pt-[max(env(safe-area-inset-top),1rem)] pb-3 flex items-center justify-between">
+      {/* Top bar : Quitter · barre de progression · Voix */}
+      <header className="px-3 pt-[max(env(safe-area-inset-top),0.75rem)] pb-2 flex items-center justify-between gap-2">
         <button
           onClick={exitSession}
           aria-label="Quitter la séance"
-          className="h-10 w-10 rounded-full bg-muted/60 flex items-center justify-center active:scale-95 transition-transform"
+          className="h-10 w-10 rounded-full bg-muted/60 flex items-center justify-center active:scale-95 transition-transform shrink-0"
         >
           <X className="h-5 w-5" />
         </button>
 
-        <div className="flex-1 mx-3">
+        <div className="flex-1 min-w-0">
           <div className="h-1.5 rounded-full bg-muted overflow-hidden">
             <motion.div
               className="h-full bg-primary"
@@ -433,7 +439,7 @@ export default function TrainingSession() {
           </div>
           <div className="mt-1 flex items-center justify-center gap-2">
             <p className="text-[10px] text-muted-foreground tabular-nums">
-              {currentIndex + 1} / {total}
+              J{id} · {currentIndex + 1} / {total}
             </p>
             <SyncStatusBadge compact />
           </div>
@@ -449,13 +455,36 @@ export default function TrainingSession() {
             }
           }}
           aria-label={voiceEnabled ? "Couper la voix" : "Activer la voix"}
-          className={`h-10 w-10 rounded-full flex items-center justify-center active:scale-95 transition-all ${
+          className={`h-10 w-10 rounded-full flex items-center justify-center active:scale-95 transition-all shrink-0 ${
             voiceEnabled ? "bg-primary text-primary-foreground" : "bg-muted/60 text-foreground"
           }`}
         >
           {voiceEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
         </button>
       </header>
+
+      {/* Accès rapide : sommaire de la journée + consignes de l'exercice */}
+      <div className="px-3 pb-2 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setOutlineOpen(true)}
+          className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-xl bg-card border border-border text-xs font-medium text-foreground active:scale-[0.98] transition-transform"
+          aria-label="Voir le sommaire de la journée"
+        >
+          <ListChecks className="h-4 w-4 text-primary" />
+          <span>Journée</span>
+          <span className="text-muted-foreground tabular-nums">· {completedIds.length}/{total}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setInstructionsOpen(true)}
+          className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-xl bg-primary/10 border border-primary/20 text-xs font-semibold text-primary active:scale-[0.98] transition-transform"
+          aria-label="Voir les consignes de l'exercice"
+        >
+          <BookOpen className="h-4 w-4" />
+          <span>Consignes</span>
+        </button>
+      </div>
 
       {/* Main content */}
       <main className="flex-1 px-5 pt-2 pb-4 flex flex-col items-center justify-center text-center overflow-hidden">
@@ -562,6 +591,32 @@ export default function TrainingSession() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Bottom-sheet : consignes détaillées de l'exercice en cours */}
+      <SessionInstructionsSheet
+        open={instructionsOpen}
+        onOpenChange={setInstructionsOpen}
+        exerciseName={exercise.name}
+        instructions={exercise.shortInstruction}
+        repetitions={exercise.repetitionsTarget}
+        timerSeconds={exercise.timerSeconds}
+        exerciseIndex={currentIndex}
+        total={total}
+      />
+
+      {/* Bottom-sheet : sommaire de la journée + saut direct vers un exercice */}
+      <SessionDayOutlineSheet
+        open={outlineOpen}
+        onOpenChange={setOutlineOpen}
+        dayId={id}
+        exercises={exercises.map((e) => ({ id: e.id, name: e.name }))}
+        currentIndex={currentIndex}
+        completedIds={completedIds}
+        onJumpTo={(i) => {
+          tts.stop();
+          setCurrentIndex(i);
+        }}
+      />
     </div>
   );
 }
