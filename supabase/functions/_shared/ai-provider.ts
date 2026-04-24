@@ -1,13 +1,13 @@
 /**
  * Centralized AI Provider Adapter for DogWork.
  *
- * Multi-provider router with cascade fallback. Lovable AI Gateway is
- * intentionally NOT used — only free / direct provider tiers.
+ * Multi-provider router with cascade fallback. Lovable AI Gateway and
+ * OpenAI are intentionally NOT used — only free / direct provider tiers.
  *
  * Routing strategy by task type:
  *  - chat        → Groq → OpenRouter → Gemini → Mistral
- *  - reasoning   → Gemini 2.5 Pro → OpenAI gpt-5-mini → Mistral Large → Groq
- *  - tools       → OpenAI gpt-5-mini → Gemini → Groq → Mistral
+ *  - reasoning   → Gemini 2.5 Pro → Mistral Large → Groq → OpenRouter
+ *  - tools       → Gemini → Groq → OpenRouter → Mistral
  *  - image       → Gemini (only free image provider)
  *
  * Each provider is OpenAI-compatible (chat/completions schema), so the
@@ -21,11 +21,9 @@ const GEMINI_NATIVE_BASE = "https://generativelanguage.googleapis.com/v1beta";
 const GROQ_BASE = "https://api.groq.com/openai/v1";
 const OPENROUTER_BASE = "https://openrouter.ai/api/v1";
 const MISTRAL_BASE = "https://api.mistral.ai/v1";
-const OPENAI_BASE = "https://api.openai.com/v1";
-
 // ─── Provider Identifiers ──────────────────────────────────
 
-type Provider = "groq" | "openrouter" | "gemini" | "mistral" | "openai";
+type Provider = "groq" | "openrouter" | "gemini" | "mistral";
 
 interface ProviderTarget {
   provider: Provider;
@@ -56,11 +54,6 @@ const CATALOG = {
     reasoning: "mistral-large-latest",
     tools: "mistral-small-latest",
   },
-  openai: {
-    chat: "gpt-4o-mini",
-    reasoning: "gpt-4o-mini",
-    tools: "gpt-4o-mini",
-  },
 } as const;
 
 // ─── Task Routing (cascade order) ──────────────────────────
@@ -78,7 +71,6 @@ function buildCascade(task: TaskKind): ProviderTarget[] {
   switch (task) {
     case "tools":
       return [
-        { provider: "openai", model: CATALOG.openai.tools },
         { provider: "gemini", model: CATALOG.gemini.tools },
         { provider: "groq", model: CATALOG.groq.tools },
         { provider: "openrouter", model: CATALOG.openrouter.tools },
@@ -87,7 +79,6 @@ function buildCascade(task: TaskKind): ProviderTarget[] {
     case "reasoning":
       return [
         { provider: "gemini", model: CATALOG.gemini.reasoning },
-        { provider: "openai", model: CATALOG.openai.reasoning },
         { provider: "mistral", model: CATALOG.mistral.reasoning },
         { provider: "groq", model: CATALOG.groq.reasoning },
         { provider: "openrouter", model: CATALOG.openrouter.reasoning },
@@ -99,7 +90,6 @@ function buildCascade(task: TaskKind): ProviderTarget[] {
         { provider: "openrouter", model: CATALOG.openrouter.chat },
         { provider: "gemini", model: CATALOG.gemini.chat },
         { provider: "mistral", model: CATALOG.mistral.chat },
-        { provider: "openai", model: CATALOG.openai.chat },
       ];
     case "image":
       return [{ provider: "gemini", model: CATALOG.gemini.image }];
@@ -114,7 +104,6 @@ function getKey(provider: Provider): string | null {
     case "openrouter": return Deno.env.get("OPENROUTER_API_KEY") ?? null;
     case "gemini": return Deno.env.get("GOOGLE_AI_API_KEY") ?? null;
     case "mistral": return Deno.env.get("MISTRAL_API_KEY") ?? null;
-    case "openai": return Deno.env.get("OPENAI_API_KEY") ?? null;
   }
 }
 
@@ -124,7 +113,6 @@ function endpointFor(provider: Provider): string {
     case "openrouter": return `${OPENROUTER_BASE}/chat/completions`;
     case "gemini": return `${GEMINI_OPENAI_BASE}/chat/completions`;
     case "mistral": return `${MISTRAL_BASE}/chat/completions`;
-    case "openai": return `${OPENAI_BASE}/chat/completions`;
   }
 }
 
