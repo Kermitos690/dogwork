@@ -25,6 +25,7 @@ export function useCreditConfirmation() {
   const feature = pending ? features?.find((f) => f.code === pending.featureCode) : undefined;
   const cost = feature?.credits_cost ?? 0;
   const balance = wallet?.balance ?? 0;
+  const featureReady = !pending || !!feature;
 
   const requestConfirmation = useCallback((action: PendingAction) => {
     setPending(action);
@@ -32,6 +33,7 @@ export function useCreditConfirmation() {
 
   const handleConfirm = useCallback(async () => {
     if (!pending) return;
+    if (!feature) return;
     setLoading(true);
     try {
       await pending.onConfirm();
@@ -58,6 +60,7 @@ export function useCreditConfirmation() {
     featureLabel: feature?.label ?? "Action IA",
     benefit: pending?.benefit,
     loading,
+    featureReady,
     trigger,
     suggestedPath,
     hasEnough: balance >= cost,
