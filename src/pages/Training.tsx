@@ -208,6 +208,9 @@ export default function Training() {
 
         <Progress value={sessionPct} className="h-2" />
 
+        <ZoneSafetyGuide />
+
+
         {/* Exercise card — enriched */}
         <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
           <div className="flex items-center justify-between">
