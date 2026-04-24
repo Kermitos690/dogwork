@@ -367,11 +367,26 @@ export default function Training() {
               </div>
             )}
 
+            {!sessionZone && (
+              <p className="text-center text-xs text-warning font-medium">
+                Sélectionnez une zone pour clôturer la séance.
+              </p>
+            )}
+
             <div className="flex gap-2 pt-1">
-              <Button variant="outline" className="flex-1 rounded-xl" onClick={() => navigate(`/behavior/${id}`)} disabled={zoneSaving}>
+              <Button
+                variant="outline"
+                className="flex-1 rounded-xl"
+                onClick={() => navigate(`/behavior/${id}`)}
+                disabled={zoneSaving || !sessionZone}
+              >
                 Suivi détaillé
               </Button>
-              <Button className="flex-1 rounded-xl" onClick={() => navigate(backUrl)} disabled={zoneSaving}>
+              <Button
+                className="flex-1 rounded-xl"
+                onClick={() => navigate(backUrl)}
+                disabled={zoneSaving || !sessionZone}
+              >
                 Retour au jour
               </Button>
             </div>
