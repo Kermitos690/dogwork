@@ -11,6 +11,13 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { callAI } from "./ai-provider.ts";
 
+const AGENT_FEATURE_CODE_MAP: Record<string, string> = {
+  agent_behavior_analysis: "behavior_analysis",
+  agent_progress_report: "behavior_summary",
+  agent_plan_adjustment: "plan_generator",
+  agent_dog_insights: "dog_profile_analysis",
+};
+
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -218,10 +225,11 @@ export async function runAgent(req: Request, agent: AgentConfig): Promise<Respon
     const effectiveParams = { ...savedParams, ...bodyParams };
 
     // 2. Get cost from catalog
+    const resolvedFeatureCode = AGENT_FEATURE_CODE_MAP[agent.code] ?? agent.code;
     const { data: feature, error: featureError } = await supabase
       .from("ai_feature_catalog")
       .select("credits_cost, model")
-      .eq("code", agent.code)
+      .eq("code", resolvedFeatureCode)
       .eq("is_active", true)
       .maybeSingle();
 
@@ -259,11 +267,12 @@ export async function runAgent(req: Request, agent: AgentConfig): Promise<Respon
     // 5. Debit credits BEFORE the AI call
     const { data: debited, error: debitError } = await supabase.rpc("debit_ai_credits", {
       _user_id: user.id,
-      _feature_code: agent.code,
+        _feature_code: resolvedFeatureCode,
       _credits: feature.credits_cost,
       _provider_cost_usd: null,
       _metadata: {
         agent: agent.code,
+          catalog_feature_code: resolvedFeatureCode,
         dog_id: dogId,
         dog_name: dogProfile?.name ?? null,
         params: effectiveParams,

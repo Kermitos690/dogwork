@@ -3,6 +3,14 @@
 // RPC using the authenticated user_id only — never trusts a client-supplied id.
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
+const LEGACY_FEATURE_CODE_MAP: Record<string, string> = {
+  ai_plan_generation: "plan_generator",
+  ai_behavior_analysis: "behavior_analysis",
+  ai_evaluation_scoring: "dog_profile_analysis",
+  ai_adoption_plan: "adoption_plan",
+  ai_progress_report: "behavior_summary",
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -40,6 +48,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const featureCode = String(body?.feature_code ?? "").trim();
+    const resolvedFeatureCode = LEGACY_FEATURE_CODE_MAP[featureCode] ?? featureCode;
     const metadata = (body?.metadata && typeof body.metadata === "object") ? body.metadata : {};
     if (!featureCode) {
       return new Response(JSON.stringify({ error: "feature_code requis" }), {
@@ -54,7 +63,7 @@ Deno.serve(async (req) => {
     const { data: feature, error: featErr } = await admin
       .from("ai_feature_catalog")
       .select("code, label, credits_cost, is_active")
-      .eq("code", featureCode)
+      .eq("code", resolvedFeatureCode)
       .maybeSingle();
 
     if (featErr || !feature || !feature.is_active) {
@@ -68,7 +77,7 @@ Deno.serve(async (req) => {
 
     const { data: debited, error: debitErr } = await admin.rpc("debit_ai_credits", {
       _user_id: userId,
-      _feature_code: featureCode,
+      _feature_code: resolvedFeatureCode,
       _credits: credits,
       _provider_cost_usd: null,
       _metadata: { ...metadata, source: "ai-debit", feature_label: feature.label },
@@ -98,7 +107,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ ok: true, credits_spent: credits, feature_code: featureCode, label: feature.label }),
+      JSON.stringify({ ok: true, credits_spent: credits, feature_code: resolvedFeatureCode, requested_feature_code: featureCode, label: feature.label }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
