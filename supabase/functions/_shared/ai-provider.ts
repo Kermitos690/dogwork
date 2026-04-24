@@ -104,7 +104,6 @@ function getKey(provider: Provider): string | null {
     case "openrouter": return Deno.env.get("OPENROUTER_API_KEY") ?? null;
     case "gemini": return Deno.env.get("GOOGLE_AI_API_KEY") ?? null;
     case "mistral": return Deno.env.get("MISTRAL_API_KEY") ?? null;
-    case "openai": return Deno.env.get("OPENAI_API_KEY") ?? null;
   }
 }
 
@@ -114,7 +113,6 @@ function endpointFor(provider: Provider): string {
     case "openrouter": return `${OPENROUTER_BASE}/chat/completions`;
     case "gemini": return `${GEMINI_OPENAI_BASE}/chat/completions`;
     case "mistral": return `${MISTRAL_BASE}/chat/completions`;
-    case "openai": return `${OPENAI_BASE}/chat/completions`;
   }
 }
 
