@@ -106,6 +106,8 @@ export default function TrainingSession() {
   const [flash, setFlash] = useState<Result | null>(null);
   const [completedIds, setCompletedIds] = useState<string[]>([]);
   const [journalOpen, setJournalOpen] = useState(false);
+  const [instructionsOpen, setInstructionsOpen] = useState(false);
+  const [outlineOpen, setOutlineOpen] = useState(false);
   const [persisting, setPersisting] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   // Wall-clock fallback for duration tracking when no timer is configured.
