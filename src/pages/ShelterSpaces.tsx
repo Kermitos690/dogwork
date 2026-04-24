@@ -301,7 +301,42 @@ export default function ShelterSpaces() {
           </Card>
         )}
 
-        {/* Grid */}
+        {/* Toggle vue 2D / 3D */}
+        {spaces.length > 0 && (
+          <div className="flex items-center justify-between gap-2">
+            <div className="inline-flex rounded-lg border border-border bg-card p-0.5">
+              <button
+                onClick={() => { setView("3d"); }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                  view === "3d" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Box className="h-3.5 w-3.5" /> Plan 3D
+              </button>
+              <button
+                onClick={() => { setView("2d"); setEditingLayout(false); }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                  view === "2d" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Grid3X3 className="h-3.5 w-3.5" /> Liste
+              </button>
+            </div>
+            {view === "3d" && (
+              <Button
+                variant={editingLayout ? "default" : "outline"}
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setEditingLayout((v) => !v)}
+              >
+                <Move className="h-3.5 w-3.5" />
+                {editingLayout ? "Terminer" : "Éditer plan"}
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Vue */}
         {isLoading ? (
           <div className="animate-pulse text-muted-foreground text-center py-8">Chargement...</div>
         ) : spaces.length === 0 ? (
@@ -315,6 +350,13 @@ export default function ShelterSpaces() {
               </Button>
             </CardContent>
           </Card>
+        ) : view === "3d" ? (
+          <Spaces3DView
+            spaces={spaces3D}
+            editing={editingLayout}
+            onSelect={(s) => setAssignDialog(s.id)}
+            onMove={(id, x, y) => moveMutation.mutate({ id, x, y })}
+          />
         ) : (
           <div className="grid grid-cols-2 gap-2">
             {spaces.map((space: any) => {
