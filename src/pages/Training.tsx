@@ -15,6 +15,7 @@ import type { PlanDay } from "@/lib/planGenerator";
 import { upsertDayProgress } from "@/lib/dayProgress";
 import { ZoneSelector } from "@/components/ZoneSelector";
 import { ZoneBadge } from "@/components/ZoneBadge";
+import { ZoneSafetyGuide } from "@/components/ZoneSafetyGuide";
 import type { Zone } from "@/lib/zones";
 import { DayJourneyHeader } from "@/components/DayJourneyHeader";
 import { NoActiveDogState } from "@/components/NoActiveDogState";
