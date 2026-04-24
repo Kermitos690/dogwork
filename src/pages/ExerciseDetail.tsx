@@ -111,3 +111,91 @@ export default function ExerciseDetail() {
     </AppLayout>
   );
 }
+
+/**
+ * Écran "exercice introuvable" enrichi : propose des suggestions
+ * basées sur les mots-clés du slug demandé. Évite les culs-de-sac.
+ */
+function ExerciseNotFound({ slug, navigate, t }: { slug: string; navigate: ReturnType<typeof useNavigate>; t: (k: string) => string }) {
+  // Tokenise le slug pour chercher des correspondances ("focus-eye-contact" → ["focus","eye","contact"])
+  const tokens = slug
+    .split(/[-_/]+/)
+    .filter(tok => tok.length >= 3)
+    .map(tok => tok.toLowerCase());
+
+  const { data: suggestions } = useQuery({
+    queryKey: ["exercise_suggestions", slug],
+    queryFn: async () => {
+      if (tokens.length === 0) return [];
+      // Recherche par OR sur slug + name pour chaque token
+      const orFilter = tokens
+        .flatMap(tok => [`slug.ilike.%${tok}%`, `name.ilike.%${tok}%`])
+        .join(",");
+      const { data, error } = await supabase
+        .from("exercises")
+        .select("slug, name, cover_image, level")
+        .or(orFilter)
+        .limit(6);
+      if (error) return [];
+      return data || [];
+    },
+    enabled: tokens.length > 0,
+    staleTime: 60_000,
+  });
+
+  return (
+    <AppLayout>
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="pt-6 px-1 space-y-5"
+      >
+        <div className="flex flex-col items-center text-center">
+          <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-3">
+            <Heart className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <h1 className="text-base font-bold text-foreground mb-1">{t("exerciseDetail.notFound")}</h1>
+          <p className="text-xs text-muted-foreground max-w-xs">
+            L'exercice « <span className="font-mono">{slug}</span> » n'est plus disponible. Voici quelques alternatives proches dans la bibliothèque.
+          </p>
+        </div>
+
+        {suggestions && suggestions.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold px-1">Suggestions</p>
+            <div className="space-y-2">
+              {suggestions.map((s: any) => (
+                <motion.button
+                  key={s.slug}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => navigate(`/exercises/${s.slug}`, { replace: true })}
+                  className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-card border border-border hover:border-primary/40 transition-colors text-left"
+                >
+                  {s.cover_image ? (
+                    <img src={s.cover_image} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" loading="lazy" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-lg bg-muted shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{s.name}</p>
+                    {s.level && <p className="text-[10px] text-muted-foreground">{s.level}</p>}
+                  </div>
+                  <Play className="h-4 w-4 text-primary shrink-0" />
+                </motion.button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-2 pt-1">
+          <Button variant="outline" onClick={() => navigate(-1)} className="flex-1 rounded-xl">
+            <ArrowLeft className="h-4 w-4 mr-1" /> {t("common.back")}
+          </Button>
+          <Button onClick={() => navigate("/exercises")} className="flex-1 rounded-xl">
+            Bibliothèque complète
+          </Button>
+        </div>
+      </motion.div>
+    </AppLayout>
+  );
+}
