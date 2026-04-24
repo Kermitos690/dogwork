@@ -418,17 +418,17 @@ export default function TrainingSession() {
   // ─── Active session screen ─────────────────────────────────────────
   return (
     <div className="fixed inset-0 z-[60] bg-background text-foreground flex flex-col overflow-hidden">
-      {/* Top bar */}
-      <header className="px-4 pt-[max(env(safe-area-inset-top),1rem)] pb-3 flex items-center justify-between">
+      {/* Top bar : Quitter · barre de progression · Voix */}
+      <header className="px-3 pt-[max(env(safe-area-inset-top),0.75rem)] pb-2 flex items-center justify-between gap-2">
         <button
           onClick={exitSession}
           aria-label="Quitter la séance"
-          className="h-10 w-10 rounded-full bg-muted/60 flex items-center justify-center active:scale-95 transition-transform"
+          className="h-10 w-10 rounded-full bg-muted/60 flex items-center justify-center active:scale-95 transition-transform shrink-0"
         >
           <X className="h-5 w-5" />
         </button>
 
-        <div className="flex-1 mx-3">
+        <div className="flex-1 min-w-0">
           <div className="h-1.5 rounded-full bg-muted overflow-hidden">
             <motion.div
               className="h-full bg-primary"
@@ -439,7 +439,7 @@ export default function TrainingSession() {
           </div>
           <div className="mt-1 flex items-center justify-center gap-2">
             <p className="text-[10px] text-muted-foreground tabular-nums">
-              {currentIndex + 1} / {total}
+              J{id} · {currentIndex + 1} / {total}
             </p>
             <SyncStatusBadge compact />
           </div>
@@ -455,13 +455,36 @@ export default function TrainingSession() {
             }
           }}
           aria-label={voiceEnabled ? "Couper la voix" : "Activer la voix"}
-          className={`h-10 w-10 rounded-full flex items-center justify-center active:scale-95 transition-all ${
+          className={`h-10 w-10 rounded-full flex items-center justify-center active:scale-95 transition-all shrink-0 ${
             voiceEnabled ? "bg-primary text-primary-foreground" : "bg-muted/60 text-foreground"
           }`}
         >
           {voiceEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
         </button>
       </header>
+
+      {/* Accès rapide : sommaire de la journée + consignes de l'exercice */}
+      <div className="px-3 pb-2 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setOutlineOpen(true)}
+          className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-xl bg-card border border-border text-xs font-medium text-foreground active:scale-[0.98] transition-transform"
+          aria-label="Voir le sommaire de la journée"
+        >
+          <ListChecks className="h-4 w-4 text-primary" />
+          <span>Journée</span>
+          <span className="text-muted-foreground tabular-nums">· {completedIds.length}/{total}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setInstructionsOpen(true)}
+          className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-xl bg-primary/10 border border-primary/20 text-xs font-semibold text-primary active:scale-[0.98] transition-transform"
+          aria-label="Voir les consignes de l'exercice"
+        >
+          <BookOpen className="h-4 w-4" />
+          <span>Consignes</span>
+        </button>
+      </div>
 
       {/* Main content */}
       <main className="flex-1 px-5 pt-2 pb-4 flex flex-col items-center justify-center text-center overflow-hidden">
