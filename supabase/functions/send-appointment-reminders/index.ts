@@ -58,11 +58,10 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Find events starting in the next 24 hours that haven't been reminded
+    // Find events starting in the next 24 hours
     const now = new Date();
     const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
@@ -84,13 +83,34 @@ Deno.serve(async (req) => {
 
     let sentCount = 0;
 
+    const sendReminder = async (recipientEmail: string, recipientName: string, role: "coach" | "client", event: any, otherPartyName: string) => {
+      try {
+        await supabase.functions.invoke("send-transactional-email", {
+          body: {
+            templateName: "appointment-reminder",
+            recipientEmail,
+            idempotencyKey: `reminder-${event.id}-${role}`,
+            templateData: {
+              name: recipientName,
+              role,
+              eventTitle: event.title || "Rendez-vous",
+              startAt: event.start_at,
+              location: event.location || null,
+              otherPartyName,
+            },
+          },
+        });
+        sentCount++;
+      } catch (e) {
+        console.error("Reminder send error:", (e as Error).message);
+      }
+    };
+
     for (const event of events) {
-      // Get coach email
       const { data: coachAuth } = await supabase.auth.admin.getUserById(event.coach_user_id);
       const coachEmail = coachAuth?.user?.email;
       const coachName = coachAuth?.user?.user_metadata?.display_name || "Coach";
 
-      // Get client email if exists
       let clientEmail: string | null = null;
       let clientName = "Client";
       if (event.client_user_id) {
@@ -99,77 +119,8 @@ Deno.serve(async (req) => {
         clientName = clientAuth?.user?.user_metadata?.display_name || "Client";
       }
 
-      const eventDate = new Date(event.start_at);
-      const formattedDate = eventDate.toLocaleDateString("fr-CH", {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-
-      const eventTitle = event.title || "Rendez-vous";
-      const locationText = event.location ? `\nLieu : ${event.location}` : "";
-
-      // Send reminder to coach
-      if (coachEmail && resendApiKey) {
-        await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${resendApiKey}`,
-          },
-          body: JSON.stringify({
-            from: "DogWork <noreply@notify.dogwork-at-home.com>",
-            to: [coachEmail],
-            subject: `🔔 Rappel : ${eventTitle} demain`,
-            html: `
-              <div style="font-family: -apple-system, sans-serif; max-width: 500px; margin: 0 auto; background: #ffffff; padding: 32px;">
-                <h2 style="color: #1a1a2e; margin-bottom: 8px;">Rappel de rendez-vous</h2>
-                <p style="color: #555; font-size: 14px;">Bonjour ${coachName},</p>
-                <div style="background: #f8f9fa; border-radius: 12px; padding: 20px; margin: 16px 0; border-left: 4px solid #10b981;">
-                  <p style="margin: 0 0 8px; font-weight: 600; color: #1a1a2e;">${eventTitle}</p>
-                  <p style="margin: 0 0 4px; color: #555; font-size: 13px;">📅 ${formattedDate}</p>
-                  ${event.location ? `<p style="margin: 0 0 4px; color: #555; font-size: 13px;">📍 ${event.location}</p>` : ""}
-                  ${event.client_user_id ? `<p style="margin: 0; color: #555; font-size: 13px;">👤 ${clientName}</p>` : ""}
-                </div>
-                <p style="color: #888; font-size: 12px;">— L'équipe DogWork</p>
-              </div>
-            `,
-          }),
-        });
-        sentCount++;
-      }
-
-      // Send reminder to client
-      if (clientEmail && resendApiKey) {
-        await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${resendApiKey}`,
-          },
-          body: JSON.stringify({
-            from: "DogWork <noreply@notify.dogwork-at-home.com>",
-            to: [clientEmail],
-            subject: `🔔 Rappel : ${eventTitle} demain`,
-            html: `
-              <div style="font-family: -apple-system, sans-serif; max-width: 500px; margin: 0 auto; background: #ffffff; padding: 32px;">
-                <h2 style="color: #1a1a2e; margin-bottom: 8px;">Rappel de rendez-vous</h2>
-                <p style="color: #555; font-size: 14px;">Bonjour ${clientName},</p>
-                <div style="background: #f8f9fa; border-radius: 12px; padding: 20px; margin: 16px 0; border-left: 4px solid #3b82f6;">
-                  <p style="margin: 0 0 8px; font-weight: 600; color: #1a1a2e;">${eventTitle}</p>
-                  <p style="margin: 0 0 4px; color: #555; font-size: 13px;">📅 ${formattedDate}</p>
-                  ${event.location ? `<p style="margin: 0 0 4px; color: #555; font-size: 13px;">📍 ${event.location}</p>` : ""}
-                  <p style="margin: 0; color: #555; font-size: 13px;">🐕 Avec ${coachName}</p>
-                </div>
-                <p style="color: #888; font-size: 12px;">— L'équipe DogWork</p>
-              </div>
-            `,
-          }),
-        });
-        sentCount++;
-      }
+      if (coachEmail) await sendReminder(coachEmail, coachName, "coach", event, clientName);
+      if (clientEmail) await sendReminder(clientEmail, clientName, "client", event, coachName);
     }
 
     return new Response(

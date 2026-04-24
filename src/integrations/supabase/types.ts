@@ -3552,6 +3552,15 @@ export type Database = {
       }
     }
     Functions: {
+      _send_transactional_email: {
+        Args: {
+          _idempotency_key: string
+          _recipient_email: string
+          _template_data?: Json
+          _template_name: string
+        }
+        Returns: undefined
+      }
       admin_ai_economy_summary: { Args: never; Returns: Json }
       admin_list_users: {
         Args: never
