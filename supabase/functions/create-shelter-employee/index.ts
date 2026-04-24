@@ -65,29 +65,16 @@ Deno.serve(async (req) => {
       // Get employee info for email
       const { data: emp } = await supabaseAdmin.from("shelter_employees").select("name, email").eq("id", employee_id).single();
 
-      // Send new PIN via email
-      const resendKey = Deno.env.get("RESEND_API_KEY");
-      if (resendKey && emp?.email) {
+      // Send new PIN via DogWork transactional email
+      if (emp?.email) {
         try {
-          await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${resendKey}` },
-            body: JSON.stringify({
-              from: "DogWork <noreply@resend.dev>",
-              to: [emp.email],
-              subject: "Nouveau code PIN DogWork",
-              html: `
-                <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
-                  <h1 style="color: #1a1a1a; font-size: 22px;">Nouveau code PIN 🔑</h1>
-                  <p style="color: #555; font-size: 14px;">Bonjour <strong>${emp.name}</strong>,<br><br>Votre code PIN a été réinitialisé.</p>
-                  <div style="background: #f4f4f5; border-radius: 8px; padding: 16px; margin: 20px 0; text-align: center;">
-                    <p style="margin: 0 0 4px; color: #888; font-size: 12px;">Nouveau Code PIN</p>
-                    <p style="margin: 0; font-size: 28px; font-weight: bold; color: #16a34a; letter-spacing: 6px;">${pin}</p>
-                  </div>
-                  <p style="color: #555; font-size: 13px;">Utilisez ce code comme mot de passe pour vous connecter.</p>
-                </div>
-              `,
-            }),
+          await supabaseAdmin.functions.invoke("send-transactional-email", {
+            body: {
+              templateName: "employee-credentials",
+              recipientEmail: emp.email,
+              idempotencyKey: `employee-pin-reset-${employee_id}-${Date.now()}`,
+              templateData: { name: emp.name, email: emp.email, pin, isReset: true },
+            },
           });
         } catch (emailErr) {
           console.error("Email send error:", emailErr);
@@ -215,35 +202,18 @@ Deno.serve(async (req) => {
       { onConflict: "user_id" }
     );
 
-    // Send PIN via email
-    const resendKey = Deno.env.get("RESEND_API_KEY");
-    if (resendKey) {
-      try {
-        await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${resendKey}` },
-          body: JSON.stringify({
-            from: "DogWork <noreply@resend.dev>",
-            to: [email],
-            subject: "Votre code de connexion DogWork",
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
-                <h1 style="color: #1a1a1a; font-size: 22px;">Bienvenue sur DogWork 🐕</h1>
-                <p style="color: #555; font-size: 14px;">Bonjour <strong>${name}</strong>,<br><br>Votre compte employé a été créé.</p>
-                <div style="background: #f4f4f5; border-radius: 8px; padding: 16px; margin: 20px 0; text-align: center;">
-                  <p style="margin: 0 0 4px; color: #888; font-size: 12px;">Email</p>
-                  <p style="margin: 0 0 12px; font-size: 16px; font-weight: bold; color: #1a1a1a;">${email}</p>
-                  <p style="margin: 0 0 4px; color: #888; font-size: 12px;">Code PIN</p>
-                  <p style="margin: 0; font-size: 28px; font-weight: bold; color: #16a34a; letter-spacing: 6px;">${pin}</p>
-                </div>
-                <p style="color: #555; font-size: 13px;">Utilisez ce code comme mot de passe pour vous connecter.</p>
-              </div>
-            `,
-          }),
-        });
-      } catch (emailErr) {
-        console.error("Email send error:", emailErr);
-      }
+    // Send credentials via DogWork transactional email
+    try {
+      await supabaseAdmin.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: "employee-credentials",
+          recipientEmail: email,
+          idempotencyKey: `employee-credentials-${userId}`,
+          templateData: { name, email, pin, isReset: false },
+        },
+      });
+    } catch (emailErr) {
+      console.error("Email send error:", emailErr);
     }
 
     return new Response(JSON.stringify({ success: true, userId, pin }), {
