@@ -591,6 +591,32 @@ export default function TrainingSession() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Bottom-sheet : consignes détaillées de l'exercice en cours */}
+      <SessionInstructionsSheet
+        open={instructionsOpen}
+        onOpenChange={setInstructionsOpen}
+        exerciseName={exercise.name}
+        instructions={exercise.shortInstruction}
+        repetitions={exercise.repetitionsTarget}
+        timerSeconds={exercise.timerSeconds}
+        exerciseIndex={currentIndex}
+        total={total}
+      />
+
+      {/* Bottom-sheet : sommaire de la journée + saut direct vers un exercice */}
+      <SessionDayOutlineSheet
+        open={outlineOpen}
+        onOpenChange={setOutlineOpen}
+        dayId={id}
+        exercises={exercises.map((e) => ({ id: e.id, name: e.name }))}
+        currentIndex={currentIndex}
+        completedIds={completedIds}
+        onJumpTo={(i) => {
+          tts.stop();
+          setCurrentIndex(i);
+        }}
+      />
     </div>
   );
 }
