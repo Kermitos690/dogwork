@@ -40,7 +40,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   });
 
   const validated = progress?.filter(p => p.validated).length || 0;
-  const currentDay = validated + 1;
+  // Sécurité : currentDay doit toujours être un entier >= 1, même si la requête échoue.
+  const currentDay = Math.max(1, Number.isFinite(validated) ? validated + 1 : 1);
   // Indique qu'une journée est en cours (non validée mais entamée).
   const hasOngoingDay = !!progress?.some(p => p.status === "in_progress" && !p.validated);
 
