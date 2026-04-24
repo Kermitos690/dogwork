@@ -71,7 +71,6 @@ function buildCascade(task: TaskKind): ProviderTarget[] {
   switch (task) {
     case "tools":
       return [
-        { provider: "openai", model: CATALOG.openai.tools },
         { provider: "gemini", model: CATALOG.gemini.tools },
         { provider: "groq", model: CATALOG.groq.tools },
         { provider: "openrouter", model: CATALOG.openrouter.tools },
@@ -80,7 +79,6 @@ function buildCascade(task: TaskKind): ProviderTarget[] {
     case "reasoning":
       return [
         { provider: "gemini", model: CATALOG.gemini.reasoning },
-        { provider: "openai", model: CATALOG.openai.reasoning },
         { provider: "mistral", model: CATALOG.mistral.reasoning },
         { provider: "groq", model: CATALOG.groq.reasoning },
         { provider: "openrouter", model: CATALOG.openrouter.reasoning },
@@ -92,7 +90,6 @@ function buildCascade(task: TaskKind): ProviderTarget[] {
         { provider: "openrouter", model: CATALOG.openrouter.chat },
         { provider: "gemini", model: CATALOG.gemini.chat },
         { provider: "mistral", model: CATALOG.mistral.chat },
-        { provider: "openai", model: CATALOG.openai.chat },
       ];
     case "image":
       return [{ provider: "gemini", model: CATALOG.gemini.image }];
