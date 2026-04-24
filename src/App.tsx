@@ -21,6 +21,7 @@ import Auth from "./pages/Auth";
 
 // Lazy loaded pages
 const Landing = lazy(() => import("./pages/Landing"));
+const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -360,6 +361,7 @@ const App = () => {
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/landing" element={<Landing />} />
+                <Route path="/unsubscribe" element={<Unsubscribe />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/terms" element={<TermsPage />} />
