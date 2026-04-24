@@ -3747,6 +3747,10 @@ export type Database = {
         Args: { _min_tier: string; _user_tier: string }
         Returns: boolean
       }
+      update_shelter_space_position: {
+        Args: { _space_id: string; _x: number; _y: number }
+        Returns: undefined
+      }
       verify_employee_pin: {
         Args: { _employee_id: string; _pin: string }
         Returns: boolean
