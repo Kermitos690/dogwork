@@ -77,7 +77,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
       {!hideNav && (
         <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/70 glass safe-bottom border-t border-border/30">
-          <div className="mx-auto flex max-w-lg md:max-w-2xl items-center justify-around py-1">
+          <div className="mx-auto grid grid-cols-5 max-w-lg md:max-w-2xl items-end py-1">
             {tabs.map((tab) => {
               const active = isActive(tab.path);
               return (
@@ -85,22 +85,22 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   key={tab.path}
                   whileTap={{ scale: 0.85 }}
                   onClick={() => navigate(getPath(tab))}
-                  className={`flex flex-col items-center gap-0.5 px-3 py-1.5 text-[10px] transition-colors duration-200 ${
+                  className={`flex flex-col items-center gap-0.5 px-1 py-1.5 text-[10px] transition-colors duration-200 min-w-0 ${
                     active ? "text-primary" : "text-muted-foreground"
                   } ${tab.center ? "relative" : ""}`}
                   aria-label={tab.label}
                 >
                   {tab.center ? (
-                    <div className={`relative w-14 h-14 -mt-7 rounded-2xl flex items-center justify-center transition-all shadow-lg ${
+                    <div className={`relative w-12 h-12 -mt-6 rounded-2xl flex items-center justify-center transition-all shadow-lg ${
                       active
                         ? "bg-primary neon-glow"
                         : "bg-card border border-border/60"
                     }`}>
-                      <tab.icon className={`h-6 w-6 ${active ? "text-primary-foreground" : "text-primary"}`} />
+                      <tab.icon className={`h-5 w-5 ${active ? "text-primary-foreground" : "text-primary"}`} />
                       {/* Pastille indiquant la journée en cours / à démarrer */}
                       {activeDog && (
                         <span
-                          className={`absolute -top-1 -right-1 min-w-[22px] h-[18px] px-1 rounded-full text-[10px] font-bold leading-[18px] text-center shadow-md ${
+                          className={`absolute -top-1.5 -right-1.5 min-w-[20px] h-[16px] px-1 rounded-full text-[9px] font-bold leading-[16px] text-center shadow-md ring-2 ring-background ${
                             hasOngoingDay
                               ? "bg-warning text-warning-foreground"
                               : "bg-primary text-primary-foreground"
@@ -114,7 +114,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   ) : (
                     <tab.icon className={`h-5 w-5 transition-colors ${active ? "text-primary" : ""}`} />
                   )}
-                  <span className={`${tab.center ? "mt-1" : ""} ${active ? "font-medium" : ""}`}>{tab.label}</span>
+                  <span className={`truncate max-w-full ${tab.center ? "mt-0.5" : ""} ${active ? "font-medium" : ""}`}>{tab.label}</span>
                 </motion.button>
               );
             })}

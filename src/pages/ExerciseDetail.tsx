@@ -43,10 +43,27 @@ export default function ExerciseDetail() {
   if (!exercise) {
     return (
       <AppLayout>
-        <div className="pt-4 text-center">
-          <p className="text-muted-foreground">{t("exerciseDetail.notFound")}</p>
-          <Button variant="outline" onClick={() => navigate("/exercises")} className="mt-4">{t("common.back")}</Button>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="pt-8 flex flex-col items-center text-center px-4"
+        >
+          <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
+            <Heart className="h-7 w-7 text-muted-foreground" />
+          </div>
+          <h1 className="text-lg font-bold text-foreground mb-1">{t("exerciseDetail.notFound")}</h1>
+          <p className="text-sm text-muted-foreground max-w-xs mb-6">
+            Cet exercice n'existe pas ou n'est plus disponible dans la bibliothèque.
+          </p>
+          <div className="flex gap-2 w-full max-w-xs">
+            <Button variant="outline" onClick={() => navigate(-1)} className="flex-1 rounded-xl">
+              <ArrowLeft className="h-4 w-4 mr-1" /> {t("common.back")}
+            </Button>
+            <Button onClick={() => navigate("/exercises")} className="flex-1 rounded-xl">
+              Bibliothèque
+            </Button>
+          </div>
+        </motion.div>
       </AppLayout>
     );
   }
