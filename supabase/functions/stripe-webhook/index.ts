@@ -58,6 +58,7 @@ async function sendEmail(supabaseAdmin: any, templateName: string, recipientEmai
   } catch (e) {
     console.error(`[email] ${templateName} failed:`, (e as Error).message);
   }
+}
 
 // Store full subscription details in stripe_customers
 async function syncSubscriptionDetails(
