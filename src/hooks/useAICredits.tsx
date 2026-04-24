@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { expandAIFeaturesWithAliases, resolveAIFeatureCode } from "@/lib/aiFeatureCatalog";
 
 export interface AIWallet {
   balance: number;
@@ -214,13 +215,13 @@ export function useAIFeatures() {
       const { data, error } = await readPublicView();
 
       if (!error) {
-        return (data || []) as unknown as AIFeature[];
+        return expandAIFeaturesWithAliases(((data || []) as unknown as AIFeature[]));
       }
 
       const { data: fallbackData, error: fallbackError } = await readTableFallback();
 
       if (fallbackError) throw fallbackError;
-      return (fallbackData || []) as unknown as AIFeature[];
+      return expandAIFeaturesWithAliases(((fallbackData || []) as unknown as AIFeature[]));
     },
     staleTime: 5 * 60_000,
   });
@@ -299,7 +300,7 @@ export function useAICall() {
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
         body: JSON.stringify({
-          feature_code: featureCode,
+          feature_code: resolveAIFeatureCode(featureCode),
           messages,
           system_prompt: systemPrompt,
           stream,
@@ -367,7 +368,7 @@ export async function streamAIWithCredits({
       apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
     },
     body: JSON.stringify({
-      feature_code: featureCode,
+      feature_code: resolveAIFeatureCode(featureCode),
       messages,
       system_prompt: systemPrompt,
       stream: true,
