@@ -199,7 +199,7 @@ export default function ShelterSpaces() {
     return result;
   })();
 
-
+  const openEdit = (space: any) => {
     setEditId(space.id);
     setForm({ name: space.name, space_type: space.space_type, capacity: space.capacity || 1, notes: space.notes || "" });
     setDialogOpen(true);
