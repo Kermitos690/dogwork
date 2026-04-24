@@ -52,6 +52,8 @@ export default function ShelterSpaces() {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<SpaceForm>(emptyForm);
   const [assignDialog, setAssignDialog] = useState<string | null>(null);
+  const [view, setView] = useState<"3d" | "2d">("3d");
+  const [editingLayout, setEditingLayout] = useState(false);
 
   // Use the SQL view for grid data
   const { data: spaces = [], isLoading } = useQuery({
