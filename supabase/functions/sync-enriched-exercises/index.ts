@@ -260,8 +260,9 @@ async function fetchCatalogWithFallback(
       requestedUrl: localAttempt.url,
     };
   }
+  const localError = localAttempt.error;
 
-  console.warn(`[sync-enriched] Échec local: ${localAttempt.error}`);
+  console.warn(`[sync-enriched] Échec local: ${localError}`);
   console.log(`[sync-enriched] Tentative fallback test: ${testCatalogUrl}`);
 
   const testAttempt = await fetchCatalogAttempt(testCatalogUrl);
@@ -272,9 +273,10 @@ async function fetchCatalogWithFallback(
       requestedUrl: testAttempt.url,
     };
   }
+  const testError = testAttempt.error;
 
   throw new Error(
-    `Catalogue introuvable après 2 tentatives. Source locale: ${localAttempt.error}. Fallback test: ${testAttempt.error}.`,
+    `Catalogue introuvable après 2 tentatives. Source locale: ${localError}. Fallback test: ${testError}.`,
   );
 }
 

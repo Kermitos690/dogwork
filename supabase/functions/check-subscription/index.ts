@@ -178,7 +178,7 @@ Deno.serve(async (req) => {
     let subscriptionEnd = null;
 
     if (hasActiveSub) {
-      const sub = subscriptions.data[0];
+      const sub = subscriptions.data[0] as any;
       subscriptionEnd = new Date(sub.current_period_end * 1000).toISOString();
       productId = sub.items.data[0].price.product;
       priceId = sub.items.data[0].price.id;

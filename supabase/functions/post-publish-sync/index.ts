@@ -32,7 +32,7 @@ const isValidCatalog = (catalog: unknown): catalog is { categories: unknown[]; e
 };
 
 async function syncCatalogViaRPC(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   catalog: { categories: unknown[]; exercises: unknown[] },
 ) {
   // Use the SQL function sync_exercises_from_catalog_data which runs entirely
