@@ -44,8 +44,9 @@ Deno.serve(async (req) => {
     // List all auth users
     const { data: { users }, error: listErr } = await admin.auth.admin.listUsers();
     if (listErr) throw listErr;
+    const authUsers = users as any[];
 
-    const toDelete = users.filter(u => !KEEP_EMAILS.includes(u.email?.toLowerCase() || ""));
+    const toDelete = authUsers.filter(u => !KEEP_EMAILS.includes(u.email?.toLowerCase() || ""));
 
     // Tables to cascade-delete for each user
     const CASCADE_TABLES = [
@@ -96,7 +97,7 @@ Deno.serve(async (req) => {
     }
 
     // Ensure admin has full setup
-    const adminUser = users.find(u => u.email?.toLowerCase() === ADMIN_EMAIL);
+    const adminUser = authUsers.find(u => u.email?.toLowerCase() === ADMIN_EMAIL);
     if (adminUser) {
       // Clean existing roles/profile to rebuild cleanly
       await admin.from("user_roles").delete().eq("user_id", adminUser.id);
@@ -125,7 +126,7 @@ Deno.serve(async (req) => {
     }
 
     // Ensure Presciglia
-    const presUser = users.find(u => u.email?.toLowerCase() === "presciglia@hotmail.com");
+    const presUser = authUsers.find(u => u.email?.toLowerCase() === "presciglia@hotmail.com");
     if (presUser) {
       await admin.from("profiles").upsert(
         { user_id: presUser.id, display_name: "Preshiba" },
@@ -140,7 +141,7 @@ Deno.serve(async (req) => {
     }
 
     // Ensure Mel/Micup
-    const melUser = users.find(u => u.email?.toLowerCase() === "ms.brandenberger@gmail.com");
+    const melUser = authUsers.find(u => u.email?.toLowerCase() === "ms.brandenberger@gmail.com");
     if (melUser) {
       await admin.from("profiles").upsert(
         { user_id: melUser.id, display_name: "Mel" },

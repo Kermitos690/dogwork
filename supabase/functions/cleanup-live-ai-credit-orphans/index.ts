@@ -31,7 +31,7 @@ function json(body: unknown, status = 200) {
 }
 
 async function fetchAllRows<T>(
-  client: ReturnType<typeof createClient>,
+  client: any,
   table: string,
   columns: string,
 ): Promise<T[]> {
@@ -55,7 +55,7 @@ async function fetchAllRows<T>(
   return rows;
 }
 
-async function fetchAllUserIds(liveClient: ReturnType<typeof createClient>): Promise<Set<string>> {
+async function fetchAllUserIds(liveClient: any): Promise<Set<string>> {
   const validUserIds = new Set<string>();
   let from = 0;
 
@@ -81,7 +81,7 @@ async function fetchAllUserIds(liveClient: ReturnType<typeof createClient>): Pro
 }
 
 async function deleteByIds(
-  client: ReturnType<typeof createClient>,
+  client: any,
   table: string,
   column: string,
   ids: string[],
@@ -189,7 +189,7 @@ Deno.serve(async (req) => {
     const ledgerBefore = await fetchAllRows<LedgerRow>(liveClient, "ai_credit_ledger", "id,user_id,wallet_id");
 
     const validUserIds = requestBody.orphanUserIds?.length
-      ? null
+      ? new Set<string>()
       : await fetchAllUserIds(liveClient);
 
     const before = requestBody.orphanUserIds?.length
