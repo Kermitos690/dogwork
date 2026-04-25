@@ -116,7 +116,17 @@ export default function AdminDashboard() {
         body: { email: newEducatorEmail, displayName: newEducatorName || newEducatorEmail.split("@")[0], role: "educator" },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
-      if (error) throw error;
+      if (error) {
+        let detail = error.message;
+        try {
+          const ctx: any = (error as any).context;
+          if (ctx && typeof ctx.json === "function") {
+            const body = await ctx.json();
+            if (body?.error) detail = body.error;
+          }
+        } catch { /* ignore */ }
+        throw new Error(detail);
+      }
       if (data?.error) throw new Error(data.error);
       setTempPasswordDialog({ email: newEducatorEmail, password: data.temporaryPassword });
       toast({ title: "Éducateur créé ✅", description: `${newEducatorEmail} a été ajouté.` });
@@ -139,7 +149,21 @@ export default function AdminDashboard() {
         body: { email: newShelterEmail, displayName: newShelterName, role: "shelter", shelterAdminName: adminDisplayName },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
-      if (error) throw error;
+      if (error) {
+        // Read the real error body from edge function (FunctionsHttpError)
+        let detail = error.message;
+        try {
+          const ctx: any = (error as any).context;
+          if (ctx && typeof ctx.json === "function") {
+            const body = await ctx.json();
+            if (body?.error) detail = body.error;
+          } else if (ctx && typeof ctx.text === "function") {
+            const txt = await ctx.text();
+            if (txt) detail = txt;
+          }
+        } catch { /* ignore */ }
+        throw new Error(detail);
+      }
       if (data?.error) throw new Error(data.error);
       setTempPasswordDialog({ email: newShelterEmail, password: data.temporaryPassword });
       toast({ title: "Refuge créé ✅", description: `Le refuge « ${newShelterName} » et son administrateur (${newShelterEmail}) ont été créés.` });
