@@ -2,7 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 Deno.serve(async (req) => {
@@ -24,6 +24,12 @@ Deno.serve(async (req) => {
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: `Bearer ${token}` } },
     });
+    const { data: { user: callerUser }, error: callerError } = await userClient.auth.getUser();
+    if (callerError || !callerUser) {
+      return new Response(JSON.stringify({ error: "Session administrateur invalide" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const { data: isAdmin } = await userClient.rpc("is_admin");
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: "Admin only" }), {
@@ -33,8 +39,11 @@ Deno.serve(async (req) => {
 
     const { userId } = await req.json();
     if (!userId) throw new Error("userId requis");
+    if (userId === callerUser.id) throw new Error("Vous ne pouvez pas supprimer votre propre compte administrateur depuis cet écran.");
 
     const admin = createClient(supabaseUrl, serviceRoleKey);
+    const { data: { user: targetUser }, error: targetError } = await admin.auth.admin.getUserById(userId);
+    if (targetError || !targetUser) throw new Error("Utilisateur introuvable ou déjà supprimé du système d'authentification");
 
     // Cascade delete all user data from every known table
     const tables = [
