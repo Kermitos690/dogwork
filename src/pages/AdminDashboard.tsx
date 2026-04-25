@@ -116,7 +116,17 @@ export default function AdminDashboard() {
         body: { email: newEducatorEmail, displayName: newEducatorName || newEducatorEmail.split("@")[0], role: "educator" },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
-      if (error) throw error;
+      if (error) {
+        let detail = error.message;
+        try {
+          const ctx: any = (error as any).context;
+          if (ctx && typeof ctx.json === "function") {
+            const body = await ctx.json();
+            if (body?.error) detail = body.error;
+          }
+        } catch { /* ignore */ }
+        throw new Error(detail);
+      }
       if (data?.error) throw new Error(data.error);
       setTempPasswordDialog({ email: newEducatorEmail, password: data.temporaryPassword });
       toast({ title: "Éducateur créé ✅", description: `${newEducatorEmail} a été ajouté.` });
