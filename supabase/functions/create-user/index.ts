@@ -132,6 +132,15 @@ Deno.serve(async (req) => {
     }
     console.log("[CREATE-USER] Existing user found:", !!existingUser, existingUser ? `id=${existingUser.id}` : "");
 
+    // If an account was previously soft-deleted, the email can remain reserved in auth.
+    // Hard-delete that auth record first so the address can be reused normally.
+    if (existingUser?.deleted_at) {
+      console.log("[CREATE-USER] Existing auth user is soft-deleted, hard-deleting before recreation:", existingUser.id);
+      const { error: purgeError } = await supabaseAdmin.auth.admin.deleteUser(existingUser.id);
+      if (purgeError) throw new Error(`Ancien compte supprimé impossible à purger : ${purgeError.message}`);
+      existingUser = null;
+    }
+
     let userId: string;
 
     if (existingUser) {
