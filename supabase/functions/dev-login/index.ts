@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
 
     // Check if user exists
     const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-    let user = existingUsers?.users?.find((u) => u.email === account.email);
+    let user = (existingUsers?.users as any[] | undefined)?.find((u) => u.email === account.email);
 
     if (!user) {
       // Create the test user

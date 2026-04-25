@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
         } else {
           // Fall back: list a small page and search (only if employee not found)
           const { data: usersPage } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 50 });
-          const found = usersPage?.users?.find((u) => u.email === email);
+          const found = (usersPage?.users as any[] | undefined)?.find((u) => u.email === email);
           if (found) existingUserId = found.id;
         }
 
