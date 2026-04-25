@@ -260,7 +260,7 @@ async function fetchCatalogWithFallback(
       requestedUrl: localAttempt.url,
     };
   }
-  const localError = localAttempt.error;
+  const localError = (localAttempt as { ok: false; error: string }).error;
 
   console.warn(`[sync-enriched] Échec local: ${localError}`);
   console.log(`[sync-enriched] Tentative fallback test: ${testCatalogUrl}`);
@@ -273,7 +273,7 @@ async function fetchCatalogWithFallback(
       requestedUrl: testAttempt.url,
     };
   }
-  const testError = testAttempt.error;
+  const testError = (testAttempt as { ok: false; error: string }).error;
 
   throw new Error(
     `Catalogue introuvable après 2 tentatives. Source locale: ${localError}. Fallback test: ${testError}.`,
