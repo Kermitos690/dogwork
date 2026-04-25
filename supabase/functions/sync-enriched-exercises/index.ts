@@ -55,11 +55,11 @@ const asJsonValue = (value: unknown, fallback: unknown = null): unknown =>
   value === undefined || value === null ? fallback : value;
 
 async function syncCatalogDirectly(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   categories: CatalogCategory[],
   exercises: CatalogExercise[],
 ): Promise<SyncSummary> {
-  const categoryRows = categories
+  const categoryRows: any[] = categories
     .map((category, index) => {
       const slug = asNullableString(category.slug);
       const name = asNullableString(category.name);
@@ -97,10 +97,10 @@ async function syncCatalogDirectly(
     throw new Error(`Impossible de relire les catégories: ${categoryReadError.message}`);
   }
 
-  const categoryMap = new Map((categoryData ?? []).map((c) => [c.slug, c.id]));
+  const categoryMap = new Map(((categoryData ?? []) as any[]).map((c) => [c.slug, c.id]));
   const failedSlugs = new Set<string>();
 
-  const exerciseRows = exercises
+  const exerciseRows: any[] = exercises
     .map((exercise, index) => {
       const slug = asNullableString(exercise.slug);
       const categorySlug = asNullableString(exercise.category_slug);
@@ -170,7 +170,7 @@ async function syncCatalogDirectly(
   if (exerciseSlugs.length > 0) {
     const { data: existingRows } = await supabase
       .from("exercises").select("slug").in("slug", exerciseSlugs);
-    for (const row of existingRows ?? []) existingSlugs.add(row.slug);
+    for (const row of (existingRows ?? []) as any[]) existingSlugs.add(row.slug);
   }
 
   let exercisesInserted = 0;
