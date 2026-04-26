@@ -15,7 +15,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useFeatureGate } from "@/hooks/useFeatureGate";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 
-type EvalForm = Record<string, any>;
+import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+
+type EvalForm = Partial<TablesInsert<"dog_evaluations">> & { id?: string; created_at?: string };
+type EvalUpdate = TablesUpdate<"dog_evaluations">;
 
 const STEPS = [
   {
@@ -122,7 +125,7 @@ export default function Evaluation() {
     try {
       if (existing && form.id) {
         const { id, created_at, ...updates } = form;
-        await supabase.from("dog_evaluations").update(updates as any).eq("id", id);
+        await supabase.from("dog_evaluations").update(updates as EvalUpdate).eq("id", id);
       } else {
         await supabase.from("dog_evaluations").insert({ ...form, dog_id: activeDog.id, user_id: user.id });
       }
