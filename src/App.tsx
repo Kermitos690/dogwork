@@ -106,6 +106,7 @@ const ModulesPage = lazy(() => import("./pages/Modules"));
 const PricingPage = lazy(() => import("./pages/Pricing"));
 const EducatorReferrals = lazy(() => import("./pages/EducatorReferrals"));
 const AdminCompliance = lazy(() => import("./pages/AdminCompliance"));
+const CharteCoach = lazy(() => import("./pages/CharteCoach"));
 
 export const queryClient = new QueryClient();
 
@@ -375,6 +376,7 @@ const App = () => {
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/privacy" element={<PrivacyPage />} />
                 <Route path="/legal" element={<LegalPage />} />
+                <Route path="/legal/charte-coach" element={<CharteCoach />} />
                 <Route path="/gate-k9x" element={<Suspense fallback={<PageLoader />}><AdminLogin /></Suspense>} />
                 <Route path="/*" element={<ProtectedRoutes />} />
               </Routes>

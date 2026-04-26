@@ -41,8 +41,42 @@ export default function Auth() {
     { role: "admin", emoji: "🛡️", label: t("auth.admin"), desc: t("auth.adminDesc"), gradient: "from-rose-500 to-red-600" },
   ];
 
+  // Capture ?ref=CODE on mount and persist for post-signup attribution
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (ref && /^[A-Z0-9_-]{4,32}$/i.test(ref)) {
+      try {
+        localStorage.setItem("dogwork_referral_code", ref.toUpperCase());
+      } catch {}
+    }
+  }, []);
+
   useEffect(() => {
     if (!authLoading && user) {
+      // Attach pending referral code if any
+      try {
+        const ref = localStorage.getItem("dogwork_referral_code");
+        if (ref) {
+          supabase
+            .from("educator_referral_codes")
+            .select("id, educator_id")
+            .eq("code", ref)
+            .eq("status", "active")
+            .maybeSingle()
+            .then(({ data }) => {
+              if (data?.id && data.educator_id !== user.id) {
+                supabase.from("referral_attributions").insert({
+                  referral_code_id: data.id,
+                  referred_user_id: user.id,
+                  educator_user_id: data.educator_id,
+                }).then(() => {
+                  localStorage.removeItem("dogwork_referral_code");
+                });
+              }
+            });
+        }
+      } catch {}
       navigate("/", { replace: true });
     }
   }, [authLoading, user, navigate]);
