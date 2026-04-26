@@ -1187,15 +1187,26 @@ export type Database = {
           amount_cents: number | null
           applied_commission_rate: number | null
           commission_cents: number | null
+          compliance_status: string | null
+          confirmed_at: string | null
           course_id: string
           created_at: string | null
           dog_id: string | null
           educator_note: string | null
+          educator_payout_cents: number | null
           id: string
           invitation_id: string | null
+          origin: string | null
+          paid_at: string | null
           payment_status: string | null
+          referral_code_id: string | null
+          refund_reason: string | null
+          refunded_at: string | null
           reviewed_at: string | null
+          source_checked_at: string | null
           status: string | null
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
           updated_at: string | null
           user_id: string
         }
@@ -1204,15 +1215,26 @@ export type Database = {
           amount_cents?: number | null
           applied_commission_rate?: number | null
           commission_cents?: number | null
+          compliance_status?: string | null
+          confirmed_at?: string | null
           course_id: string
           created_at?: string | null
           dog_id?: string | null
           educator_note?: string | null
+          educator_payout_cents?: number | null
           id?: string
           invitation_id?: string | null
+          origin?: string | null
+          paid_at?: string | null
           payment_status?: string | null
+          referral_code_id?: string | null
+          refund_reason?: string | null
+          refunded_at?: string | null
           reviewed_at?: string | null
+          source_checked_at?: string | null
           status?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -1221,15 +1243,26 @@ export type Database = {
           amount_cents?: number | null
           applied_commission_rate?: number | null
           commission_cents?: number | null
+          compliance_status?: string | null
+          confirmed_at?: string | null
           course_id?: string
           created_at?: string | null
           dog_id?: string | null
           educator_note?: string | null
+          educator_payout_cents?: number | null
           id?: string
           invitation_id?: string | null
+          origin?: string | null
+          paid_at?: string | null
           payment_status?: string | null
+          referral_code_id?: string | null
+          refund_reason?: string | null
+          refunded_at?: string | null
           reviewed_at?: string | null
+          source_checked_at?: string | null
           status?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -1253,6 +1286,13 @@ export type Database = {
             columns: ["invitation_id"]
             isOneToOne: false
             referencedRelation: "educator_invitations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_bookings_referral_code_id_fkey"
+            columns: ["referral_code_id"]
+            isOneToOne: false
+            referencedRelation: "educator_referral_codes"
             referencedColumns: ["id"]
           },
         ]
@@ -1339,18 +1379,27 @@ export type Database = {
           address: string | null
           approval_status: string
           category: string | null
+          charter_required: boolean
           commission_rate: number
+          compliance_required: boolean
           created_at: string | null
           description: string | null
           dog_level: string | null
           duration_minutes: number | null
           educator_user_id: string
+          end_at: string | null
           id: string
           is_active: boolean | null
+          is_public: boolean
           location: string | null
           max_participants: number | null
+          module_required: string | null
           next_session_at: string | null
           price_cents: number
+          publication_blocked_reason: string | null
+          requires_dogwork_payment: boolean
+          start_at: string | null
+          suspended_at: string | null
           title: string
           updated_at: string | null
         }
@@ -1358,18 +1407,27 @@ export type Database = {
           address?: string | null
           approval_status?: string
           category?: string | null
+          charter_required?: boolean
           commission_rate?: number
+          compliance_required?: boolean
           created_at?: string | null
           description?: string | null
           dog_level?: string | null
           duration_minutes?: number | null
           educator_user_id: string
+          end_at?: string | null
           id?: string
           is_active?: boolean | null
+          is_public?: boolean
           location?: string | null
           max_participants?: number | null
+          module_required?: string | null
           next_session_at?: string | null
           price_cents?: number
+          publication_blocked_reason?: string | null
+          requires_dogwork_payment?: boolean
+          start_at?: string | null
+          suspended_at?: string | null
           title: string
           updated_at?: string | null
         }
@@ -1377,18 +1435,27 @@ export type Database = {
           address?: string | null
           approval_status?: string
           category?: string | null
+          charter_required?: boolean
           commission_rate?: number
+          compliance_required?: boolean
           created_at?: string | null
           description?: string | null
           dog_level?: string | null
           duration_minutes?: number | null
           educator_user_id?: string
+          end_at?: string | null
           id?: string
           is_active?: boolean | null
+          is_public?: boolean
           location?: string | null
           max_participants?: number | null
+          module_required?: string | null
           next_session_at?: string | null
           price_cents?: number
+          publication_blocked_reason?: string | null
+          requires_dogwork_payment?: boolean
+          start_at?: string | null
+          suspended_at?: string | null
           title?: string
           updated_at?: string | null
         }
@@ -4371,6 +4438,16 @@ export type Database = {
         Args: { _animal_id: string; _space_id: string }
         Returns: undefined
       }
+      calculate_course_commission: {
+        Args: {
+          p_amount_cents: number
+          p_course_id: string
+          p_origin: string
+          p_referral_code: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       can_use_feature: {
         Args: {
           _feature_key: string
@@ -4432,6 +4509,10 @@ export type Database = {
         Args: { _tension: number }
         Returns: Database["public"]["Enums"]["behavior_zone"]
       }
+      detect_external_payment_terms: {
+        Args: { input_text: string }
+        Returns: boolean
+      }
       end_shelter_space_assignment: {
         Args: { _space_id: string }
         Returns: undefined
@@ -4440,6 +4521,16 @@ export type Database = {
       ensure_credit_wallet: { Args: never; Returns: string }
       fix_exercise_json_encoding: { Args: never; Returns: Json }
       generate_unique_invitation_code: { Args: never; Returns: string }
+      get_active_marketplace_restrictions: {
+        Args: { p_educator_id: string }
+        Returns: {
+          ends_at: string
+          reason: string
+          restriction_type: string
+          severity: string
+          starts_at: string
+        }[]
+      }
       get_ai_balance: { Args: { _user_id: string }; Returns: number }
       get_coach_profile_safe: {
         Args: { target_user_id: string }
@@ -4531,6 +4622,10 @@ export type Database = {
         }
       }
       get_user_tier: { Args: { _user_id: string }; Returns: string }
+      has_active_marketplace_restriction: {
+        Args: { p_educator_id: string }
+        Returns: boolean
+      }
       has_module: {
         Args: {
           _module_slug: string
