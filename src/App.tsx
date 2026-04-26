@@ -108,6 +108,7 @@ const EducatorReferrals = lazy(() => import("./pages/EducatorReferrals"));
 const CoachCompliance = lazy(() => import("./pages/CoachCompliance"));
 const AdminCompliance = lazy(() => import("./pages/AdminCompliance"));
 const AdminTestWebhook = lazy(() => import("./pages/AdminTestWebhook"));
+const AdminTestMarketplaceP0 = lazy(() => import("./pages/AdminTestMarketplaceP0"));
 const CharteCoach = lazy(() => import("./pages/CharteCoach"));
 
 export const queryClient = new QueryClient();
