@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 import { callAI, callAIGateway } from "../_shared/ai-provider.ts";
+import { reportEdgeError } from "../_shared/sentry.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -772,6 +773,10 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error("[ai-with-credits] Unhandled error:", e);
+    await reportEdgeError(e, {
+      function_name: "ai-with-credits",
+      level: "error",
+    });
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Erreur inconnue" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

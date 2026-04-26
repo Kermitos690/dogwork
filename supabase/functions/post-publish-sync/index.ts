@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import bundledCatalog from "../_shared/exercise-catalog.json" with { type: "json" };
+import { reportEdgeError } from "../_shared/sentry.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -283,6 +284,10 @@ Deno.serve(async (req) => {
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Internal error";
     console.error("post-publish-sync error:", message);
+    await reportEdgeError(e, {
+      function_name: "post-publish-sync",
+      level: "error",
+    });
     return new Response(JSON.stringify({ error: message }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
