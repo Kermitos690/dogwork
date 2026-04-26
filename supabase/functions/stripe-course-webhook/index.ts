@@ -49,24 +49,70 @@ serve(async (req) => {
   };
 
   try {
+    // === Startup logs (no secrets exposed) ===
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
+    const detectedMode = stripeKey.startsWith("sk_live_") || stripeKey.startsWith("rk_live_")
+      ? "live"
+      : stripeKey.startsWith("sk_test_") || stripeKey.startsWith("rk_test_")
+      ? "test"
+      : "unknown";
+    log("Webhook hit", { mode: detectedMode });
+
     const body = await req.text();
     const signature = req.headers.get("stripe-signature");
     if (!signature) {
+      log("Missing stripe-signature header");
       return new Response(JSON.stringify({ error: "Missing stripe-signature" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
+
+    // Connect webhook MUST use the Connect-specific endpoint secret.
+    // We try Connect first, then fall back to the platform webhook secret to ease migration.
+    const connectSecret = Deno.env.get("STRIPE_CONNECT_WEBHOOK_SECRET");
+    const platformSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
+    const webhookSecret = connectSecret || platformSecret;
     if (!webhookSecret) {
+      log("No webhook secret configured (STRIPE_CONNECT_WEBHOOK_SECRET / STRIPE_WEBHOOK_SECRET)");
       return new Response(JSON.stringify({ error: "Webhook secret not configured" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
-    log("Event verified", { type: event.type, id: event.id });
+    let event: Stripe.Event;
+    try {
+      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
+    } catch (sigErr) {
+      // If Connect secret failed, attempt platform secret as a graceful fallback
+      if (connectSecret && platformSecret && connectSecret !== platformSecret) {
+        try {
+          event = await stripe.webhooks.constructEventAsync(body, signature, platformSecret);
+          log("Signature verified with PLATFORM secret (Connect secret rejected)");
+        } catch (sigErr2) {
+          log("Signature verification failed with both secrets", { error: (sigErr2 as Error).message });
+          return new Response(JSON.stringify({ error: "Invalid signature" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } else {
+        log("Signature verification failed", { error: (sigErr as Error).message });
+        return new Response(JSON.stringify({ error: "Invalid signature" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    const connectedAccountId = (event as any).account ?? null;
+    const sessionId = (event.data.object as any)?.id ?? null;
+    log("Event verified", {
+      type: event.type,
+      id: event.id,
+      mode: detectedMode,
+      connected_account: connectedAccountId,
+      session_id: sessionId,
+    });
 
     // Idempotence : si déjà traité avec succès, on sort
     const { data: existing } = await supabase
