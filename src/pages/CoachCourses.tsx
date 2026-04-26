@@ -386,9 +386,14 @@ export default function CoachCourses() {
                 </Button>
               </div>
             </DialogContent>
-          </Dialog>
-        </div>
       </div>
+
+      {/* Charter gate — blocks publishing if not accepted */}
+      {!hasAcceptedCharter && (
+        <div className="px-4 pt-4">
+          <CharterGate>{null}</CharterGate>
+        </div>
+      )}
 
       {/* Stats cards */}
       <div className="px-4 pt-4 grid grid-cols-2 gap-3">
