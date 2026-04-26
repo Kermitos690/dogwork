@@ -2997,6 +2997,38 @@ export type Database = {
           },
         ]
       }
+      referral_attributions: {
+        Row: {
+          created_at: string
+          educator_user_id: string
+          id: string
+          referral_code_id: string
+          referred_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          educator_user_id: string
+          id?: string
+          referral_code_id: string
+          referred_user_id: string
+        }
+        Update: {
+          created_at?: string
+          educator_user_id?: string
+          id?: string
+          referral_code_id?: string
+          referred_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_attributions_referral_code_id_fkey"
+            columns: ["referral_code_id"]
+            isOneToOne: false
+            referencedRelation: "educator_referral_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shelter_activity_log: {
         Row: {
           action_type: string
