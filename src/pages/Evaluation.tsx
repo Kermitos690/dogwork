@@ -15,7 +15,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useFeatureGate } from "@/hooks/useFeatureGate";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 
-type EvalForm = Record<string, any>;
+import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
+
+type EvalForm = Partial<TablesInsert<"dog_evaluations">> & { id?: string; created_at?: string };
+type EvalUpdate = TablesUpdate<"dog_evaluations">;
 
 const STEPS = [
   {
