@@ -16,6 +16,7 @@ import { MapPin, Clock, Users, Calendar, GraduationCap, CheckCircle, Loader2, St
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { motion } from "framer-motion";
+import { CoachVerifiedBadge } from "@/components/CoachVerifiedBadge";
 
 const CATEGORIES = [
   { value: "all", label: "Toutes catégories" },
@@ -275,7 +276,10 @@ export default function Courses() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <CardTitle className="text-base leading-tight">{course.title}</CardTitle>
-                    <p className="text-xs text-muted-foreground mt-0.5">par {getEducatorName(course.educator_user_id)}</p>
+                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                      <p className="text-xs text-muted-foreground">par {getEducatorName(course.educator_user_id)}</p>
+                      <CoachVerifiedBadge coachUserId={course.educator_user_id} />
+                    </div>
                     <div className="flex flex-wrap gap-1.5 mt-1.5">
                       <Badge variant="secondary" className="text-[10px]">{catLabel}</Badge>
                       <Badge variant="outline" className="text-[10px]">{levelLabel}</Badge>
