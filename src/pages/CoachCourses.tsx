@@ -175,6 +175,24 @@ export default function CoachCourses() {
   // Create / update mutation
   const saveCourse = useMutation({
     mutationFn: async (payload: typeof form & { id?: string }) => {
+      // Compliance scan: detect off-platform payment mentions before saving
+      const scanText = `${payload.title}\n${payload.description ?? ""}`;
+      try {
+        const { data: scan } = await supabase.functions.invoke("check-marketplace-compliance", {
+          body: { content: scanText, content_type: "course", content_id: payload.id ?? null },
+        });
+        if (scan?.status === "blocked") {
+          throw new Error(
+            "Votre cours mentionne un moyen de paiement externe (TWINT, IBAN, PayPal, espèces...). " +
+            "Tous les paiements doivent passer par DogWork. Merci de retirer ces mentions."
+          );
+        }
+      } catch (err: any) {
+        if (err?.message?.includes("DogWork")) throw err;
+        // Scan failure must not block legitimate creation — log and continue
+        console.warn("Compliance scan unavailable:", err);
+      }
+
       const record = {
         title: payload.title,
         description: payload.description,
