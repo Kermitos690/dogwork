@@ -306,7 +306,7 @@ export default function CoachCourses() {
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" onClick={openNew}>
+              <Button size="sm" onClick={openNew} disabled={!hasAcceptedCharter}>
                 <Plus className="h-4 w-4 mr-1" /> Nouveau
               </Button>
             </DialogTrigger>
