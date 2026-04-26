@@ -104,6 +104,20 @@ export default function ProfilePage() {
         </Card>
 
         <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4" /> Modules DogWork actifs
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ActiveModulesIndicator userId={user?.id} detailed maxVisible={20} />
+            <Button variant="link" size="sm" className="px-0 mt-2" onClick={() => navigate("/modules")}>
+              Gérer mes modules →
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
           <CardHeader className="pb-3"><CardTitle className="text-base">Accès rapide</CardTitle></CardHeader>
           <CardContent className="space-y-2">
             <Button variant="outline" className="w-full justify-start gap-2" onClick={() => navigate("/help")}>
