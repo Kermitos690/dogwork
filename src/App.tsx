@@ -108,6 +108,7 @@ const EducatorReferrals = lazy(() => import("./pages/EducatorReferrals"));
 const CoachCompliance = lazy(() => import("./pages/CoachCompliance"));
 const AdminCompliance = lazy(() => import("./pages/AdminCompliance"));
 const AdminTestWebhook = lazy(() => import("./pages/AdminTestWebhook"));
+const AdminTestMarketplaceP0 = lazy(() => import("./pages/AdminTestMarketplaceP0"));
 const CharteCoach = lazy(() => import("./pages/CharteCoach"));
 
 export const queryClient = new QueryClient();
@@ -308,6 +309,7 @@ function ProtectedRoutes() {
         <Route path="/coach/compliance" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachCompliance /></CoachGuard></Suspense>} />
         <Route path="/admin/compliance" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminCompliance /></AdminGuard></Suspense>} />
         <Route path="/admin/test-webhook" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminTestWebhook /></AdminGuard></Suspense>} />
+        <Route path="/admin/test-marketplace-p0" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminTestMarketplaceP0 /></AdminGuard></Suspense>} />
         <Route path="/agents" element={<Navigate to="/outils" replace />} />
         <Route path="/force-password-change" element={<ForcePasswordChange />} />
         <Route path="/program" element={<Navigate to="/plan" replace />} />
