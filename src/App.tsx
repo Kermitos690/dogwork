@@ -106,6 +106,7 @@ const ModulesPage = lazy(() => import("./pages/Modules"));
 const PricingPage = lazy(() => import("./pages/Pricing"));
 const EducatorReferrals = lazy(() => import("./pages/EducatorReferrals"));
 const AdminCompliance = lazy(() => import("./pages/AdminCompliance"));
+const CharteCoach = lazy(() => import("./pages/CharteCoach"));
 
 export const queryClient = new QueryClient();
 
