@@ -178,6 +178,9 @@ export default function CoachCourses() {
   // Create / update mutation
   const saveCourse = useMutation({
     mutationFn: async (payload: typeof form & { id?: string }) => {
+      if (!hasAcceptedCharter) {
+        throw new Error("Vous devez accepter la Charte Coach avant de publier un cours.");
+      }
       // Compliance scan: detect off-platform payment mentions before saving
       const scanText = `${payload.title}\n${payload.description ?? ""}`;
       try {
