@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
   Shield, Users, GraduationCap, BookOpen, DollarSign, Plus, ArrowLeft, Trash2, Check, X, Eye, ChevronDown, Home, Sparkles, Image, Wallet, CreditCard,
-  Search, Dog, FileText, MessageSquare, AlertTriangle, Edit2, UserCog, Mail, Rocket, Lock, FileDown, Loader2, BarChart3,
+  Search, Dog, FileText, MessageSquare, AlertTriangle, Edit2, UserCog, Mail, Rocket, Lock, FileDown, Loader2, BarChart3, Boxes,
 } from "lucide-react";
 import { generateConnectionGuidePDF } from "@/lib/generateConnectionGuide";
 import { Progress } from "@/components/ui/progress";
@@ -544,6 +544,9 @@ export default function AdminDashboard() {
           </Button>
           <Button variant="outline" className="h-11 gap-2 text-sm" onClick={() => navigate("/shelter")}>
             <Home className="h-4 w-4" /> Refuge
+          </Button>
+          <Button variant="outline" className="h-11 gap-2 text-sm col-span-2" onClick={() => navigate("/admin/modules")}>
+            <Boxes className="h-4 w-4" /> Modules (accès complet)
           </Button>
           <Button variant="outline" className="h-11 gap-2 text-sm col-span-2 border-primary/30 text-primary" onClick={() => navigate("/admin/ai-economy")}>
             <BarChart3 className="h-4 w-4" /> Économie IA
