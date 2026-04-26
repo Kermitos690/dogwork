@@ -30,19 +30,39 @@ export function useAllModules() {
 export function useUserActiveModules() {
   const { user } = useAuth();
   return useQuery({
-    queryKey: ["user_modules", user?.id],
+    queryKey: ["user_modules_active", user?.id],
     enabled: !!user,
     queryFn: async (): Promise<string[]> => {
+      // RPC handles admin bypass server-side: returns ALL modules for admin
+      // (minus those explicitly disabled via admin_module_overrides)
+      const { data, error } = await supabase.rpc("get_my_active_modules" as any);
+      if (error) {
+        console.error("[useUserActiveModules] RPC error:", error);
+        return [];
+      }
+      return ((data as any[]) ?? []).map((row) => row.module_slug);
+    },
+  });
+}
+
+// Admin-only: returns the explicit overrides map (slug -> enabled).
+// Modules absent from the map are considered enabled by default for admin.
+export function useAdminModuleOverrides() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["admin_module_overrides", user?.id],
+    enabled: !!user,
+    queryFn: async (): Promise<Record<string, boolean>> => {
       const { data, error } = await supabase
-        .from("user_modules" as any)
-        .select("module_slug,status,expires_at")
-        .eq("user_id", user!.id);
-      if (error) return [];
-      const now = Date.now();
-      return ((data as any[]) ?? [])
-        .filter((m) => ["active", "trial"].includes(m.status))
-        .filter((m) => !m.expires_at || new Date(m.expires_at).getTime() > now)
-        .map((m) => m.module_slug);
+        .from("admin_module_overrides" as any)
+        .select("module_slug,enabled")
+        .eq("admin_user_id", user!.id);
+      if (error) return {};
+      const map: Record<string, boolean> = {};
+      ((data as any[]) ?? []).forEach((row) => {
+        map[row.module_slug] = row.enabled;
+      });
+      return map;
     },
   });
 }
