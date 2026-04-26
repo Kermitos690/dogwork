@@ -365,6 +365,7 @@ function ProtectedRoutes() {
         <Route path="/employee/activity" element={<Suspense fallback={<PageLoader />}><EmployeeGuard><EmployeeActivity /></EmployeeGuard></Suspense>} />
         <Route path="/employee/profile" element={<Suspense fallback={<PageLoader />}><EmployeeGuard><EmployeeProfile /></EmployeeGuard></Suspense>} />
         <Route path="/employee/support" element={<Suspense fallback={<PageLoader />}><EmployeeGuard><SupportTickets /></EmployeeGuard></Suspense>} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
       <AIChatBot />
       <NotificationToast />
