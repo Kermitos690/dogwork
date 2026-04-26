@@ -586,9 +586,17 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Admin bypass: unlimited AI credits, no debit, no ledger entry
+    const isAdminUser = roleList.includes("admin");
+    if (isAdminUser) {
+      console.log(`[ai-with-credits] Admin bypass — no credit debit for user ${userId.slice(0, 8)}`);
+    }
+
     console.log(`[ai-with-credits] Debiting ${creditsCost} credits for user ${userId.slice(0, 8)}...`);
 
-    const { data: debited, error: debitErr } = await admin.rpc("debit_ai_credits", {
+    const { data: debited, error: debitErr } = isAdminUser
+      ? { data: true, error: null }
+      : await admin.rpc("debit_ai_credits", {
       _user_id: userId,
        _feature_code: resolvedFeatureCode,
       _credits: creditsCost,
