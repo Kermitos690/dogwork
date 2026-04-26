@@ -77,6 +77,8 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    // Optional: explicit invitation code passed at checkout time
+    const invitationCode = typeof body.invitationCode === "string" ? body.invitationCode.trim() : "";
 
     // ── Service role client for DB operations ──
     const supabaseAdmin = createClient(
