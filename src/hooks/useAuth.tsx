@@ -2,6 +2,7 @@ import { useState, useEffect, createContext, useContext, useCallback, useRef } f
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { queryClient } from "@/App";
+import { setSentryUser } from "@/lib/sentry";
 
 interface AuthContextType {
   user: User | null;
