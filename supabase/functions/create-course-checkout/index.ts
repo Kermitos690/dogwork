@@ -112,6 +112,62 @@ serve(async (req) => {
       });
     }
 
+    // P0: ensure course requires platform payment
+    if (course.requires_dogwork_payment === false) {
+      return new Response(JSON.stringify({ error: "Ce cours n'est pas configuré pour le paiement DogWork" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (course.publication_blocked_reason) {
+      return new Response(JSON.stringify({ error: "Ce cours est temporairement indisponible" }), {
+        status: 409,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // P0: educator must have signed charter
+    const { data: charter } = await supabaseAdmin
+      .from("coach_charter_acceptances")
+      .select("id")
+      .eq("user_id", course.educator_user_id)
+      .maybeSingle();
+    if (!charter) {
+      return new Response(JSON.stringify({ error: "L'éducateur n'a pas accepté la charte DogWork" }), {
+        status: 409,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // P0: educator must have payments_marketplace module active
+    const { data: moduleRow } = await supabaseAdmin
+      .from("user_modules")
+      .select("id, module:modules!inner(slug)")
+      .eq("user_id", course.educator_user_id)
+      .eq("is_active", true)
+      .eq("modules.slug", "payments_marketplace")
+      .maybeSingle();
+    if (!moduleRow) {
+      return new Response(JSON.stringify({ error: "Module marketplace non activé pour cet éducateur" }), {
+        status: 409,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // P0: no active restrictions
+    const { data: restriction } = await supabaseAdmin
+      .from("coach_restrictions")
+      .select("id, reason")
+      .eq("user_id", course.educator_user_id)
+      .eq("is_active", true)
+      .maybeSingle();
+    if (restriction) {
+      return new Response(JSON.stringify({ error: "Cet éducateur fait l'objet d'une restriction temporaire" }), {
+        status: 409,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Check capacity
     const { count } = await supabaseAdmin
       .from("course_bookings")
