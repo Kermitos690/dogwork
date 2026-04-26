@@ -48,6 +48,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setSession(session);
       setUser(session?.user ?? null);
+
+      // Tag Sentry events with the current user (no-op on preview / dev).
+      if (session?.user) {
+        setSentryUser({
+          id: session.user.id,
+          email: session.user.email ?? null,
+          role: (session.user.user_metadata?.role as string | undefined) ?? null,
+        });
+      } else {
+        setSentryUser(null);
+      }
+
       if (event === "PASSWORD_RECOVERY") {
         setIsPasswordRecovery(true);
       }

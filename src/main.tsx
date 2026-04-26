@@ -1,8 +1,12 @@
 import { createRoot } from "react-dom/client";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { initSentry } from "./lib/sentry";
 import App from "./App.tsx";
 import "./i18n";
 import "./index.css";
+
+// Initialize Sentry as early as possible (no-op on preview / dev hosts).
+initSentry();
 
 const BUILD_FINGERPRINT = "2026-04-26T17:40Z";
 const CHUNK_RELOAD_KEY = `dogwork:chunk-reload:${BUILD_FINGERPRINT}`;

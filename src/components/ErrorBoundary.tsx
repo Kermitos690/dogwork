@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
+import { Sentry } from "@/lib/sentry";
 
 type State = { hasError: boolean; error?: Error };
 
@@ -16,6 +17,18 @@ export class ErrorBoundary extends React.Component<React.PropsWithChildren, Stat
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("[ErrorBoundary] Unhandled UI error:", error, errorInfo);
+
+    // Forward to Sentry with React component stack as context.
+    // No-op on preview / dev (initSentry skips those environments).
+    try {
+      Sentry.withScope((scope) => {
+        scope.setTag("source", "react-error-boundary");
+        scope.setContext("react", { componentStack: errorInfo.componentStack });
+        Sentry.captureException(error);
+      });
+    } catch {
+      /* never let monitoring break recovery */
+    }
 
     // Auto-recover from stale chunk references after a new deploy.
     // Typical messages: "Loading chunk X failed", "Importing a module script failed",
