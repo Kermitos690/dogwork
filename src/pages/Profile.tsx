@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LogOut, Save, Shield, Download, Trash2, User, GraduationCap, ShieldCheck, HelpCircle, Crown } from "lucide-react";
+import { ActiveModulesIndicator } from "@/components/ActiveModulesIndicator";
 import { useSubscription, TIERS } from "@/hooks/useSubscription";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
