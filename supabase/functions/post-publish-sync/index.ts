@@ -78,6 +78,22 @@ Deno.serve(async (req) => {
     const report: Record<string, unknown> = { started_at: new Date().toISOString(), steps: [] };
     const steps = report.steps as Record<string, unknown>[];
 
+    // ─── STEP 0: Upsert email dispatch credentials in Vault ───
+    // Why: SQL triggers (notify_email_on_*) call _send_transactional_email which
+    // historically read app.settings.supabase_url / service_role_key. These are
+    // NULL on Lovable Cloud Live, causing emails to be silently dropped.
+    // We persist the running env's URL + service_role_key in Vault so SQL can
+    // read them via vault.decrypted_secrets — environment-aware by construction.
+    try {
+      const { error: vaultErr } = await supabase.rpc("upsert_email_dispatch_secrets", {
+        _project_url: SUPABASE_URL,
+        _service_role_key: SERVICE_ROLE_KEY,
+      });
+      steps.push({ step: "upsert_email_dispatch_secrets", error: vaultErr?.message || null });
+    } catch (e) {
+      steps.push({ step: "upsert_email_dispatch_secrets", error: (e as Error).message });
+    }
+
     // ─── STEP 1: Fix cover image URLs ───
     const instanceHost = new URL(SUPABASE_URL).host;
     const correctPrefix = `${SUPABASE_URL}/storage/v1/object/public/exercise-images/`;
@@ -125,7 +141,7 @@ Deno.serve(async (req) => {
     const featureCatalog = [
       { code: "chat", label: "Chat IA", credits_cost: 1, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.002, cost_estimate_min_usd: 0.001, cost_estimate_max_usd: 0.005, margin_target: 3.0, description: "Conversation avec l'assistant IA" },
       { code: "chat_general", label: "Chat IA général", credits_cost: 1, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.002, cost_estimate_min_usd: 0.001, cost_estimate_max_usd: 0.005, margin_target: 3.0, description: "Chat IA généraliste" },
-      { code: "plan_generator", label: "Générateur de plan", credits_cost: 3, model: "google/gemini-2.5-pro", is_active: true, cost_estimate_avg_usd: 0.01, cost_estimate_min_usd: 0.005, cost_estimate_max_usd: 0.02, margin_target: 3.0, description: "Génération de plans d'entraînement personnalisés" },
+      { code: "plan_generator", label: "Générateur de plan", credits_cost: 5, model: "google/gemini-2.5-pro", is_active: true, cost_estimate_avg_usd: 0.01, cost_estimate_min_usd: 0.005, cost_estimate_max_usd: 0.02, margin_target: 3.0, description: "Génération de plans d'entraînement personnalisés (aligné landing : 5 crédits)" },
       { code: "education_plan", label: "Plan éducatif IA", credits_cost: 5, model: "google/gemini-2.5-pro", is_active: true, cost_estimate_avg_usd: 0.02, cost_estimate_min_usd: 0.01, cost_estimate_max_usd: 0.04, margin_target: 3.0, description: "Plan éducatif complet généré par IA" },
       { code: "behavior_analysis", label: "Analyse comportementale", credits_cost: 3, model: "google/gemini-2.5-pro", is_active: true, cost_estimate_avg_usd: 0.015, cost_estimate_min_usd: 0.008, cost_estimate_max_usd: 0.03, margin_target: 3.0, description: "Analyse comportementale détaillée" },
       { code: "behavior_summary", label: "Résumé comportemental", credits_cost: 2, model: "google/gemini-2.5-flash", is_active: true, cost_estimate_avg_usd: 0.005, cost_estimate_min_usd: 0.002, cost_estimate_max_usd: 0.01, margin_target: 3.0, description: "Résumé comportemental synthétique" },
