@@ -16,6 +16,7 @@ import { MapPin, Clock, Users, Calendar, GraduationCap, CheckCircle, Loader2, St
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { motion } from "framer-motion";
+import { CoachVerifiedBadge } from "@/components/CoachVerifiedBadge";
 
 const CATEGORIES = [
   { value: "all", label: "Toutes catégories" },
