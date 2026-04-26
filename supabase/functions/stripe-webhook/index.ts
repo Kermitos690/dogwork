@@ -214,6 +214,71 @@ serve(async (req) => {
           break;
         }
 
+        // DOGWORK MODULE / PLAN PROVISIONING (one-shot or activation post-checkout)
+        if (
+          (session.mode === "payment" || session.mode === "subscription") &&
+          (session.metadata?.type === "dogwork_module" || session.metadata?.plan_slug || session.metadata?.module_slugs)
+        ) {
+          const userId = session.metadata.user_id || (session.customer ? await resolveUserId(supabaseAdmin, session.customer as string) : null);
+          const orgId = session.metadata.organization_id || null;
+          const planSlug = session.metadata.plan_slug || null;
+          const moduleSlugsRaw = session.metadata.module_slugs || "";
+          const explicitSlugs = moduleSlugsRaw ? moduleSlugsRaw.split(",").map((s: string) => s.trim()).filter(Boolean) : [];
+
+          if (!userId && !orgId) {
+            logStep("WARNING module provisioning: no user/org", { sessionId: session.id });
+            break;
+          }
+
+          try {
+            // Resolve module list from plan + explicit
+            let moduleSlugs: string[] = [...explicitSlugs];
+            if (planSlug) {
+              const { data: pm } = await supabaseAdmin
+                .from("plan_modules").select("module_slug")
+                .eq("plan_slug", planSlug).eq("included", true);
+              moduleSlugs = Array.from(new Set([...moduleSlugs, ...((pm ?? []).map((r: any) => r.module_slug))]));
+            }
+
+            for (const slug of moduleSlugs) {
+              const row = {
+                module_slug: slug, status: "active", source: session.mode === "subscription" ? "subscription" : "addon",
+                activated_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+              };
+              if (orgId) {
+                await supabaseAdmin.from("organization_modules").upsert(
+                  { ...row, organization_id: orgId }, { onConflict: "organization_id,module_slug" });
+              } else if (userId) {
+                await supabaseAdmin.from("user_modules").upsert(
+                  { ...row, user_id: userId }, { onConflict: "user_id,module_slug" });
+              }
+            }
+
+            // Grant included credits if plan
+            if (planSlug && userId) {
+              const { data: plan } = await supabaseAdmin
+                .from("plans").select("included_credits").eq("slug", planSlug).maybeSingle();
+              if (plan?.included_credits && plan.included_credits > 0) {
+                await supabaseAdmin.rpc("credit_ai_wallet", {
+                  _user_id: userId, _credits: plan.included_credits, _operation_type: "monthly_grant",
+                  _description: `Crédits inclus plan ${planSlug}`, _stripe_payment_id: null, _public_price_chf: null,
+                  _metadata: { plan_slug: planSlug, source: "stripe_webhook", session_id: session.id },
+                });
+              }
+            }
+
+            if (userId) await updateBillingEventUser(supabaseAdmin, event.id, userId);
+            logStep("DogWork modules provisioned", { userId, orgId, planSlug, modules: moduleSlugs });
+          } catch (e) {
+            const errMsg = (e as Error).message;
+            logStep("ERROR provisioning modules", { error: errMsg });
+            await supabaseAdmin.from("billing_events").update({
+              processing_status: "error", processing_error: errMsg,
+            }).eq("stripe_event_id", event.id);
+          }
+          break;
+        }
+
         // COURSE BOOKING
         if (session.mode === "payment" && session.metadata?.booking_id) {
           const bookingId = session.metadata.booking_id;
