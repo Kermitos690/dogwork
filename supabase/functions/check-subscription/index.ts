@@ -13,8 +13,8 @@ const logStep = (step: string, details?: any) => {
 
 // Tier → product/price mapping for admin overrides
 const TIER_MAP: Record<string, { product_id: string; price_id: string }> = {
-  pro: { product_id: "prod_U83i1wbeLdd3EI", price_id: "price_1T9nakPshPrEibTgfEAogTJY" },
-  expert: { product_id: "prod_U83inCbv8JMMgf", price_id: "price_1T9nbAPshPrEibTgo3JA1m5S" },
+  pro: { product_id: "prod_U83i1wbeLdd3EI", price_id: "price_1TKpFyPshPrEibTgOW98FPOq" },
+  expert: { product_id: "prod_U83inCbv8JMMgf", price_id: "price_1TKpNpPshPrEibTgDiRVEAmV" },
   educator: { product_id: "prod_U8CxlV7PMpHAgA", price_id: "price_1T9wXlPshPrEibTgEM0BNrSm" },
   shelter: { product_id: "prod_UDKcjmnJnM7pBo", price_id: "price_1TEtxAPshPrEibTgsDFHr8Nw" },
 };
@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
         priceId = "price_1TEtxAPshPrEibTgsDFHr8Nw";
       } else {
         productId = "prod_U83inCbv8JMMgf";
-        priceId = "price_1T9nbAPshPrEibTgo3JA1m5S";
+        priceId = "price_1TKpNpPshPrEibTgDiRVEAmV";
       }
 
       return new Response(JSON.stringify({
