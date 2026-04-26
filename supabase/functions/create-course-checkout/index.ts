@@ -268,12 +268,20 @@ serve(async (req) => {
     }
     logStep("Booking created", { bookingId: booking.id });
 
-    // Get educator's Stripe Connect account
+    // Get educator's Stripe Connect account — REQUIRED in P0 for marketplace payouts
     const { data: stripeData } = await supabaseAdmin
       .from("coach_stripe_data")
       .select("stripe_account_id, stripe_onboarding_complete")
       .eq("user_id", course.educator_user_id)
       .maybeSingle();
+
+    if (!stripeData?.stripe_account_id || !stripeData?.stripe_onboarding_complete) {
+      await supabaseAdmin.from("course_bookings").delete().eq("id", booking.id);
+      return new Response(JSON.stringify({ error: "L'éducateur doit finaliser son onboarding Stripe Connect avant d'accepter des paiements" }), {
+        status: 409,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
@@ -307,21 +315,20 @@ serve(async (req) => {
         commission_rate: commissionRate.toString(),
         acquisition_source: acquisitionSource,
       },
-    };
-
-    // Stripe Connect destination charges
-    if (stripeData?.stripe_account_id && stripeData?.stripe_onboarding_complete) {
-      sessionParams.payment_intent_data = {
+      payment_intent_data: {
         application_fee_amount: commissionCents,
         transfer_data: { destination: stripeData.stripe_account_id },
-      };
-      logStep("Using Stripe Connect", { destination: stripeData.stripe_account_id });
-    } else {
-      logStep("Payment goes to platform directly");
-    }
+      },
+    };
 
     const session = await stripe.checkout.sessions.create(sessionParams);
-    logStep("Checkout session created", { sessionId: session.id });
+    logStep("Checkout session created", { sessionId: session.id, destination: stripeData.stripe_account_id });
+
+    // Persist stripe_session_id on booking for traceability
+    await supabaseAdmin
+      .from("course_bookings")
+      .update({ stripe_session_id: session.id })
+      .eq("id", booking.id);
 
     return new Response(JSON.stringify({ url: session.url, bookingId: booking.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
