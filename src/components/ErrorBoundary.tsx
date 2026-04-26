@@ -16,6 +16,32 @@ export class ErrorBoundary extends React.Component<React.PropsWithChildren, Stat
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("[ErrorBoundary] Unhandled UI error:", error, errorInfo);
+
+    // Auto-recover from stale chunk references after a new deploy.
+    // Typical messages: "Loading chunk X failed", "Importing a module script failed",
+    // "Failed to fetch dynamically imported module".
+    const msg = `${error?.name || ""} ${error?.message || ""}`.toLowerCase();
+    const isChunkError =
+      msg.includes("chunkloaderror") ||
+      msg.includes("loading chunk") ||
+      msg.includes("dynamically imported module") ||
+      msg.includes("importing a module script");
+
+    if (isChunkError && typeof window !== "undefined") {
+      const w: any = window;
+      const KEY = "dogwork:chunk-reload-at";
+      const last = Number(w.sessionStorage.getItem(KEY) || "0");
+      if (Date.now() - last > 30_000) {
+        w.sessionStorage.setItem(KEY, String(Date.now()));
+        if ("caches" in w) {
+          w.caches.keys()
+            .then((keys: string[]) => Promise.all(keys.map((k) => w.caches.delete(k))))
+            .finally(() => w.location.reload());
+        } else {
+          w.location.reload();
+        }
+      }
+    }
   }
 
   render() {

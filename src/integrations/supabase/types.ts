@@ -1756,6 +1756,24 @@ export type Database = {
         }
         Relationships: []
       }
+      email_send_state: {
+        Row: {
+          id: number
+          retry_after_until: string | null
+          updated_at: string
+        }
+        Insert: {
+          id: number
+          retry_after_until?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          retry_after_until?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       exercise_categories: {
         Row: {
           color: string | null

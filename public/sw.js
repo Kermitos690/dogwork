@@ -14,11 +14,11 @@
  *  - Bypass for everything else (Supabase, AI, third parties).
  */
 
-const VERSION = "dogwork-sw-v1";
+const VERSION = "dogwork-sw-v2";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
-const SHELL_URLS = ["/", "/index.html", "/manifest.json", "/favicon.png"];
+const SHELL_URLS = ["/manifest.json", "/favicon.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -52,18 +52,17 @@ self.addEventListener("fetch", (event) => {
   // Bypass Supabase REST/Storage if ever same-origin proxied
   if (url.pathname.startsWith("/functions/") || url.pathname.startsWith("/rest/")) return;
 
-  // Navigation (HTML) → network first, cached shell fallback
+  // Navigation (HTML) → network only, no caching of index.html.
+  // Caching the HTML across deploys causes references to chunk hashes that
+  // no longer exist after a new build → ChunkLoadError that crashes the SPA.
   if (req.mode === "navigate") {
     event.respondWith(
-      fetch(req)
-        .then((res) => {
-          const clone = res.clone();
-          caches.open(RUNTIME_CACHE).then((c) => c.put(req, clone)).catch(() => undefined);
-          return res;
-        })
-        .catch(() =>
-          caches.match(req).then((cached) => cached || caches.match("/index.html")),
-        ),
+      fetch(req).catch(() =>
+        caches.match("/manifest.json").then(() => new Response(
+          "<html><body><script>location.reload()</script></body></html>",
+          { headers: { "Content-Type": "text/html" } }
+        ))
+      ),
     );
     return;
   }
