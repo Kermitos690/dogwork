@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      _p0_test_results: {
+        Row: {
+          id: number
+          message: string | null
+          ran_at: string | null
+          status: string | null
+          test_name: string | null
+        }
+        Insert: {
+          id?: number
+          message?: string | null
+          ran_at?: string | null
+          status?: string | null
+          test_name?: string | null
+        }
+        Update: {
+          id?: number
+          message?: string | null
+          ran_at?: string | null
+          status?: string | null
+          test_name?: string | null
+        }
+        Relationships: []
+      }
       admin_subscriptions: {
         Row: {
           created_at: string
