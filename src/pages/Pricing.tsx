@@ -21,7 +21,7 @@ export default function Pricing() {
   const { data: plans = [] } = usePlans();
   const { data: costs = [] } = useFeatureCosts();
 
-  const groupedPlans = plans.reduce<Record<string, typeof plans>>((acc, p: any) => {
+  const groupedPlans = (plans as any[]).reduce<Record<string, any[]>>((acc, p: any) => {
     (acc[p.target_role] = acc[p.target_role] || []).push(p);
     return acc;
   }, {});
