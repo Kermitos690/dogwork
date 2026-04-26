@@ -154,7 +154,7 @@ serve(async (req) => {
 
     // P0: no active marketplace restrictions
     const { data: isRestricted } = await supabaseAdmin.rpc("has_active_marketplace_restriction", {
-      _user_id: course.educator_user_id,
+      p_educator_id: course.educator_user_id,
     });
     if (isRestricted === true) {
       return new Response(JSON.stringify({ error: "Cet éducateur fait l'objet d'une restriction temporaire" }), {
