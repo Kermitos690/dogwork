@@ -2,6 +2,7 @@ import { useState, useEffect, createContext, useContext, useCallback, useRef } f
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 import { queryClient } from "@/App";
+import { setSentryUser } from "@/lib/sentry";
 
 interface AuthContextType {
   user: User | null;
@@ -48,6 +49,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setSession(session);
       setUser(session?.user ?? null);
+
+      // Tag Sentry events with the current user (no-op on preview / dev).
+      if (session?.user) {
+        setSentryUser({
+          id: session.user.id,
+          email: session.user.email ?? null,
+          role: (session.user.user_metadata?.role as string | undefined) ?? null,
+        });
+      } else {
+        setSentryUser(null);
+      }
+
       if (event === "PASSWORD_RECOVERY") {
         setIsPasswordRecovery(true);
       }
