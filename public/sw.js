@@ -14,11 +14,11 @@
  *  - Bypass for everything else (Supabase, AI, third parties).
  */
 
-const VERSION = "dogwork-sw-v1";
+const VERSION = "dogwork-sw-v2";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
-const SHELL_URLS = ["/", "/index.html", "/manifest.json", "/favicon.png"];
+const SHELL_URLS = ["/manifest.json", "/favicon.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
