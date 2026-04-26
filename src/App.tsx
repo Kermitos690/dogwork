@@ -340,6 +340,7 @@ function ProtectedRoutes() {
         <Route path="/admin/ai-economy" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminAIEconomy /></AdminGuard></Suspense>} />
         <Route path="/admin/stripe" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminStripe /></AdminGuard></Suspense>} />
         <Route path="/admin/stripe/verify" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminStripeVerify /></AdminGuard></Suspense>} />
+        <Route path="/admin/go-live-check" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminGoLiveCheck /></AdminGuard></Suspense>} />
         {/* Shelter routes for admin access (ShelterGuard allows admin) */}
         <Route path="/shelter" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterDashboard /></ShelterGuard></Suspense>} />
         <Route path="/shelter/animals" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterAnimals /></ShelterGuard></Suspense>} />
