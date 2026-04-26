@@ -139,29 +139,24 @@ serve(async (req) => {
       });
     }
 
-    // P0: educator must have payments_marketplace module active
-    const { data: moduleRow } = await supabaseAdmin
-      .from("user_modules")
-      .select("id, module:modules!inner(slug)")
-      .eq("user_id", course.educator_user_id)
-      .eq("is_active", true)
-      .eq("modules.slug", "payments_marketplace")
-      .maybeSingle();
-    if (!moduleRow) {
+    // P0: educator must have payments_marketplace module active — use SQL function for consistency
+    const { data: moduleOk } = await supabaseAdmin.rpc("has_module", {
+      _user_id: course.educator_user_id,
+      _organization_id: null,
+      _module_slug: "payments_marketplace",
+    });
+    if (!moduleOk) {
       return new Response(JSON.stringify({ error: "Module marketplace non activé pour cet éducateur" }), {
         status: 409,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // P0: no active restrictions
-    const { data: restriction } = await supabaseAdmin
-      .from("coach_restrictions")
-      .select("id, reason")
-      .eq("user_id", course.educator_user_id)
-      .eq("is_active", true)
-      .maybeSingle();
-    if (restriction) {
+    // P0: no active marketplace restrictions
+    const { data: isRestricted } = await supabaseAdmin.rpc("has_active_marketplace_restriction", {
+      _user_id: course.educator_user_id,
+    });
+    if (isRestricted === true) {
       return new Response(JSON.stringify({ error: "Cet éducateur fait l'objet d'une restriction temporaire" }), {
         status: 409,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
