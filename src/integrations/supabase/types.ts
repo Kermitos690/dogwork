@@ -2424,6 +2424,39 @@ export type Database = {
         }
         Relationships: []
       }
+      marketplace_content_scans: {
+        Row: {
+          context: string
+          course_id: string | null
+          created_at: string
+          educator_user_id: string
+          id: string
+          matches: Json
+          scanned_text_excerpt: string | null
+          status: string
+        }
+        Insert: {
+          context?: string
+          course_id?: string | null
+          created_at?: string
+          educator_user_id: string
+          id?: string
+          matches?: Json
+          scanned_text_excerpt?: string | null
+          status?: string
+        }
+        Update: {
+          context?: string
+          course_id?: string | null
+          created_at?: string
+          educator_user_id?: string
+          id?: string
+          matches?: Json
+          scanned_text_excerpt?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       marketplace_policy_flags: {
         Row: {
           booking_id: string | null
