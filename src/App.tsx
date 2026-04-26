@@ -60,6 +60,7 @@ const AdminTickets = lazy(() => import("./pages/AdminTickets"));
 const AdminAIEconomy = lazy(() => import("./pages/AdminAIEconomy"));
 const AdminStripe = lazy(() => import("./pages/AdminStripe"));
 const AdminStripeVerify = lazy(() => import("./pages/AdminStripeVerify"));
+const AdminGoLiveCheck = lazy(() => import("./pages/AdminGoLiveCheck"));
 const SupportTickets = lazy(() => import("./pages/SupportTickets"));
 const HelpPage = lazy(() => import("./pages/Help"));
 const SubscriptionPage = lazy(() => import("./pages/Subscription"));
