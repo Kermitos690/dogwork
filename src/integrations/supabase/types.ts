@@ -1230,6 +1230,45 @@ export type Database = {
           },
         ]
       }
+      course_participants: {
+        Row: {
+          booking_id: string | null
+          checked_in: boolean
+          checked_in_at: string | null
+          course_id: string
+          created_at: string
+          dog_id: string | null
+          id: string
+          owner_id: string
+          participant_name: string | null
+          status: string
+        }
+        Insert: {
+          booking_id?: string | null
+          checked_in?: boolean
+          checked_in_at?: string | null
+          course_id: string
+          created_at?: string
+          dog_id?: string | null
+          id?: string
+          owner_id: string
+          participant_name?: string | null
+          status?: string
+        }
+        Update: {
+          booking_id?: string | null
+          checked_in?: boolean
+          checked_in_at?: string | null
+          course_id?: string
+          created_at?: string
+          dog_id?: string | null
+          id?: string
+          owner_id?: string
+          participant_name?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       course_reviews: {
         Row: {
           comment: string | null
@@ -1814,6 +1853,36 @@ export type Database = {
         }
         Relationships: []
       }
+      educator_referral_codes: {
+        Row: {
+          code: string
+          commission_rate: number
+          created_at: string
+          educator_id: string
+          expires_at: string | null
+          id: string
+          status: string
+        }
+        Insert: {
+          code: string
+          commission_rate?: number
+          created_at?: string
+          educator_id: string
+          expires_at?: string | null
+          id?: string
+          status?: string
+        }
+        Update: {
+          code?: string
+          commission_rate?: number
+          created_at?: string
+          educator_id?: string
+          expires_at?: string | null
+          id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       email_send_state: {
         Row: {
           id: number
@@ -2107,6 +2176,78 @@ export type Database = {
           },
         ]
       }
+      feature_credit_costs: {
+        Row: {
+          created_at: string
+          credit_cost: number
+          feature_key: string
+          id: string
+          is_active: boolean
+          label: string
+          module_slug: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          credit_cost: number
+          feature_key: string
+          id?: string
+          is_active?: boolean
+          label: string
+          module_slug?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          credit_cost?: number
+          feature_key?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          module_slug?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      feature_usage: {
+        Row: {
+          credit_cost: number
+          feature_key: string
+          id: string
+          metadata: Json
+          module_slug: string
+          organization_id: string | null
+          quantity: number
+          reference_id: string | null
+          used_at: string
+          user_id: string
+        }
+        Insert: {
+          credit_cost?: number
+          feature_key: string
+          id?: string
+          metadata?: Json
+          module_slug: string
+          organization_id?: string | null
+          quantity?: number
+          reference_id?: string | null
+          used_at?: string
+          user_id: string
+        }
+        Update: {
+          credit_cost?: number
+          feature_key?: string
+          id?: string
+          metadata?: Json
+          module_slug?: string
+          organization_id?: string | null
+          quantity?: number
+          reference_id?: string | null
+          used_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       image_generation_queue: {
         Row: {
           created_at: string
@@ -2232,6 +2373,141 @@ export type Database = {
           },
         ]
       }
+      marketplace_compliance_checks: {
+        Row: {
+          actual_participants: number | null
+          check_type: string
+          checked_by: string | null
+          course_id: string
+          created_at: string
+          declared_participants: number | null
+          id: string
+          mismatch_detected: boolean
+          notes: string | null
+          occurred_at: string
+          paid_participants: number | null
+          registered_participants: number | null
+          scheduled: boolean
+          status: string
+        }
+        Insert: {
+          actual_participants?: number | null
+          check_type?: string
+          checked_by?: string | null
+          course_id: string
+          created_at?: string
+          declared_participants?: number | null
+          id?: string
+          mismatch_detected?: boolean
+          notes?: string | null
+          occurred_at?: string
+          paid_participants?: number | null
+          registered_participants?: number | null
+          scheduled?: boolean
+          status?: string
+        }
+        Update: {
+          actual_participants?: number | null
+          check_type?: string
+          checked_by?: string | null
+          course_id?: string
+          created_at?: string
+          declared_participants?: number | null
+          id?: string
+          mismatch_detected?: boolean
+          notes?: string | null
+          occurred_at?: string
+          paid_participants?: number | null
+          registered_participants?: number | null
+          scheduled?: boolean
+          status?: string
+        }
+        Relationships: []
+      }
+      marketplace_policy_flags: {
+        Row: {
+          booking_id: string | null
+          course_id: string | null
+          created_at: string
+          description: string | null
+          educator_id: string | null
+          flag_type: string
+          id: string
+          resolved_at: string | null
+          severity: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          booking_id?: string | null
+          course_id?: string | null
+          created_at?: string
+          description?: string | null
+          educator_id?: string | null
+          flag_type: string
+          id?: string
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          booking_id?: string | null
+          course_id?: string | null
+          created_at?: string
+          description?: string | null
+          educator_id?: string | null
+          flag_type?: string
+          id?: string
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      marketplace_restrictions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          educator_id: string | null
+          ends_at: string | null
+          id: string
+          organization_id: string | null
+          reason: string | null
+          restriction_type: string
+          severity: string
+          starts_at: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          educator_id?: string | null
+          ends_at?: string | null
+          id?: string
+          organization_id?: string | null
+          reason?: string | null
+          restriction_type: string
+          severity?: string
+          starts_at?: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          educator_id?: string | null
+          ends_at?: string | null
+          id?: string
+          organization_id?: string | null
+          reason?: string | null
+          restriction_type?: string
+          severity?: string
+          starts_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
@@ -2256,6 +2532,206 @@ export type Database = {
           read?: boolean
           recipient_id?: string
           sender_id?: string
+        }
+        Relationships: []
+      }
+      module_limits: {
+        Row: {
+          created_at: string
+          id: string
+          limit_key: string
+          limit_value: number | null
+          module_slug: string
+          plan_slug: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          limit_key: string
+          limit_value?: number | null
+          module_slug: string
+          plan_slug: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          limit_key?: string
+          limit_value?: number | null
+          module_slug?: string
+          plan_slug?: string
+        }
+        Relationships: []
+      }
+      modules: {
+        Row: {
+          available_for_roles: string[]
+          category: string
+          created_at: string
+          credit_cost: number
+          description: string | null
+          id: string
+          is_active: boolean
+          monthly_price_chf: number | null
+          name: string
+          pricing_type: string
+          slug: string
+          sort_order: number
+          updated_at: string
+          yearly_price_chf: number | null
+        }
+        Insert: {
+          available_for_roles?: string[]
+          category: string
+          created_at?: string
+          credit_cost?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          monthly_price_chf?: number | null
+          name: string
+          pricing_type?: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+          yearly_price_chf?: number | null
+        }
+        Update: {
+          available_for_roles?: string[]
+          category?: string
+          created_at?: string
+          credit_cost?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          monthly_price_chf?: number | null
+          name?: string
+          pricing_type?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+          yearly_price_chf?: number | null
+        }
+        Relationships: []
+      }
+      organization_members: {
+        Row: {
+          created_at: string
+          id: string
+          organization_id: string
+          role: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          organization_id: string
+          role?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          organization_id?: string
+          role?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_modules: {
+        Row: {
+          activated_at: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          module_slug: string
+          organization_id: string
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          module_slug: string
+          organization_id: string
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          module_slug?: string
+          organization_id?: string
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_modules_module_slug_fkey"
+            columns: ["module_slug"]
+            isOneToOne: false
+            referencedRelation: "modules"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "organization_modules_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          metadata: Json
+          name: string
+          owner_user_id: string
+          slug: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          name: string
+          owner_user_id: string
+          slug?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          name?: string
+          owner_user_id?: string
+          slug?: string | null
+          type?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -2309,6 +2785,93 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      plan_modules: {
+        Row: {
+          created_at: string
+          id: string
+          included: boolean
+          module_slug: string
+          plan_slug: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          included?: boolean
+          module_slug: string
+          plan_slug: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          included?: boolean
+          module_slug?: string
+          plan_slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_modules_module_slug_fkey"
+            columns: ["module_slug"]
+            isOneToOne: false
+            referencedRelation: "modules"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "plan_modules_plan_slug_fkey"
+            columns: ["plan_slug"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
+      plans: {
+        Row: {
+          billing_interval: string
+          created_at: string
+          description: string | null
+          id: string
+          included_credits: number
+          is_active: boolean
+          name: string
+          price_chf: number
+          slug: string
+          sort_order: number
+          stripe_price_id: string | null
+          target_role: string
+          updated_at: string
+        }
+        Insert: {
+          billing_interval?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          included_credits?: number
+          is_active?: boolean
+          name: string
+          price_chf?: number
+          slug: string
+          sort_order?: number
+          stripe_price_id?: string | null
+          target_role: string
+          updated_at?: string
+        }
+        Update: {
+          billing_interval?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          included_credits?: number
+          is_active?: boolean
+          name?: string
+          price_chf?: number
+          slug?: string
+          sort_order?: number
+          stripe_price_id?: string | null
+          target_role?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       professional_alerts: {
         Row: {
@@ -3201,6 +3764,50 @@ export type Database = {
         }
         Relationships: []
       }
+      user_modules: {
+        Row: {
+          activated_at: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          module_slug: string
+          source: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activated_at?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          module_slug: string
+          source?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activated_at?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          module_slug?: string
+          source?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_modules_module_slug_fkey"
+            columns: ["module_slug"]
+            isOneToOne: false
+            referencedRelation: "modules"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       user_preferences: {
         Row: {
           accent_color: string
@@ -3672,6 +4279,15 @@ export type Database = {
         Args: { _animal_id: string; _space_id: string }
         Returns: undefined
       }
+      can_use_feature: {
+        Args: {
+          _feature_key: string
+          _module_slug: string
+          _organization_id: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       compute_booking_commission: {
         Args: {
           _course_id: string
@@ -3709,6 +4325,16 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      debit_dogwork_credits: {
+        Args: {
+          _feature_key: string
+          _module_slug: string
+          _organization_id: string
+          _reference_id: string
+          _user_id: string
+        }
+        Returns: Json
       }
       derive_behavior_zone: {
         Args: { _tension: number }
@@ -3813,6 +4439,14 @@ export type Database = {
         }
       }
       get_user_tier: { Args: { _user_id: string }; Returns: string }
+      has_module: {
+        Args: {
+          _module_slug: string
+          _organization_id: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -3823,6 +4457,10 @@ export type Database = {
       increment_usage: { Args: { p_feature_key: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
       is_educator: { Args: never; Returns: boolean }
+      is_member_of_organization: {
+        Args: { _organization_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_shelter: { Args: never; Returns: boolean }
       is_shelter_employee: { Args: never; Returns: boolean }
       search_animal_by_chip: {
