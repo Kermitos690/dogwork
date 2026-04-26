@@ -240,20 +240,24 @@ Deno.serve(async (req) => {
     const { count: catCount } = await supabase.from("exercise_categories").select("id", { count: "exact", head: true });
     const { count: planCount } = await supabase.from("subscription_plans").select("code", { count: "exact", head: true });
     const { count: priceCount } = await supabase.from("subscription_plan_prices").select("plan_code", { count: "exact", head: true });
-    
+    const { count: moduleCount } = await supabase.from("modules").select("slug", { count: "exact", head: true });
+
     const exercisesOk = (finalCount || 0) >= TARGET_EXERCISES;
     const plansOk = (planCount || 0) >= 5;
     const pricesOk = (priceCount || 0) >= 5;
-    
-    report.verification = { 
-      total_exercises: finalCount, 
+    const modulesOk = (moduleCount || 0) >= 15;
+
+    report.verification = {
+      total_exercises: finalCount,
       total_categories: catCount,
       subscription_plans: planCount,
       subscription_plan_prices: priceCount,
+      modules: moduleCount,
       exercises_target_met: exercisesOk,
       plans_ok: plansOk,
       prices_ok: pricesOk,
-      production_ready: exercisesOk && plansOk && pricesOk,
+      modules_ok: modulesOk,
+      production_ready: exercisesOk && plansOk && pricesOk && modulesOk,
     };
     report.completed_at = new Date().toISOString();
 
