@@ -28,17 +28,17 @@ export class ErrorBoundary extends React.Component<React.PropsWithChildren, Stat
       msg.includes("importing a module script");
 
     if (isChunkError && typeof window !== "undefined") {
+      const w: any = window;
       const KEY = "dogwork:chunk-reload-at";
-      const last = Number(sessionStorage.getItem(KEY) || "0");
-      // Reload at most once per 30s to avoid loops
+      const last = Number(w.sessionStorage.getItem(KEY) || "0");
       if (Date.now() - last > 30_000) {
-        sessionStorage.setItem(KEY, String(Date.now()));
-        // Purge SW caches so the new index.html + new chunks are served fresh.
-        if ("caches" in window) {
-          caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
-            .finally(() => window.location.reload());
+        w.sessionStorage.setItem(KEY, String(Date.now()));
+        if ("caches" in w) {
+          w.caches.keys()
+            .then((keys: string[]) => Promise.all(keys.map((k) => w.caches.delete(k))))
+            .finally(() => w.location.reload());
         } else {
-          window.location.reload();
+          w.location.reload();
         }
       }
     }
