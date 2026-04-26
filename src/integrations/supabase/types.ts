@@ -1156,13 +1156,16 @@ export type Database = {
       }
       course_bookings: {
         Row: {
+          acquisition_source: string
           amount_cents: number | null
+          applied_commission_rate: number | null
           commission_cents: number | null
           course_id: string
           created_at: string | null
           dog_id: string | null
           educator_note: string | null
           id: string
+          invitation_id: string | null
           payment_status: string | null
           reviewed_at: string | null
           status: string | null
@@ -1170,13 +1173,16 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          acquisition_source?: string
           amount_cents?: number | null
+          applied_commission_rate?: number | null
           commission_cents?: number | null
           course_id: string
           created_at?: string | null
           dog_id?: string | null
           educator_note?: string | null
           id?: string
+          invitation_id?: string | null
           payment_status?: string | null
           reviewed_at?: string | null
           status?: string | null
@@ -1184,13 +1190,16 @@ export type Database = {
           user_id: string
         }
         Update: {
+          acquisition_source?: string
           amount_cents?: number | null
+          applied_commission_rate?: number | null
           commission_cents?: number | null
           course_id?: string
           created_at?: string | null
           dog_id?: string | null
           educator_note?: string | null
           id?: string
+          invitation_id?: string | null
           payment_status?: string | null
           reviewed_at?: string | null
           status?: string | null
@@ -1210,6 +1219,13 @@ export type Database = {
             columns: ["dog_id"]
             isOneToOne: false
             referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_bookings_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: false
+            referencedRelation: "educator_invitations"
             referencedColumns: ["id"]
           },
         ]
@@ -1753,6 +1769,48 @@ export type Database = {
           refuge_referral_discount_percent?: number
           stripe_coupon_id?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      educator_invitations: {
+        Row: {
+          code: string
+          created_at: string
+          educator_user_id: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          label: string
+          max_uses: number | null
+          notes: string | null
+          updated_at: string
+          uses_count: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          educator_user_id: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          max_uses?: number | null
+          notes?: string | null
+          updated_at?: string
+          uses_count?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          educator_user_id?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          max_uses?: number | null
+          notes?: string | null
+          updated_at?: string
+          uses_count?: number
         }
         Relationships: []
       }
@@ -2308,6 +2366,8 @@ export type Database = {
           created_at: string
           display_name: string | null
           id: string
+          referring_educator_user_id: string | null
+          referring_invitation_id: string | null
           updated_at: string
           user_id: string
         }
@@ -2316,6 +2376,8 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          referring_educator_user_id?: string | null
+          referring_invitation_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -2324,10 +2386,20 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          referring_educator_user_id?: string | null
+          referring_invitation_id?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_referring_invitation_id_fkey"
+            columns: ["referring_invitation_id"]
+            isOneToOne: false
+            referencedRelation: "educator_invitations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shelter_activity_log: {
         Row: {
@@ -3600,6 +3672,18 @@ export type Database = {
         Args: { _animal_id: string; _space_id: string }
         Returns: undefined
       }
+      compute_booking_commission: {
+        Args: {
+          _course_id: string
+          _explicit_invitation_id?: string
+          _user_id: string
+        }
+        Returns: {
+          acquisition_source: string
+          commission_rate: number
+          invitation_id: string
+        }[]
+      }
       consume_my_credits: {
         Args: { _credits?: number; _feature_code: string }
         Returns: boolean
@@ -3637,6 +3721,7 @@ export type Database = {
       ensure_ai_wallet: { Args: { _user_id: string }; Returns: string }
       ensure_credit_wallet: { Args: never; Returns: string }
       fix_exercise_json_encoding: { Args: never; Returns: Json }
+      generate_unique_invitation_code: { Args: never; Returns: string }
       get_ai_balance: { Args: { _user_id: string }; Returns: number }
       get_coach_profile_safe: {
         Args: { target_user_id: string }
@@ -3774,6 +3859,17 @@ export type Database = {
       update_shelter_space_position: {
         Args: { _space_id: string; _x: number; _y: number }
         Returns: undefined
+      }
+      validate_invitation_code: {
+        Args: { _code: string }
+        Returns: {
+          educator_display_name: string
+          educator_user_id: string
+          invitation_id: string
+          is_valid: boolean
+          label: string
+          reason: string
+        }[]
       }
       verify_employee_pin: {
         Args: { _employee_id: string; _pin: string }

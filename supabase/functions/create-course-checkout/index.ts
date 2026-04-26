@@ -12,7 +12,9 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[COURSE-CHECKOUT] ${step}${d}`);
 };
 
-const PLATFORM_COMMISSION_RATE = 0.158; // 15.8%
+// Commission dynamique : 15% par défaut (client apporté par DogWork)
+// ou 8% si le client a été invité par l'éducateur via un code dédié.
+// Voir RPC public.compute_booking_commission()
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -75,6 +77,8 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    // Optional: explicit invitation code passed at checkout time
+    const invitationCode = typeof body.invitationCode === "string" ? body.invitationCode.trim() : "";
 
     // ── Service role client for DB operations ──
     const supabaseAdmin = createClient(
@@ -149,7 +153,38 @@ serve(async (req) => {
       }
     }
 
-    const commissionCents = Math.round(course.price_cents * PLATFORM_COMMISSION_RATE);
+    // Resolve invitation_id if a code was provided
+    let invitationId: string | null = null;
+    if (invitationCode) {
+      const { data: validated } = await supabaseAdmin.rpc("validate_invitation_code", { _code: invitationCode });
+      const v = Array.isArray(validated) ? validated[0] : validated;
+      if (v?.is_valid && v?.educator_user_id === course.educator_user_id) {
+        invitationId = v.invitation_id;
+      } else {
+        logStep("Invitation code rejected", { reason: v?.reason ?? "not_found", invitationCode });
+      }
+    }
+
+    // Compute commission via DB RPC (15% by default, 8% if linked to educator invitation)
+    const { data: commData, error: commError } = await supabaseAdmin.rpc("compute_booking_commission", {
+      _user_id: user.id,
+      _course_id: courseId,
+      _explicit_invitation_id: invitationId,
+    });
+    if (commError) {
+      logStep("Commission computation failed", { error: commError.message });
+      return new Response(JSON.stringify({ error: "Erreur de calcul de commission" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const comm = Array.isArray(commData) ? commData[0] : commData;
+    const commissionRate = Number(comm?.commission_rate ?? 0.15);
+    const acquisitionSource = comm?.acquisition_source ?? "platform";
+    const resolvedInvitationId = comm?.invitation_id ?? null;
+    const commissionCents = Math.round(course.price_cents * commissionRate);
+
+    logStep("Commission resolved", { rate: commissionRate, source: acquisitionSource, cents: commissionCents });
 
     // Create pending booking
     const { data: booking, error: bookingError } = await supabaseAdmin
@@ -159,6 +194,9 @@ serve(async (req) => {
         user_id: user.id,
         amount_cents: course.price_cents,
         commission_cents: commissionCents,
+        applied_commission_rate: commissionRate,
+        acquisition_source: acquisitionSource,
+        invitation_id: resolvedInvitationId,
         status: "pending",
         payment_status: "unpaid",
       })
@@ -210,6 +248,8 @@ serve(async (req) => {
         course_id: courseId,
         user_id: user.id,
         commission_cents: commissionCents.toString(),
+        commission_rate: commissionRate.toString(),
+        acquisition_source: acquisitionSource,
       },
     };
 
