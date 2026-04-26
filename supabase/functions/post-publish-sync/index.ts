@@ -214,25 +214,50 @@ Deno.serve(async (req) => {
     const { error: priceErr } = await supabase.from("subscription_plan_prices").upsert(subscriptionPrices, { onConflict: "plan_code,billing_period" });
     steps.push({ step: "upsert_subscription_plan_prices", count: subscriptionPrices.length, error: priceErr?.message || null });
 
+    // ─── STEP 7b: Upsert modules (écosystème DogWork complet) ───
+    const modulesSeed = [
+      { slug: "animal_management", name: "Gestion chiens / animaux", description: "Gérer les fiches chiens : profil, race, suivi, photos.", category: "éducation", available_for_roles: ["owner","adopter","educator","shelter"], is_active: true, sort_order: 10 },
+      { slug: "exercise_library", name: "Bibliothèque d'exercices", description: "Accès aux 480+ exercices enrichis et tutoriels.", category: "éducation", available_for_roles: ["owner","educator","shelter"], is_active: true, sort_order: 20 },
+      { slug: "ai_plans", name: "Plans IA", description: "Générer des plans d'entraînement personnalisés par IA.", category: "ia", available_for_roles: ["owner","educator","shelter"], is_active: true, sort_order: 30 },
+      { slug: "ai_chatbot", name: "Chat IA", description: "Assistant conversationnel pour conseils et analyses.", category: "ia", available_for_roles: ["owner","educator","shelter","adopter"], is_active: true, sort_order: 40 },
+      { slug: "progress_journal", name: "Journal de progression", description: "Suivre les sessions, l'humeur et la progression du chien.", category: "suivi", available_for_roles: ["owner","educator","shelter"], is_active: true, sort_order: 50 },
+      { slug: "behavior_stats", name: "Statistiques comportementales", description: "Tableaux de bord et analyses comportementales.", category: "suivi", available_for_roles: ["owner","educator","shelter"], is_active: true, sort_order: 60 },
+      { slug: "educator_crm", name: "CRM éducateur", description: "Gestion des clients, fiches et historique pour éducateurs.", category: "professionnel", available_for_roles: ["educator"], is_active: true, sort_order: 70 },
+      { slug: "planning", name: "Planning & rendez-vous", description: "Calendrier, créneaux et gestion des rendez-vous.", category: "professionnel", available_for_roles: ["educator","shelter"], is_active: true, sort_order: 80 },
+      { slug: "payments_marketplace", name: "Paiements & marketplace", description: "Encaissement Stripe, commissions et marketplace de cours.", category: "commerce", available_for_roles: ["educator"], is_active: true, sort_order: 90 },
+      { slug: "shelter_management", name: "Gestion refuge", description: "Gestion complète des animaux, espaces et opérations refuge.", category: "refuge", available_for_roles: ["shelter"], is_active: true, sort_order: 100 },
+      { slug: "adoption_followup", name: "Adoption & post-adoption", description: "Plans d'adoption, suivi post-adoption et check-ins.", category: "adoption", available_for_roles: ["shelter","adopter"], is_active: true, sort_order: 110 },
+      { slug: "team_permissions", name: "Équipe & permissions", description: "Gestion des employés, rôles et permissions internes.", category: "organisation", available_for_roles: ["educator","shelter"], is_active: true, sort_order: 120 },
+      { slug: "pdf_exports", name: "Exports PDF", description: "Génération de documents et bilans PDF.", category: "documents", available_for_roles: ["owner","educator","shelter"], is_active: true, sort_order: 130 },
+      { slug: "branding", name: "Branding / page publique", description: "Personnalisation de la page publique professionnelle.", category: "image", available_for_roles: ["educator","shelter"], is_active: true, sort_order: 140 },
+      { slug: "messaging", name: "Messagerie", description: "Messagerie interne entre owners, coachs, refuges et adoptants.", category: "communication", available_for_roles: ["owner","educator","shelter","adopter"], is_active: true, sort_order: 150 },
+    ];
+    const { error: modErr } = await supabase.from("modules").upsert(modulesSeed, { onConflict: "slug" });
+    steps.push({ step: "upsert_modules", count: modulesSeed.length, error: modErr?.message || null });
+
     // ─── STEP 8: Strict Verification ───
     const { count: finalCount } = await supabase.from("exercises").select("id", { count: "exact", head: true });
     const { count: catCount } = await supabase.from("exercise_categories").select("id", { count: "exact", head: true });
     const { count: planCount } = await supabase.from("subscription_plans").select("code", { count: "exact", head: true });
     const { count: priceCount } = await supabase.from("subscription_plan_prices").select("plan_code", { count: "exact", head: true });
-    
+    const { count: moduleCount } = await supabase.from("modules").select("slug", { count: "exact", head: true });
+
     const exercisesOk = (finalCount || 0) >= TARGET_EXERCISES;
     const plansOk = (planCount || 0) >= 5;
     const pricesOk = (priceCount || 0) >= 5;
-    
-    report.verification = { 
-      total_exercises: finalCount, 
+    const modulesOk = (moduleCount || 0) >= 15;
+
+    report.verification = {
+      total_exercises: finalCount,
       total_categories: catCount,
       subscription_plans: planCount,
       subscription_plan_prices: priceCount,
+      modules: moduleCount,
       exercises_target_met: exercisesOk,
       plans_ok: plansOk,
       prices_ok: pricesOk,
-      production_ready: exercisesOk && plansOk && pricesOk,
+      modules_ok: modulesOk,
+      production_ready: exercisesOk && plansOk && pricesOk && modulesOk,
     };
     report.completed_at = new Date().toISOString();
 
