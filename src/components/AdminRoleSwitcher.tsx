@@ -49,7 +49,7 @@ export function AdminRoleSwitcher() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link to="/dashboard">Vue propriétaire</Link>
+          <Link to="/?as=owner">Vue propriétaire</Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link to="/coach">Vue coach</Link>

@@ -272,6 +272,7 @@ function ProtectedRoutes() {
       <Routes>
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/" element={
+          (isAdmin && new URLSearchParams(location.search).get("as") === "owner") ? <Dashboard /> :
           isAdmin ? <Navigate to="/admin" replace /> :
           onboardingInProgress ? <Navigate to="/onboarding" replace /> :
           (isCoach && !hasDogs) ? <Navigate to="/coach" replace /> :
@@ -358,6 +359,13 @@ function ProtectedRoutes() {
         <Route path="/shelter/coaches" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterCoaches /></ShelterGuard></Suspense>} />
         <Route path="/shelter/adoption-checkins" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterAdoptionCheckins /></ShelterGuard></Suspense>} />
         <Route path="/shelter/adoption-plans" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterAdoptionPlans /></ShelterGuard></Suspense>} />
+        {/* Employee routes accessible to admin (EmployeeGuard bypasses for admin) */}
+        <Route path="/employee" element={<Suspense fallback={<PageLoader />}><EmployeeGuard><EmployeeDashboard /></EmployeeGuard></Suspense>} />
+        <Route path="/employee/animals" element={<Suspense fallback={<PageLoader />}><EmployeeGuard><EmployeeAnimals /></EmployeeGuard></Suspense>} />
+        <Route path="/employee/animals/:animalId" element={<Suspense fallback={<PageLoader />}><EmployeeGuard><EmployeeAnimalDetail /></EmployeeGuard></Suspense>} />
+        <Route path="/employee/activity" element={<Suspense fallback={<PageLoader />}><EmployeeGuard><EmployeeActivity /></EmployeeGuard></Suspense>} />
+        <Route path="/employee/profile" element={<Suspense fallback={<PageLoader />}><EmployeeGuard><EmployeeProfile /></EmployeeGuard></Suspense>} />
+        <Route path="/employee/support" element={<Suspense fallback={<PageLoader />}><EmployeeGuard><SupportTickets /></EmployeeGuard></Suspense>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <AIChatBot />
