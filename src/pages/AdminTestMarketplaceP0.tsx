@@ -30,7 +30,13 @@ const initialChecks: CheckResult[] = [
 ];
 
 export default function AdminTestMarketplaceP0() {
-  const { isAdmin, loading } = useUserRole();
+  const { data: isAdmin, isLoading: loading } = useQuery({
+    queryKey: ["is_admin_p0"],
+    queryFn: async () => {
+      const { data } = await supabase.rpc("is_admin");
+      return data === true;
+    },
+  });
   const [checks, setChecks] = useState<CheckResult[]>(initialChecks);
   const [running, setRunning] = useState(false);
 
