@@ -93,6 +93,7 @@ export default function CoachCourses() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const { hasAccepted: hasAcceptedCharter } = useCharterAcceptance();
 
   // Fetch courses
   const { data: courses = [], isLoading } = useQuery({
