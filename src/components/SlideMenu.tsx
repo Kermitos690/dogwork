@@ -15,7 +15,7 @@ import {
   Calendar, User, HelpCircle, CreditCard, GraduationCap, Shield,
   MessageSquare, FileText, Users, LayoutDashboard, CalendarDays,
   Target, AlertTriangle, Dumbbell, LogOut, Settings, Star, X, Heart, ShoppingBag,
-  Coins, LayoutGrid, Sparkles, BookMarked
+  Coins, LayoutGrid, Sparkles, BookMarked, ShieldCheck, Gift
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -143,6 +143,8 @@ export function SlideMenu() {
         { label: t("nav.profile"), icon: User, path: "/profile" },
         { label: t("nav.preferences"), icon: Settings, path: "/preferences" },
         { label: t("nav.shop"), icon: ShoppingBag, path: "/shop" },
+        { label: "Modules", icon: LayoutGrid, path: "/modules" },
+        { label: "Tarifs DogWork", icon: Coins, path: "/pricing" },
         { label: t("nav.subscription"), icon: CreditCard, path: "/subscription" },
         { label: t("nav.help"), icon: HelpCircle, path: "/help" },
         { label: "Support", icon: MessageSquare, path: "/support" },
@@ -161,6 +163,8 @@ export function SlideMenu() {
         { label: t("menu.calendar"), icon: CalendarDays, path: "/coach/calendar" },
         { label: t("menu.notes"), icon: FileText, path: "/coach/notes" },
         { label: t("nav.stats"), icon: BarChart3, path: "/coach/stats" },
+        { label: "Parrainages", icon: Gift, path: "/coach/referrals" },
+        { label: "Conformité", icon: ShieldCheck, path: "/coach/compliance" },
       ],
     },
   ];
@@ -170,6 +174,7 @@ export function SlideMenu() {
       title: t("menu.admin"),
       items: [
         { label: t("menu.adminDashboard"), icon: Shield, path: "/admin" },
+        { label: "Conformité marketplace", icon: ShieldCheck, path: "/admin/compliance" },
       ],
     },
   ];
