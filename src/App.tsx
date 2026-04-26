@@ -52,6 +52,7 @@ const CoachCourses = lazy(() => import("./pages/CoachCourses"));
 const CoachGuard = lazy(() => import("./components/CoachGuard").then(m => ({ default: m.CoachGuard })));
 const AdminGuard = lazy(() => import("./components/AdminGuard").then(m => ({ default: m.AdminGuard })));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const AdminModules = lazy(() => import("./pages/AdminModules"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminTreasury = lazy(() => import("./pages/AdminTreasury"));
 const AdminLaunchChecklist = lazy(() => import("./pages/AdminLaunchChecklist"));
@@ -333,6 +334,7 @@ function ProtectedRoutes() {
         <Route path="/coach/exercises" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachExercises /></CoachGuard></Suspense>} />
         
         <Route path="/admin" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminDashboard /></AdminGuard></Suspense>} />
+        <Route path="/admin/modules" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminModules /></AdminGuard></Suspense>} />
         <Route path="/admin/treasury" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminTreasury /></AdminGuard></Suspense>} />
         <Route path="/admin/launch" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminLaunchChecklist /></AdminGuard></Suspense>} />
         <Route path="/admin/subscriptions" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminSubscriptions /></AdminGuard></Suspense>} />
