@@ -2,7 +2,7 @@
 
 Plateforme digitale premium pour l'écosystème canin professionnel — propriétaires, éducateurs, refuges, chenils et administration.
 
-🌐 **Production** : [www.dogwork-at-home.com](https://www.dogwork-at-home.com)
+🌐 **Production** : [dogwork-at-home.com](https://dogwork-at-home.com)
 
 ## Stack technique
 

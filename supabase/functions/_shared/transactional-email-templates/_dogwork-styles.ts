@@ -1,8 +1,8 @@
 // Styles partagés pour les emails transactionnels DogWork.
 // Charte alignée avec les templates auth (palette navy + bleu DogWork).
 
-export const LOGO_URL = 'https://www.dogwork-at-home.com/logo-dogwork.png'
-export const SITE_URL = 'https://www.dogwork-at-home.com'
+export const LOGO_URL = 'https://dogwork-at-home.com/logo-dogwork.png'
+export const SITE_URL = 'https://dogwork-at-home.com'
 export const SITE_NAME = 'DogWork'
 
 export const styles = {

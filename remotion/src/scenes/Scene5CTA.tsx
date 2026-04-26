@@ -97,7 +97,7 @@ export const Scene5CTA = () => {
           background: `${COLORS.primary}12`,
           border: `1px solid ${COLORS.primary}30`,
         }}>
-          www.dogwork-at-home.com
+          dogwork-at-home.com
         </div>
 
         {/* Gratuit badge */}

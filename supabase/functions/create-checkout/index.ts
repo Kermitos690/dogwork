@@ -84,7 +84,7 @@ serve(async (req) => {
 
       if (existingOwnerSub) {
         logStep("Existing owner subscription found — redirecting to portal", { subId: existingOwnerSub.id });
-        const origin = req.headers.get("origin") || "https://www.dogwork-at-home.com";
+        const origin = req.headers.get("origin") || "https://dogwork-at-home.com";
         const portalSession = await stripe.billingPortal.sessions.create({
           customer: customerId,
           return_url: `${origin}/subscription`,
@@ -96,7 +96,7 @@ serve(async (req) => {
       }
     }
 
-    const origin = req.headers.get("origin") || "https://www.dogwork-at-home.com";
+    const origin = req.headers.get("origin") || "https://dogwork-at-home.com";
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
