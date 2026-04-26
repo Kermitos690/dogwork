@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { SlideMenu } from "@/components/SlideMenu";
 import { FloatingReadAloud } from "@/components/FloatingReadAloud";
 import { DogSwitcher } from "@/components/DogSwitcher";
+import { AdminRoleSwitcher } from "@/components/AdminRoleSwitcher";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -68,9 +69,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background pb-20">
       <SlideMenu />
       <FloatingReadAloud />
-      {showTopDogSwitcher && (
-        <div className="fixed top-3 right-3 z-40">
-          <DogSwitcher />
+      {!hideNav && (
+        <div className="fixed top-3 right-3 z-40 flex items-center gap-2">
+          <AdminRoleSwitcher />
+          {showTopDogSwitcher && <DogSwitcher />}
         </div>
       )}
       <div className="mx-auto max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-6xl px-4 pt-16">
