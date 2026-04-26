@@ -46,23 +46,44 @@ export class ErrorBoundary extends React.Component<React.PropsWithChildren, Stat
 
   render() {
     if (this.state.hasError) {
+      const msg = `${this.state.error?.name || ""} ${this.state.error?.message || ""}`.toLowerCase();
+      const isChunkError =
+        msg.includes("chunkloaderror") ||
+        msg.includes("loading chunk") ||
+        msg.includes("dynamically imported module") ||
+        msg.includes("importing a module script");
+
+      const hardReload = () => {
+        try {
+          if ("caches" in window) {
+            window.caches.keys().then((keys) =>
+              Promise.all(keys.map((k) => window.caches.delete(k)))
+            ).finally(() => window.location.reload());
+            return;
+          }
+        } catch { /* noop */ }
+        window.location.reload();
+      };
+
       return (
         <div className="min-h-screen flex items-center justify-center p-6 bg-background">
           <div className="max-w-md text-center space-y-4">
             <AlertTriangle className="h-12 w-12 text-destructive mx-auto" />
             <h1 className="text-2xl font-bold text-foreground">
-              Une erreur est survenue
+              {isChunkError ? "Nouvelle version disponible" : "Une erreur est survenue"}
             </h1>
             <p className="text-muted-foreground">
-              Recharge la page ou réessaie dans quelques instants.
+              {isChunkError
+                ? "L'application a été mise à jour. Recharge la page pour utiliser la dernière version."
+                : "Recharge la page ou réessaie dans quelques instants."}
             </p>
             {import.meta.env.DEV && this.state.error && (
               <pre className="text-left text-xs bg-muted p-3 rounded-lg overflow-auto max-h-40 text-destructive">
                 {this.state.error.message}
               </pre>
             )}
-            <Button onClick={() => window.location.reload()} variant="default">
-              Recharger la page
+            <Button onClick={hardReload} variant="default">
+              {isChunkError ? "Recharger l'application" : "Recharger la page"}
             </Button>
           </div>
         </div>

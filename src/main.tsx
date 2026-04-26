@@ -4,7 +4,7 @@ import App from "./App.tsx";
 import "./i18n";
 import "./index.css";
 
-const BUILD_FINGERPRINT = "2026-04-20T15:05Z";
+const BUILD_FINGERPRINT = "2026-04-26T17:40Z";
 const CHUNK_RELOAD_KEY = `dogwork:chunk-reload:${BUILD_FINGERPRINT}`;
 
 function reloadOnceForStaleAssets(reason: unknown) {
