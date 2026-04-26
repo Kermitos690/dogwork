@@ -168,6 +168,36 @@ export default function CoachSubscription() {
           </div>
         </div>
 
+        {/* Stripe Connect — réservations bloquées tant que onboarding non terminé */}
+        {subscribed && connectStatus && !connectStatus.onboarding_complete && (
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+            <Card className="border-amber-500/40 bg-amber-500/5">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex gap-3">
+                  <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-foreground">
+                      Stripe Connect n'est pas encore finalisé
+                    </p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Les réservations de vos cours ne peuvent pas être activées tant que l'onboarding
+                      Stripe Connect n'est pas terminé. Vos clients ne pourront pas payer en ligne.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  className="w-full gap-2"
+                  onClick={handleConnectOnboard}
+                  disabled={connectLoading}
+                >
+                  {connectLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+                  Finaliser Stripe Connect
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
         {/* Paywall notice if not subscribed */}
         {!checking && !subscribed && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
