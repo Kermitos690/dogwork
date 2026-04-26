@@ -112,7 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resetPassword = useCallback(async (email: string) => {
     // Use the current origin so the redirect works from any deployed domain
-    // (dogwork.lovable.app, www.dogwork-at-home.com, preview, etc.)
+    // (dogwork.lovable.app, dogwork-at-home.com, preview, etc.)
     const redirectTo = `${window.location.origin}/reset-password`;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo,

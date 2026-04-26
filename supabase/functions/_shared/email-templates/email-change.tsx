@@ -24,7 +24,7 @@ interface EmailChangeEmailProps {
   confirmationUrl: string
 }
 
-const LOGO_URL = 'https://www.dogwork-at-home.com/logo-dogwork.png'
+const LOGO_URL = 'https://dogwork-at-home.com/logo-dogwork.png'
 
 export const EmailChangeEmail = ({
   siteName,

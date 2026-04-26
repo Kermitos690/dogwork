@@ -19,7 +19,7 @@ interface ReauthenticationEmailProps {
   token: string
 }
 
-const LOGO_URL = 'https://www.dogwork-at-home.com/logo-dogwork.png'
+const LOGO_URL = 'https://dogwork-at-home.com/logo-dogwork.png'
 
 export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => (
   <Html lang="fr" dir="ltr">

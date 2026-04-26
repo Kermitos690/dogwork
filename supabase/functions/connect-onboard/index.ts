@@ -100,7 +100,7 @@ serve(async (req) => {
       logStep("Existing Connect account found", { accountId });
     }
 
-    const origin = req.headers.get("origin") || "https://www.dogwork-at-home.com";
+    const origin = req.headers.get("origin") || "https://dogwork-at-home.com";
 
     const accountLink = await stripe.accountLinks.create({
       account: accountId,

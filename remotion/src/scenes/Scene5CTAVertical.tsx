@@ -68,7 +68,7 @@ export const Scene5CTAVertical = () => {
           transform: `translateY(${interpolate(urlSp, [0, 1], [20, 0])}px)`,
           padding: "14px 36px", borderRadius: 14,
           background: `${COLORS.primary}12`, border: `1px solid ${COLORS.primary}30`,
-        }}>www.dogwork-at-home.com</div>
+        }}>dogwork-at-home.com</div>
 
         <div style={{
           fontFamily: FONTS.inter, fontWeight: 500, fontSize: 14,

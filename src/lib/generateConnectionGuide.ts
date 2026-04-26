@@ -334,7 +334,7 @@ export function generateConnectionGuidePDF({ name, email, role, tempPassword }: 
         {
           num: "1",
           title: "Accéder à DogWork",
-          body: "Ouvrez votre navigateur et rendez-vous sur :\nhttps://www.dogwork-at-home.com",
+          body: "Ouvrez votre navigateur et rendez-vous sur :\nhttps://dogwork-at-home.com",
         },
         {
           num: "2",
@@ -356,7 +356,7 @@ export function generateConnectionGuidePDF({ name, email, role, tempPassword }: 
         {
           num: "1",
           title: "Accéder à DogWork",
-          body: "Ouvrez votre navigateur et rendez-vous sur :\nhttps://www.dogwork-at-home.com",
+          body: "Ouvrez votre navigateur et rendez-vous sur :\nhttps://dogwork-at-home.com",
         },
         {
           num: "2",
