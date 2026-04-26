@@ -996,6 +996,33 @@ export type Database = {
           },
         ]
       }
+      coach_charter_acceptances: {
+        Row: {
+          accepted_at: string
+          charter_version: string
+          id: string
+          ip_address: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string
+          charter_version?: string
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string
+          charter_version?: string
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       coach_notes: {
         Row: {
           client_user_id: string | null
@@ -4528,6 +4555,10 @@ export type Database = {
       }
       is_shelter: { Args: never; Returns: boolean }
       is_shelter_employee: { Args: never; Returns: boolean }
+      provision_modules_for_tier: {
+        Args: { _tier: string; _user_id: string }
+        Returns: undefined
+      }
       search_animal_by_chip: {
         Args: { _chip_id: string }
         Returns: {

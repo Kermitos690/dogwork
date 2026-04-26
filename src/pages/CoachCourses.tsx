@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { CoachLayout } from "@/components/CoachLayout";
+import { CharterGate } from "@/components/CharterGate";
+import { useCharterAcceptance } from "@/hooks/useCharterAcceptance";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,6 +93,7 @@ export default function CoachCourses() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const { hasAccepted: hasAcceptedCharter } = useCharterAcceptance();
 
   // Fetch courses
   const { data: courses = [], isLoading } = useQuery({
@@ -175,6 +178,9 @@ export default function CoachCourses() {
   // Create / update mutation
   const saveCourse = useMutation({
     mutationFn: async (payload: typeof form & { id?: string }) => {
+      if (!hasAcceptedCharter) {
+        throw new Error("Vous devez accepter la Charte Coach avant de publier un cours.");
+      }
       // Compliance scan: detect off-platform payment mentions before saving
       const scanText = `${payload.title}\n${payload.description ?? ""}`;
       try {
@@ -303,7 +309,7 @@ export default function CoachCourses() {
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" onClick={openNew}>
+              <Button size="sm" onClick={openNew} disabled={!hasAcceptedCharter}>
                 <Plus className="h-4 w-4 mr-1" /> Nouveau
               </Button>
             </DialogTrigger>
@@ -386,6 +392,13 @@ export default function CoachCourses() {
           </Dialog>
         </div>
       </div>
+
+      {/* Charter gate — blocks publishing if not accepted */}
+      {!hasAcceptedCharter && (
+        <div className="px-4 pt-4">
+          <CharterGate>{null}</CharterGate>
+        </div>
+      )}
 
       {/* Stats cards */}
       <div className="px-4 pt-4 grid grid-cols-2 gap-3">
