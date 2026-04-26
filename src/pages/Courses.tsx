@@ -223,7 +223,12 @@ export default function Courses() {
       }
     } catch (err: any) {
       newWindow?.close();
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      const parsed = await parseEdgeFunctionError(err);
+      toast({
+        title: parsed.status === 409 ? "Réservation impossible" : "Erreur",
+        description: parsed.message,
+        variant: "destructive",
+      });
     }
     setBookingLoading(null);
   };
