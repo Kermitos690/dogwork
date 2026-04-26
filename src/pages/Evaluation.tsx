@@ -125,7 +125,7 @@ export default function Evaluation() {
     try {
       if (existing && form.id) {
         const { id, created_at, ...updates } = form;
-        await supabase.from("dog_evaluations").update(updates as any).eq("id", id);
+        await supabase.from("dog_evaluations").update(updates as EvalUpdate).eq("id", id);
       } else {
         await supabase.from("dog_evaluations").insert({ ...form, dog_id: activeDog.id, user_id: user.id });
       }
