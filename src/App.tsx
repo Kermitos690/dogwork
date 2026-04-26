@@ -102,6 +102,8 @@ const LegalPage = lazy(() => import("./pages/Legal"));
 const ShopPage = lazy(() => import("./pages/Shop"));
 const OutilsPage = lazy(() => import("./pages/Outils"));
 const DocumentsPage = lazy(() => import("./pages/Documents"));
+const ModulesPage = lazy(() => import("./pages/Modules"));
+const PricingPage = lazy(() => import("./pages/Pricing"));
 
 export const queryClient = new QueryClient();
 
@@ -295,6 +297,8 @@ function ProtectedRoutes() {
         <Route path="/shop" element={<ShopPage />} />
         <Route path="/outils" element={<OutilsPage />} />
         <Route path="/documents" element={<DocumentsPage />} />
+        <Route path="/modules" element={<ModulesPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
         <Route path="/agents" element={<Navigate to="/outils" replace />} />
         <Route path="/force-password-change" element={<ForcePasswordChange />} />
         <Route path="/program" element={<Navigate to="/plan" replace />} />
