@@ -143,6 +143,8 @@ export function SlideMenu() {
         { label: t("nav.profile"), icon: User, path: "/profile" },
         { label: t("nav.preferences"), icon: Settings, path: "/preferences" },
         { label: t("nav.shop"), icon: ShoppingBag, path: "/shop" },
+        { label: "Modules", icon: LayoutGrid, path: "/modules" },
+        { label: "Tarifs DogWork", icon: Coins, path: "/pricing" },
         { label: t("nav.subscription"), icon: CreditCard, path: "/subscription" },
         { label: t("nav.help"), icon: HelpCircle, path: "/help" },
         { label: "Support", icon: MessageSquare, path: "/support" },
