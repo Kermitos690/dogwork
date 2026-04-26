@@ -60,16 +60,16 @@ export default function Auth() {
         if (ref) {
           supabase
             .from("educator_referral_codes")
-            .select("id, educator_user_id")
+            .select("id, educator_id")
             .eq("code", ref)
-            .eq("active", true)
+            .eq("status", "active")
             .maybeSingle()
             .then(({ data }) => {
-              if (data?.id && data.educator_user_id !== user.id) {
+              if (data?.id && data.educator_id !== user.id) {
                 supabase.from("referral_attributions").insert({
                   referral_code_id: data.id,
                   referred_user_id: user.id,
-                  educator_user_id: data.educator_user_id,
+                  educator_user_id: data.educator_id,
                 }).then(() => {
                   localStorage.removeItem("dogwork_referral_code");
                 });
