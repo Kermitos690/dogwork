@@ -248,6 +248,8 @@ serve(async (req) => {
         course_id: courseId,
         user_id: user.id,
         commission_cents: commissionCents.toString(),
+        commission_rate: commissionRate.toString(),
+        acquisition_source: acquisitionSource,
       },
     };
 
