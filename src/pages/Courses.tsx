@@ -18,6 +18,7 @@ import { fr } from "date-fns/locale";
 import { motion } from "framer-motion";
 import { CoachVerifiedBadge } from "@/components/CoachVerifiedBadge";
 import { ActiveModulesIndicator } from "@/components/ActiveModulesIndicator";
+import { parseEdgeFunctionError } from "@/lib/edgeFunctionError";
 
 const CATEGORIES = [
   { value: "all", label: "Toutes catégories" },
