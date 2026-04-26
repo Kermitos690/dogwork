@@ -386,6 +386,8 @@ export default function CoachCourses() {
                 </Button>
               </div>
             </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Charter gate — blocks publishing if not accepted */}
