@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Helmet } from "react-helmet-async";
+
 import { AlertTriangle, ShieldCheck, ShieldAlert, RefreshCw } from "lucide-react";
 
 interface Scan {
@@ -47,10 +47,7 @@ export default function AdminCompliance() {
 
   return (
     <div className="container mx-auto max-w-6xl py-8 px-4">
-      <Helmet>
-        <title>Conformité Marketplace — Admin DogWork</title>
-        <meta name="description" content="Suivi des contrôles de conformité contenu marketplace" />
-      </Helmet>
+      
 
       <div className="flex items-center justify-between mb-6">
         <div>

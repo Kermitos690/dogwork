@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Copy, Plus, Trash2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { Helmet } from "react-helmet-async";
+
 
 interface ReferralCode {
   id: string;
@@ -90,13 +90,7 @@ export default function EducatorReferrals() {
 
   return (
     <div className="container mx-auto max-w-4xl py-8 px-4">
-      <Helmet>
-        <title>Mes codes parrainage — DogWork</title>
-        <meta
-          name="description"
-          content="Gérer vos codes parrainage et invitations clients DogWork"
-        />
-      </Helmet>
+      
 
       <div className="mb-6">
         <h1 className="text-3xl font-bold tracking-tight">Codes parrainage</h1>
