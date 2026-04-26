@@ -172,6 +172,7 @@ export function SlideMenu() {
       title: t("menu.admin"),
       items: [
         { label: t("menu.adminDashboard"), icon: Shield, path: "/admin" },
+        { label: "Conformité marketplace", icon: ShieldCheck, path: "/admin/compliance" },
       ],
     },
   ];
