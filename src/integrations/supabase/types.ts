@@ -4864,6 +4864,10 @@ export type Database = {
         Args: { _space_id: string; _x: number; _y: number }
         Returns: undefined
       }
+      upsert_email_dispatch_secrets: {
+        Args: { _project_url: string; _service_role_key: string }
+        Returns: undefined
+      }
       validate_invitation_code: {
         Args: { _code: string }
         Returns: {
