@@ -38,6 +38,33 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_module_overrides: {
+        Row: {
+          admin_user_id: string
+          created_at: string
+          enabled: boolean
+          id: string
+          module_slug: string
+          updated_at: string
+        }
+        Insert: {
+          admin_user_id: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          module_slug: string
+          updated_at?: string
+        }
+        Update: {
+          admin_user_id?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          module_slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       admin_subscriptions: {
         Row: {
           created_at: string
@@ -4672,6 +4699,12 @@ export type Database = {
       }
       get_employee_shelter_id: { Args: { _user_id: string }; Returns: string }
       get_exercise_for_user: { Args: { _slug: string }; Returns: Json }
+      get_my_active_modules: {
+        Args: never
+        Returns: {
+          module_slug: string
+        }[]
+      }
       get_my_credit_balance: {
         Args: never
         Returns: {
