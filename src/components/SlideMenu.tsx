@@ -15,7 +15,7 @@ import {
   Calendar, User, HelpCircle, CreditCard, GraduationCap, Shield,
   MessageSquare, FileText, Users, LayoutDashboard, CalendarDays,
   Target, AlertTriangle, Dumbbell, LogOut, Settings, Star, X, Heart, ShoppingBag,
-  Coins, LayoutGrid, Sparkles, BookMarked, ShieldCheck, Gift
+  Coins, LayoutGrid, Sparkles, BookMarked, ShieldCheck, Gift, FlaskConical
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -175,6 +175,7 @@ export function SlideMenu() {
       items: [
         { label: t("menu.adminDashboard"), icon: Shield, path: "/admin" },
         { label: "Conformité marketplace", icon: ShieldCheck, path: "/admin/compliance" },
+        { label: "Test webhook Stripe", icon: FlaskConical, path: "/admin/test-webhook" },
       ],
     },
   ];
