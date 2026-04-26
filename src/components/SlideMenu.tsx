@@ -176,6 +176,7 @@ export function SlideMenu() {
         { label: t("menu.adminDashboard"), icon: Shield, path: "/admin" },
         { label: "Conformité marketplace", icon: ShieldCheck, path: "/admin/compliance" },
         { label: "Test webhook Stripe", icon: FlaskConical, path: "/admin/test-webhook" },
+        { label: "Audit P0 Marketplace", icon: ShieldCheck, path: "/admin/test-marketplace-p0" },
       ],
     },
   ];
