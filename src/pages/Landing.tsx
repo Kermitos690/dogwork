@@ -525,6 +525,7 @@ export default function Landing() {
                   "Chatbot IA 24/7",
                   "Analyse comportementale avancée",
                   "30 crédits IA inclus / mois",
+                
                 ].map((f, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm">
                     <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 text-accent" />
@@ -555,18 +556,18 @@ export default function Landing() {
             <div className="grid sm:grid-cols-3 gap-4">
               <div className="p-4 rounded-xl bg-card/60 border border-border/40 text-center">
                 <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-1">Découverte</div>
-                <div className="text-2xl font-black">25 crédits</div>
-                <div className="text-sm text-primary font-semibold mt-1">2.90 CHF</div>
+                <div className="text-2xl font-black">50 crédits</div>
+                <div className="text-sm text-primary font-semibold mt-1">4.90 CHF</div>
               </div>
               <div className="p-4 rounded-xl bg-card/80 border border-primary/30 text-center relative">
                 <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] font-bold uppercase px-2 py-0.5 rounded-full">Populaire</div>
                 <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-1">Standard</div>
-                <div className="text-2xl font-black">100 crédits</div>
+                <div className="text-2xl font-black">150 crédits</div>
                 <div className="text-sm text-primary font-semibold mt-1">9.90 CHF</div>
               </div>
               <div className="p-4 rounded-xl bg-card/60 border border-border/40 text-center">
                 <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-1">Premium</div>
-                <div className="text-2xl font-black">300 crédits</div>
+                <div className="text-2xl font-black">500 crédits</div>
                 <div className="text-sm text-primary font-semibold mt-1">24.90 CHF</div>
               </div>
             </div>
