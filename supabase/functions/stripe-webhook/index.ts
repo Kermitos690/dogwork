@@ -140,23 +140,36 @@ serve(async (req) => {
   try {
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
+    const detectedMode = (stripeKey ?? "").startsWith("sk_live_") || (stripeKey ?? "").startsWith("rk_live_")
+      ? "live"
+      : (stripeKey ?? "").startsWith("sk_test_") || (stripeKey ?? "").startsWith("rk_test_")
+      ? "test"
+      : "unknown";
+    logStep("Webhook hit", { mode: detectedMode, has_secret: !!webhookSecret });
     if (!stripeKey || !webhookSecret) throw new Error("Missing STRIPE_SECRET_KEY or STRIPE_WEBHOOK_SECRET");
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const body = await req.text();
     const sig = req.headers.get("stripe-signature");
-    if (!sig) return new Response("Missing stripe-signature header", { status: 400 });
+    if (!sig) {
+      logStep("Missing stripe-signature header");
+      return new Response("Missing stripe-signature header", { status: 400 });
+    }
 
     let event: Stripe.Event;
     try {
       event = await stripe.webhooks.constructEventAsync(body, sig, webhookSecret);
     } catch (err) {
-      logStep("Signature verification failed", { error: (err as Error).message });
+      logStep("Signature verification FAILED", { error: (err as Error).message, mode: detectedMode });
       return new Response("Webhook signature verification failed", { status: 400 });
     }
 
-    logStep("Event received", { type: event.type, id: event.id });
     const connectedAccountId = (event as any).account || null;
+    const sessionId = (event.data.object as any)?.id || null;
+    logStep("Event verified", {
+      type: event.type, id: event.id, mode: detectedMode,
+      connected_account: connectedAccountId, session_id: sessionId,
+    });
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
