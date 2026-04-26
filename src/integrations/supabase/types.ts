@@ -2525,6 +2525,8 @@ export type Database = {
       }
       shelter_animals: {
         Row: {
+          adopter_email: string | null
+          adopter_name: string | null
           arrival_date: string
           behavior_notes: string | null
           breed: string | null
@@ -2547,6 +2549,8 @@ export type Database = {
           weight_kg: number | null
         }
         Insert: {
+          adopter_email?: string | null
+          adopter_name?: string | null
           arrival_date?: string
           behavior_notes?: string | null
           breed?: string | null
@@ -2569,6 +2573,8 @@ export type Database = {
           weight_kg?: number | null
         }
         Update: {
+          adopter_email?: string | null
+          adopter_name?: string | null
           arrival_date?: string
           behavior_notes?: string | null
           breed?: string | null
