@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CheckCircle2, XCircle, AlertTriangle, ShieldCheck, Loader2, KeyRound } from "lucide-react";
 import { toast } from "sonner";
-import { extractEdgeFunctionError } from "@/lib/edgeFunctionError";
+import { parseEdgeFunctionError } from "@/lib/edgeFunctionError";
 
 type CheckResult = {
   group: string;
@@ -45,7 +45,8 @@ export default function AdminStripeVerify() {
     try {
       const { data, error } = await supabase.functions.invoke("verify-stripe-key");
       if (error) {
-        throw new Error(extractEdgeFunctionError(error, "Vérification impossible"));
+        const parsed = await parseEdgeFunctionError(error);
+        throw new Error(parsed.message);
       }
       if ((data as any)?.error) {
         throw new Error((data as any).error);

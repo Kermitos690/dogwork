@@ -59,6 +59,7 @@ const AdminSubscriptions = lazy(() => import("./pages/AdminSubscriptions"));
 const AdminTickets = lazy(() => import("./pages/AdminTickets"));
 const AdminAIEconomy = lazy(() => import("./pages/AdminAIEconomy"));
 const AdminStripe = lazy(() => import("./pages/AdminStripe"));
+const AdminStripeVerify = lazy(() => import("./pages/AdminStripeVerify"));
 const SupportTickets = lazy(() => import("./pages/SupportTickets"));
 const HelpPage = lazy(() => import("./pages/Help"));
 const SubscriptionPage = lazy(() => import("./pages/Subscription"));
@@ -337,6 +338,7 @@ function ProtectedRoutes() {
         <Route path="/admin/tickets" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminTickets /></AdminGuard></Suspense>} />
         <Route path="/admin/ai-economy" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminAIEconomy /></AdminGuard></Suspense>} />
         <Route path="/admin/stripe" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminStripe /></AdminGuard></Suspense>} />
+        <Route path="/admin/stripe/verify" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminStripeVerify /></AdminGuard></Suspense>} />
         {/* Shelter routes for admin access (ShelterGuard allows admin) */}
         <Route path="/shelter" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterDashboard /></ShelterGuard></Suspense>} />
         <Route path="/shelter/animals" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterAnimals /></ShelterGuard></Suspense>} />
