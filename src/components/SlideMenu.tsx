@@ -15,7 +15,7 @@ import {
   Calendar, User, HelpCircle, CreditCard, GraduationCap, Shield,
   MessageSquare, FileText, Users, LayoutDashboard, CalendarDays,
   Target, AlertTriangle, Dumbbell, LogOut, Settings, Star, X, Heart, ShoppingBag,
-  Coins, LayoutGrid, Sparkles, BookMarked
+  Coins, LayoutGrid, Sparkles, BookMarked, ShieldCheck, Gift
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -161,6 +161,8 @@ export function SlideMenu() {
         { label: t("menu.calendar"), icon: CalendarDays, path: "/coach/calendar" },
         { label: t("menu.notes"), icon: FileText, path: "/coach/notes" },
         { label: t("nav.stats"), icon: BarChart3, path: "/coach/stats" },
+        { label: "Parrainages", icon: Gift, path: "/coach/referrals" },
+        { label: "Conformité", icon: ShieldCheck, path: "/coach/compliance" },
       ],
     },
   ];
