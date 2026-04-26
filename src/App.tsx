@@ -105,6 +105,7 @@ const DocumentsPage = lazy(() => import("./pages/Documents"));
 const ModulesPage = lazy(() => import("./pages/Modules"));
 const PricingPage = lazy(() => import("./pages/Pricing"));
 const EducatorReferrals = lazy(() => import("./pages/EducatorReferrals"));
+const CoachCompliance = lazy(() => import("./pages/CoachCompliance"));
 const AdminCompliance = lazy(() => import("./pages/AdminCompliance"));
 const CharteCoach = lazy(() => import("./pages/CharteCoach"));
 
@@ -303,6 +304,7 @@ function ProtectedRoutes() {
         <Route path="/modules" element={<ModulesPage />} />
         <Route path="/pricing" element={<PricingPage />} />
         <Route path="/coach/referrals" element={<Suspense fallback={<PageLoader />}><CoachGuard><EducatorReferrals /></CoachGuard></Suspense>} />
+        <Route path="/coach/compliance" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachCompliance /></CoachGuard></Suspense>} />
         <Route path="/admin/compliance" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminCompliance /></AdminGuard></Suspense>} />
         <Route path="/agents" element={<Navigate to="/outils" replace />} />
         <Route path="/force-password-change" element={<ForcePasswordChange />} />
