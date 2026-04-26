@@ -123,12 +123,29 @@ serve(async (req) => {
 
       if (!sd?.stripe_account_id) throw new Error("Éducateur sans compte Connect");
 
+      // Verify the account actually exists on the current Stripe environment (Test vs Live)
+      try {
+        await stripe.accounts.retrieve(sd.stripe_account_id);
+      } catch (e: any) {
+        const code = e?.code || e?.raw?.code;
+        if (code === "account_invalid" || code === "resource_missing" || /does not exist|not connected/i.test(e?.message || "")) {
+          return new Response(JSON.stringify({
+            error: "Compte Stripe Connect introuvable dans cet environnement (Test/Live). L'ID stocké ne correspond pas au mode Stripe actuel. Réinitialisez l'onboarding de cet éducateur.",
+            code: "stripe_account_not_found",
+            stripe_account_id: sd.stripe_account_id,
+          }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        throw e;
+      }
+
+      const origin = req.headers.get("origin") || "https://www.dogwork-at-home.com";
+
       // If onboarding is not complete, return an onboarding link instead
       if (!sd.stripe_onboarding_complete) {
         const accountLink = await stripe.accountLinks.create({
           account: sd.stripe_account_id,
-          refresh_url: `${req.headers.get("origin") || "https://dogwork-at-home.com"}/admin/treasury`,
-          return_url: `${req.headers.get("origin") || "https://dogwork-at-home.com"}/admin/treasury`,
+          refresh_url: `${origin}/admin/treasury`,
+          return_url: `${origin}/admin/treasury`,
           type: "account_onboarding",
         });
         return new Response(JSON.stringify({ url: accountLink.url, onboarding_incomplete: true }), {
