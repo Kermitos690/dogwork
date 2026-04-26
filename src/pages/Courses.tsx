@@ -17,6 +17,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { motion } from "framer-motion";
 import { CoachVerifiedBadge } from "@/components/CoachVerifiedBadge";
+import { ActiveModulesIndicator } from "@/components/ActiveModulesIndicator";
 
 const CATEGORIES = [
   { value: "all", label: "Toutes catégories" },
@@ -279,6 +280,7 @@ export default function Courses() {
                     <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                       <p className="text-xs text-muted-foreground">par {getEducatorName(course.educator_user_id)}</p>
                       <CoachVerifiedBadge coachUserId={course.educator_user_id} />
+                      <ActiveModulesIndicator userId={course.educator_user_id} />
                     </div>
                     <div className="flex flex-wrap gap-1.5 mt-1.5">
                       <Badge variant="secondary" className="text-[10px]">{catLabel}</Badge>

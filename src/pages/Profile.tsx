@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LogOut, Save, Shield, Download, Trash2, User, GraduationCap, ShieldCheck, HelpCircle, Crown } from "lucide-react";
+import { ActiveModulesIndicator } from "@/components/ActiveModulesIndicator";
 import { useSubscription, TIERS } from "@/hooks/useSubscription";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
@@ -99,6 +100,20 @@ export default function ProfilePage() {
             <p className="text-sm text-muted-foreground">Plan actuel : <span className="font-semibold text-foreground">{TIERS[tier].name}</span></p>
             <Button variant="outline" className="w-full gap-2" onClick={() => navigate("/subscription")}>
               <Crown className="h-4 w-4" /> Gérer mon abonnement
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4" /> Modules DogWork actifs
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ActiveModulesIndicator userId={user?.id} detailed maxVisible={20} />
+            <Button variant="link" size="sm" className="px-0 mt-2" onClick={() => navigate("/modules")}>
+              Gérer mes modules →
             </Button>
           </CardContent>
         </Card>
