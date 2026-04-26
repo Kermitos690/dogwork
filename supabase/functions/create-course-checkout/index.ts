@@ -12,7 +12,9 @@ const logStep = (step: string, details?: Record<string, unknown>) => {
   console.log(`[COURSE-CHECKOUT] ${step}${d}`);
 };
 
-const PLATFORM_COMMISSION_RATE = 0.158; // 15.8%
+// Commission dynamique : 15% par défaut (client apporté par DogWork)
+// ou 8% si le client a été invité par l'éducateur via un code dédié.
+// Voir RPC public.compute_booking_commission()
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
