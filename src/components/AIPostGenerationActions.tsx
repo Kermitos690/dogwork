@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
+import { printDocument } from "@/lib/pdfRenderer";
 
 interface ExtraAction {
   label: string;
@@ -16,19 +17,21 @@ interface ExtraAction {
 }
 
 interface AIPostGenerationActionsProps {
-  /** Plain-text representation used by Copy + Print fallback. */
+  /** Plain-text representation used by Copy. */
   text: string;
   /** Title used in the printable header. */
   title?: string;
   /** Optional summary for the print header. */
   summary?: string | null;
+  /** Optional structured content used by the printable PDF renderer (preferred). */
+  content?: unknown;
+  /** Optional context label rendered as a brand pill (role, dog name, etc.). */
+  contextLabel?: string;
   /** When provided, shows an "Open in Library" link to /documents. */
   showOpenLibrary?: boolean;
   /** Contextual integration actions (Use as plan, Save to journal, etc.). */
   extraActions?: ExtraAction[];
   className?: string;
-  /** When provided, the print view will render this HTML instead of plain text. */
-  printableHtml?: string;
 }
 
 /**
@@ -40,10 +43,11 @@ export function AIPostGenerationActions({
   text,
   title,
   summary,
+  content,
+  contextLabel,
   showOpenLibrary = true,
   extraActions = [],
   className,
-  printableHtml,
 }: AIPostGenerationActionsProps) {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
@@ -60,52 +64,15 @@ export function AIPostGenerationActions({
   };
 
   const handlePrint = () => {
-    const win = window.open("", "_blank", "width=900,height=1200");
-    if (!win) {
-      toast.error("Activez les pop-ups pour exporter en PDF");
-      return;
-    }
-    const safeTitle = (title ?? "Document IA").replace(/</g, "&lt;");
-    const safeSummary = summary ? summary.replace(/</g, "&lt;") : "";
-    const body =
-      printableHtml ??
-      `<pre style="white-space:pre-wrap;font-family:inherit;font-size:14px;line-height:1.6">${text.replace(/</g, "&lt;")}</pre>`;
-    win.document.write(`<!doctype html>
-<html lang="fr">
-<head>
-<meta charset="utf-8" />
-<title>${safeTitle}</title>
-<style>
-  *{box-sizing:border-box}
-  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;color:#1a1a2e;max-width:720px;margin:32px auto;padding:0 24px;line-height:1.6}
-  h1{font-size:24px;margin:0 0 8px;font-weight:700}
-  h2{font-size:18px;margin:24px 0 8px;font-weight:600}
-  h3{font-size:15px;margin:16px 0 6px;font-weight:600}
-  p{margin:0 0 12px;font-size:14px}
-  ul,ol{padding-left:20px;margin:0 0 12px}
-  li{margin:4px 0;font-size:14px}
-  .summary{font-style:italic;color:#666;border-left:3px solid #f97316;padding-left:12px;margin:0 0 24px}
-  .meta{color:#999;font-size:11px;margin-top:32px;border-top:1px solid #eee;padding-top:12px;text-align:center}
-  @media print{body{margin:0;padding:16mm}}
-</style>
-</head>
-<body>
-  <h1>${safeTitle}</h1>
-  ${safeSummary ? `<p class="summary">${safeSummary}</p>` : ""}
-  ${body}
-  <p class="meta">DogWork — Document IA · ${new Date().toLocaleDateString("fr-CH", { day: "numeric", month: "long", year: "numeric" })}</p>
-</body>
-</html>`);
-    win.document.close();
-    // Allow the new window to render before triggering print
-    setTimeout(() => {
-      try {
-        win.focus();
-        win.print();
-      } catch {
-        /* noop */
-      }
-    }, 250);
+    const ok = printDocument({
+      title: title ?? "Document DogWork",
+      summary,
+      // Prefer structured content (rich rendering, emojis, sections);
+      // fall back to the plain text payload.
+      content: content ?? text,
+      contextLabel,
+    });
+    if (!ok) toast.error("Activez les pop-ups pour exporter en PDF");
   };
 
   return (

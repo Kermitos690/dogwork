@@ -67,6 +67,7 @@ export function AIResultDialog({
             title={title}
             summary={summary}
             text={plainText}
+            content={content}
             extraActions={extraActions}
           />
         </div>
