@@ -17,19 +17,21 @@ interface ExtraAction {
 }
 
 interface AIPostGenerationActionsProps {
-  /** Plain-text representation used by Copy + Print fallback. */
+  /** Plain-text representation used by Copy. */
   text: string;
   /** Title used in the printable header. */
   title?: string;
   /** Optional summary for the print header. */
   summary?: string | null;
+  /** Optional structured content used by the printable PDF renderer (preferred). */
+  content?: unknown;
+  /** Optional context label rendered as a brand pill (role, dog name, etc.). */
+  contextLabel?: string;
   /** When provided, shows an "Open in Library" link to /documents. */
   showOpenLibrary?: boolean;
   /** Contextual integration actions (Use as plan, Save to journal, etc.). */
   extraActions?: ExtraAction[];
   className?: string;
-  /** When provided, the print view will render this HTML instead of plain text. */
-  printableHtml?: string;
 }
 
 /**
