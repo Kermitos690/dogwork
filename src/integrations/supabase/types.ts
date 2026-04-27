@@ -3636,40 +3636,67 @@ export type Database = {
           address: string | null
           checkin_frequency_weeks: number | null
           checkin_total_weeks: number | null
+          city: string | null
+          country: string | null
           created_at: string
           description: string | null
+          email_public: string | null
           id: string
+          logo_url: string | null
+          mission: string | null
           name: string
+          opening_hours: string | null
           organization_type: string | null
           phone: string | null
+          postal_code: string | null
+          since_year: number | null
           updated_at: string
           user_id: string
+          website: string | null
         }
         Insert: {
           address?: string | null
           checkin_frequency_weeks?: number | null
           checkin_total_weeks?: number | null
+          city?: string | null
+          country?: string | null
           created_at?: string
           description?: string | null
+          email_public?: string | null
           id?: string
+          logo_url?: string | null
+          mission?: string | null
           name?: string
+          opening_hours?: string | null
           organization_type?: string | null
           phone?: string | null
+          postal_code?: string | null
+          since_year?: number | null
           updated_at?: string
           user_id: string
+          website?: string | null
         }
         Update: {
           address?: string | null
           checkin_frequency_weeks?: number | null
           checkin_total_weeks?: number | null
+          city?: string | null
+          country?: string | null
           created_at?: string
           description?: string | null
+          email_public?: string | null
           id?: string
+          logo_url?: string | null
+          mission?: string | null
           name?: string
+          opening_hours?: string | null
           organization_type?: string | null
           phone?: string | null
+          postal_code?: string | null
+          since_year?: number | null
           updated_at?: string
           user_id?: string
+          website?: string | null
         }
         Relationships: []
       }
