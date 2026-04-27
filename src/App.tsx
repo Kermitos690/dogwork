@@ -15,6 +15,7 @@ const AIChatBot = lazy(() => import("@/components/AIChatBot").then(m => ({ defau
 const GuidedTour = lazy(() => import("@/components/GuidedTour").then(m => ({ default: m.GuidedTour })));
 import { NotificationToast } from "@/components/NotificationToast";
 import { OfflineQueueRunner } from "@/components/OfflineQueueRunner";
+import { ScrollToTop } from "@/components/ScrollToTop";
 
 // Eagerly loaded (critical path)
 import Auth from "./pages/Auth";
