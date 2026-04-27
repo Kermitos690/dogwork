@@ -1,66 +1,81 @@
-## Contexte
+## Audit des modules par rôle
 
-L'app possède déjà :
-- une bottom-nav 5 onglets (`AppLayout`) : Accueil · Chiens · GO (centre) · Plan · Stats
-- un menu latéral (`SlideMenu`) très complet
-- un `Dashboard` (écran d'accueil) chargé visuellement
-- un `DayJourneyHeader` utilisé sur DayDetail/Training
-- une session d'entraînement plein écran (`TrainingSession`) sans accès rapide aux consignes ni au sommaire de la journée
+### État actuel en base (15 modules)
 
-Objectif : rendre la navigation mobile plus fluide, recentrer l'accueil sur l'essentiel, et donner pendant l'entraînement un accès immédiat aux consignes de l'exercice et à la vue d'ensemble de la journée.
+| Module | Rôles autorisés | Catégorie |
+|---|---|---|
+| animal_management | owner, adopter, educator, shelter | éducation |
+| exercise_library | owner, educator, shelter | éducation |
+| ai_plans | owner, educator, shelter | ia |
+| ai_chatbot | owner, educator, shelter, adopter | ia |
+| progress_journal | owner, educator, shelter | suivi |
+| behavior_stats | owner, educator, shelter | suivi |
+| educator_crm | educator | professionnel |
+| planning | educator, shelter | professionnel |
+| payments_marketplace | educator | commerce |
+| shelter_management | shelter | refuge |
+| adoption_followup | shelter, adopter | adoption |
+| team_permissions | educator, shelter | organisation |
+| pdf_exports | owner, educator, shelter | documents |
+| branding | educator, shelter | image |
+| messaging | owner, educator, shelter, adopter | communication |
 
-## Ce qui change
+### Incohérences détectées
 
-### 1. Écran d'accueil (Dashboard) recentré "mobile-first"
-Réduire le bruit visuel et hiérarchiser l'action :
-- En-tête condensé : avatar chien actif + DogSwitcher + statut (ex. « Jour 7 / 28 · S2 »)
-- Bloc CTA principal "Continuer la journée" → ouvre directement le jour en cours (Training)
-- 3 raccourcis utiles maxi : Plan · Bibliothèque exercices · Journal
-- Carte "Suggestion adaptative" conservée (utile, déjà existante) mais resserrée
-- Suppression / repli des cartes secondaires sous un lien "Tout voir" pour ne pas surcharger
-- Aucun flux retiré : tous les écrans restent accessibles via la barre basse + menu latéral
+**1. Le rôle `shelter_employee` n'apparaît dans AUCUN module.**
+Or `EmployeeNav`, `EmployeeDashboard`, `EmployeeAnimals`, `EmployeeActivity`, `EmployeeProfile` existent. Un employé refuge devrait au minimum avoir accès à : `animal_management`, `progress_journal`, `messaging` (en lecture/contribution selon RLS).
 
-### 2. Barre basse (bottom-nav) plus lisible
-Conserver les 5 onglets, mais :
-- Renommer/clarifier : Accueil · Plan · **Entraîner** (centre, badge pastille si journée en cours non terminée) · Exercices · Profil
-  - "Chiens" et "Stats" passent dans le menu latéral (déjà accessibles)
-  - "Exercices" devient un onglet (très utilisé pendant l'entraînement)
-- Ajouter un indicateur de jour en cours sur le bouton central (ex. petit chip "J7")
-- Bouton central agrandi, halo plus marqué, libellé court "GO J7"
-- Conserver `safe-bottom` et le glassmorphism existant
+**2. Le rôle `adopter` reçoit `animal_management` complet** alors qu'un adoptant ne crée pas de fiches : il consulte la fiche de SON chien adopté + son suivi post-adoption. C'est trop large.
 
-### 3. Pendant l'entraînement : accès rapide consignes + journée
-Sur `TrainingSession` (vue plein écran, exercice par exercice) :
-- **Bouton "Consignes"** flottant en haut à droite → ouvre une bottom-sheet avec :
-  - Le titre, l'objectif, les consignes pas-à-pas de l'exercice
-  - Le rappel sécurité éventuel
-  - Bouton "Lire à voix haute" (ReadAloud déjà en place)
-- **Bouton "Journée"** en haut à gauche → ouvre une bottom-sheet "Sommaire J7" :
-  - Liste des exercices du jour, état (à faire / en cours / fait)
-  - Tap = saute directement à l'exercice
-  - Mini barre de progression de la journée
-- Un fil de breadcrumb discret sous le header : `J7 · Exo 3/5` (toujours visible)
-- Les sheets utilisent les composants Shadcn déjà présents, fermeture par swipe/backdrop
+**3. `exercise_library` exclut `adopter`** alors que la doctrine adoption prévoit que l'adoptant suit un plan post-adoption (qui s'appuie sur des exercices). Incohérent avec `ai_plans` et le suivi post-adoption.
 
-### 4. Détails UX transverses
-- Masquer la bottom-nav uniquement sur les écrans plein écran qui le justifient (TrainingSession en mode focus) → remplacée par une mini-barre contextuelle (Consignes · Pause · Suivant)
-- Le `DayJourneyHeader` reste sur `DayDetail` et `Training` mais devient "sticky" en haut sur mobile (plus de perte de contexte au scroll)
+**4. `pdf_exports` exclut `adopter`** : un adoptant devrait pouvoir exporter le carnet/dossier de son chien adopté.
 
-## Détails techniques
+**5. `branding` est ouvert à `educator` ET `shelter`** : OK, mais aucune distinction de niveau (page publique educator ≠ page publique refuge). C'est plus un point de feature gating dans le module que de rôle — acceptable en l'état.
 
-Fichiers touchés :
-- `src/components/AppLayout.tsx` — nouveau set d'onglets, badge "jour en cours" sur le bouton central, hide/replace nav sur `/training/session/*`
-- `src/components/BottomNavBadge.tsx` *(nouveau)* — petit chip "Jx" réutilisable
-- `src/pages/Dashboard.tsx` — refonte hiérarchie : header compact, CTA principal "Continuer J{n}", 3 raccourcis, repli des cartes secondaires
-- `src/pages/TrainingSession.tsx` — ajout des deux boutons (Consignes / Journée), breadcrumb sticky, mini-barre contextuelle en remplacement de la bottom-nav
-- `src/components/training/SessionInstructionsSheet.tsx` *(nouveau)* — bottom-sheet consignes (réutilise Sheet shadcn + ReadAloud)
-- `src/components/training/SessionDayOutlineSheet.tsx` *(nouveau)* — bottom-sheet sommaire de journée
-- `src/components/DayJourneyHeader.tsx` — variante `sticky` (prop optionnelle)
-- `src/components/SlideMenu.tsx` — s'assurer que "Mes chiens" et "Statistiques" restent en haut du menu (compensation des onglets retirés)
+**6. `planning` ouvert à `educator` + `shelter`** : OK pour shelter (RDV adoption, visites), mais à confirmer si le refuge a vraiment un module planning fonctionnel aujourd'hui. Si ce n'est pas livré côté UI shelter, le module ne devrait pas apparaître pour eux (faux marketing).
 
-Aucun changement backend, aucune migration, aucun impact billing/IA. Les routes existantes ne bougent pas (pas de régression sur deep-links).
+**7. Aucun module spécifique adoption pour l'owner** : un owner devenu adoptant devrait basculer naturellement, mais la séparation `owner` vs `adopter` n'est pas explicite dans `useAuth` ni dans les guards (à vérifier — probablement même rôle techniquement).
 
-## Hors périmètre
-- Pas de refonte visuelle globale ni de changement de thème
-- Pas de modification des rôles Coach / Refuge / Admin (leurs layouts dédiés ne sont pas touchés)
-- Pas de nouvelle table ni de nouveau endpoint
+### Corrections proposées (migration unique)
+
+UPDATE des `available_for_roles` :
+
+```sql
+-- 1. Ajouter shelter_employee là où c'est légitime (lecture des animaux du refuge)
+UPDATE modules SET available_for_roles = ARRAY['owner','adopter','educator','shelter','shelter_employee']
+  WHERE slug = 'animal_management';
+UPDATE modules SET available_for_roles = ARRAY['owner','educator','shelter','shelter_employee']
+  WHERE slug = 'progress_journal';
+UPDATE modules SET available_for_roles = ARRAY['owner','educator','shelter','adopter','shelter_employee']
+  WHERE slug = 'messaging';
+UPDATE modules SET available_for_roles = ARRAY['shelter','shelter_employee']
+  WHERE slug = 'shelter_management';
+
+-- 2. Élargir aux adoptants ce qui est cohérent avec le suivi post-adoption
+UPDATE modules SET available_for_roles = ARRAY['owner','educator','shelter','adopter']
+  WHERE slug = 'exercise_library';
+UPDATE modules SET available_for_roles = ARRAY['owner','educator','shelter','adopter']
+  WHERE slug = 'pdf_exports';
+
+-- 3. (Optionnel — à confirmer) Restreindre planning au seul educator si shelter n'a pas l'UI
+-- À NE PAS faire si /shelter dispose d'un planning RDV adoption fonctionnel.
+```
+
+### Vérifications complémentaires (lecture seule)
+
+- Vérifier que `useAuth` / les guards reconnaissent bien `shelter_employee` comme rôle distinct
+- Vérifier que `get_my_active_modules` (RPC) retourne bien les modules selon le rôle de l'utilisateur (et pas seulement selon les `user_modules` provisionnés)
+- Vérifier que `plan_modules` (provisioning par plan) attribue cohéremment ces modules par rôle
+
+### Livrables
+
+1. **Migration SQL** : 6 UPDATE ci-dessus + commentaires
+2. **Note** : si `planning` côté shelter n'existe pas dans l'UI, ajouter un 7e UPDATE pour le retirer
+3. **Aucun changement frontend nécessaire** — `Modules.tsx` lit `available_for_roles` dynamiquement
+
+### Points de décision
+
+- **Question 1** : Faut-il ajouter `shelter_employee` aux modules listés (animal_management, progress_journal, messaging, shelter_management) ? **Recommandé : oui**.
+- **Question 2** : Faut-il ouvrir `exercise_library` + `pdf_exports` aux adoptants ? **Recommandé : oui** (cohérent avec adoption_followup).
+- **Question 3** : Le module `planning` est-il réellement implémenté côté `/shelter` ? Si non, le retirer de `shelter`.
