@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
+import { printDocument } from "@/lib/pdfRenderer";
 
 interface ExtraAction {
   label: string;
