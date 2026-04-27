@@ -387,6 +387,7 @@ const App = () => {
           <Toaster />
           <Sonner position="top-center" richColors closeButton />
           <BrowserRouter>
+            <ScrollToTop />
             <RecoveryRouteGuard />
             <Suspense fallback={<PageLoader />}>
               <Routes>
