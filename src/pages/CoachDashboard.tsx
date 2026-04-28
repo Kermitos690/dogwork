@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CoachLayout } from "@/components/CoachLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -5,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Users, Dog, FileText, AlertTriangle, TrendingUp, BarChart3,
-  ChevronRight, Clock, Shield, Plus, Search, Activity,
+  ChevronRight, Clock, Shield, Plus, Search, Activity, CreditCard,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useCoachClients, useCoachDogs, useCoachNotes, useProAlerts } from "@/hooks/useCoach";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
 
 const fadeUp = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 } };
 
