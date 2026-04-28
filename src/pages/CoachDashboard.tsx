@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CoachLayout } from "@/components/CoachLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -5,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Users, Dog, FileText, AlertTriangle, TrendingUp, BarChart3,
-  ChevronRight, Clock, Shield, Plus, Search, Activity,
+  ChevronRight, Clock, Shield, Plus, Search, Activity, CreditCard,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useCoachClients, useCoachDogs, useCoachNotes, useProAlerts } from "@/hooks/useCoach";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
 
 const fadeUp = { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 } };
 
@@ -20,6 +22,37 @@ export default function CoachDashboard() {
   const { data: dogs = [] } = useCoachDogs();
   const { data: notes = [] } = useCoachNotes();
   const { data: alerts = [] } = useProAlerts();
+
+  const [connectReady, setConnectReady] = useState<boolean | null>(null);
+  const [connectLoading, setConnectLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("connect-status");
+        if (cancelled) return;
+        if (error) { setConnectReady(null); return; }
+        setConnectReady(Boolean(data?.onboarding_complete));
+      } catch {
+        if (!cancelled) setConnectReady(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleFinalizeConnect = async () => {
+    setConnectLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("connect-onboard");
+      if (error) throw error;
+      if (data?.url) window.location.href = data.url;
+    } catch {
+      navigate("/coach/subscription");
+    } finally {
+      setConnectLoading(false);
+    }
+  };
 
   const sensitiveDogs = dogs.filter((d) => d.isSensitive);
   const activePlans = dogs.filter((d) => d.activePlan).length;
@@ -49,6 +82,43 @@ export default function CoachDashboard() {
           </div>
           <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-primary/10 blur-2xl" />
         </motion.div>
+
+        {/* Stripe Connect — finalisation paiements */}
+        {connectReady === false && (
+          <motion.div {...fadeUp} transition={{ delay: 0.05 }}>
+            <Card className="border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-card to-card">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-amber-500/20 flex items-center justify-center shrink-0">
+                    <CreditCard className="h-5 w-5 text-amber-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="text-sm font-semibold text-foreground">Activez vos paiements</h3>
+                      <Badge className="bg-amber-500/20 text-amber-400 border-0 text-[10px]">Action requise</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Finalisez votre compte Stripe Connect pour publier vos cours et recevoir vos paiements (commission 15,8 %).
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        className="bg-amber-500 hover:bg-amber-600 text-white"
+                        onClick={handleFinalizeConnect}
+                        disabled={connectLoading}
+                      >
+                        {connectLoading ? "Redirection…" : "Finaliser maintenant"}
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => navigate("/coach/subscription")}>
+                        Détails
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
         {/* KPI Grid */}
         <div className="grid grid-cols-2 gap-3">
