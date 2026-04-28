@@ -9,7 +9,7 @@ type AppRole = Database["public"]["Enums"]["app_role"];
  * Single query to fetch ALL roles for the current user.
  * Every role-check hook below derives from this shared cache.
  */
-function useUserRoles() {
+export function useUserRoles() {
   const { user } = useAuth();
   return useQuery({
     queryKey: ["user-roles", user?.id],
