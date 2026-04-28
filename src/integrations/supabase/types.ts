@@ -2787,6 +2787,7 @@ export type Database = {
       }
       modules: {
         Row: {
+          addon_label: string | null
           available_for_roles: string[]
           category: string
           created_at: string
@@ -2794,15 +2795,18 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean
+          is_addon: boolean
           monthly_price_chf: number | null
           name: string
           pricing_type: string
           slug: string
           sort_order: number
+          tagline: string | null
           updated_at: string
           yearly_price_chf: number | null
         }
         Insert: {
+          addon_label?: string | null
           available_for_roles?: string[]
           category: string
           created_at?: string
@@ -2810,15 +2814,18 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          is_addon?: boolean
           monthly_price_chf?: number | null
           name: string
           pricing_type?: string
           slug: string
           sort_order?: number
+          tagline?: string | null
           updated_at?: string
           yearly_price_chf?: number | null
         }
         Update: {
+          addon_label?: string | null
           available_for_roles?: string[]
           category?: string
           created_at?: string
@@ -2826,11 +2833,13 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          is_addon?: boolean
           monthly_price_chf?: number | null
           name?: string
           pricing_type?: string
           slug?: string
           sort_order?: number
+          tagline?: string | null
           updated_at?: string
           yearly_price_chf?: number | null
         }
