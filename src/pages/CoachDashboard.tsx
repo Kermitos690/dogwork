@@ -83,6 +83,43 @@ export default function CoachDashboard() {
           <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-primary/10 blur-2xl" />
         </motion.div>
 
+        {/* Stripe Connect — finalisation paiements */}
+        {connectReady === false && (
+          <motion.div {...fadeUp} transition={{ delay: 0.05 }}>
+            <Card className="border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-card to-card">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-amber-500/20 flex items-center justify-center shrink-0">
+                    <CreditCard className="h-5 w-5 text-amber-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="text-sm font-semibold text-foreground">Activez vos paiements</h3>
+                      <Badge className="bg-amber-500/20 text-amber-400 border-0 text-[10px]">Action requise</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Finalisez votre compte Stripe Connect pour publier vos cours et recevoir vos paiements (commission 15,8 %).
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        className="bg-amber-500 hover:bg-amber-600 text-white"
+                        onClick={handleFinalizeConnect}
+                        disabled={connectLoading}
+                      >
+                        {connectLoading ? "Redirection…" : "Finaliser maintenant"}
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => navigate("/coach/subscription")}>
+                        Détails
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
         {/* KPI Grid */}
         <div className="grid grid-cols-2 gap-3">
           {stats.map((s, i) => (
