@@ -23,6 +23,37 @@ export default function CoachDashboard() {
   const { data: notes = [] } = useCoachNotes();
   const { data: alerts = [] } = useProAlerts();
 
+  const [connectReady, setConnectReady] = useState<boolean | null>(null);
+  const [connectLoading, setConnectLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("connect-status");
+        if (cancelled) return;
+        if (error) { setConnectReady(null); return; }
+        setConnectReady(Boolean(data?.onboarding_complete));
+      } catch {
+        if (!cancelled) setConnectReady(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleFinalizeConnect = async () => {
+    setConnectLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("connect-onboard");
+      if (error) throw error;
+      if (data?.url) window.location.href = data.url;
+    } catch {
+      navigate("/coach/subscription");
+    } finally {
+      setConnectLoading(false);
+    }
+  };
+
   const sensitiveDogs = dogs.filter((d) => d.isSensitive);
   const activePlans = dogs.filter((d) => d.activePlan).length;
   const highTensionDogs = dogs.filter((d) => d.avgTension && d.avgTension > 3);
