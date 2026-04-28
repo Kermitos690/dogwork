@@ -258,6 +258,7 @@ function ProtectedRoutes() {
           <Route path="/adoption-checkins" element={<AdoptionCheckins />} />
           <Route path="/adoption-followup" element={<AdoptionFollowup />} />
           <Route path="/shop" element={<ShopPage />} />
+          <Route path="/modules" element={<ModulesPage />} />
           <Route path="/outils" element={<OutilsPage />} />
           <Route path="/documents" element={<DocumentsPage />} />
           <Route path="/agents" element={<Navigate to="/outils" replace />} />

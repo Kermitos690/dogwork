@@ -1,87 +1,94 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { useAllModules, useUserActiveModules } from "@/hooks/useModules";
-import { Link } from "react-router-dom";
-import { CheckCircle2, Lock } from "lucide-react";
+// DogWork — Permanent module management page (/modules)
+// Lets the user see what's included in their plan and toggle add-ons
+// at any time. The base plan price is shown when known.
 
-const CATEGORY_LABELS: Record<string, string> = {
-  "éducation": "Éducation",
-  "ia": "IA",
-  "suivi": "Suivi",
-  "professionnel": "Professionnel",
-  "commerce": "Commerce",
-  "refuge": "Refuge",
-  "adoption": "Adoption",
-  "organisation": "Organisation",
-  "documents": "Documents",
-  "image": "Image",
-  "communication": "Communication",
+import { useEffect, useState } from "react";
+import ModuleSelector from "@/components/ModuleSelector";
+import { useUserRoles } from "@/hooks/useCoach";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2, Layers } from "lucide-react";
+
+const BASE_PLAN_PRICES: Record<string, { label: string; price: number }> = {
+  pro: { label: "Pro", price: 9.9 },
+  expert: { label: "Expert", price: 19.9 },
+  educator: { label: "Éducateur", price: 16.9 },
+  shelter: { label: "Refuge", price: 0 },
 };
 
-export default function Modules() {
-  const { data: modules = [], isLoading } = useAllModules();
-  const { data: activeSlugs = [] } = useUserActiveModules();
+export default function ModulesPage() {
+  const { user } = useAuth();
+  const { data: roles, isLoading: rolesLoading } = useUserRoles();
+  const [base, setBase] = useState<{ label: string; price: number } | null>(null);
+  const [activeAddons, setActiveAddons] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const grouped = modules.reduce<Record<string, typeof modules>>((acc, m) => {
-    (acc[m.category] = acc[m.category] || []).push(m);
-    return acc;
-  }, {});
+  useEffect(() => {
+    if (!user) return;
+    let alive = true;
+    (async () => {
+      const [{ data: subData }, { data: addonRows }] = await Promise.all([
+        supabase.functions.invoke("check-subscription").catch(() => ({ data: null })),
+        supabase
+          .from("user_modules")
+          .select("module_slug")
+          .eq("user_id", user.id)
+          .eq("source", "addon"),
+      ]);
+
+      if (!alive) return;
+      const tier =
+        subData?.tier ??
+        subData?.subscription_tier ??
+        subData?.product_tier ??
+        null;
+      if (tier && BASE_PLAN_PRICES[tier as string]) {
+        setBase(BASE_PLAN_PRICES[tier as string]);
+      }
+      setActiveAddons((addonRows ?? []).map((r: { module_slug: string }) => r.module_slug));
+      setLoading(false);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [user]);
+
+  if (rolesLoading || loading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  const userRoles = (roles ?? []) as string[];
+  // Default to "owner" if user has no role yet (shouldn't happen but safe)
+  const effectiveRoles = userRoles.length ? userRoles : ["owner"];
 
   return (
-    <div className="container max-w-6xl py-8 px-4">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Mes modules</h1>
-        <p className="text-muted-foreground mt-2">
-          Les modules donnent l'accès aux fonctionnalités. Les Crédits DogWork financent les fonctions intelligentes.
-        </p>
-      </div>
-
-      {isLoading ? (
-        <div className="text-muted-foreground">Chargement…</div>
-      ) : (
-        <div className="space-y-8">
-          {Object.entries(grouped).map(([category, items]) => (
-            <section key={category}>
-              <h2 className="text-lg font-semibold mb-3">{CATEGORY_LABELS[category] ?? category}</h2>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {items.map((m) => {
-                  const isActive = activeSlugs.includes(m.slug);
-                  return (
-                    <Card key={m.slug} className={isActive ? "border-primary/40" : ""}>
-                      <CardHeader>
-                        <div className="flex items-start justify-between gap-2">
-                          <CardTitle className="text-base">{m.name}</CardTitle>
-                          {isActive ? (
-                            <Badge variant="default" className="gap-1">
-                              <CheckCircle2 className="h-3 w-3" /> Actif
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="gap-1">
-                              <Lock className="h-3 w-3" /> Verrouillé
-                            </Badge>
-                          )}
-                        </div>
-                        <CardDescription className="text-xs">
-                          {m.available_for_roles.join(" · ")}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground mb-4 min-h-[3rem]">{m.description}</p>
-                        {!isActive && (
-                          <Button asChild size="sm" variant="outline" className="w-full">
-                            <Link to="/pricing">Voir les plans</Link>
-                          </Button>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
-        </div>
-      )}
+    <div className="container max-w-3xl mx-auto pt-16 pb-12 px-4">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Layers className="h-5 w-5 text-orange-600" />
+            <CardTitle>Mes modules</CardTitle>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Activez ou désactivez les modules selon vos besoins. Les modifications
+            sont appliquées immédiatement à votre abonnement.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <ModuleSelector
+            roles={effectiveRoles}
+            basePriceChf={base?.price ?? 0}
+            basePlanLabel={base?.label}
+            initialSelection={activeAddons}
+            confirmLabel="Mettre à jour mon abonnement"
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }
