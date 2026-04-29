@@ -536,6 +536,9 @@ export default function AdminDashboard() {
           <Button variant="outline" className="h-11 gap-2 text-sm" onClick={() => navigate("/admin/treasury")}>
             <Wallet className="h-4 w-4" /> Trésorerie
           </Button>
+          <Button variant="outline" className="h-11 gap-2 text-sm" onClick={() => navigate("/admin/email-diagnostics")}>
+            <Mail className="h-4 w-4" /> Diagnostic email
+          </Button>
           <Button variant="outline" className="h-11 gap-2 text-sm" onClick={() => navigate("/exercises")}>
             <BookOpen className="h-4 w-4" /> Exercices
           </Button>
