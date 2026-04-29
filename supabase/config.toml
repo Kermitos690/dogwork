@@ -1,5 +1,8 @@
 project_id = "dcwbqsfeouvghcnvhrpj"
 
+[functions.sync-pricing-to-live]
+verify_jwt = false
+
 [functions]
   [functions.agent-behavior-analysis]
     verify_jwt = false
