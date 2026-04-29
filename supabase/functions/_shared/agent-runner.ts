@@ -316,7 +316,7 @@ export async function runAgent(req: Request, agent: AgentConfig): Promise<Respon
       `- Reste dans les limites de ton outil : ne déborde pas sur d'autres analyses ou recommandations hors de ta mission.\n\n`;
 
     const aiResponse = await callAI({
-      model: feature.model || agent.model,
+      model: featureModel,
       messages: [
         { role: "system", content: guardrail + agent.systemPrompt },
         { role: "user", content: agent.buildUserPrompt(enrichedContext) },
