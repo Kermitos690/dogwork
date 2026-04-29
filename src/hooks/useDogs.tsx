@@ -72,13 +72,36 @@ const NUMERIC_CHECK_FIELDS = [
   "noise_sensitivity", "separation_sensitivity",
 ] as const;
 
+const ORIGIN_NORMALIZE: Record<string, string> = {
+  elevage: "élevage",
+  eleveur: "élevage",
+  breeder: "élevage",
+  shelter: "refuge",
+  private: "particulier",
+  other: "autre",
+};
+
+const ENVIRONMENT_NORMALIZE: Record<string, string> = {
+  apartment: "appartement",
+  house: "maison",
+  garden: "jardin",
+  countryside: "campagne",
+  city: "ville",
+};
+
 function cleanDogData(dog: Partial<Dog>): Partial<Dog> {
-  const cleaned = { ...dog };
+  const cleaned: any = { ...dog };
   for (const key of TEXT_CHECK_FIELDS) {
-    if ((cleaned as any)[key] === "") (cleaned as any)[key] = null;
+    if (cleaned[key] === "") cleaned[key] = null;
   }
   for (const key of NUMERIC_CHECK_FIELDS) {
-    if ((cleaned as any)[key] === 0) (cleaned as any)[key] = null;
+    if (cleaned[key] === 0) cleaned[key] = null;
+  }
+  if (cleaned.origin && ORIGIN_NORMALIZE[cleaned.origin]) {
+    cleaned.origin = ORIGIN_NORMALIZE[cleaned.origin];
+  }
+  if (cleaned.environment && ENVIRONMENT_NORMALIZE[cleaned.environment]) {
+    cleaned.environment = ENVIRONMENT_NORMALIZE[cleaned.environment];
   }
   return cleaned;
 }
