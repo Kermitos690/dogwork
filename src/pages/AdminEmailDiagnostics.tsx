@@ -157,8 +157,11 @@ const SendResultCard = ({ result, title, color }: { result: SendResult; title: s
     );
   }
 
-  const isOk = result.status === "queued" && (!result.logStatus || ["pending", "sent"].includes(result.logStatus));
-  const isPending = result.status === "pending_implementation" || result.status === "not_configured";
+  const isOk =
+    result.status === "sent" ||
+    (result.status === "queued" && (!result.logStatus || ["pending", "sent"].includes(result.logStatus)));
+  const isNotConfigured = result.status === "not_configured";
+  const isPending = result.status === "pending_implementation" || isNotConfigured;
 
   return (
     <Card className={`border-l-4 ${color}`}>
