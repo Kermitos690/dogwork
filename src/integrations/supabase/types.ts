@@ -291,7 +291,8 @@ export type Database = {
       }
       adoption_plans: {
         Row: {
-          adopter_user_id: string
+          adopter_email: string | null
+          adopter_user_id: string | null
           animal_id: string
           created_at: string
           description: string | null
@@ -304,7 +305,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          adopter_user_id: string
+          adopter_email?: string | null
+          adopter_user_id?: string | null
           animal_id: string
           created_at?: string
           description?: string | null
@@ -317,7 +319,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          adopter_user_id?: string
+          adopter_email?: string | null
+          adopter_user_id?: string | null
           animal_id?: string
           created_at?: string
           description?: string | null

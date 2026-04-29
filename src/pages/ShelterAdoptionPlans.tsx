@@ -68,16 +68,21 @@ export default function ShelterAdoptionPlans() {
     plan: AiPlanShape;
     raw: unknown;
     animal_id: string;
-    adopter_user_id: string;
+    adopter_user_id: string | null;
+    adopter_email: string | null;
     creditsSpent: number;
   } | null>(null);
   const [savingAi, setSavingAi] = useState(false);
   const credit = useCreditConfirmation();
 
+  // Mode: "registered" → adopter has account / "pending" → not yet signed up
+  const [mode, setMode] = useState<"registered" | "pending">("registered");
+
   // Form state for new plan
   const [form, setForm] = useState({
     animal_id: "",
     adopter_user_id: "",
+    adopter_email: "",
     title: "",
     description: "",
     duration_weeks: 8,
@@ -158,26 +163,59 @@ export default function ShelterAdoptionPlans() {
     enabled: !!selectedPlan,
   });
 
+  // All shelter animals (used in "pending" mode where adopter has no account yet)
+  const { data: allShelterAnimals } = useQuery({
+    queryKey: ["shelter-all-animals", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data } = await supabase
+        .from("shelter_animals_safe")
+        .select("id, name, breed, species, status")
+        .eq("user_id", user.id)
+        .order("name");
+      return data ?? [];
+    },
+    enabled: !!user,
+  });
+
   const createPlan = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Non authentifié");
+      if (!form.animal_id) throw new Error("Animal requis.");
+      if (mode === "pending" && !form.adopter_email.trim()) {
+        throw new Error("Email du futur adoptant requis.");
+      }
+      if (mode === "registered" && !form.adopter_user_id) {
+        throw new Error("Adoptant requis.");
+      }
       const objectives = form.objectives.filter(o => o.trim());
-      const { error } = await supabase.from("adoption_plans").insert({
+      const payload: Record<string, unknown> = {
         shelter_user_id: user.id,
-        adopter_user_id: form.adopter_user_id,
         animal_id: form.animal_id,
         title: form.title || "Plan de suivi post-adoption",
         description: form.description,
         duration_weeks: form.duration_weeks,
-        objectives: objectives,
-      });
+        objectives,
+      };
+      if (mode === "registered") {
+        payload.adopter_user_id = form.adopter_user_id;
+      } else {
+        payload.adopter_user_id = null;
+        payload.adopter_email = form.adopter_email.trim().toLowerCase();
+      }
+      const { error } = await supabase.from("adoption_plans").insert(payload as any);
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["shelter-adoption-plans"] });
       setCreateOpen(false);
-      setForm({ animal_id: "", adopter_user_id: "", title: "", description: "", duration_weeks: 8, objectives: [""] });
-      toast({ title: "Plan créé !", description: "Le plan de suivi a été créé." });
+      setForm({ animal_id: "", adopter_user_id: "", adopter_email: "", title: "", description: "", duration_weeks: 8, objectives: [""] });
+      toast({
+        title: "Plan créé",
+        description: mode === "pending"
+          ? "Le plan sera automatiquement transmis à l'adoptant à son inscription."
+          : "Le plan de suivi a été créé.",
+      });
     },
     onError: (err: any) => toast({ title: "Erreur", description: err.message, variant: "destructive" }),
   });
@@ -239,19 +277,67 @@ export default function ShelterAdoptionPlans() {
                 <DialogTitle>Créer un plan de suivi</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 pt-2">
-                <div>
-                  <Label>Animal adopté</Label>
-                  <Select value={form.animal_id} onValueChange={handleSelectAnimal}>
-                    <SelectTrigger><SelectValue placeholder="Sélectionner un animal" /></SelectTrigger>
-                    <SelectContent>
-                      {adoptedAnimals?.map(a => (
-                        <SelectItem key={a.animal_id} value={a.animal_id}>
-                          {a.animal?.name || a.animal_name} — {a.adopterName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                {/* Mode toggle */}
+                <div className="flex rounded-lg border border-border bg-muted/40 p-1 text-xs">
+                  <button type="button"
+                    className={`flex-1 px-2 py-1.5 rounded-md font-medium transition-colors ${mode === "registered" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+                    onClick={() => setMode("registered")}>
+                    Adoptant déjà inscrit
+                  </button>
+                  <button type="button"
+                    className={`flex-1 px-2 py-1.5 rounded-md font-medium transition-colors ${mode === "pending" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+                    onClick={() => setMode("pending")}>
+                    Préparer pour adoption à venir
+                  </button>
                 </div>
+
+                {mode === "registered" ? (
+                  <div>
+                    <Label>Animal adopté</Label>
+                    <Select value={form.animal_id} onValueChange={handleSelectAnimal}>
+                      <SelectTrigger><SelectValue placeholder="Sélectionner un animal" /></SelectTrigger>
+                      <SelectContent>
+                        {adoptedAnimals?.length ? adoptedAnimals.map(a => (
+                          <SelectItem key={a.animal_id} value={a.animal_id}>
+                            {a.animal?.name || a.animal_name} — {a.adopterName}
+                          </SelectItem>
+                        )) : (
+                          <div className="px-3 py-4 text-xs text-muted-foreground">
+                            Aucun adoptant inscrit pour le moment.
+                          </div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <Label>Animal du refuge</Label>
+                      <Select value={form.animal_id} onValueChange={(v) => setForm(f => ({ ...f, animal_id: v }))}>
+                        <SelectTrigger><SelectValue placeholder="Sélectionner un animal" /></SelectTrigger>
+                        <SelectContent>
+                          {allShelterAnimals?.map(a => (
+                            <SelectItem key={a.id} value={a.id}>
+                              {a.name}{a.breed ? ` — ${a.breed}` : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Email du futur adoptant</Label>
+                      <Input
+                        type="email"
+                        value={form.adopter_email}
+                        onChange={e => setForm(f => ({ ...f, adopter_email: e.target.value }))}
+                        placeholder="adoptant@exemple.com"
+                      />
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        Le plan sera automatiquement transmis à cet adoptant dès son inscription sur DogWork avec cette adresse.
+                      </p>
+                    </div>
+                  </>
+                )}
                 <div>
                   <Label>Titre du plan</Label>
                   <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
@@ -331,7 +417,8 @@ export default function ShelterAdoptionPlans() {
                               plan,
                               raw: data.plan,
                               animal_id: form.animal_id,
-                              adopter_user_id: form.adopter_user_id,
+                              adopter_user_id: mode === "registered" ? form.adopter_user_id : null,
+                              adopter_email: mode === "pending" ? form.adopter_email.trim().toLowerCase() : null,
                               creditsSpent: data.credits_spent ?? 0,
                             });
                           } catch (err: any) {
@@ -516,6 +603,7 @@ export default function ShelterAdoptionPlans() {
                   const planId = await createAdoptionPlanFromAi({
                     shelterUserId: user.id,
                     adopterUserId: aiResult.adopter_user_id,
+                    adopterEmail: aiResult.adopter_email,
                     animalId: aiResult.animal_id,
                     plan: aiResult.plan,
                     status: "active",
@@ -553,6 +641,7 @@ export default function ShelterAdoptionPlans() {
                   await createAdoptionPlanFromAi({
                     shelterUserId: user.id,
                     adopterUserId: aiResult.adopter_user_id,
+                    adopterEmail: aiResult.adopter_email,
                     animalId: aiResult.animal_id,
                     plan: aiResult.plan,
                     status: "draft",

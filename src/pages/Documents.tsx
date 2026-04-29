@@ -217,6 +217,8 @@ export default function Documents() {
                 <AIPostGenerationActions
                   title={viewing.title}
                   summary={viewing.summary}
+                  content={viewing.content}
+                  contextLabel={TYPE_META[viewing.document_type]?.label}
                   text={
                     typeof (viewing.content as any)?.text === "string"
                       ? (viewing.content as any).text

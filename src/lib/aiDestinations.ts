@@ -80,16 +80,23 @@ export function extractPlanShape(content: unknown): AiPlanShape | null {
  */
 export async function createAdoptionPlanFromAi(params: {
   shelterUserId: string;
-  adopterUserId: string;
+  /** Set when the adopter already has an account. */
+  adopterUserId?: string | null;
+  /** Set when preparing a plan BEFORE the adopter signs up. */
+  adopterEmail?: string | null;
   animalId: string;
   plan: AiPlanShape;
   status?: "active" | "draft";
 }): Promise<string> {
+  if (!params.adopterUserId && !params.adopterEmail) {
+    throw new Error("Adoptant requis : compte ou email.");
+  }
   const { data: planRow, error: planErr } = await supabase
     .from("adoption_plans")
     .insert({
       shelter_user_id: params.shelterUserId,
-      adopter_user_id: params.adopterUserId,
+      adopter_user_id: params.adopterUserId ?? null,
+      adopter_email: params.adopterEmail?.trim().toLowerCase() ?? null,
       animal_id: params.animalId,
       title: params.plan.title || "Plan post-adoption (IA)",
       description: params.plan.description || "",
