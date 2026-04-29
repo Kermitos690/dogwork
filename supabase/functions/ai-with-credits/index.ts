@@ -25,6 +25,11 @@ const LEGACY_FEATURE_CODE_MAP: Record<string, string> = {
   ai_evaluation_scoring: "dog_profile_analysis",
   ai_adoption_plan: "adoption_plan",
   ai_progress_report: "behavior_summary",
+  agent_behavior_analysis: "behavior_analysis",
+  agent_progress_report: "behavior_summary",
+  agent_plan_adjustment: "plan_generator",
+  agent_dog_insights: "dog_profile_analysis",
+  dog_analysis: "dog_profile_analysis",
 };
 
 // Server-side fallback costs — guarantees correct debit even if catalog row
@@ -33,11 +38,12 @@ const LEGACY_FEATURE_CODE_MAP: Record<string, string> = {
 const FALLBACK_COSTS: Record<string, number> = {
   plan_generator: 5,
   education_plan: 8,
-  adoption_plan: 8,
+  adoption_plan: 15,
   behavior_analysis: 13,
   behavior_summary: 5,
-  dog_profile_analysis: 5,
+  dog_profile_analysis: 13,
   chat: 1,
+  chat_general: 1,
   ai_image_generation: 10,
 };
 
@@ -418,19 +424,27 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
     // Look up feature
-    const { data: feature, error: featureErr } = await admin
+    const { data: catalogFeature, error: featureErr } = await admin
       .from("ai_feature_catalog")
       .select("*")
       .eq("code", resolvedFeatureCode)
-      .eq("is_active", true)
-      .single();
+      .maybeSingle();
 
-    if (featureErr || !feature) {
+    const fallbackCost = FALLBACK_COSTS[resolvedFeatureCode] ?? FALLBACK_COSTS[feature_code] ?? 0;
+    if ((featureErr || !catalogFeature || catalogFeature.is_active === false) && fallbackCost <= 0) {
       console.error(`[ai-with-credits] Feature "${feature_code}" (resolved ${resolvedFeatureCode}) not found:`, featureErr?.message);
       return new Response(JSON.stringify({ error: "Fonctionnalité IA non disponible" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const feature = catalogFeature ?? {
+      code: resolvedFeatureCode,
+      label: resolvedFeatureCode,
+      credits_cost: fallbackCost,
+      model: "google/gemini-2.5-flash",
+      cost_estimate_avg_usd: null,
+    };
 
     console.log(`[ai-with-credits] Feature found: ${feature.code}, cost=${feature.credits_cost}, model=${feature.model}`);
 
@@ -443,11 +457,9 @@ Deno.serve(async (req) => {
     const roleList = roles?.map((r: { role: string }) => r.role) || [];
     console.log(`[ai-with-credits] Roles: [${roleList.join(",")}], debit enabled for all accounts`);
 
-    // Cost = catalog value if > 0, else server-side fallback. No silent 0-debit.
+    // Known paid AI tools use the canonical DogWork tariff even if stale DB rows exist.
     const catalogCost = Number(feature.credits_cost ?? 0);
-    const creditsCost = catalogCost > 0
-      ? catalogCost
-      : (FALLBACK_COSTS[resolvedFeatureCode] ?? FALLBACK_COSTS[feature_code] ?? 0);
+    const creditsCost = fallbackCost > 0 ? fallbackCost : catalogCost;
 
     if (creditsCost <= 0) {
       console.error(`[ai-with-credits] No cost defined for ${feature_code} (resolved ${resolvedFeatureCode})`);
@@ -613,17 +625,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Admin bypass: unlimited AI credits, no debit, no ledger entry
-    const isAdminUser = roleList.includes("admin");
-    if (isAdminUser) {
-      console.log(`[ai-with-credits] Admin bypass — no credit debit for user ${userId.slice(0, 8)}`);
-    }
-
     console.log(`[ai-with-credits] Debiting ${creditsCost} credits for user ${userId.slice(0, 8)}...`);
 
-    const { data: debited, error: debitErr } = isAdminUser
-      ? { data: true, error: null }
-      : await admin.rpc("debit_ai_credits", {
+    const { data: debited, error: debitErr } = await admin.rpc("debit_ai_credits", {
       _user_id: userId,
        _feature_code: resolvedFeatureCode,
       _credits: creditsCost,

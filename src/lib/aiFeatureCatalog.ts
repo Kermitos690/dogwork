@@ -16,6 +16,7 @@ export const AI_FEATURE_CANONICAL_MAP: Record<string, string> = {
   agent_progress_report: "behavior_summary",
   agent_plan_adjustment: "plan_generator",
   agent_dog_insights: "dog_profile_analysis",
+  dog_analysis: "dog_profile_analysis",
 };
 
 const AI_FEATURE_LABELS: Partial<Record<string, string>> = {
@@ -28,6 +29,7 @@ const AI_FEATURE_LABELS: Partial<Record<string, string>> = {
   agent_progress_report: "Agent · Rapport de progression",
   agent_plan_adjustment: "Agent · Ajustement du plan",
   agent_dog_insights: "Agent · Insights chien",
+  dog_analysis: "Analyse de profil chien",
 };
 
 /**
@@ -59,12 +61,12 @@ export function expandAIFeaturesWithAliases(features: FeatureLike[]): FeatureLik
   const byCode = new Map(features.map((feature) => [feature.code, feature]));
   const expanded = [...features];
 
-  // Patch any zero/missing cost on canonical codes with the hardcoded fallback.
+  // Patch stale, zero, or alias-specific costs with the canonical DogWork price.
+  // This prevents old catalog rows (e.g. ai_* or agent_* rows) from showing a lower
+  // or blocked value than the backend will actually enforce.
   for (const feature of expanded) {
-    if (!feature.credits_cost || feature.credits_cost <= 0) {
-      const fallback = AI_FEATURE_FALLBACK_COSTS[feature.code];
-      if (fallback) feature.credits_cost = fallback;
-    }
+    const fallback = getFallbackCost(feature.code);
+    if (fallback > 0) feature.credits_cost = fallback;
   }
 
   for (const [aliasCode, canonicalCode] of Object.entries(AI_FEATURE_CANONICAL_MAP)) {

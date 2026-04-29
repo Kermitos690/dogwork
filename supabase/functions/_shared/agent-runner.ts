@@ -18,6 +18,13 @@ const AGENT_FEATURE_CODE_MAP: Record<string, string> = {
   agent_dog_insights: "dog_profile_analysis",
 };
 
+const FALLBACK_COSTS: Record<string, number> = {
+  plan_generator: 5,
+  behavior_analysis: 13,
+  behavior_summary: 5,
+  dog_profile_analysis: 13,
+};
+
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -224,21 +231,24 @@ export async function runAgent(req: Request, agent: AgentConfig): Promise<Respon
     // Merge: explicit body params override saved ones.
     const effectiveParams = { ...savedParams, ...bodyParams };
 
-    // 2. Get cost from catalog
+    // 2. Get cost from catalog, with canonical fallback for stale Live rows.
     const resolvedFeatureCode = AGENT_FEATURE_CODE_MAP[agent.code] ?? agent.code;
     const { data: feature, error: featureError } = await supabase
       .from("ai_feature_catalog")
-      .select("credits_cost, model")
+      .select("credits_cost, model, is_active")
       .eq("code", resolvedFeatureCode)
-      .eq("is_active", true)
       .maybeSingle();
 
-    if (featureError || !feature) {
+    const fallbackCost = FALLBACK_COSTS[resolvedFeatureCode] ?? 0;
+    if ((featureError || !feature || feature.is_active === false) && fallbackCost <= 0) {
       return new Response(
         JSON.stringify({ error: "Agent inconnu dans le catalogue IA." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const featureCost = fallbackCost > 0 ? fallbackCost : Number(feature?.credits_cost ?? 0);
+    const featureModel = feature?.model || agent.model;
 
     // 3. Resolve active dog and load profile.
     //    Every IA tool is strictly scoped to ONE dog: refuse if we cannot
@@ -268,7 +278,7 @@ export async function runAgent(req: Request, agent: AgentConfig): Promise<Respon
     const { data: debited, error: debitError } = await supabase.rpc("debit_ai_credits", {
       _user_id: user.id,
         _feature_code: resolvedFeatureCode,
-      _credits: feature.credits_cost,
+      _credits: featureCost,
       _provider_cost_usd: null,
       _metadata: {
         agent: agent.code,
@@ -306,7 +316,7 @@ export async function runAgent(req: Request, agent: AgentConfig): Promise<Respon
       `- Reste dans les limites de ton outil : ne déborde pas sur d'autres analyses ou recommandations hors de ta mission.\n\n`;
 
     const aiResponse = await callAI({
-      model: feature.model || agent.model,
+      model: featureModel,
       messages: [
         { role: "system", content: guardrail + agent.systemPrompt },
         { role: "user", content: agent.buildUserPrompt(enrichedContext) },
@@ -320,7 +330,7 @@ export async function runAgent(req: Request, agent: AgentConfig): Promise<Respon
       // Refund
       await supabase.rpc("credit_ai_wallet", {
         _user_id: user.id,
-        _credits: feature.credits_cost,
+        _credits: featureCost,
         _operation_type: "refund",
         _description: `Remboursement échec ${agent.code}`,
       });
@@ -350,8 +360,8 @@ export async function runAgent(req: Request, agent: AgentConfig): Promise<Respon
           dog_profile: dogProfile,
           params: effectiveParams,
         },
-        credits_spent: feature.credits_cost,
-        model_used: feature.model,
+        credits_spent: featureCost,
+        model_used: featureModel,
         metadata: { agent: agent.code, autonomous: true, dog_id: dogId },
       })
       .select("id")
@@ -375,7 +385,7 @@ export async function runAgent(req: Request, agent: AgentConfig): Promise<Respon
         success: true,
         document_id: doc?.id,
         text: generatedText,
-        credits_spent: feature.credits_cost,
+        credits_spent: featureCost,
         dog_id: dogId,
         dog_name: dogProfile?.name ?? null,
         params_used: effectiveParams,
