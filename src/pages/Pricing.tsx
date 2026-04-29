@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Check, Sparkles, Coins, Info } from "lucide-react";
+import { Check, Sparkles, Coins, Info, Star, Image as ImageIcon, Award } from "lucide-react";
 
 interface SubscriptionPlan {
   code: string;
