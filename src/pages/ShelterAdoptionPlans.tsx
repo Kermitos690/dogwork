@@ -89,6 +89,16 @@ export default function ShelterAdoptionPlans() {
     objectives: [""],
   });
 
+  // Email format validation (RFC-lite)
+  const emailTrimmed = form.adopter_email.trim().toLowerCase();
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailTrimmed);
+
+  // Detect if the chosen animal already has a plan (any status) to avoid duplicates
+  const animalAlreadyHasPlan = !!form.animal_id && !!plans?.some(p => p.animal_id === form.animal_id);
+  // Detect if a pending plan already exists for the same animal + email pair
+  const pendingDuplicate = mode === "pending" && !!form.animal_id && emailValid &&
+    !!plans?.some(p => p.animal_id === form.animal_id && (p as any).adopter_email === emailTrimmed);
+
   // Fetch adopted animals with adopter links
   const { data: adoptedAnimals } = useQuery({
     queryKey: ["shelter-adopted-animals", user?.id],
