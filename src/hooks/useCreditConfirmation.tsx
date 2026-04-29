@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useAIBalance, useAIFeatures } from "@/hooks/useAICredits";
+import { getFallbackCost, resolveAIFeatureCode } from "@/lib/aiFeatureCatalog";
 import {
   resolveUpsellTrigger,
   suggestMonetizationPath,
