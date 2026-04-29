@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, ClipboardList, ChevronRight, Calendar, Target, Trash2, PawPrint, Sparkles, Loader2 } from "lucide-react";
+import { Plus, ClipboardList, ChevronRight, Calendar, Target, Trash2, PawPrint, Sparkles, Loader2, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useCreditConfirmation } from "@/hooks/useCreditConfirmation";
