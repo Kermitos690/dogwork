@@ -278,7 +278,7 @@ export async function runAgent(req: Request, agent: AgentConfig): Promise<Respon
     const { data: debited, error: debitError } = await supabase.rpc("debit_ai_credits", {
       _user_id: user.id,
         _feature_code: resolvedFeatureCode,
-      _credits: feature.credits_cost,
+      _credits: featureCost,
       _provider_cost_usd: null,
       _metadata: {
         agent: agent.code,
@@ -330,7 +330,7 @@ export async function runAgent(req: Request, agent: AgentConfig): Promise<Respon
       // Refund
       await supabase.rpc("credit_ai_wallet", {
         _user_id: user.id,
-        _credits: feature.credits_cost,
+        _credits: featureCost,
         _operation_type: "refund",
         _description: `Remboursement échec ${agent.code}`,
       });
@@ -360,8 +360,8 @@ export async function runAgent(req: Request, agent: AgentConfig): Promise<Respon
           dog_profile: dogProfile,
           params: effectiveParams,
         },
-        credits_spent: feature.credits_cost,
-        model_used: feature.model,
+        credits_spent: featureCost,
+        model_used: featureModel,
         metadata: { agent: agent.code, autonomous: true, dog_id: dogId },
       })
       .select("id")
@@ -385,7 +385,7 @@ export async function runAgent(req: Request, agent: AgentConfig): Promise<Respon
         success: true,
         document_id: doc?.id,
         text: generatedText,
-        credits_spent: feature.credits_cost,
+        credits_spent: featureCost,
         dog_id: dogId,
         dog_name: dogProfile?.name ?? null,
         params_used: effectiveParams,
