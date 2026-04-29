@@ -39,20 +39,26 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return json({ error: "missing auth" }, 401);
-    const jwt = authHeader.replace("Bearer ", "");
+    // Auth: either admin JWT or CRON_SECRET (for one-shot maintenance)
+    const cronSecret = Deno.env.get("CRON_SECRET");
+    const providedSecret = req.headers.get("x-cron-secret");
+    const isCron = cronSecret && providedSecret === cronSecret;
 
-    const sbCurrent = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-    const { data: userData, error: userErr } = await sbCurrent.auth.getUser(jwt);
-    if (userErr || !userData.user) return json({ error: "invalid token" }, 401);
-    const { data: roles } = await sbCurrent.from("user_roles")
-      .select("role").eq("user_id", userData.user.id);
-    if (!roles?.some((r: any) => r.role === "admin")) {
-      return json({ error: "admin required" }, 403);
+    if (!isCron) {
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader) return json({ error: "missing auth" }, 401);
+      const jwt = authHeader.replace("Bearer ", "");
+      const sbCurrent = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      );
+      const { data: userData, error: userErr } = await sbCurrent.auth.getUser(jwt);
+      if (userErr || !userData.user) return json({ error: "invalid token" }, 401);
+      const { data: roles } = await sbCurrent.from("user_roles")
+        .select("role").eq("user_id", userData.user.id);
+      if (!roles?.some((r: any) => r.role === "admin")) {
+        return json({ error: "admin required" }, 403);
+      }
     }
 
     const liveKey = Deno.env.get("LIVE_SERVICE_ROLE_KEY");
