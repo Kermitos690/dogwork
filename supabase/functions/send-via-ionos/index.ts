@@ -15,7 +15,7 @@
 // }
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { SMTPClient } from 'npm:emailjs@4.0.3'
+import { SMTPClient } from 'https://deno.land/x/denomailer@1.6.0/mod.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -122,37 +122,36 @@ Deno.serve(async (req) => {
     metadata: { channel: 'ionos', from: fromHeader, subject: body.subject, triggered_by: userData.user.email },
   })
 
-  // ====== SMTP SEND ======
+  // ====== SMTP SEND (denomailer — Deno-native, supporte STARTTLS sur 587) ======
   const startedAt = Date.now()
-  let client: any = null
+  let client: SMTPClient | null = null
   try {
     client = new SMTPClient({
-      user: SMTP_USER,
-      password: SMTP_PASS,
-      host: SMTP_HOST,
-      port: SMTP_PORT,
-      tls: true, // STARTTLS sur 587
-      timeout: 20000,
+      connection: {
+        hostname: SMTP_HOST,
+        port: SMTP_PORT,
+        tls: SMTP_PORT === 465, // 465 = TLS direct, 587 = STARTTLS (auto)
+        auth: {
+          username: SMTP_USER,
+          password: SMTP_PASS,
+        },
+      },
     })
 
-    const message = {
+    await client.send({
       from: fromHeader,
       to: body.to,
       subject: body.subject,
-      text,
-      attachment: [
-        { data: body.html, alternative: true },
-      ],
-      'reply-to': body.replyTo || FROM_ADDRESS,
-      'message-id': `<${messageId}@${(FROM_ADDRESS.split('@')[1] || 'dogwork-at-home.com')}>`,
-    }
-
-    const sent: any = await new Promise((resolve, reject) => {
-      client.send(message, (err: any, msg: any) => {
-        if (err) reject(err)
-        else resolve(msg)
-      })
+      content: text,
+      html: body.html,
+      replyTo: body.replyTo || FROM_ADDRESS,
+      headers: {
+        'Message-ID': `<${messageId}@${(FROM_ADDRESS.split('@')[1] || 'dogwork-at-home.com')}>`,
+      },
     })
+
+    await client.close()
+    client = null
 
     const latencyMs = Date.now() - startedAt
 
@@ -166,7 +165,6 @@ Deno.serve(async (req) => {
         smtp_host: SMTP_HOST,
         smtp_port: SMTP_PORT,
         latency_ms: latencyMs,
-        smtp_response: sent?.header?.['message-id'] || 'ok',
       },
     })
 
@@ -183,6 +181,8 @@ Deno.serve(async (req) => {
     const latencyMs = Date.now() - startedAt
     const errorMsg = e?.message || String(e)
     console.error('IONOS SMTP send failed:', errorMsg, e?.code)
+
+    try { if (client) await client.close() } catch (_) { /* noop */ }
 
     await supabase.from('email_send_log').insert({
       message_id: messageId,
