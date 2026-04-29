@@ -27,6 +27,20 @@ const LEGACY_FEATURE_CODE_MAP: Record<string, string> = {
   ai_progress_report: "behavior_summary",
 };
 
+// Server-side fallback costs — guarantees correct debit even if catalog row
+// is missing, inactive, or has credits_cost=0 (e.g. before publish to Live).
+// Must mirror src/lib/aiFeatureCatalog.ts AI_FEATURE_FALLBACK_COSTS.
+const FALLBACK_COSTS: Record<string, number> = {
+  plan_generator: 5,
+  education_plan: 8,
+  adoption_plan: 8,
+  behavior_analysis: 13,
+  behavior_summary: 5,
+  dog_profile_analysis: 5,
+  chat: 1,
+  ai_image_generation: 10,
+};
+
 interface DogContext {
   dog: any;
   evaluation?: any;
@@ -429,7 +443,19 @@ Deno.serve(async (req) => {
     const roleList = roles?.map((r: { role: string }) => r.role) || [];
     console.log(`[ai-with-credits] Roles: [${roleList.join(",")}], debit enabled for all accounts`);
 
-    const creditsCost = feature.credits_cost;
+    // Cost = catalog value if > 0, else server-side fallback. No silent 0-debit.
+    const catalogCost = Number(feature.credits_cost ?? 0);
+    const creditsCost = catalogCost > 0
+      ? catalogCost
+      : (FALLBACK_COSTS[resolvedFeatureCode] ?? FALLBACK_COSTS[feature_code] ?? 0);
+
+    if (creditsCost <= 0) {
+      console.error(`[ai-with-credits] No cost defined for ${feature_code} (resolved ${resolvedFeatureCode})`);
+      return new Response(JSON.stringify({ error: "Coût IA non configuré pour cette fonctionnalité" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const pricePerCreditChf = 0.05;
     const publicPriceChf = Number((creditsCost * pricePerCreditChf).toFixed(4));
 

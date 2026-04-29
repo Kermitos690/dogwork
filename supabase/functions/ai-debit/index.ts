@@ -11,6 +11,20 @@ const LEGACY_FEATURE_CODE_MAP: Record<string, string> = {
   ai_progress_report: "behavior_summary",
 };
 
+// Server-side fallback costs — guarantees correct debit even if catalog
+// row is missing, inactive, or has credits_cost=0 (e.g. before publish).
+// Must mirror src/lib/aiFeatureCatalog.ts AI_FEATURE_FALLBACK_COSTS.
+const FALLBACK_COSTS: Record<string, number> = {
+  plan_generator: 5,
+  education_plan: 8,
+  adoption_plan: 8,
+  behavior_analysis: 13,
+  behavior_summary: 5,
+  dog_profile_analysis: 5,
+  chat: 1,
+  ai_image_generation: 10,
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -66,21 +80,35 @@ Deno.serve(async (req) => {
       .eq("code", resolvedFeatureCode)
       .maybeSingle();
 
-    if (featErr || !feature || !feature.is_active) {
-      return new Response(JSON.stringify({ error: `Fonctionnalité IA introuvable: ${featureCode}` }), {
-        status: 404,
+    if (featErr || !feature) {
+      // Last-resort fallback: if catalog row is missing entirely, use known cost.
+      const fallback = FALLBACK_COSTS[resolvedFeatureCode];
+      if (!fallback) {
+        return new Response(JSON.stringify({ error: `Fonctionnalité IA introuvable: ${featureCode}` }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // Cost = catalog value if > 0, else fallback. Guarantees no silent 0-debit.
+    const catalogCost = Number(feature?.credits_cost ?? 0);
+    const credits = catalogCost > 0 ? catalogCost : (FALLBACK_COSTS[resolvedFeatureCode] ?? 0);
+    const featureLabel = feature?.label ?? resolvedFeatureCode;
+
+    if (credits <= 0) {
+      return new Response(JSON.stringify({ error: `Coût crédits non défini pour: ${featureCode}` }), {
+        status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const credits = feature.credits_cost;
 
     const { data: debited, error: debitErr } = await admin.rpc("debit_ai_credits", {
       _user_id: userId,
       _feature_code: resolvedFeatureCode,
       _credits: credits,
       _provider_cost_usd: null,
-      _metadata: { ...metadata, source: "ai-debit", feature_label: feature.label },
+      _metadata: { ...metadata, source: "ai-debit", feature_label: featureLabel },
     });
 
     if (debitErr) {
