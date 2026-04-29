@@ -35,21 +35,21 @@ export default function Landing() {
     },
     {
       icon: Wand2,
-      title: "Plans d'entraînement IA",
-      desc: "Génération automatique d'un plan 28 jours personnalisé selon le profil, les problèmes et les objectifs du chien.",
-      cost: "5 crédits / plan",
+      title: "Plan éducatif IA personnalisé",
+      desc: "Génération d'un plan d'entraînement sur mesure selon le profil, les problèmes et les objectifs de votre chien.",
+      cost: "8 crédits / plan",
     },
     {
       icon: LineChart,
       title: "Analyse comportementale",
       desc: "L'IA analyse votre journal et vos évaluations pour détecter les tendances et recommander des ajustements.",
-      cost: "3 crédits / analyse",
+      cost: "13 crédits / analyse",
     },
     {
       icon: Sparkles,
-      title: "Suggestions contextuelles",
-      desc: "Aide intelligente partout dans l'app : adaptation d'exercices, explication des échecs, alternatives sur mesure.",
-      cost: "1 crédit / suggestion",
+      title: "Analyse de profil chien",
+      desc: "Synthèse intelligente du profil de votre chien : forces, axes de travail, recommandations adaptées à sa race et son âge.",
+      cost: "13 crédits / analyse",
     },
   ];
 
