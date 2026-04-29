@@ -23,10 +23,16 @@ export function useCreditConfirmation() {
   const { data: wallet } = useAIBalance();
   const { data: features } = useAIFeatures();
 
-  const feature = pending ? features?.find((f) => f.code === pending.featureCode) : undefined;
-  const cost = feature?.credits_cost ?? 0;
+  const resolvedCode = pending ? resolveAIFeatureCode(pending.featureCode) : undefined;
+  const feature = pending
+    ? features?.find((f) => f.code === pending.featureCode) ??
+      features?.find((f) => f.code === resolvedCode)
+    : undefined;
+  const fallbackCost = pending ? getFallbackCost(pending.featureCode) : 0;
+  const catalogCost = Number(feature?.credits_cost ?? 0);
+  const cost = catalogCost > 0 ? catalogCost : fallbackCost;
   const balance = wallet?.balance ?? 0;
-  const featureReady = !pending || !!feature;
+  const featureReady = !pending || cost > 0;
 
   const requestConfirmation = useCallback((action: PendingAction) => {
     setPending(action);
