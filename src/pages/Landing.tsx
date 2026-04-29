@@ -35,21 +35,21 @@ export default function Landing() {
     },
     {
       icon: Wand2,
-      title: "Plans d'entraînement IA",
-      desc: "Génération automatique d'un plan 28 jours personnalisé selon le profil, les problèmes et les objectifs du chien.",
-      cost: "5 crédits / plan",
+      title: "Plan éducatif IA personnalisé",
+      desc: "Génération d'un plan d'entraînement sur mesure selon le profil, les problèmes et les objectifs de votre chien.",
+      cost: "8 crédits / plan",
     },
     {
       icon: LineChart,
       title: "Analyse comportementale",
       desc: "L'IA analyse votre journal et vos évaluations pour détecter les tendances et recommander des ajustements.",
-      cost: "3 crédits / analyse",
+      cost: "13 crédits / analyse",
     },
     {
       icon: Sparkles,
-      title: "Suggestions contextuelles",
-      desc: "Aide intelligente partout dans l'app : adaptation d'exercices, explication des échecs, alternatives sur mesure.",
-      cost: "1 crédit / suggestion",
+      title: "Analyse de profil chien",
+      desc: "Synthèse intelligente du profil de votre chien : forces, axes de travail, recommandations adaptées à sa race et son âge.",
+      cost: "13 crédits / analyse",
     },
   ];
 
@@ -240,8 +240,8 @@ export default function Landing() {
               <h3 className="text-xl font-bold mb-2">Système de crédits IA transparent</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 <strong className="text-foreground">10 crédits offerts</strong> à l'inscription.
-                Les abonnements Pro et Expert incluent des crédits mensuels.
-                Besoin de plus ? Achetez des packs ponctuels (Découverte, Standard, Premium) sans engagement.
+                Les abonnements Pro et Expert incluent des crédits mensuels (5 et 15).
+                Besoin de plus ? Achetez des packs ponctuels (80, 150 ou 500 crédits) sans engagement.
               </p>
             </div>
             <Button onClick={() => navigate("/auth")}
@@ -478,7 +478,7 @@ export default function Landing() {
               <ul className="space-y-2.5 mb-6 flex-1">
                 {[
                   "Tout le plan Freemium, plus :",
-                  "1 profil chien",
+                  "Jusqu'à 3 profils chien",
                   "150 exercices (basiques + intermédiaires)",
                   "Évaluation comportementale complète",
                   "Objectifs & problèmes personnalisés",
@@ -521,11 +521,10 @@ export default function Landing() {
                   "Tout le plan Pro, plus :",
                   "Chiens illimités",
                   "480+ exercices (toute la bibliothèque)",
-                  "Plans IA personnalisés (28 jours)",
+                  "Plan éducatif IA personnalisé",
                   "Chatbot IA 24/7",
                   "Analyse comportementale avancée",
-                  "30 crédits IA inclus / mois",
-                
+                  "15 crédits IA inclus / mois",
                 ].map((f, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm">
                     <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 text-accent" />
@@ -556,23 +555,23 @@ export default function Landing() {
             <div className="grid sm:grid-cols-3 gap-4">
               <div className="p-4 rounded-xl bg-card/60 border border-border/40 text-center">
                 <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-1">Découverte</div>
-                <div className="text-2xl font-black">50 crédits</div>
+                <div className="text-2xl font-black">80 crédits</div>
                 <div className="text-sm text-primary font-semibold mt-1">4.90 CHF</div>
               </div>
               <div className="p-4 rounded-xl bg-card/80 border border-primary/30 text-center relative">
                 <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] font-bold uppercase px-2 py-0.5 rounded-full">Populaire</div>
                 <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-1">Standard</div>
                 <div className="text-2xl font-black">150 crédits</div>
-                <div className="text-sm text-primary font-semibold mt-1">9.90 CHF</div>
+                <div className="text-sm text-primary font-semibold mt-1">6.90 CHF</div>
               </div>
               <div className="p-4 rounded-xl bg-card/60 border border-border/40 text-center">
                 <div className="text-xs uppercase tracking-wider font-semibold text-muted-foreground mb-1">Premium</div>
                 <div className="text-2xl font-black">500 crédits</div>
-                <div className="text-sm text-primary font-semibold mt-1">24.90 CHF</div>
+                <div className="text-sm text-primary font-semibold mt-1">19.90 CHF</div>
               </div>
             </div>
             <p className="text-xs text-muted-foreground text-center mt-4">
-              1 crédit ≈ 1 message chatbot · 5 crédits = 1 plan IA · 3 crédits = 1 analyse comportementale
+              1 crédit = 1 message chatbot · 8 crédits = 1 plan éducatif IA · 13 crédits = 1 analyse comportementale
             </p>
           </motion.div>
 
@@ -674,42 +673,8 @@ export default function Landing() {
             </motion.div>
           </div>
 
-          {/* ========== Modules optionnels (add-ons) ========== */}
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }}
-            variants={fadeUp} custom={0}
-            className="mt-14 rounded-2xl bg-gradient-to-br from-accent/5 to-primary/5 border border-accent/20 p-6 md:p-8">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="rounded-lg p-2 bg-accent/20 text-accent">
-                <Sparkles className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="font-bold text-lg">Modules optionnels</h3>
-                <p className="text-xs text-muted-foreground">À activer au besoin — facturés en plus de votre abonnement</p>
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground mb-5 leading-relaxed">
-              Activez uniquement ce dont vous avez besoin. Chaque module est ajouté ou retiré à tout moment depuis votre espace, avec proratisation immédiate sur votre prochaine facture.
-            </p>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {[
-                { name: "Statistiques comportementales", price: "3.90", tag: "Tableau de bord avancé", roles: "Propriétaires · Coachs · Refuges" },
-                { name: "Branding & page publique", price: "4.90", tag: "Identité personnalisée", roles: "Coachs · Refuges" },
-                { name: "Adoption & post-adoption", price: "5.90", tag: "Suivi automatisé", roles: "Refuges" },
-                { name: "Planning & rendez-vous", price: "6.90", tag: "Calendrier clients", roles: "Coachs · Refuges" },
-                { name: "Équipe & permissions", price: "7.90", tag: "Comptes employés & rôles", roles: "Coachs · Refuges" },
-              ].map((m) => (
-                <div key={m.name} className="p-4 rounded-xl bg-card/70 border border-border/40 flex flex-col">
-                  <div className="text-[10px] uppercase tracking-wider font-semibold text-accent mb-1">{m.tag}</div>
-                  <div className="font-semibold text-sm mb-2 leading-snug">{m.name}</div>
-                  <div className="text-xl font-black mb-1">+{m.price} <span className="text-xs font-semibold text-muted-foreground">CHF/mois</span></div>
-                  <div className="text-[11px] text-muted-foreground/80 mt-auto pt-2">{m.roles}</div>
-                </div>
-              ))}
-            </div>
-            <p className="text-[11px] text-muted-foreground/80 text-center mt-5">
-              Les modules sont ajoutés directement à votre abonnement Stripe principal — une seule facture, un seul prélèvement.
-            </p>
-          </motion.div>
+          {/* Modules optionnels payants : retirés tant que les add-ons Stripe ne sont pas activés en Live.
+              Source de vérité : table `modules` (tous monthly_price_chf=0, is_addon=false en production). */}
         </div>
       </section>
 
