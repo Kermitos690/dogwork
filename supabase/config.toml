@@ -72,3 +72,7 @@ verify_jwt = false
     verify_jwt = false
   [functions.process-email-queue]
     verify_jwt = true
+  [functions.send-via-ionos]
+    verify_jwt = false
+  [functions.email-deliverability-test]
+    verify_jwt = false
