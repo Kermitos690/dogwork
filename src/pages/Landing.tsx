@@ -240,8 +240,8 @@ export default function Landing() {
               <h3 className="text-xl font-bold mb-2">Système de crédits IA transparent</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 <strong className="text-foreground">10 crédits offerts</strong> à l'inscription.
-                Les abonnements Pro et Expert incluent des crédits mensuels.
-                Besoin de plus ? Achetez des packs ponctuels (Découverte, Standard, Premium) sans engagement.
+                Les abonnements Pro et Expert incluent des crédits mensuels (5 et 15).
+                Besoin de plus ? Achetez des packs ponctuels (80, 150 ou 500 crédits) sans engagement.
               </p>
             </div>
             <Button onClick={() => navigate("/auth")}
