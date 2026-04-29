@@ -1110,33 +1110,60 @@ export type Database = {
       coach_profiles: {
         Row: {
           avatar_url: string | null
+          banner_url: string | null
           bio: string | null
+          city: string | null
           created_at: string
           display_name: string | null
+          gallery_urls: string[]
           id: string
+          is_published: boolean
+          public_email: string | null
+          public_phone: string | null
+          slug: string | null
           specialty: string | null
           updated_at: string
           user_id: string
+          video_url: string | null
+          website: string | null
         }
         Insert: {
           avatar_url?: string | null
+          banner_url?: string | null
           bio?: string | null
+          city?: string | null
           created_at?: string
           display_name?: string | null
+          gallery_urls?: string[]
           id?: string
+          is_published?: boolean
+          public_email?: string | null
+          public_phone?: string | null
+          slug?: string | null
           specialty?: string | null
           updated_at?: string
           user_id: string
+          video_url?: string | null
+          website?: string | null
         }
         Update: {
           avatar_url?: string | null
+          banner_url?: string | null
           bio?: string | null
+          city?: string | null
           created_at?: string
           display_name?: string | null
+          gallery_urls?: string[]
           id?: string
+          is_published?: boolean
+          public_email?: string | null
+          public_phone?: string | null
+          slug?: string | null
           specialty?: string | null
           updated_at?: string
           user_id?: string
+          video_url?: string | null
+          website?: string | null
         }
         Relationships: []
       }
@@ -3199,6 +3226,39 @@ export type Database = {
           },
         ]
       }
+      public_profile_boosts: {
+        Row: {
+          boost_type: string
+          created_at: string
+          credits_spent: number
+          expires_at: string
+          id: string
+          profile_kind: string
+          starts_at: string
+          user_id: string
+        }
+        Insert: {
+          boost_type: string
+          created_at?: string
+          credits_spent: number
+          expires_at: string
+          id?: string
+          profile_kind: string
+          starts_at?: string
+          user_id: string
+        }
+        Update: {
+          boost_type?: string
+          created_at?: string
+          credits_spent?: number
+          expires_at?: string
+          id?: string
+          profile_kind?: string
+          starts_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       referral_attributions: {
         Row: {
           created_at: string
@@ -3646,6 +3706,7 @@ export type Database = {
       shelter_profiles: {
         Row: {
           address: string | null
+          banner_url: string | null
           checkin_frequency_weeks: number | null
           checkin_total_weeks: number | null
           city: string | null
@@ -3653,7 +3714,9 @@ export type Database = {
           created_at: string
           description: string | null
           email_public: string | null
+          gallery_urls: string[]
           id: string
+          is_published: boolean
           logo_url: string | null
           mission: string | null
           name: string
@@ -3662,12 +3725,15 @@ export type Database = {
           phone: string | null
           postal_code: string | null
           since_year: number | null
+          slug: string | null
           updated_at: string
           user_id: string
+          video_url: string | null
           website: string | null
         }
         Insert: {
           address?: string | null
+          banner_url?: string | null
           checkin_frequency_weeks?: number | null
           checkin_total_weeks?: number | null
           city?: string | null
@@ -3675,7 +3741,9 @@ export type Database = {
           created_at?: string
           description?: string | null
           email_public?: string | null
+          gallery_urls?: string[]
           id?: string
+          is_published?: boolean
           logo_url?: string | null
           mission?: string | null
           name?: string
@@ -3684,12 +3752,15 @@ export type Database = {
           phone?: string | null
           postal_code?: string | null
           since_year?: number | null
+          slug?: string | null
           updated_at?: string
           user_id: string
+          video_url?: string | null
           website?: string | null
         }
         Update: {
           address?: string | null
+          banner_url?: string | null
           checkin_frequency_weeks?: number | null
           checkin_total_weeks?: number | null
           city?: string | null
@@ -3697,7 +3768,9 @@ export type Database = {
           created_at?: string
           description?: string | null
           email_public?: string | null
+          gallery_urls?: string[]
           id?: string
+          is_published?: boolean
           logo_url?: string | null
           mission?: string | null
           name?: string
@@ -3706,8 +3779,10 @@ export type Database = {
           phone?: string | null
           postal_code?: string | null
           since_year?: number | null
+          slug?: string | null
           updated_at?: string
           user_id?: string
+          video_url?: string | null
           website?: string | null
         }
         Relationships: []
@@ -4245,6 +4320,63 @@ export type Database = {
         }
         Relationships: []
       }
+      coach_profiles_public: {
+        Row: {
+          avatar_url: string | null
+          banner_url: string | null
+          bio: string | null
+          city: string | null
+          display_name: string | null
+          gallery_urls: string[] | null
+          has_badge_video: boolean | null
+          is_featured: boolean | null
+          public_email: string | null
+          public_phone: string | null
+          slug: string | null
+          specialty: string | null
+          updated_at: string | null
+          user_id: string | null
+          video_url: string | null
+          website: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          banner_url?: string | null
+          bio?: string | null
+          city?: string | null
+          display_name?: string | null
+          gallery_urls?: string[] | null
+          has_badge_video?: never
+          is_featured?: never
+          public_email?: string | null
+          public_phone?: string | null
+          slug?: string | null
+          specialty?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          video_url?: string | null
+          website?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          banner_url?: string | null
+          bio?: string | null
+          city?: string | null
+          display_name?: string | null
+          gallery_urls?: string[] | null
+          has_badge_video?: never
+          is_featured?: never
+          public_email?: string | null
+          public_phone?: string | null
+          slug?: string | null
+          specialty?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          video_url?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
       educator_commercial_rules_public: {
         Row: {
           annual_fee_chf: number | null
@@ -4365,6 +4497,72 @@ export type Database = {
           name?: string | null
           organization_type?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      shelter_profiles_public_v2: {
+        Row: {
+          banner_url: string | null
+          city: string | null
+          country: string | null
+          description: string | null
+          email_public: string | null
+          gallery_urls: string[] | null
+          has_badge_video: boolean | null
+          is_featured: boolean | null
+          logo_url: string | null
+          mission: string | null
+          name: string | null
+          opening_hours: string | null
+          organization_type: string | null
+          since_year: number | null
+          slug: string | null
+          updated_at: string | null
+          user_id: string | null
+          video_url: string | null
+          website: string | null
+        }
+        Insert: {
+          banner_url?: string | null
+          city?: string | null
+          country?: string | null
+          description?: string | null
+          email_public?: string | null
+          gallery_urls?: string[] | null
+          has_badge_video?: never
+          is_featured?: never
+          logo_url?: string | null
+          mission?: string | null
+          name?: string | null
+          opening_hours?: string | null
+          organization_type?: string | null
+          since_year?: number | null
+          slug?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          video_url?: string | null
+          website?: string | null
+        }
+        Update: {
+          banner_url?: string | null
+          city?: string | null
+          country?: string | null
+          description?: string | null
+          email_public?: string | null
+          gallery_urls?: string[] | null
+          has_badge_video?: never
+          is_featured?: never
+          logo_url?: string | null
+          mission?: string | null
+          name?: string | null
+          opening_hours?: string | null
+          organization_type?: string | null
+          since_year?: number | null
+          slug?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          video_url?: string | null
+          website?: string | null
         }
         Relationships: []
       }
@@ -4835,6 +5033,10 @@ export type Database = {
       provision_modules_for_tier: {
         Args: { _tier: string; _user_id: string }
         Returns: undefined
+      }
+      purchase_public_boost: {
+        Args: { _boost_type: string; _profile_kind: string }
+        Returns: Json
       }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }

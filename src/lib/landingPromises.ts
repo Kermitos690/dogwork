@@ -39,10 +39,13 @@ export const LANDING_PROMISES: LandingPromises = {
     { credits: 500, price_chf: 19.9 },
   ],
   ai_feature_costs: [
-    { code: "chat",              credits_cost: 1 },
-    { code: "education_plan",    credits_cost: 8 },
-    { code: "behavior_analysis", credits_cost: 13 },
-    { code: "dog_profile_analysis", credits_cost: 13 },
+    { code: "chat",                    credits_cost: 1 },
+    { code: "education_plan",          credits_cost: 8 },
+    { code: "behavior_analysis",       credits_cost: 13 },
+    { code: "dog_profile_analysis",    credits_cost: 13 },
+    { code: "boost_banner_gallery",    credits_cost: 30 },
+    { code: "boost_badge_video",       credits_cost: 40 },
+    { code: "boost_directory_featured", credits_cost: 50 },
   ],
   signup_bonus_credits: 10,
 };
