@@ -163,6 +163,7 @@ export function SlideMenu() {
         { label: t("menu.calendar"), icon: CalendarDays, path: "/coach/calendar" },
         { label: t("menu.notes"), icon: FileText, path: "/coach/notes" },
         { label: t("nav.stats"), icon: BarChart3, path: "/coach/stats" },
+        { label: "Mon profil & marque", icon: User, path: "/coach/profile" },
         { label: "Parrainages", icon: Gift, path: "/coach/referrals" },
         { label: "Conformité", icon: ShieldCheck, path: "/coach/compliance" },
       ],

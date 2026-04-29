@@ -68,6 +68,7 @@ const HelpPage = lazy(() => import("./pages/Help"));
 const SubscriptionPage = lazy(() => import("./pages/Subscription"));
 const CoursesPage = lazy(() => import("./pages/Courses"));
 const CoachCalendar = lazy(() => import("./pages/CoachCalendar"));
+const CoachProfile = lazy(() => import("./pages/CoachProfile"));
 const CoachSubscription = lazy(() => import("./pages/CoachSubscription"));
 const CoachShelterAnimals = lazy(() => import("./pages/CoachShelterAnimals"));
 const CoachShelterAnimalEval = lazy(() => import("./pages/CoachShelterAnimalEval"));
@@ -329,6 +330,7 @@ function ProtectedRoutes() {
         <Route path="/coach/stats" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachStats /></CoachGuard></Suspense>} />
         <Route path="/coach/courses" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachCourses /></CoachGuard></Suspense>} />
         <Route path="/coach/calendar" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachCalendar /></CoachGuard></Suspense>} />
+        <Route path="/coach/profile" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachProfile /></CoachGuard></Suspense>} />
         <Route path="/coach/subscription" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachSubscription /></CoachGuard></Suspense>} />
         <Route path="/coach/support" element={<Suspense fallback={<PageLoader />}><CoachGuard><SupportTickets /></CoachGuard></Suspense>} />
         <Route path="/coach/shelter-animals" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachShelterAnimals /></CoachGuard></Suspense>} />

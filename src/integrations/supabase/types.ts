@@ -1109,6 +1109,7 @@ export type Database = {
       }
       coach_profiles: {
         Row: {
+          avatar_url: string | null
           bio: string | null
           created_at: string
           display_name: string | null
@@ -1118,6 +1119,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          avatar_url?: string | null
           bio?: string | null
           created_at?: string
           display_name?: string | null
@@ -1127,6 +1129,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          avatar_url?: string | null
           bio?: string | null
           created_at?: string
           display_name?: string | null
@@ -4874,6 +4877,10 @@ export type Database = {
       }
       update_shelter_space_position: {
         Args: { _space_id: string; _x: number; _y: number }
+        Returns: undefined
+      }
+      update_shelter_space_size: {
+        Args: { _height: number; _space_id: string; _width: number }
         Returns: undefined
       }
       upsert_email_dispatch_secrets: {
