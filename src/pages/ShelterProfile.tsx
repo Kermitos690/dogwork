@@ -363,15 +363,14 @@ export default function ShelterProfile() {
                 placeholder="Ex: Lun-Ven 14h-17h, Sam-Dim 10h-12h / 14h-17h"
               />
             </div>
-            <div className="space-y-2">
-              <Label>URL du logo</Label>
-              <Input
-                type="url"
-                value={form.logo_url}
-                onChange={(e) => setForm({ ...form, logo_url: e.target.value })}
-                placeholder="https://..."
-              />
-            </div>
+            <LogoUploader
+              value={form.logo_url}
+              onChange={(url) => setForm({ ...form, logo_url: url || "" })}
+              shape="square"
+              folder="shelter-logo"
+              label="Logo du refuge"
+              helper="Affiché sur votre page publique, vos PDF et vos communications. PNG / JPG / WebP, 4 Mo max. Format carré recommandé."
+            />
 
             <Button
               className="w-full gap-2"
