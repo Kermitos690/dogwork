@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useAIBalance, useAICall, useAIFeatures } from "@/hooks/useAICredits";
+import { getFallbackCost } from "@/lib/aiFeatureCatalog";
 import { useCreditConfirmation } from "@/hooks/useCreditConfirmation";
 import { CreditConfirmDialog } from "@/components/CreditConfirmDialog";
 import { AIResultDialog } from "@/components/AIResultDialog";
@@ -137,8 +138,11 @@ export default function Outils() {
   const credit = useCreditConfirmation();
   const [result, setResult] = useState<AgentResult | null>(null);
 
-  const getCost = (code: string) =>
-    features?.find((f) => f.code === code)?.credits_cost ?? 0;
+  const getCost = (code: string) => {
+    const live = features?.find((f) => f.code === code)?.credits_cost;
+    if (live && live > 0) return live;
+    return getFallbackCost(code);
+  };
 
   const getMeta = (code: string) =>
     features?.find((f) => f.code === code);
