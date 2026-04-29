@@ -253,6 +253,17 @@ export default function ShelterAdoptionPlans() {
   const activePlan = plans?.find(p => p.id === selectedPlan);
   const currentWeeks = activePlan ? Array.from({ length: activePlan.duration_weeks }, (_, i) => i + 1) : [];
 
+  // Email format validation (RFC-lite)
+  const emailTrimmed = form.adopter_email.trim().toLowerCase();
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailTrimmed);
+  // Detect if the chosen animal already has a plan (any status) — prevents duplicates
+  const animalAlreadyHasPlan = !!form.animal_id && !!plans?.some(p => p.animal_id === form.animal_id);
+  // Detect if a pending plan already exists for the same animal + email pair
+  const pendingDuplicate = mode === "pending" && !!form.animal_id && emailValid &&
+    !!plans?.some(p => p.animal_id === form.animal_id && (p as any).adopter_email === emailTrimmed);
+  // Selected animal status (when in "pending" mode)
+  const selectedAnimal = allShelterAnimals?.find(a => a.id === form.animal_id);
+
   const handleSelectAnimal = (animalId: string) => {
     const link = adoptedAnimals?.find(a => a.animal_id === animalId);
     if (link) {
