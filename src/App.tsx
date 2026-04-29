@@ -317,6 +317,7 @@ function ProtectedRoutes() {
         <Route path="/documents" element={<DocumentsPage />} />
         <Route path="/modules" element={<ModulesPage />} />
         <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/ma-page-publique" element={<Suspense fallback={<PageLoader />}><PublicProfileManager /></Suspense>} />
         <Route path="/coach/referrals" element={<Suspense fallback={<PageLoader />}><CoachGuard><EducatorReferrals /></CoachGuard></Suspense>} />
         <Route path="/coach/compliance" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachCompliance /></CoachGuard></Suspense>} />
         <Route path="/admin/compliance" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminCompliance /></AdminGuard></Suspense>} />

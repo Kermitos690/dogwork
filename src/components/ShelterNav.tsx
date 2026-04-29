@@ -2,12 +2,13 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { LayoutDashboard, PawPrint, MessageSquare, BarChart3, LayoutGrid, HelpCircle } from "lucide-react";
+import { LayoutDashboard, PawPrint, MessageSquare, BarChart3, LayoutGrid, HelpCircle, Globe } from "lucide-react";
 
 const tabs = [
   { label: "Dashboard", icon: LayoutDashboard, path: "/shelter" },
   { label: "Animaux", icon: PawPrint, path: "/shelter/animals" },
   { label: "Espaces", icon: LayoutGrid, path: "/shelter/spaces" },
+  { label: "Ma page", icon: Globe, path: "/ma-page-publique" },
   { label: "Messages", icon: MessageSquare, path: "/shelter/messages", hasBadge: true },
   { label: "Stats", icon: BarChart3, path: "/shelter/stats" },
 ];
