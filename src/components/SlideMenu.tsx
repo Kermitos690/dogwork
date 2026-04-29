@@ -188,7 +188,12 @@ export function SlideMenu() {
         { label: t("menu.shelterDashboard"), icon: LayoutDashboard, path: "/shelter" },
         { label: t("menu.animals"), icon: Dog, path: "/shelter/animals" },
         { label: "Gestion des espaces", icon: LayoutGrid, path: "/shelter/spaces" },
+        { label: "Équipe & employés", icon: Users, path: "/shelter/employees" },
+        { label: "Coachs partenaires", icon: GraduationCap, path: "/shelter/coaches" },
         { label: "Plans post-adoption", icon: Heart, path: "/shelter/adoption-plans" },
+        { label: "Suivi adoptants", icon: ClipboardList, path: "/shelter/adoption-checkins" },
+        { label: "Journal d'activité", icon: FileText, path: "/shelter/activity" },
+        { label: "Statistiques", icon: BarChart3, path: "/shelter/stats" },
       ],
     },
   ];

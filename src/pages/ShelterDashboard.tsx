@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ShelterLayout } from "@/components/ShelterLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PawPrint, Plus, Clock, Heart, Stethoscope, Home, MessageSquare, Mail } from "lucide-react";
+import { PawPrint, Plus, Clock, Heart, Stethoscope, Home, MessageSquare, Mail, Users, GraduationCap, LayoutGrid } from "lucide-react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -233,6 +233,41 @@ export default function ShelterDashboard() {
             </div>
           </div>
         )}
+
+        {/* Quick access — gestion équipe & coachs */}
+        <div className="space-y-2">
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">Mon équipe</div>
+          <div className="grid grid-cols-2 gap-2">
+            <Card className="cursor-pointer card-press border-primary/20 bg-primary/5" onClick={() => navigate("/shelter/employees")}>
+              <CardContent className="p-3 flex flex-col items-start gap-1">
+                <Users className="h-5 w-5 text-primary" />
+                <p className="text-xs font-semibold text-foreground leading-tight">Employés, soigneurs & bénévoles</p>
+                <p className="text-[10px] text-muted-foreground">Créer, gérer, réinitialiser un PIN</p>
+              </CardContent>
+            </Card>
+            <Card className="cursor-pointer card-press border-accent/20 bg-accent/5" onClick={() => navigate("/shelter/coaches")}>
+              <CardContent className="p-3 flex flex-col items-start gap-1">
+                <GraduationCap className="h-5 w-5 text-accent" />
+                <p className="text-xs font-semibold text-foreground leading-tight">Coachs partenaires</p>
+                <p className="text-[10px] text-muted-foreground">Inviter & collaborer</p>
+              </CardContent>
+            </Card>
+            <Card className="cursor-pointer card-press" onClick={() => navigate("/shelter/spaces")}>
+              <CardContent className="p-3 flex flex-col items-start gap-1">
+                <LayoutGrid className="h-5 w-5 text-foreground/70" />
+                <p className="text-xs font-semibold text-foreground leading-tight">Espaces & enclos</p>
+                <p className="text-[10px] text-muted-foreground">Plan 2D du refuge</p>
+              </CardContent>
+            </Card>
+            <Card className="cursor-pointer card-press" onClick={() => navigate("/shelter/adoption-plans")}>
+              <CardContent className="p-3 flex flex-col items-start gap-1">
+                <Heart className="h-5 w-5 text-rose-400" />
+                <p className="text-xs font-semibold text-foreground leading-tight">Plans post-adoption</p>
+                <p className="text-[10px] text-muted-foreground">Suivi adoptants</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
 
         <Button className="w-full gap-2" onClick={() => navigate("/shelter/animals?new=1")}>
           <Plus className="h-4 w-4" /> Enregistrer un nouvel animal
