@@ -12,8 +12,16 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { Sparkles, Image as ImageIcon, Award, ExternalLink, Coins, Check, Lock } from "lucide-react";
+import { Sparkles, Image as ImageIcon, Award, ExternalLink, Coins, Check, Lock, AlertTriangle } from "lucide-react";
 
 type Kind = "coach" | "shelter";
 
@@ -104,15 +112,17 @@ export default function PublicProfileManager() {
     },
   });
 
+  // Source de vérité = ai_feature_catalog (alignée avec landing + check pre-publish).
   const { data: boostCosts = {} } = useQuery({
-    queryKey: ["boost_costs"],
+    queryKey: ["boost_costs", "ai_feature_catalog"],
     queryFn: async () => {
       const { data } = await supabase
-        .from("feature_credit_costs" as any)
-        .select("feature_key,credit_cost")
-        .in("feature_key", BOOSTS.map((b) => b.feature_key));
+        .from("ai_feature_catalog" as any)
+        .select("code,credits_cost")
+        .in("code", BOOSTS.map((b) => b.feature_key))
+        .eq("is_active", true);
       const m: Record<string, number> = {};
-      ((data as any[]) ?? []).forEach((r) => { m[r.feature_key] = r.credit_cost; });
+      ((data as any[]) ?? []).forEach((r) => { m[r.code] = r.credits_cost; });
       return m;
     },
   });
@@ -126,6 +136,7 @@ export default function PublicProfileManager() {
 
   // Form state
   const [form, setForm] = useState<any>({});
+  const [pendingBoost, setPendingBoost] = useState<typeof BOOSTS[number] | null>(null);
   useEffect(() => {
     if (profile) setForm(profile);
   }, [profile]);
@@ -153,6 +164,7 @@ export default function PublicProfileManager() {
       return data;
     },
     onSuccess: (data: any) => {
+      setPendingBoost(null);
       toast({
         title: "Boost activé",
         description: `Coût : ${data.cost} crédits · Solde : ${data.balance}`,
@@ -428,8 +440,8 @@ export default function PublicProfileManager() {
                     <Button
                       size="sm"
                       className="mt-2"
-                      disabled={cost === null || buyBoost.isPending || balance < (cost ?? Infinity)}
-                      onClick={() => buyBoost.mutate(b.type)}
+                      disabled={cost === null || buyBoost.isPending}
+                      onClick={() => setPendingBoost(b)}
                     >
                       {active ? "Renouveler" : "Activer"}
                     </Button>
@@ -443,6 +455,110 @@ export default function PublicProfileManager() {
           Tous les boosts durent 30 jours. Les crédits sont débités immédiatement à l'activation. Aucun renouvellement automatique.
         </p>
       </section>
+
+      {/* Dialog de confirmation d'achat */}
+      <Dialog open={!!pendingBoost} onOpenChange={(o) => !o && setPendingBoost(null)}>
+        <DialogContent className="max-w-md">
+          {pendingBoost && (() => {
+            const cost = boostCosts[pendingBoost.feature_key] ?? 0;
+            const insufficient = balance < cost;
+            const newBalance = Math.max(0, balance - cost);
+            const Icon = pendingBoost.icon;
+            const expiresOn = new Date(Date.now() + 30 * 24 * 3600 * 1000)
+              .toLocaleDateString("fr-CH", { day: "2-digit", month: "long", year: "numeric" });
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <div className="p-2 rounded-md bg-primary/10 text-primary">
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    Confirmer l'achat
+                  </DialogTitle>
+                  <DialogDescription>
+                    Vérifiez le détail avant débit de vos crédits DogWork.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4 py-2">
+                  <div className="rounded-lg border p-4 space-y-3 bg-muted/30">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Enrichissement</p>
+                      <p className="font-semibold">{pendingBoost.title}</p>
+                      <p className="text-sm text-muted-foreground mt-1">{pendingBoost.description}</p>
+                    </div>
+                    <Separator />
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Durée</p>
+                        <p className="font-medium">30 jours</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Expire le</p>
+                        <p className="font-medium">{expiresOn}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Coût</p>
+                        <p className="font-bold text-primary">{cost} crédits</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">≈ équivalent</p>
+                        <p className="font-medium">{(cost * 0.05).toFixed(2)} CHF</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border p-3 flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <Coins className="w-4 h-4 text-primary" />
+                      <span>Solde actuel</span>
+                    </div>
+                    <span className="font-semibold">{balance} crédits</span>
+                  </div>
+                  <div className="rounded-lg border p-3 flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Solde après achat</span>
+                    <span className={`font-semibold ${insufficient ? "text-destructive" : "text-foreground"}`}>
+                      {insufficient ? "Insuffisant" : `${newBalance} crédits`}
+                    </span>
+                  </div>
+
+                  {insufficient && (
+                    <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm flex gap-2">
+                      <AlertTriangle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+                      <div>
+                        Il vous manque <strong>{cost - balance}</strong> crédits.
+                        Rechargez depuis la boutique pour activer ce boost.
+                      </div>
+                    </div>
+                  )}
+
+                  <p className="text-xs text-muted-foreground">
+                    Le débit est immédiat. Aucun remboursement, aucun renouvellement automatique.
+                  </p>
+                </div>
+
+                <DialogFooter className="gap-2">
+                  <Button variant="outline" onClick={() => setPendingBoost(null)}>
+                    Annuler
+                  </Button>
+                  {insufficient ? (
+                    <Button onClick={() => { setPendingBoost(null); navigate("/shop"); }}>
+                      Acheter des crédits
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => buyBoost.mutate(pendingBoost.type)}
+                      disabled={buyBoost.isPending}
+                    >
+                      {buyBoost.isPending ? "Activation…" : `Confirmer · ${cost} crédits`}
+                    </Button>
+                  )}
+                </DialogFooter>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
