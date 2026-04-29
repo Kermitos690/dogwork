@@ -424,19 +424,27 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
     // Look up feature
-    const { data: feature, error: featureErr } = await admin
+    const { data: catalogFeature, error: featureErr } = await admin
       .from("ai_feature_catalog")
       .select("*")
       .eq("code", resolvedFeatureCode)
-      .eq("is_active", true)
-      .single();
+      .maybeSingle();
 
-    if (featureErr || !feature) {
+    const fallbackCost = FALLBACK_COSTS[resolvedFeatureCode] ?? FALLBACK_COSTS[feature_code] ?? 0;
+    if ((featureErr || !catalogFeature || catalogFeature.is_active === false) && fallbackCost <= 0) {
       console.error(`[ai-with-credits] Feature "${feature_code}" (resolved ${resolvedFeatureCode}) not found:`, featureErr?.message);
       return new Response(JSON.stringify({ error: "Fonctionnalité IA non disponible" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const feature = catalogFeature ?? {
+      code: resolvedFeatureCode,
+      label: resolvedFeatureCode,
+      credits_cost: fallbackCost,
+      model: "google/gemini-2.5-flash",
+      cost_estimate_avg_usd: null,
+    };
 
     console.log(`[ai-with-credits] Feature found: ${feature.code}, cost=${feature.credits_cost}, model=${feature.model}`);
 
@@ -451,7 +459,6 @@ Deno.serve(async (req) => {
 
     // Known paid AI tools use the canonical DogWork tariff even if stale DB rows exist.
     const catalogCost = Number(feature.credits_cost ?? 0);
-    const fallbackCost = FALLBACK_COSTS[resolvedFeatureCode] ?? FALLBACK_COSTS[feature_code] ?? 0;
     const creditsCost = fallbackCost > 0 ? fallbackCost : catalogCost;
 
     if (creditsCost <= 0) {
