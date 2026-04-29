@@ -121,8 +121,29 @@ export default function Pricing() {
     })
     .filter(Boolean) as Array<SubscriptionPlan & { price?: PlanPrice }>;
 
+  // Séparer les boosts (enrichissement page publique) des autres features IA
+  const BOOST_META: Record<string, { label: string; desc: string; icon: typeof Star }> = {
+    boost_directory_featured: {
+      label: "Mise en avant annuaire (30 jours)",
+      desc: "Votre profil remonte en tête des annuaires publics coachs ou refuges pendant 30 jours.",
+      icon: Star,
+    },
+    boost_banner_gallery: {
+      label: "Bannière + galerie photos",
+      desc: "Bannière personnalisée et galerie photos sur votre page publique pendant 30 jours.",
+      icon: ImageIcon,
+    },
+    boost_badge_video: {
+      label: "Badge « Profil enrichi » + vidéo",
+      desc: "Badge de confiance et bloc vidéo de présentation sur votre page publique pendant 30 jours.",
+      icon: Award,
+    },
+  };
+  const boostFeatures = features.filter((f) => f.code.startsWith("boost_"));
+  const nonBoostFeatures = features.filter((f) => !f.code.startsWith("boost_"));
+
   // Deduplicate AI features by label (chat & chat_general both = 1 cr)
-  const featuresDeduped = features.filter((f, i, arr) => {
+  const featuresDeduped = nonBoostFeatures.filter((f, i, arr) => {
     return arr.findIndex((x) => x.label === f.label) === i;
   });
 
