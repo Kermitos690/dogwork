@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useAIBalance, useAIFeatures } from "@/hooks/useAICredits";
+import { getFallbackCost, resolveAIFeatureCode } from "@/lib/aiFeatureCatalog";
 import {
   resolveUpsellTrigger,
   suggestMonetizationPath,
@@ -33,7 +34,7 @@ export function useCreditConfirmation() {
 
   const handleConfirm = useCallback(async () => {
     if (!pending) return;
-    if (!feature) return;
+    if (cost <= 0) return;
     setLoading(true);
     try {
       await pending.onConfirm();
@@ -41,7 +42,7 @@ export function useCreditConfirmation() {
       setLoading(false);
       setPending(null);
     }
-  }, [pending]);
+  }, [pending, cost]);
 
   const handleCancel = useCallback(() => {
     setPending(null);
