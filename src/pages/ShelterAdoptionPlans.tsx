@@ -603,6 +603,7 @@ export default function ShelterAdoptionPlans() {
                   const planId = await createAdoptionPlanFromAi({
                     shelterUserId: user.id,
                     adopterUserId: aiResult.adopter_user_id,
+                    adopterEmail: aiResult.adopter_email,
                     animalId: aiResult.animal_id,
                     plan: aiResult.plan,
                     status: "active",
@@ -640,6 +641,7 @@ export default function ShelterAdoptionPlans() {
                   await createAdoptionPlanFromAi({
                     shelterUserId: user.id,
                     adopterUserId: aiResult.adopter_user_id,
+                    adopterEmail: aiResult.adopter_email,
                     animalId: aiResult.animal_id,
                     plan: aiResult.plan,
                     status: "draft",
