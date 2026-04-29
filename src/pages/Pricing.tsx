@@ -255,6 +255,60 @@ export default function Pricing() {
         </div>
       </section>
 
+      {/* Enrichissements page publique (boosts) */}
+      {boostFeatures.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <div>
+              <h2 className="text-xl font-semibold">Enrichir votre page publique</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Pour les coachs et refuges. Chaque enrichissement est actif <strong>30 jours</strong> et payé en crédits DogWork.
+              </p>
+            </div>
+            <Badge variant="secondary" className="text-xs">
+              Synchronisé avec la base Live
+            </Badge>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {boostFeatures
+              .slice()
+              .sort((a, b) => a.credits_cost - b.credits_cost)
+              .map((f) => {
+                const meta = BOOST_META[f.code] ?? { label: f.label, desc: "", icon: Sparkles };
+                const Icon = meta.icon;
+                return (
+                  <Card key={f.code} className="border-primary/20">
+                    <CardHeader>
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 rounded-md bg-primary/10 text-primary">
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <CardTitle className="text-base">{meta.label}</CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3 text-sm">
+                      <p className="text-muted-foreground">{meta.desc}</p>
+                      <div className="flex items-center justify-between pt-2 border-t">
+                        <span className="text-xs text-muted-foreground">Coût</span>
+                        <span className="text-lg font-bold text-primary">
+                          {f.credits_cost} crédits
+                        </span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        ≈ {(f.credits_cost * 0.05).toFixed(2)} CHF au tarif crédit standard
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+          </div>
+          <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
+            <Info className="w-3 h-3" />
+            Disponible depuis votre espace coach ou refuge, onglet « Page publique ».
+          </p>
+        </section>
+      )}
+
       {/* AI Feature Costs */}
       <section>
         <h2 className="text-xl font-semibold mb-4">Coût des fonctionnalités IA</h2>
