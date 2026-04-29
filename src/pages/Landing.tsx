@@ -521,11 +521,10 @@ export default function Landing() {
                   "Tout le plan Pro, plus :",
                   "Chiens illimités",
                   "480+ exercices (toute la bibliothèque)",
-                  "Plans IA personnalisés (28 jours)",
+                  "Plan éducatif IA personnalisé",
                   "Chatbot IA 24/7",
                   "Analyse comportementale avancée",
-                  "30 crédits IA inclus / mois",
-                
+                  "15 crédits IA inclus / mois",
                 ].map((f, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm">
                     <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 text-accent" />
