@@ -478,7 +478,7 @@ export default function Landing() {
               <ul className="space-y-2.5 mb-6 flex-1">
                 {[
                   "Tout le plan Freemium, plus :",
-                  "1 profil chien",
+                  "Jusqu'à 3 profils chien",
                   "150 exercices (basiques + intermédiaires)",
                   "Évaluation comportementale complète",
                   "Objectifs & problèmes personnalisés",
