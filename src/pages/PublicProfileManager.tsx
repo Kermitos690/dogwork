@@ -136,6 +136,7 @@ export default function PublicProfileManager() {
 
   // Form state
   const [form, setForm] = useState<any>({});
+  const [pendingBoost, setPendingBoost] = useState<typeof BOOSTS[number] | null>(null);
   useEffect(() => {
     if (profile) setForm(profile);
   }, [profile]);
@@ -163,6 +164,7 @@ export default function PublicProfileManager() {
       return data;
     },
     onSuccess: (data: any) => {
+      setPendingBoost(null);
       toast({
         title: "Boost activé",
         description: `Coût : ${data.cost} crédits · Solde : ${data.balance}`,
