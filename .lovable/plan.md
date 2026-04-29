@@ -1,81 +1,128 @@
-## Audit des modules par rôle
 
-### État actuel en base (15 modules)
+# Refonte cohérente de la logique métier DogWork
 
-| Module | Rôles autorisés | Catégorie |
-|---|---|---|
-| animal_management | owner, adopter, educator, shelter | éducation |
-| exercise_library | owner, educator, shelter | éducation |
-| ai_plans | owner, educator, shelter | ia |
-| ai_chatbot | owner, educator, shelter, adopter | ia |
-| progress_journal | owner, educator, shelter | suivi |
-| behavior_stats | owner, educator, shelter | suivi |
-| educator_crm | educator | professionnel |
-| planning | educator, shelter | professionnel |
-| payments_marketplace | educator | commerce |
-| shelter_management | shelter | refuge |
-| adoption_followup | shelter, adopter | adoption |
-| team_permissions | educator, shelter | organisation |
-| pdf_exports | owner, educator, shelter | documents |
-| branding | educator, shelter | image |
-| messaging | owner, educator, shelter, adopter | communication |
+## Constat (audit Live)
 
-### Incohérences détectées
+L'app souffre de **3 systèmes parallèles non alignés** :
 
-**1. Le rôle `shelter_employee` n'apparaît dans AUCUN module.**
-Or `EmployeeNav`, `EmployeeDashboard`, `EmployeeAnimals`, `EmployeeActivity`, `EmployeeProfile` existent. Un employé refuge devrait au minimum avoir accès à : `animal_management`, `progress_journal`, `messaging` (en lecture/contribution selon RLS).
+1. **`subscription_plans`** — Starter / Pro / Expert / Educator / Shelter (✅ existe, prix corrects côté Stripe)
+2. **`modules`** — 15 add-ons mais **tous en `pricing_type='included'` à 0 CHF** en prod (mes derniers updates n'ont pas persisté car les colonnes `is_addon`/prix ont été remises à 0 par un trigger ou par re-publication)
+3. **`ai_feature_catalog`** — 13 features, prix DB corrects (1 à 15 crédits), mais l'UI affiche **"0 crédit" partout** car les codes UI (`ai_plan_generation`, `agent_*`) ne sont pas mappés correctement à la vue publique
 
-**2. Le rôle `adopter` reçoit `animal_management` complet** alors qu'un adoptant ne crée pas de fiches : il consulte la fiche de SON chien adopté + son suivi post-adoption. C'est trop large.
+**Symptômes visibles utilisateur** (captures Outils IA) :
+- Tous les générateurs affichent "0 crédit"
+- Tous les agents IA affichent "0 crédit"
+- Les modules add-ons sont gratuits
+- Aucune cohérence offre / délivrance
 
-**3. `exercise_library` exclut `adopter`** alors que la doctrine adoption prévoit que l'adoptant suit un plan post-adoption (qui s'appuie sur des exercices). Incohérent avec `ai_plans` et le suivi post-adoption.
+## Doctrine cible (modèle unifié)
 
-**4. `pdf_exports` exclut `adopter`** : un adoptant devrait pouvoir exporter le carnet/dossier de son chien adopté.
-
-**5. `branding` est ouvert à `educator` ET `shelter`** : OK, mais aucune distinction de niveau (page publique educator ≠ page publique refuge). C'est plus un point de feature gating dans le module que de rôle — acceptable en l'état.
-
-**6. `planning` ouvert à `educator` + `shelter`** : OK pour shelter (RDV adoption, visites), mais à confirmer si le refuge a vraiment un module planning fonctionnel aujourd'hui. Si ce n'est pas livré côté UI shelter, le module ne devrait pas apparaître pour eux (faux marketing).
-
-**7. Aucun module spécifique adoption pour l'owner** : un owner devenu adoptant devrait basculer naturellement, mais la séparation `owner` vs `adopter` n'est pas explicite dans `useAuth` ni dans les guards (à vérifier — probablement même rôle techniquement).
-
-### Corrections proposées (migration unique)
-
-UPDATE des `available_for_roles` :
-
-```sql
--- 1. Ajouter shelter_employee là où c'est légitime (lecture des animaux du refuge)
-UPDATE modules SET available_for_roles = ARRAY['owner','adopter','educator','shelter','shelter_employee']
-  WHERE slug = 'animal_management';
-UPDATE modules SET available_for_roles = ARRAY['owner','educator','shelter','shelter_employee']
-  WHERE slug = 'progress_journal';
-UPDATE modules SET available_for_roles = ARRAY['owner','educator','shelter','adopter','shelter_employee']
-  WHERE slug = 'messaging';
-UPDATE modules SET available_for_roles = ARRAY['shelter','shelter_employee']
-  WHERE slug = 'shelter_management';
-
--- 2. Élargir aux adoptants ce qui est cohérent avec le suivi post-adoption
-UPDATE modules SET available_for_roles = ARRAY['owner','educator','shelter','adopter']
-  WHERE slug = 'exercise_library';
-UPDATE modules SET available_for_roles = ARRAY['owner','educator','shelter','adopter']
-  WHERE slug = 'pdf_exports';
-
--- 3. (Optionnel — à confirmer) Restreindre planning au seul educator si shelter n'a pas l'UI
--- À NE PAS faire si /shelter dispose d'un planning RDV adoption fonctionnel.
+```text
+                ┌──────────────────────────────────────┐
+                │  ABONNEMENT (subscription_plans)     │
+                │  → définit max_dogs + crédits/mois   │
+                │  → ouvre l'accès aux MODULES inclus  │
+                └──────────────────────────────────────┘
+                                  │
+              ┌───────────────────┼───────────────────┐
+              ▼                   ▼                   ▼
+      ┌──────────────┐   ┌──────────────┐   ┌──────────────────┐
+      │   MODULES    │   │   CRÉDITS    │   │  PACKS CRÉDITS   │
+      │  (features   │   │  IA mensuels │   │   (recharge      │
+      │   produit)   │   │  (inclus)    │   │    Stripe)       │
+      └──────────────┘   └──────────────┘   └──────────────────┘
+              │                   │
+              ▼                   ▼
+      ┌──────────────┐   ┌──────────────────────────────┐
+      │   ADD-ONS    │   │  AI_FEATURE_CATALOG          │
+      │ (modules     │   │  → coût en crédits par usage │
+      │  payants     │   │  → débité à chaque appel     │
+      │  optionnels) │   └──────────────────────────────┘
+      └──────────────┘
 ```
 
-### Vérifications complémentaires (lecture seule)
+**Règles claires** :
+- 1 abonnement = X chiens autorisés + Y crédits IA/mois + N modules inclus
+- Modules **inclus** = activés automatiquement selon le plan, prix 0
+- Modules **add-ons** = optionnels, prix mensuel/annuel CHF, ajoutés via `subscribe-modules`
+- Features IA = consomment des crédits du wallet, jamais "gratuites"
+- Recharge crédits = packs Stripe one-shot
 
-- Vérifier que `useAuth` / les guards reconnaissent bien `shelter_employee` comme rôle distinct
-- Vérifier que `get_my_active_modules` (RPC) retourne bien les modules selon le rôle de l'utilisateur (et pas seulement selon les `user_modules` provisionnés)
-- Vérifier que `plan_modules` (provisioning par plan) attribue cohéremment ces modules par rôle
+## Plan d'exécution
 
-### Livrables
+### 1. Nettoyer & figer le mapping AI features ↔ UI
 
-1. **Migration SQL** : 6 UPDATE ci-dessus + commentaires
-2. **Note** : si `planning` côté shelter n'existe pas dans l'UI, ajouter un 7e UPDATE pour le retirer
-3. **Aucun changement frontend nécessaire** — `Modules.tsx` lit `available_for_roles` dynamiquement
+**Problème** : les alias UI (`ai_plan_generation`, `agent_behavior_analysis`, etc.) ne reçoivent pas leur coût car `expandAIFeaturesWithAliases` est appliqué, mais les codes canoniques sont parfois absents de la vue publique.
 
-### Points de décision
+- Vérifier que **tous** les codes canoniques utilisés par UI/agents (`plan_generator`, `behavior_analysis`, `dog_profile_analysis`, `adoption_plan`, `behavior_summary`, `chat`) sont `is_active=true` dans `ai_feature_catalog` avec un coût > 0
+- Réactiver `plan_generator` (actuellement `is_active=false`) avec coût 5 crédits
+- S'assurer que la vue `ai_feature_catalog_public` expose bien ces lignes
+- Forcer côté frontend un fallback : si `getCost(code) === 0`, utiliser une table de coûts par défaut hardcodée (sécurité produit)
 
-- **Question 1** : Faut-il ajouter `shelter_employee` aux modules listés (animal_management, progress_journal, messaging, shelter_management) ? **Recommandé : oui**.
-- **Question 2** : Faut-il ouvrir `exercise_library` + `pdf_exports` aux adoptants ? **Recommandé : oui** (cohérent avec adoption_followup).
-- **Question 3** : Le module `planning` est-il réellement implémenté côté `/shelter` ? Si non, le retirer de `shelter`.
+### 2. Réinitialiser proprement les modules (migration définitive)
+
+Migration SQL qui :
+- Force le tarif des **5 add-ons payants** : `behavior_stats` 3.90, `branding` 4.90, `adoption_followup` 5.90, `planning` 6.90, `team_permissions` 7.90 + `pricing_type='addon'` + `is_addon=true`
+- Garantit que les **10 modules core** restent `pricing_type='included'`, `is_addon=false`, prix 0
+- Supprime tout trigger/process qui re-remettait les prix à 0 (audit `pg_trigger` sur `modules`)
+
+### 3. Aligner abonnements ↔ modules inclus
+
+Créer une vraie table de mapping `plan_included_modules (plan_code, module_slug)` au lieu d'une logique éparpillée :
+- starter → ai_chatbot, animal_management, exercise_library, progress_journal
+- pro → + ai_plans, messaging, pdf_exports
+- expert → tous les modules owner
+- educator → + educator_crm, payments_marketplace, branding
+- shelter → + shelter_management, adoption_followup
+
+Mettre à jour `useFeatureGate` / `useModules` pour lire ce mapping.
+
+### 4. Refondre l'UI Outils IA (lisibilité métier)
+
+- Afficher le coût réel (jamais 0) sur chaque carte
+- Si `wallet.balance < cost` → bouton "Recharger" plutôt que "Lancer maintenant" grisé
+- Section "Agents autonomes" : libellés humains au lieu de `agent_behavior_analysis` brut → "Agent · Analyse comportementale"
+- Badge "Inclus dans ton plan" / "Add-on actif" / "Add-on disponible" sur chaque module
+
+### 5. Refondre l'UI Modules
+
+- Trier : Inclus (ton plan) → Add-ons actifs → Add-ons disponibles
+- Afficher le prix CHF/mois et CHF/an
+- CTA clair : "Activer 4.90 CHF/mois" via `subscribe-modules`
+
+### 6. Audit refuge SVPA (gtbi1)
+
+- Vérifier que le compte admin du refuge a bien les rôles `owner` + `shelter` + `shelter_admin`
+- Vérifier l'accès aux pages Employés / Coachs / Bénévoles
+- Corriger toute RLS qui bloque le admin shelter sur ses propres ressources
+
+### 7. Publication production
+
+- Tous les fixes appliqués via migration + redéploiement
+- Vérification post-deploy via `read_query` que :
+  - `modules` add-ons ont leur prix
+  - `ai_feature_catalog_public` retourne tous les codes attendus avec coût > 0
+  - L'UI Outils affiche les bons coûts
+
+## Détails techniques
+
+**Fichiers à modifier** :
+- `supabase/migrations/<new>.sql` — figer prix modules, réactiver `plan_generator`, créer `plan_included_modules`, audit triggers
+- `src/lib/aiFeatureCatalog.ts` — ajouter table de coûts par défaut (sécurité)
+- `src/hooks/useAICredits.tsx` — fusionner public view + table fallback en une seule query robuste
+- `src/pages/Outils.tsx` — utiliser coût garanti, libellés humains agents, CTA recharge
+- `src/pages/Modules.tsx` — tri + affichage prix
+- `src/hooks/useModules.tsx` / `useFeatureGate.tsx` — lecture mapping plan↔modules
+- `src/pages/ShelterDashboard.tsx` + RLS — accès admin refuge à employés/coachs
+
+**Aucune table existante n'est supprimée** — seulement nettoyage des données et ajout d'une table de mapping.
+
+**Cohérence Stripe** : les Price IDs add-ons existent déjà (mémoire `modules-addon-system`), pas de nouvelle création Stripe nécessaire.
+
+## Résultat attendu
+
+Après exécution, un utilisateur voit :
+- Outils IA avec **coûts réels** (1, 5, 8, 13, 15 crédits)
+- Modules avec **prix réels** et statut clair (inclus/actif/disponible)
+- Refuge SVPA avec **accès complet** à la gestion d'équipe
+- Une logique unique, lisible et cohérente entre UI, DB et Stripe
