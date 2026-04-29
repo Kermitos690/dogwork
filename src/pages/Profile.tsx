@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LogOut, Save, Shield, Download, Trash2, User, GraduationCap, ShieldCheck, HelpCircle, Crown } from "lucide-react";
 import { ActiveModulesIndicator } from "@/components/ActiveModulesIndicator";
+import { LogoUploader } from "@/components/LogoUploader";
 import { useSubscription, TIERS } from "@/hooks/useSubscription";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
@@ -31,14 +32,24 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const { tier } = useSubscription();
   const [displayName, setDisplayName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
-      supabase.from("profiles").select("display_name").eq("user_id", user.id).maybeSingle().then(({ data }) => {
+      supabase.from("profiles").select("display_name, avatar_url").eq("user_id", user.id).maybeSingle().then(({ data }) => {
         if (data?.display_name) setDisplayName(data.display_name);
+        if ((data as any)?.avatar_url) setAvatarUrl((data as any).avatar_url);
       });
     }
   }, [user]);
+
+  const handleSaveAvatar = async (url: string | null) => {
+    if (!user) return;
+    setAvatarUrl(url);
+    await supabase
+      .from("profiles")
+      .upsert({ user_id: user.id, avatar_url: url }, { onConflict: "user_id" });
+  };
 
   const handleSaveName = async () => {
     if (!user) return;
@@ -84,6 +95,14 @@ export default function ProfilePage() {
           <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><User className="h-4 w-4" /> Mon compte</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-muted-foreground">{user?.email}</p>
+            <LogoUploader
+              value={avatarUrl}
+              onChange={handleSaveAvatar}
+              shape="circle"
+              folder="avatar"
+              label="Photo de profil"
+              helper="Visible dans votre menu et vos messages. PNG / JPG / WebP, 4 Mo max."
+            />
             <div className="space-y-1">
               <Label>Nom d'affichage</Label>
               <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
