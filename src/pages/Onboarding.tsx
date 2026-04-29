@@ -1205,7 +1205,7 @@ export default function Onboarding() {
                     <Label className="text-sm">Provenance</Label>
                     <div className="grid grid-cols-2 gap-2">
                       {[
-                        { v: "elevage", l: "Élevage" },
+                        { v: "élevage", l: "Élevage" },
                         { v: "refuge", l: "Refuge" },
                         { v: "particulier", l: "Particulier" },
                         { v: "autre", l: "Autre" },
