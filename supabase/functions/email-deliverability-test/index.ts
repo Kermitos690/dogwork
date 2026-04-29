@@ -169,7 +169,7 @@ Deno.serve(async (req) => {
     }
   }
 
-  // === ENVOI IONOS (placeholder — sera activé une fois SMTP IONOS configuré) ===
+  // === ENVOI IONOS (via send-via-ionos / SMTP) ===
   let ionosResult: any = { attempted: false }
   if (sendIonos) {
     const ionosUser = Deno.env.get('IONOS_SMTP_USER')
@@ -179,18 +179,64 @@ Deno.serve(async (req) => {
         attempted: true,
         channel: 'ionos',
         status: 'not_configured',
-        error: 'SMTP IONOS non configuré (secrets IONOS_SMTP_USER / IONOS_SMTP_PASSWORD manquants). Voir send-via-ionos pour activation.',
+        error: 'SMTP IONOS non configuré (secrets IONOS_SMTP_USER / IONOS_SMTP_PASSWORD manquants).',
       }
     } else {
-      // Une fois la fonction send-via-ionos déployée, on l'invoquera ici
-      ionosResult = {
-        attempted: true,
-        channel: 'ionos',
-        status: 'pending_implementation',
-        error: "Edge function send-via-ionos pas encore déployée — étape suivante après confirmation des prérequis IONOS.",
+      ionosResult = { attempted: true, channel: 'ionos', sender: ionosUser }
+      const t0 = Date.now()
+      const idempotencyKey = `email-test-ionos-${crypto.randomUUID()}`
+      const ionosHtml = `
+        <!DOCTYPE html>
+        <html lang="fr"><head><meta charset="utf-8"></head>
+        <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;background:#f5f7fa;padding:24px;color:#1a202c;">
+          <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+            <h1 style="color:#2563eb;margin:0 0 16px;font-size:22px;">DogWork — Test délivrabilité IONOS</h1>
+            <p style="margin:0 0 12px;line-height:1.6;">Cet email confirme que la chaîne <strong>SMTP IONOS</strong> fonctionne :
+            authentification réussie, envoi via <code>smtp.ionos.fr:587</code>, signature DKIM appliquée par IONOS.</p>
+            <div style="background:#f1f5f9;border-radius:8px;padding:16px;margin:20px 0;font-size:14px;">
+              <strong>Canal :</strong> IONOS SMTP<br>
+              <strong>Expéditeur :</strong> ${ionosUser}<br>
+              <strong>Déclenché par :</strong> ${triggeredBy}<br>
+              <strong>Horodatage :</strong> ${triggeredAt}
+            </div>
+            <p style="margin:0;color:#64748b;font-size:13px;">Inspectez les en-têtes <code>Authentication-Results</code> pour vérifier SPF / DKIM / DMARC.</p>
+            <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;">
+            <p style="margin:0;color:#94a3b8;font-size:12px;">© DogWork — Diagnostic email</p>
+          </div>
+        </body></html>`
+      try {
+        const { data, error } = await supabase.functions.invoke('send-via-ionos', {
+          body: {
+            to: recipientEmail,
+            subject: `[DogWork] Test délivrabilité — IONOS SMTP`,
+            html: ionosHtml,
+            fromName: 'DogWork',
+            replyTo: ionosUser,
+            idempotencyKey,
+          },
+        })
+        ionosResult.latencyMs = Date.now() - t0
+        ionosResult.idempotencyKey = idempotencyKey
+        if (error) {
+          ionosResult.status = 'failed'
+          ionosResult.error = error.message || String(error)
+        } else if (data?.success === false) {
+          ionosResult.status = 'failed'
+          ionosResult.error = data?.details || data?.error || 'Send failed'
+          ionosResult.smtpCode = data?.smtpCode
+          ionosResult.hints = data?.hints
+        } else {
+          ionosResult.status = 'sent'
+          ionosResult.response = data
+        }
+      } catch (e: any) {
+        ionosResult.status = 'failed'
+        ionosResult.error = e.message || String(e)
+        ionosResult.latencyMs = Date.now() - t0
       }
     }
   }
+
 
   // === DNS / DELIVERABILITY CHECKS ===
   // Sélecteurs DKIM communs : Lovable utilise typiquement "lovable" / "lovable1", IONOS utilise "s1024"/"s2048"

@@ -30,6 +30,8 @@ interface SendResult {
   error?: string;
   latencyMs?: number;
   idempotencyKey?: string;
+  smtpCode?: string;
+  hints?: string[];
 }
 
 interface DiagnosticResponse {
@@ -157,8 +159,11 @@ const SendResultCard = ({ result, title, color }: { result: SendResult; title: s
     );
   }
 
-  const isOk = result.status === "queued" && (!result.logStatus || ["pending", "sent"].includes(result.logStatus));
-  const isPending = result.status === "pending_implementation" || result.status === "not_configured";
+  const isOk =
+    result.status === "sent" ||
+    (result.status === "queued" && (!result.logStatus || ["pending", "sent"].includes(result.logStatus)));
+  const isNotConfigured = result.status === "not_configured";
+  const isPending = result.status === "pending_implementation" || isNotConfigured;
 
   return (
     <Card className={`border-l-4 ${color}`}>
@@ -189,8 +194,16 @@ const SendResultCard = ({ result, title, color }: { result: SendResult; title: s
           <div className="flex justify-between"><span className="text-muted-foreground">ID</span><code className="text-xs">{result.idempotencyKey.slice(0, 24)}…</code></div>
         )}
         {(result.error || result.logError) && (
-          <Alert variant="destructive" className="mt-2">
-            <AlertDescription className="text-xs">{result.error || result.logError}</AlertDescription>
+          <Alert variant={isNotConfigured ? "default" : "destructive"} className="mt-2">
+            <AlertDescription className="text-xs space-y-1">
+              <div>{result.error || result.logError}</div>
+              {result.smtpCode && <div className="font-mono">SMTP code: {result.smtpCode}</div>}
+              {result.hints && result.hints.length > 0 && (
+                <ul className="list-disc list-inside mt-1 space-y-0.5">
+                  {result.hints.map((h, i) => <li key={i}>{h}</li>)}
+                </ul>
+              )}
+            </AlertDescription>
           </Alert>
         )}
       </CardContent>
