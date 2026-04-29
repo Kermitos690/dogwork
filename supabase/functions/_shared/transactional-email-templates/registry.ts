@@ -22,6 +22,7 @@ import { template as appointmentReminder } from './appointment-reminder.tsx'
 import { template as newMessage } from './new-message.tsx'
 import { template as adoptionCheckinDue } from './adoption-checkin-due.tsx'
 import { template as employeeCredentials } from './employee-credentials.tsx'
+import { template as emailTestDiagnostic } from './email-test-diagnostic.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'welcome': welcome,
@@ -37,4 +38,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'new-message': newMessage,
   'adoption-checkin-due': adoptionCheckinDue,
   'employee-credentials': employeeCredentials,
+  'email-test-diagnostic': emailTestDiagnostic,
 }
