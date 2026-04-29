@@ -162,26 +162,59 @@ export default function ShelterAdoptionPlans() {
     enabled: !!selectedPlan,
   });
 
+  // All shelter animals (used in "pending" mode where adopter has no account yet)
+  const { data: allShelterAnimals } = useQuery({
+    queryKey: ["shelter-all-animals", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data } = await supabase
+        .from("shelter_animals_safe")
+        .select("id, name, breed, species, status")
+        .eq("user_id", user.id)
+        .order("name");
+      return data ?? [];
+    },
+    enabled: !!user,
+  });
+
   const createPlan = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Non authentifié");
+      if (!form.animal_id) throw new Error("Animal requis.");
+      if (mode === "pending" && !form.adopter_email.trim()) {
+        throw new Error("Email du futur adoptant requis.");
+      }
+      if (mode === "registered" && !form.adopter_user_id) {
+        throw new Error("Adoptant requis.");
+      }
       const objectives = form.objectives.filter(o => o.trim());
-      const { error } = await supabase.from("adoption_plans").insert({
+      const payload: Record<string, unknown> = {
         shelter_user_id: user.id,
-        adopter_user_id: form.adopter_user_id,
         animal_id: form.animal_id,
         title: form.title || "Plan de suivi post-adoption",
         description: form.description,
         duration_weeks: form.duration_weeks,
-        objectives: objectives,
-      });
+        objectives,
+      };
+      if (mode === "registered") {
+        payload.adopter_user_id = form.adopter_user_id;
+      } else {
+        payload.adopter_user_id = null;
+        payload.adopter_email = form.adopter_email.trim().toLowerCase();
+      }
+      const { error } = await supabase.from("adoption_plans").insert(payload as any);
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["shelter-adoption-plans"] });
       setCreateOpen(false);
-      setForm({ animal_id: "", adopter_user_id: "", title: "", description: "", duration_weeks: 8, objectives: [""] });
-      toast({ title: "Plan créé !", description: "Le plan de suivi a été créé." });
+      setForm({ animal_id: "", adopter_user_id: "", adopter_email: "", title: "", description: "", duration_weeks: 8, objectives: [""] });
+      toast({
+        title: "Plan créé",
+        description: mode === "pending"
+          ? "Le plan sera automatiquement transmis à l'adoptant à son inscription."
+          : "Le plan de suivi a été créé.",
+      });
     },
     onError: (err: any) => toast({ title: "Erreur", description: err.message, variant: "destructive" }),
   });
