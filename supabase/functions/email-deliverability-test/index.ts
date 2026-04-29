@@ -152,6 +152,7 @@ Deno.serve(async (req) => {
           idempotencyKey,
           templateData: { triggeredAt, triggeredBy, channel: 'Lovable (notify.dogwork-at-home.com)' },
         },
+        headers: { Authorization: `Bearer ${jwt}` },
       })
       lovableResult.latencyMs = Date.now() - t0
       lovableResult.idempotencyKey = idempotencyKey
@@ -214,6 +215,7 @@ Deno.serve(async (req) => {
             replyTo: ionosUser,
             idempotencyKey,
           },
+          headers: { Authorization: `Bearer ${jwt}` },
         })
         ionosResult.latencyMs = Date.now() - t0
         ionosResult.idempotencyKey = idempotencyKey
