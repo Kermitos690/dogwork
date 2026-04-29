@@ -334,6 +334,18 @@ export default function ShelterAdoptionPlans() {
                           ))}
                         </SelectContent>
                       </Select>
+                      {selectedAnimal && (
+                        <div className="mt-2 flex items-center gap-2 text-xs">
+                          <Badge variant="outline" className="capitalize">
+                            {selectedAnimal.status || "disponible"}
+                          </Badge>
+                          {animalAlreadyHasPlan && (
+                            <span className="flex items-center gap-1 text-destructive">
+                              <AlertTriangle className="h-3 w-3" /> Un plan existe déjà pour cet animal.
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div>
                       <Label>Email du futur adoptant</Label>
@@ -342,10 +354,31 @@ export default function ShelterAdoptionPlans() {
                         value={form.adopter_email}
                         onChange={e => setForm(f => ({ ...f, adopter_email: e.target.value }))}
                         placeholder="adoptant@exemple.com"
+                        aria-invalid={!!form.adopter_email && !emailValid}
+                        className={form.adopter_email && !emailValid ? "border-destructive focus-visible:ring-destructive" : ""}
                       />
-                      <p className="text-[11px] text-muted-foreground mt-1">
-                        Le plan sera automatiquement transmis à cet adoptant dès son inscription sur DogWork avec cette adresse.
-                      </p>
+                      <div className="mt-1 space-y-1">
+                        {form.adopter_email && !emailValid && (
+                          <p className="text-[11px] text-destructive flex items-center gap-1">
+                            <AlertTriangle className="h-3 w-3" /> Format d'email invalide.
+                          </p>
+                        )}
+                        {emailValid && !pendingDuplicate && (
+                          <p className="text-[11px] text-emerald-600 flex items-center gap-1">
+                            <Clock className="h-3 w-3" /> En attente d'inscription — le plan sera transmis automatiquement à <span className="font-medium">{emailTrimmed}</span> dès la création de son compte.
+                          </p>
+                        )}
+                        {pendingDuplicate && (
+                          <p className="text-[11px] text-destructive flex items-center gap-1">
+                            <AlertTriangle className="h-3 w-3" /> Un plan en attente existe déjà pour cet animal et cet email.
+                          </p>
+                        )}
+                        {!form.adopter_email && (
+                          <p className="text-[11px] text-muted-foreground">
+                            Le plan sera automatiquement transmis à cet adoptant dès son inscription sur DogWork.
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </>
                 )}
