@@ -417,7 +417,8 @@ export default function ShelterAdoptionPlans() {
                               plan,
                               raw: data.plan,
                               animal_id: form.animal_id,
-                              adopter_user_id: form.adopter_user_id,
+                              adopter_user_id: mode === "registered" ? form.adopter_user_id : null,
+                              adopter_email: mode === "pending" ? form.adopter_email.trim().toLowerCase() : null,
                               creditsSpent: data.credits_spent ?? 0,
                             });
                           } catch (err: any) {
