@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, ClipboardList, ChevronRight, Calendar, Target, Trash2, PawPrint, Sparkles, Loader2 } from "lucide-react";
+import { Plus, ClipboardList, ChevronRight, Calendar, Target, Trash2, PawPrint, Sparkles, Loader2, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useCreditConfirmation } from "@/hooks/useCreditConfirmation";
@@ -253,6 +253,17 @@ export default function ShelterAdoptionPlans() {
   const activePlan = plans?.find(p => p.id === selectedPlan);
   const currentWeeks = activePlan ? Array.from({ length: activePlan.duration_weeks }, (_, i) => i + 1) : [];
 
+  // Email format validation (RFC-lite)
+  const emailTrimmed = form.adopter_email.trim().toLowerCase();
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailTrimmed);
+  // Detect if the chosen animal already has a plan (any status) — prevents duplicates
+  const animalAlreadyHasPlan = !!form.animal_id && !!plans?.some(p => p.animal_id === form.animal_id);
+  // Detect if a pending plan already exists for the same animal + email pair
+  const pendingDuplicate = mode === "pending" && !!form.animal_id && emailValid &&
+    !!plans?.some(p => p.animal_id === form.animal_id && (p as any).adopter_email === emailTrimmed);
+  // Selected animal status (when in "pending" mode)
+  const selectedAnimal = allShelterAnimals?.find(a => a.id === form.animal_id);
+
   const handleSelectAnimal = (animalId: string) => {
     const link = adoptedAnimals?.find(a => a.animal_id === animalId);
     if (link) {
@@ -323,6 +334,18 @@ export default function ShelterAdoptionPlans() {
                           ))}
                         </SelectContent>
                       </Select>
+                      {selectedAnimal && (
+                        <div className="mt-2 flex items-center gap-2 text-xs">
+                          <Badge variant="outline" className="capitalize">
+                            {selectedAnimal.status || "disponible"}
+                          </Badge>
+                          {animalAlreadyHasPlan && (
+                            <span className="flex items-center gap-1 text-destructive">
+                              <AlertTriangle className="h-3 w-3" /> Un plan existe déjà pour cet animal.
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div>
                       <Label>Email du futur adoptant</Label>
@@ -331,10 +354,31 @@ export default function ShelterAdoptionPlans() {
                         value={form.adopter_email}
                         onChange={e => setForm(f => ({ ...f, adopter_email: e.target.value }))}
                         placeholder="adoptant@exemple.com"
+                        aria-invalid={!!form.adopter_email && !emailValid}
+                        className={form.adopter_email && !emailValid ? "border-destructive focus-visible:ring-destructive" : ""}
                       />
-                      <p className="text-[11px] text-muted-foreground mt-1">
-                        Le plan sera automatiquement transmis à cet adoptant dès son inscription sur DogWork avec cette adresse.
-                      </p>
+                      <div className="mt-1 space-y-1">
+                        {form.adopter_email && !emailValid && (
+                          <p className="text-[11px] text-destructive flex items-center gap-1">
+                            <AlertTriangle className="h-3 w-3" /> Format d'email invalide.
+                          </p>
+                        )}
+                        {emailValid && !pendingDuplicate && (
+                          <p className="text-[11px] text-emerald-600 flex items-center gap-1">
+                            <Clock className="h-3 w-3" /> En attente d'inscription — le plan sera transmis automatiquement à <span className="font-medium">{emailTrimmed}</span> dès la création de son compte.
+                          </p>
+                        )}
+                        {pendingDuplicate && (
+                          <p className="text-[11px] text-destructive flex items-center gap-1">
+                            <AlertTriangle className="h-3 w-3" /> Un plan en attente existe déjà pour cet animal et cet email.
+                          </p>
+                        )}
+                        {!form.adopter_email && (
+                          <p className="text-[11px] text-muted-foreground">
+                            Le plan sera automatiquement transmis à cet adoptant dès son inscription sur DogWork.
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </>
                 )}
@@ -381,62 +425,72 @@ export default function ShelterAdoptionPlans() {
                     </Button>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1 gap-1.5" disabled={!form.animal_id || generatingAI}
-                    onClick={() => {
-                      if (!form.animal_id) return;
-                      credit.requestConfirmation({
-                        featureCode: "ai_adoption_plan",
-                        benefit: "Génère un plan post-adoption structuré avec objectifs et tâches hebdomadaires.",
-                        onConfirm: async () => {
-                          setGeneratingAI(true);
-                          try {
-                            const { data: { session } } = await supabase.auth.getSession();
-                            if (!session?.access_token) throw new Error("Session expirée");
-                            const { data, error } = await supabase.functions.invoke("generate-adoption-plan", {
-                              body: { animal_id: form.animal_id },
-                              headers: { Authorization: `Bearer ${session.access_token}` },
+                {(() => {
+                  const blocked =
+                    !form.animal_id ||
+                    animalAlreadyHasPlan ||
+                    (mode === "pending" && (!emailValid || pendingDuplicate)) ||
+                    (mode === "registered" && !form.adopter_user_id);
+                  return (
+                    <>
+                      {blocked && form.animal_id && (mode === "pending" ? !emailValid && form.adopter_email : false) && null}
+                      <div className="flex gap-2">
+                        <Button variant="outline" className="flex-1 gap-1.5" disabled={blocked || generatingAI}
+                          onClick={() => {
+                            if (!form.animal_id) return;
+                            credit.requestConfirmation({
+                              featureCode: "ai_adoption_plan",
+                              benefit: "Génère un plan post-adoption structuré avec objectifs et tâches hebdomadaires.",
+                              onConfirm: async () => {
+                                setGeneratingAI(true);
+                                try {
+                                  const { data: { session } } = await supabase.auth.getSession();
+                                  if (!session?.access_token) throw new Error("Session expirée");
+                                  const { data, error } = await supabase.functions.invoke("generate-adoption-plan", {
+                                    body: { animal_id: form.animal_id },
+                                    headers: { Authorization: `Bearer ${session.access_token}` },
+                                  });
+                                  if (error) throw error;
+                                  if (data?.code === "INSUFFICIENT_CREDITS") {
+                                    toast({ title: "Crédits insuffisants", description: `Il vous faut ${data.required} crédits (solde : ${data.balance}). Rechargez vos crédits IA.`, variant: "destructive" });
+                                    return;
+                                  }
+                                  if (data?.error) throw new Error(data.error);
+                                  const plan = (data.plan ?? {}) as AiPlanShape;
+                                  setForm(f => ({
+                                    ...f,
+                                    title: plan.title || f.title,
+                                    description: plan.description || f.description,
+                                    duration_weeks: plan.duration_weeks || f.duration_weeks,
+                                    objectives: plan.objectives?.length ? plan.objectives : f.objectives,
+                                  }));
+                                  setAiResult({
+                                    plan,
+                                    raw: data.plan,
+                                    animal_id: form.animal_id,
+                                    adopter_user_id: mode === "registered" ? form.adopter_user_id : null,
+                                    adopter_email: mode === "pending" ? form.adopter_email.trim().toLowerCase() : null,
+                                    creditsSpent: data.credits_spent ?? 0,
+                                  });
+                                } catch (err: any) {
+                                  toast({ title: "Erreur IA", description: err.message, variant: "destructive" });
+                                } finally {
+                                  setGeneratingAI(false);
+                                }
+                              },
                             });
-                            if (error) throw error;
-                            if (data?.code === "INSUFFICIENT_CREDITS") {
-                              toast({ title: "Crédits insuffisants", description: `Il vous faut ${data.required} crédits (solde : ${data.balance}). Rechargez vos crédits IA.`, variant: "destructive" });
-                              return;
-                            }
-                            if (data?.error) throw new Error(data.error);
-                            const plan = (data.plan ?? {}) as AiPlanShape;
-                            // Pre-fill the form so the user can still tweak before saving manually.
-                            setForm(f => ({
-                              ...f,
-                              title: plan.title || f.title,
-                              description: plan.description || f.description,
-                              duration_weeks: plan.duration_weeks || f.duration_weeks,
-                              objectives: plan.objectives?.length ? plan.objectives : f.objectives,
-                            }));
-                            // Also surface the full result with a real "Save as plan" CTA.
-                            setAiResult({
-                              plan,
-                              raw: data.plan,
-                              animal_id: form.animal_id,
-                              adopter_user_id: mode === "registered" ? form.adopter_user_id : null,
-                              adopter_email: mode === "pending" ? form.adopter_email.trim().toLowerCase() : null,
-                              creditsSpent: data.credits_spent ?? 0,
-                            });
-                          } catch (err: any) {
-                            toast({ title: "Erreur IA", description: err.message, variant: "destructive" });
-                          } finally {
-                            setGeneratingAI(false);
-                          }
-                        },
-                      });
-                    }}>
-                    {generatingAI ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                    {generatingAI ? "Génération..." : "Générer avec IA"}
-                  </Button>
-                  <Button className="flex-1" onClick={() => createPlan.mutate()}
-                    disabled={!form.animal_id || createPlan.isPending}>
-                    Créer le plan
-                  </Button>
-                </div>
+                          }}>
+                          {generatingAI ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                          {generatingAI ? "Génération..." : "Générer avec IA"}
+                        </Button>
+                        <Button className="flex-1" onClick={() => createPlan.mutate()}
+                          disabled={blocked || createPlan.isPending}>
+                          Créer le plan
+                        </Button>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </DialogContent>
           </Dialog>
