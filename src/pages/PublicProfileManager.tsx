@@ -12,8 +12,16 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { Sparkles, Image as ImageIcon, Award, ExternalLink, Coins, Check, Lock } from "lucide-react";
+import { Sparkles, Image as ImageIcon, Award, ExternalLink, Coins, Check, Lock, AlertTriangle } from "lucide-react";
 
 type Kind = "coach" | "shelter";
 
@@ -104,15 +112,17 @@ export default function PublicProfileManager() {
     },
   });
 
+  // Source de vérité = ai_feature_catalog (alignée avec landing + check pre-publish).
   const { data: boostCosts = {} } = useQuery({
-    queryKey: ["boost_costs"],
+    queryKey: ["boost_costs", "ai_feature_catalog"],
     queryFn: async () => {
       const { data } = await supabase
-        .from("feature_credit_costs" as any)
-        .select("feature_key,credit_cost")
-        .in("feature_key", BOOSTS.map((b) => b.feature_key));
+        .from("ai_feature_catalog" as any)
+        .select("code,credits_cost")
+        .in("code", BOOSTS.map((b) => b.feature_key))
+        .eq("is_active", true);
       const m: Record<string, number> = {};
-      ((data as any[]) ?? []).forEach((r) => { m[r.feature_key] = r.credit_cost; });
+      ((data as any[]) ?? []).forEach((r) => { m[r.code] = r.credits_cost; });
       return m;
     },
   });
