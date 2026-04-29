@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Check, Sparkles, Coins, Info } from "lucide-react";
+import { Check, Sparkles, Coins, Info, Star, Image as ImageIcon, Award } from "lucide-react";
 
 interface SubscriptionPlan {
   code: string;
@@ -121,8 +121,29 @@ export default function Pricing() {
     })
     .filter(Boolean) as Array<SubscriptionPlan & { price?: PlanPrice }>;
 
+  // Séparer les boosts (enrichissement page publique) des autres features IA
+  const BOOST_META: Record<string, { label: string; desc: string; icon: typeof Star }> = {
+    boost_directory_featured: {
+      label: "Mise en avant annuaire (30 jours)",
+      desc: "Votre profil remonte en tête des annuaires publics coachs ou refuges pendant 30 jours.",
+      icon: Star,
+    },
+    boost_banner_gallery: {
+      label: "Bannière + galerie photos",
+      desc: "Bannière personnalisée et galerie photos sur votre page publique pendant 30 jours.",
+      icon: ImageIcon,
+    },
+    boost_badge_video: {
+      label: "Badge « Profil enrichi » + vidéo",
+      desc: "Badge de confiance et bloc vidéo de présentation sur votre page publique pendant 30 jours.",
+      icon: Award,
+    },
+  };
+  const boostFeatures = features.filter((f) => f.code.startsWith("boost_"));
+  const nonBoostFeatures = features.filter((f) => !f.code.startsWith("boost_"));
+
   // Deduplicate AI features by label (chat & chat_general both = 1 cr)
-  const featuresDeduped = features.filter((f, i, arr) => {
+  const featuresDeduped = nonBoostFeatures.filter((f, i, arr) => {
     return arr.findIndex((x) => x.label === f.label) === i;
   });
 
@@ -233,6 +254,60 @@ export default function Pricing() {
           ))}
         </div>
       </section>
+
+      {/* Enrichissements page publique (boosts) */}
+      {boostFeatures.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <div>
+              <h2 className="text-xl font-semibold">Enrichir votre page publique</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Pour les coachs et refuges. Chaque enrichissement est actif <strong>30 jours</strong> et payé en crédits DogWork.
+              </p>
+            </div>
+            <Badge variant="secondary" className="text-xs">
+              Synchronisé avec la base Live
+            </Badge>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {boostFeatures
+              .slice()
+              .sort((a, b) => a.credits_cost - b.credits_cost)
+              .map((f) => {
+                const meta = BOOST_META[f.code] ?? { label: f.label, desc: "", icon: Sparkles };
+                const Icon = meta.icon;
+                return (
+                  <Card key={f.code} className="border-primary/20">
+                    <CardHeader>
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 rounded-md bg-primary/10 text-primary">
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <CardTitle className="text-base">{meta.label}</CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3 text-sm">
+                      <p className="text-muted-foreground">{meta.desc}</p>
+                      <div className="flex items-center justify-between pt-2 border-t">
+                        <span className="text-xs text-muted-foreground">Coût</span>
+                        <span className="text-lg font-bold text-primary">
+                          {f.credits_cost} crédits
+                        </span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        ≈ {(f.credits_cost * 0.05).toFixed(2)} CHF au tarif crédit standard
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+          </div>
+          <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
+            <Info className="w-3 h-3" />
+            Disponible depuis votre espace coach ou refuge, onglet « Page publique ».
+          </p>
+        </section>
+      )}
 
       {/* AI Feature Costs */}
       <section>
