@@ -449,11 +449,10 @@ Deno.serve(async (req) => {
     const roleList = roles?.map((r: { role: string }) => r.role) || [];
     console.log(`[ai-with-credits] Roles: [${roleList.join(",")}], debit enabled for all accounts`);
 
-    // Cost = catalog value if > 0, else server-side fallback. No silent 0-debit.
+    // Known paid AI tools use the canonical DogWork tariff even if stale DB rows exist.
     const catalogCost = Number(feature.credits_cost ?? 0);
-    const creditsCost = catalogCost > 0
-      ? catalogCost
-      : (FALLBACK_COSTS[resolvedFeatureCode] ?? FALLBACK_COSTS[feature_code] ?? 0);
+    const fallbackCost = FALLBACK_COSTS[resolvedFeatureCode] ?? FALLBACK_COSTS[feature_code] ?? 0;
+    const creditsCost = fallbackCost > 0 ? fallbackCost : catalogCost;
 
     if (creditsCost <= 0) {
       console.error(`[ai-with-credits] No cost defined for ${feature_code} (resolved ${resolvedFeatureCode})`);
