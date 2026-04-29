@@ -25,6 +25,11 @@ const LEGACY_FEATURE_CODE_MAP: Record<string, string> = {
   ai_evaluation_scoring: "dog_profile_analysis",
   ai_adoption_plan: "adoption_plan",
   ai_progress_report: "behavior_summary",
+  agent_behavior_analysis: "behavior_analysis",
+  agent_progress_report: "behavior_summary",
+  agent_plan_adjustment: "plan_generator",
+  agent_dog_insights: "dog_profile_analysis",
+  dog_analysis: "dog_profile_analysis",
 };
 
 // Server-side fallback costs — guarantees correct debit even if catalog row
@@ -33,11 +38,12 @@ const LEGACY_FEATURE_CODE_MAP: Record<string, string> = {
 const FALLBACK_COSTS: Record<string, number> = {
   plan_generator: 5,
   education_plan: 8,
-  adoption_plan: 8,
+  adoption_plan: 15,
   behavior_analysis: 13,
   behavior_summary: 5,
-  dog_profile_analysis: 5,
+  dog_profile_analysis: 13,
   chat: 1,
+  chat_general: 1,
   ai_image_generation: 10,
 };
 
