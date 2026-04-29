@@ -115,6 +115,11 @@ const AdminCompliance = lazy(() => import("./pages/AdminCompliance"));
 const AdminTestWebhook = lazy(() => import("./pages/AdminTestWebhook"));
 const AdminTestMarketplaceP0 = lazy(() => import("./pages/AdminTestMarketplaceP0"));
 const CharteCoach = lazy(() => import("./pages/CharteCoach"));
+const PublicCoachPage = lazy(() => import("./pages/public/PublicCoachPage"));
+const PublicShelterPage = lazy(() => import("./pages/public/PublicShelterPage"));
+const PublicCoachDirectory = lazy(() => import("./pages/public/PublicCoachDirectory"));
+const PublicShelterDirectory = lazy(() => import("./pages/public/PublicShelterDirectory"));
+const PublicProfileManager = lazy(() => import("./pages/PublicProfileManager"));
 
 export const queryClient = new QueryClient();
 
@@ -403,6 +408,11 @@ const App = () => {
                 <Route path="/legal" element={<LegalPage />} />
                 <Route path="/legal/charte-coach" element={<CharteCoach />} />
                 <Route path="/gate-k9x" element={<Suspense fallback={<PageLoader />}><AdminLogin /></Suspense>} />
+                {/* Pages publiques (anonymes) — coachs & refuges */}
+                <Route path="/annuaire/coachs" element={<PublicCoachDirectory />} />
+                <Route path="/annuaire/refuges" element={<PublicShelterDirectory />} />
+                <Route path="/c/:slug" element={<PublicCoachPage />} />
+                <Route path="/r/:slug" element={<PublicShelterPage />} />
                 <Route path="/*" element={<ProtectedRoutes />} />
               </Routes>
             </Suspense>
