@@ -74,10 +74,14 @@ export default function ShelterAdoptionPlans() {
   const [savingAi, setSavingAi] = useState(false);
   const credit = useCreditConfirmation();
 
+  // Mode: "registered" → adopter has account / "pending" → not yet signed up
+  const [mode, setMode] = useState<"registered" | "pending">("registered");
+
   // Form state for new plan
   const [form, setForm] = useState({
     animal_id: "",
     adopter_user_id: "",
+    adopter_email: "",
     title: "",
     description: "",
     duration_weeks: 8,
