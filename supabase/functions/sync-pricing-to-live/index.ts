@@ -39,12 +39,14 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // Auth: either admin JWT or CRON_SECRET (for one-shot maintenance)
-    const cronSecret = Deno.env.get("CRON_SECRET");
-    const providedSecret = req.headers.get("x-cron-secret");
-    const isCron = cronSecret && providedSecret === cronSecret;
+    // Auth: admin JWT OR shared secret matching LIVE_SERVICE_ROLE_KEY
+    const liveKey = Deno.env.get("LIVE_SERVICE_ROLE_KEY");
+    if (!liveKey) return json({ error: "LIVE_SERVICE_ROLE_KEY missing" }, 500);
 
-    if (!isCron) {
+    const providedSecret = req.headers.get("x-admin-secret");
+    const isSecretAuth = providedSecret && providedSecret === liveKey;
+
+    if (!isSecretAuth) {
       const authHeader = req.headers.get("Authorization");
       if (!authHeader) return json({ error: "missing auth" }, 401);
       const jwt = authHeader.replace("Bearer ", "");
@@ -61,8 +63,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    const liveKey = Deno.env.get("LIVE_SERVICE_ROLE_KEY");
-    if (!liveKey) return json({ error: "LIVE_SERVICE_ROLE_KEY missing" }, 500);
     const sbLive = createClient(LIVE_URL, liveKey);
 
     const result: any = { addons: [], included: [], ai_features: [], errors: [] };
