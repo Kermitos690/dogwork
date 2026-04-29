@@ -673,6 +673,43 @@ export default function Landing() {
               </Button>
             </motion.div>
           </div>
+
+          {/* ========== Modules optionnels (add-ons) ========== */}
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }}
+            variants={fadeUp} custom={0}
+            className="mt-14 rounded-2xl bg-gradient-to-br from-accent/5 to-primary/5 border border-accent/20 p-6 md:p-8">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="rounded-lg p-2 bg-accent/20 text-accent">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg">Modules optionnels</h3>
+                <p className="text-xs text-muted-foreground">À activer au besoin — facturés en plus de votre abonnement</p>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mb-5 leading-relaxed">
+              Activez uniquement ce dont vous avez besoin. Chaque module est ajouté ou retiré à tout moment depuis votre espace, avec proratisation immédiate sur votre prochaine facture.
+            </p>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {[
+                { name: "Statistiques comportementales", price: "3.90", tag: "Tableau de bord avancé", roles: "Propriétaires · Coachs · Refuges" },
+                { name: "Branding & page publique", price: "4.90", tag: "Identité personnalisée", roles: "Coachs · Refuges" },
+                { name: "Adoption & post-adoption", price: "5.90", tag: "Suivi automatisé", roles: "Refuges" },
+                { name: "Planning & rendez-vous", price: "6.90", tag: "Calendrier clients", roles: "Coachs · Refuges" },
+                { name: "Équipe & permissions", price: "7.90", tag: "Comptes employés & rôles", roles: "Coachs · Refuges" },
+              ].map((m) => (
+                <div key={m.name} className="p-4 rounded-xl bg-card/70 border border-border/40 flex flex-col">
+                  <div className="text-[10px] uppercase tracking-wider font-semibold text-accent mb-1">{m.tag}</div>
+                  <div className="font-semibold text-sm mb-2 leading-snug">{m.name}</div>
+                  <div className="text-xl font-black mb-1">+{m.price} <span className="text-xs font-semibold text-muted-foreground">CHF/mois</span></div>
+                  <div className="text-[11px] text-muted-foreground/80 mt-auto pt-2">{m.roles}</div>
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-foreground/80 text-center mt-5">
+              Les modules sont ajoutés directement à votre abonnement Stripe principal — une seule facture, un seul prélèvement.
+            </p>
+          </motion.div>
         </div>
       </section>
 
