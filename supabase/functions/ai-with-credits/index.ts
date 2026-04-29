@@ -443,7 +443,19 @@ Deno.serve(async (req) => {
     const roleList = roles?.map((r: { role: string }) => r.role) || [];
     console.log(`[ai-with-credits] Roles: [${roleList.join(",")}], debit enabled for all accounts`);
 
-    const creditsCost = feature.credits_cost;
+    // Cost = catalog value if > 0, else server-side fallback. No silent 0-debit.
+    const catalogCost = Number(feature.credits_cost ?? 0);
+    const creditsCost = catalogCost > 0
+      ? catalogCost
+      : (FALLBACK_COSTS[resolvedFeatureCode] ?? FALLBACK_COSTS[feature_code] ?? 0);
+
+    if (creditsCost <= 0) {
+      console.error(`[ai-with-credits] No cost defined for ${feature_code} (resolved ${resolvedFeatureCode})`);
+      return new Response(JSON.stringify({ error: "Coût IA non configuré pour cette fonctionnalité" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const pricePerCreditChf = 0.05;
     const publicPriceChf = Number((creditsCost * pricePerCreditChf).toFixed(4));
 
