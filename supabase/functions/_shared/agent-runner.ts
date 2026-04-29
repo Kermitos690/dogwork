@@ -18,6 +18,13 @@ const AGENT_FEATURE_CODE_MAP: Record<string, string> = {
   agent_dog_insights: "dog_profile_analysis",
 };
 
+const FALLBACK_COSTS: Record<string, number> = {
+  plan_generator: 5,
+  behavior_analysis: 13,
+  behavior_summary: 5,
+  dog_profile_analysis: 13,
+};
+
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -224,21 +231,24 @@ export async function runAgent(req: Request, agent: AgentConfig): Promise<Respon
     // Merge: explicit body params override saved ones.
     const effectiveParams = { ...savedParams, ...bodyParams };
 
-    // 2. Get cost from catalog
+    // 2. Get cost from catalog, with canonical fallback for stale Live rows.
     const resolvedFeatureCode = AGENT_FEATURE_CODE_MAP[agent.code] ?? agent.code;
     const { data: feature, error: featureError } = await supabase
       .from("ai_feature_catalog")
-      .select("credits_cost, model")
+      .select("credits_cost, model, is_active")
       .eq("code", resolvedFeatureCode)
-      .eq("is_active", true)
       .maybeSingle();
 
-    if (featureError || !feature) {
+    const fallbackCost = FALLBACK_COSTS[resolvedFeatureCode] ?? 0;
+    if ((featureError || !feature || feature.is_active === false) && fallbackCost <= 0) {
       return new Response(
         JSON.stringify({ error: "Agent inconnu dans le catalogue IA." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const featureCost = fallbackCost > 0 ? fallbackCost : Number(feature?.credits_cost ?? 0);
+    const featureModel = feature?.model || agent.model;
 
     // 3. Resolve active dog and load profile.
     //    Every IA tool is strictly scoped to ONE dog: refuse if we cannot
