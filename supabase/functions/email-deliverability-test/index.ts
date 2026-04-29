@@ -206,7 +206,8 @@ Deno.serve(async (req) => {
           </div>
         </body></html>`
       try {
-        const { data, error } = await supabase.functions.invoke('send-via-ionos', {
+        // Timeout côté orchestrateur pour ne jamais dépasser 25s sur la voie IONOS
+        const ionosCall = supabase.functions.invoke('send-via-ionos', {
           body: {
             to: recipientEmail,
             subject: `[DogWork] Test délivrabilité — IONOS SMTP`,
@@ -217,6 +218,10 @@ Deno.serve(async (req) => {
           },
           headers: { Authorization: `Bearer ${jwt}` },
         })
+        const timeout = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('IONOS SMTP timeout (25s)')), 25000)
+        )
+        const { data, error } = (await Promise.race([ionosCall, timeout])) as any
         ionosResult.latencyMs = Date.now() - t0
         ionosResult.idempotencyKey = idempotencyKey
         if (error) {
