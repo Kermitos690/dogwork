@@ -276,19 +276,67 @@ export default function ShelterAdoptionPlans() {
                 <DialogTitle>Créer un plan de suivi</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 pt-2">
-                <div>
-                  <Label>Animal adopté</Label>
-                  <Select value={form.animal_id} onValueChange={handleSelectAnimal}>
-                    <SelectTrigger><SelectValue placeholder="Sélectionner un animal" /></SelectTrigger>
-                    <SelectContent>
-                      {adoptedAnimals?.map(a => (
-                        <SelectItem key={a.animal_id} value={a.animal_id}>
-                          {a.animal?.name || a.animal_name} — {a.adopterName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                {/* Mode toggle */}
+                <div className="flex rounded-lg border border-border bg-muted/40 p-1 text-xs">
+                  <button type="button"
+                    className={`flex-1 px-2 py-1.5 rounded-md font-medium transition-colors ${mode === "registered" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+                    onClick={() => setMode("registered")}>
+                    Adoptant déjà inscrit
+                  </button>
+                  <button type="button"
+                    className={`flex-1 px-2 py-1.5 rounded-md font-medium transition-colors ${mode === "pending" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+                    onClick={() => setMode("pending")}>
+                    Préparer pour adoption à venir
+                  </button>
                 </div>
+
+                {mode === "registered" ? (
+                  <div>
+                    <Label>Animal adopté</Label>
+                    <Select value={form.animal_id} onValueChange={handleSelectAnimal}>
+                      <SelectTrigger><SelectValue placeholder="Sélectionner un animal" /></SelectTrigger>
+                      <SelectContent>
+                        {adoptedAnimals?.length ? adoptedAnimals.map(a => (
+                          <SelectItem key={a.animal_id} value={a.animal_id}>
+                            {a.animal?.name || a.animal_name} — {a.adopterName}
+                          </SelectItem>
+                        )) : (
+                          <div className="px-3 py-4 text-xs text-muted-foreground">
+                            Aucun adoptant inscrit pour le moment.
+                          </div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <Label>Animal du refuge</Label>
+                      <Select value={form.animal_id} onValueChange={(v) => setForm(f => ({ ...f, animal_id: v }))}>
+                        <SelectTrigger><SelectValue placeholder="Sélectionner un animal" /></SelectTrigger>
+                        <SelectContent>
+                          {allShelterAnimals?.map(a => (
+                            <SelectItem key={a.id} value={a.id}>
+                              {a.name}{a.breed ? ` — ${a.breed}` : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Email du futur adoptant</Label>
+                      <Input
+                        type="email"
+                        value={form.adopter_email}
+                        onChange={e => setForm(f => ({ ...f, adopter_email: e.target.value }))}
+                        placeholder="adoptant@exemple.com"
+                      />
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        Le plan sera automatiquement transmis à cet adoptant dès son inscription sur DogWork avec cette adresse.
+                      </p>
+                    </div>
+                  </>
+                )}
                 <div>
                   <Label>Titre du plan</Label>
                   <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
