@@ -68,7 +68,8 @@ export default function ShelterAdoptionPlans() {
     plan: AiPlanShape;
     raw: unknown;
     animal_id: string;
-    adopter_user_id: string;
+    adopter_user_id: string | null;
+    adopter_email: string | null;
     creditsSpent: number;
   } | null>(null);
   const [savingAi, setSavingAi] = useState(false);
