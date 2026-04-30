@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useActiveDog, useDogs } from "@/hooks/useDogs";
 import { useAdaptiveSuggestion } from "@/hooks/useAdaptive";
 import { AppLayout } from "@/components/AppLayout";
+import { InstallAppCard } from "@/components/InstallAppCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { motion, AnimatePresence } from "framer-motion";
@@ -204,6 +205,9 @@ export default function Dashboard() {
             </motion.button>
           </div>
         </motion.div>
+
+        {/* ── Install app CTA (auto-hide si déjà installée) ── */}
+        <InstallAppCard variant="compact" dismissKey="dw_install_dashboard" />
 
         {/* ── Security alert (compact) ── */}
         {hasAlerts && (

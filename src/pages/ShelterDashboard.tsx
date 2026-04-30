@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ShelterLayout } from "@/components/ShelterLayout";
+import { InstallAppCard } from "@/components/InstallAppCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PawPrint, Plus, Clock, Heart, Stethoscope, Home, MessageSquare, Mail, Users, GraduationCap, LayoutGrid } from "lucide-react";
@@ -121,6 +122,9 @@ export default function ShelterDashboard() {
           </h1>
           <p className="text-xs text-muted-foreground">{activeAnimals.length} animaux actuellement hébergés</p>
         </div>
+
+        {/* Install app CTA */}
+        <InstallAppCard variant="compact" dismissKey="dw_install_shelter" />
 
         {/* Stats par statut */}
         <div className="grid grid-cols-3 gap-2">

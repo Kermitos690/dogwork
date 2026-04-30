@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { InstallAppCard } from "@/components/InstallAppCard";
 import heroStaffie from "@/assets/hero-staffie.jpg";
 import staffieTraining from "@/assets/staffie-training.jpg";
 import staffieFamily from "@/assets/staffie-family.jpg";
@@ -101,6 +102,11 @@ export default function Landing() {
         </div>
       </nav>
 
+      {/* ========== INSTALL BANNER (sticky sous la nav) ========== */}
+      <div className="sticky top-16 z-40">
+        <InstallAppCard variant="banner" dismissKey="dw_install_banner_landing" />
+      </div>
+
       {/* ========== HERO IA-FIRST ========== */}
       <section className="relative pt-24 pb-16 md:pt-32 md:pb-24 px-4">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -182,6 +188,13 @@ export default function Landing() {
               <div className="text-sm text-muted-foreground mt-1">{stat.label}</div>
             </motion.div>
           ))}
+        </div>
+      </section>
+
+      {/* ========== INSTALL APP HERO ========== */}
+      <section id="install" className="px-4 py-12 md:py-16">
+        <div className="mx-auto max-w-6xl">
+          <InstallAppCard variant="hero" />
         </div>
       </section>
 

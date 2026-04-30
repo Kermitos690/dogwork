@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CoachLayout } from "@/components/CoachLayout";
+import { InstallAppCard } from "@/components/InstallAppCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -82,6 +83,9 @@ export default function CoachDashboard() {
           </div>
           <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-primary/10 blur-2xl" />
         </motion.div>
+
+        {/* Install app CTA */}
+        <InstallAppCard variant="compact" dismissKey="dw_install_coach" />
 
         {/* Stripe Connect — finalisation paiements */}
         {connectReady === false && (
