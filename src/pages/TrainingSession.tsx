@@ -758,8 +758,31 @@ function formatTime(sec: number) {
   return `${m.toString().padStart(1, "0")}:${s.toString().padStart(2, "0")}`;
 }
 
-function trimToTwoLines(text: string): string {
-  const cleaned = text.replace(/\s+/g, " ").trim();
-  if (cleaned.length <= 140) return cleaned;
-  return cleaned.slice(0, 137).trimEnd() + "…";
+/**
+ * Résume une consigne longue sans couper un mot ni une phrase au milieu.
+ * - Garde la 1re phrase (action principale).
+ * - Ajoute la 2e si l'ensemble reste lisible bras tendu (≤ ~180 caractères).
+ * - Si une seule phrase dépasse la limite, coupe au dernier mot complet
+ *   précédant la limite et ajoute « … » (jamais en plein mot).
+ * Les consignes complètes restent accessibles via la feuille « Consignes ».
+ */
+function summarizeInstruction(text: string): string {
+  const cleaned = (text || "").replace(/\s+/g, " ").trim();
+  if (!cleaned) return "";
+  const SOFT_LIMIT = 180;
+  if (cleaned.length <= SOFT_LIMIT) return cleaned;
+
+  // Découpe en phrases en conservant la ponctuation finale.
+  const sentences = cleaned.match(/[^.!?]+[.!?]+|\S[^.!?]*$/g) ?? [cleaned];
+  let summary = sentences[0]?.trim() ?? cleaned;
+  if (summary.length <= SOFT_LIMIT && sentences[1]) {
+    const candidate = `${summary} ${sentences[1].trim()}`;
+    if (candidate.length <= SOFT_LIMIT) summary = candidate;
+  }
+  if (summary.length <= SOFT_LIMIT) return summary;
+
+  // Dernier filet de sécurité : on coupe sur la dernière frontière de mot.
+  const slice = summary.slice(0, SOFT_LIMIT);
+  const lastSpace = slice.lastIndexOf(" ");
+  return (lastSpace > 60 ? slice.slice(0, lastSpace) : slice).trimEnd() + "…";
 }
