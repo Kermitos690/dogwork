@@ -3490,8 +3490,6 @@ export type Database = {
       }
       shelter_animals: {
         Row: {
-          adopter_email: string | null
-          adopter_name: string | null
           arrival_date: string
           behavior_notes: string | null
           breed: string | null
@@ -3514,8 +3512,6 @@ export type Database = {
           weight_kg: number | null
         }
         Insert: {
-          adopter_email?: string | null
-          adopter_name?: string | null
           arrival_date?: string
           behavior_notes?: string | null
           breed?: string | null
@@ -3538,8 +3534,6 @@ export type Database = {
           weight_kg?: number | null
         }
         Update: {
-          adopter_email?: string | null
-          adopter_name?: string | null
           arrival_date?: string
           behavior_notes?: string | null
           breed?: string | null
@@ -4422,6 +4416,7 @@ export type Database = {
       public_profile_boosts_public: {
         Row: {
           boost_type: string | null
+          created_at: string | null
           expires_at: string | null
           id: string | null
           profile_kind: string | null
@@ -4429,6 +4424,7 @@ export type Database = {
         }
         Insert: {
           boost_type?: string | null
+          created_at?: string | null
           expires_at?: string | null
           id?: string | null
           profile_kind?: string | null
@@ -4436,6 +4432,7 @@ export type Database = {
         }
         Update: {
           boost_type?: string | null
+          created_at?: string | null
           expires_at?: string | null
           id?: string | null
           profile_kind?: string | null
