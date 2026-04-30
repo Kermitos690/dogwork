@@ -642,10 +642,25 @@ export default function Onboarding() {
       setGenPhase(GEN_MESSAGES.length - 1);
       await new Promise((r) => setTimeout(r, 600));
       setPlanReady(true);
-      goTo(11);
+
+      // Plan generation is on-demand from /plan. We don't show step 11 (which
+      // depends on a generatedPlan object that is intentionally null here).
+      // Instead, clear the onboarding state and route the user to their plan
+      // page so they can pick a template or generate an Expert AI plan.
+      toast({
+        title: "Profil créé",
+        description: `Bienvenue ${dogName || "votre chien"} ! Choisissez un plan ou générez-le à la demande.`,
+      });
+      clearOnboardingState();
+      navigate("/plan");
     } catch (err: any) {
       clearInterval(interval);
-      toast({ title: "Erreur", description: err.message, variant: "destructive" });
+      console.error("[Onboarding] handleGenerate failed", err);
+      toast({
+        title: "Erreur lors de la création du profil",
+        description: err?.message || "Une erreur est survenue. Vos informations ont été sauvegardées, vous pouvez réessayer.",
+        variant: "destructive",
+      });
       goTo(9);
     }
   }, [user, dogName, breed, isMixed, sex, isNeutered, birthDate, weightKg, size, activityLevel, origin, adoptionDate, environment, hasChildren, hasOtherAnimals, aloneHours, jointPain, heartProblems, epilepsy, overweight, muzzleRequired, biteHistory, healthNotes, evaluation, selectedProblems, selectedObjectives, primaryObjective, createDog, toast, photoFile, adoptedFromShelter, matchedAnimal, selectedShelterId]);
