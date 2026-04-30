@@ -14,9 +14,10 @@
  *  - Bypass for everything else (Supabase, AI, third parties).
  */
 
-const VERSION = "dogwork-sw-v2";
+const VERSION = "dogwork-sw-v3";
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
+const FONTS_CACHE = `${VERSION}-fonts`;
 
 const SHELL_URLS = ["/manifest.json", "/favicon.png"];
 
@@ -46,11 +47,32 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(req.url);
 
-  // Bypass cross-origin (Supabase, fonts CDN, AI gateway, analytics, etc.)
+  // Google Fonts → stale-while-revalidate (cross-origin, but explicitly allowed)
+  if (url.origin === "https://fonts.googleapis.com" || url.origin === "https://fonts.gstatic.com") {
+    event.respondWith(
+      caches.open(FONTS_CACHE).then((cache) =>
+        cache.match(req).then((cached) => {
+          const network = fetch(req)
+            .then((res) => {
+              if (res.ok) cache.put(req, res.clone()).catch(() => undefined);
+              return res;
+            })
+            .catch(() => cached);
+          return cached || network;
+        }),
+      ),
+    );
+    return;
+  }
+
+  // Bypass other cross-origin (Supabase, AI gateway, analytics, etc.)
   if (url.origin !== self.location.origin) return;
 
   // Bypass Supabase REST/Storage if ever same-origin proxied
   if (url.pathname.startsWith("/functions/") || url.pathname.startsWith("/rest/")) return;
+
+  // Bypass video assets (large, range requests, browser handles best)
+  if (/\.(?:mp4|webm|mov)$/.test(url.pathname)) return;
 
   // Navigation (HTML) → network only, no caching of index.html.
   // Caching the HTML across deploys causes references to chunk hashes that
@@ -80,7 +102,7 @@ self.addEventListener("fetch", (event) => {
             }
             return res;
           })
-          .catch(() => cached as Response);
+          .catch(() => cached);
       }),
     );
   }

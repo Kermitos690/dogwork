@@ -13,10 +13,19 @@ function asyncCssPlugin(): Plugin {
     name: 'async-css',
     enforce: 'post',
     transformIndexHtml(html) {
-      return html.replace(
+      const noscripts: string[] = [];
+      const transformed = html.replace(
         /<link rel="stylesheet" crossorigin href="(\/assets\/[^"]+\.css)">/g,
-        '<link rel="stylesheet" href="$1" media="print" onload="this.media=\'all\'">' +
-        '<noscript><link rel="stylesheet" href="$1"></noscript>'
+        (_, href) => {
+          noscripts.push(`<link rel="stylesheet" href="${href}">`);
+          return `<link rel="stylesheet" href="${href}" media="print" onload="this.media='all'">`;
+        }
+      );
+      // <noscript> with <link> is INVALID inside <head> for HTML5 — inject in <body>
+      if (noscripts.length === 0) return transformed;
+      return transformed.replace(
+        /<body([^>]*)>/,
+        `<body$1><noscript>${noscripts.join('')}</noscript>`
       );
     },
   };
