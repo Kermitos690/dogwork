@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Download, LogOut, Info, User, Shield, CreditCard, Palette, MessageSquare, Coins } from "lucide-react";
+import { ArrowLeft, Download, LogOut, Info, User, Shield, CreditCard, Palette, MessageSquare, Coins, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppLayout } from "@/components/AppLayout";
 import { useAuth } from "@/hooks/useAuth";
@@ -120,6 +120,20 @@ export default function Settings() {
           <div className="border-t border-border/50 pt-4">
             <CreditHistory />
           </div>
+        </div>
+
+        {/* Notifications */}
+        <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Bell className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Rappels d'exercices, messages, alertes refuge — même app fermée.
+          </p>
+          <Button variant="outline" size="sm" className="w-full" onClick={() => navigate("/settings/notifications")}>
+            Gérer mes notifications
+          </Button>
         </div>
 
         {/* Preferences */}

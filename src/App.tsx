@@ -11,6 +11,7 @@ import { PreferencesProvider } from "@/hooks/usePreferences";
 import { useDogs } from "./hooks/useDogs";
 import { useIsCoach, useIsShelter, useIsShelterEmployee } from "./hooks/useCoach";
 import { supabase } from "@/integrations/supabase/client";
+import { PushInternalsBootstrap } from "@/components/PushInternalsBootstrap";
 const AIChatBot = lazy(() => import("@/components/AIChatBot").then(m => ({ default: m.AIChatBot })));
 const GuidedTour = lazy(() => import("@/components/GuidedTour").then(m => ({ default: m.GuidedTour })));
 import { NotificationToast } from "@/components/NotificationToast";
@@ -78,6 +79,7 @@ const CoachExercisePreview = lazy(() => import("./pages/CoachExercisePreview"));
 const CoachExercises = lazy(() => import("./pages/CoachExercises"));
 const MessagesPage = lazy(() => import("./pages/Messages"));
 const SettingsPage = lazy(() => import("./pages/Settings"));
+const NotificationSettings = lazy(() => import("./pages/NotificationSettings"));
 const PreferencesPage = lazy(() => import("./pages/Preferences"));
 const ShelterGuard = lazy(() => import("./components/ShelterGuard").then(m => ({ default: m.ShelterGuard })));
 const ShelterDashboard = lazy(() => import("./pages/ShelterDashboard"));
@@ -261,6 +263,7 @@ function ProtectedRoutes() {
           <Route path="/courses" element={<CoursesPage />} />
           <Route path="/messages" element={<MessagesPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/settings/notifications" element={<NotificationSettings />} />
           <Route path="/support" element={<SupportTickets />} />
           <Route path="/preferences" element={<PreferencesPage />} />
           <Route path="/adoption-checkins" element={<AdoptionCheckins />} />
@@ -401,6 +404,7 @@ const App = () => {
           <BrowserRouter>
             <ScrollToTop />
             <RecoveryRouteGuard />
+            <PushInternalsBootstrap />
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/landing" element={<Landing />} />
