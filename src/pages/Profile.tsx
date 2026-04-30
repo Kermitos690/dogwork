@@ -33,6 +33,10 @@ export default function ProfilePage() {
   const { tier } = useSubscription();
   const [displayName, setDisplayName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const currentPlanName =
+    tier === "educator" ? "Éducateur" :
+    tier === "shelter" ? "Refuge" :
+    TIERS[tier]?.name ?? "Freemium";
 
   useEffect(() => {
     if (user) {
@@ -116,7 +120,7 @@ export default function ProfilePage() {
         <Card>
           <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><Crown className="h-4 w-4" /> Abonnement</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            <p className="text-sm text-muted-foreground">Plan actuel : <span className="font-semibold text-foreground">{TIERS[tier].name}</span></p>
+            <p className="text-sm text-muted-foreground">Plan actuel : <span className="font-semibold text-foreground">{currentPlanName}</span></p>
             <Button variant="outline" className="w-full gap-2" onClick={() => navigate("/subscription")}>
               <Crown className="h-4 w-4" /> Gérer mon abonnement
             </Button>
