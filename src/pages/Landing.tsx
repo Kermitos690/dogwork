@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { InstallAppCard } from "@/components/InstallAppCard";
 import heroStaffie from "@/assets/hero-staffie.jpg";
 import staffieTraining from "@/assets/staffie-training.jpg";
 import staffieFamily from "@/assets/staffie-family.jpg";
