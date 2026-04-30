@@ -15,7 +15,7 @@ CREATE OR REPLACE FUNCTION public.trg_notify_new_message()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public, extensions
+SET search_path = public, net
 AS $$
 DECLARE
   v_url text;
@@ -29,7 +29,7 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  PERFORM extensions.http_post(
+  PERFORM net.http_post(
     url := v_url || '/functions/v1/notify-message',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',

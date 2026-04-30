@@ -8,9 +8,8 @@ DROP POLICY IF EXISTS "Public can read active AI features" ON public.ai_feature_
 -- 3. Public profile boosts : idem (la vue *_public existe déjà)
 DROP POLICY IF EXISTS "Public can read active boosts (anonymized)" ON public.public_profile_boosts;
 
--- 4. shelter_animals : retirer PII adoptant (déjà présente dans shelter_animal_adopter_info)
-ALTER TABLE public.shelter_animals DROP COLUMN IF EXISTS adopter_name;
-ALTER TABLE public.shelter_animals DROP COLUMN IF EXISTS adopter_email;
+-- 4. shelter_animals : ne pas supprimer les colonnes Live utilisées par le flux adoption.
+-- La PII adoptant reste protégée par shelter_animals_safe et les politiques RLS.
 
 -- 5. shelter_employees : restreindre l'accès à la colonne hashed_pin
 -- Révoquer l'accès colonne pour authenticated
