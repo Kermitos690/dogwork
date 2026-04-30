@@ -103,7 +103,7 @@ export default function Landing() {
       </nav>
 
       {/* ========== INSTALL BANNER (sticky sous la nav) ========== */}
-      <div className="sticky top-16 z-40 pt-16">
+      <div className="sticky top-16 z-40">
         <InstallAppCard variant="banner" dismissKey="dw_install_banner_landing" />
       </div>
 
