@@ -153,7 +153,7 @@ export default function TrainingSession() {
         // Stable id priority: slug (survives plan regeneration) → db id → index fallback.
         id: e.slug || e.id || `plan-ex-${id}-${i}`,
         name: e.name,
-        shortInstruction: trimToTwoLines(e.instructions || e.description || ""),
+        shortInstruction: summarizeInstruction(e.instructions || e.description || ""),
         repetitionsTarget: e.repetitions ?? 5,
         timerSeconds: e.timerSeconds,
         slug: e.slug,
@@ -163,7 +163,7 @@ export default function TrainingSession() {
     return (std?.exercises || []).map((e: any, i: number) => ({
       id: e.slug || e.id || `std-ex-${id}-${i}`,
       name: e.name,
-      shortInstruction: "",
+      shortInstruction: summarizeInstruction(e.shortInstruction || e.description || ""),
       repetitionsTarget: e.repetitionsTarget ?? 5,
       timerSeconds: e.timerSuggested,
       slug: e.slug,
