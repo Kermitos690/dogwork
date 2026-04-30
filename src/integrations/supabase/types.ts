@@ -2878,6 +2878,99 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_logs: {
+        Row: {
+          body: string | null
+          category: string
+          created_at: string
+          dedup_key: string | null
+          endpoints_failed: number
+          endpoints_succeeded: number
+          endpoints_total: number
+          error: string | null
+          id: string
+          payload: Json | null
+          status: string
+          title: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          category: string
+          created_at?: string
+          dedup_key?: string | null
+          endpoints_failed?: number
+          endpoints_succeeded?: number
+          endpoints_total?: number
+          error?: string | null
+          id?: string
+          payload?: Json | null
+          status?: string
+          title: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          category?: string
+          created_at?: string
+          dedup_key?: string | null
+          endpoints_failed?: number
+          endpoints_succeeded?: number
+          endpoints_total?: number
+          error?: string | null
+          id?: string
+          payload?: Json | null
+          status?: string
+          title?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notification_preferences: {
+        Row: {
+          billing_enabled: boolean
+          created_at: string
+          exercises_enabled: boolean
+          exercises_time: string
+          messages_enabled: boolean
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
+          shelter_enabled: boolean
+          timezone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          billing_enabled?: boolean
+          created_at?: string
+          exercises_enabled?: boolean
+          exercises_time?: string
+          messages_enabled?: boolean
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          shelter_enabled?: boolean
+          timezone?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          billing_enabled?: boolean
+          created_at?: string
+          exercises_enabled?: boolean
+          exercises_time?: string
+          messages_enabled?: boolean
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          shelter_enabled?: boolean
+          timezone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       organization_members: {
         Row: {
           created_at: string
@@ -3258,6 +3351,54 @@ export type Database = {
           id?: string
           profile_kind?: string
           starts_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          failure_count: number
+          id: string
+          is_active: boolean
+          last_failure_at: string | null
+          last_success_at: string | null
+          p256dh: string
+          platform: string | null
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          failure_count?: number
+          id?: string
+          is_active?: boolean
+          last_failure_at?: string | null
+          last_success_at?: string | null
+          p256dh: string
+          platform?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          failure_count?: number
+          id?: string
+          is_active?: boolean
+          last_failure_at?: string | null
+          last_success_at?: string | null
+          p256dh?: string
+          platform?: string | null
+          updated_at?: string
+          user_agent?: string | null
           user_id?: string
         }
         Relationships: []
