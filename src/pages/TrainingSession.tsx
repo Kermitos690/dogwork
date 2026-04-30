@@ -14,6 +14,8 @@ import {
   Sparkles,
   BookOpen,
   ListChecks,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
