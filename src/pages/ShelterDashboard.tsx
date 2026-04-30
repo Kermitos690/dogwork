@@ -123,6 +123,9 @@ export default function ShelterDashboard() {
           <p className="text-xs text-muted-foreground">{activeAnimals.length} animaux actuellement hébergés</p>
         </div>
 
+        {/* Install app CTA */}
+        <InstallAppCard variant="compact" dismissKey="dw_install_shelter" />
+
         {/* Stats par statut */}
         <div className="grid grid-cols-3 gap-2">
           {Object.entries(statusConfig).filter(([key]) => key !== "adopté").map(([key, cfg]) => (
