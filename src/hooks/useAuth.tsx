@@ -38,8 +38,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       hash.includes("type=recovery") ||
       hash.includes("access_token=");
     let codeExchangeHandled = !hasRecoveryMarkers; // if no markers, no need to wait
+    let isMounted = true;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const applySession = (session: Session | null) => {
+      if (!isMounted) return;
       const newUserId = session?.user?.id ?? null;
       // Clear all cached data when user changes (login as different user) or signs out
       if (prevUserIdRef.current && prevUserIdRef.current !== newUserId) {
@@ -60,21 +62,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setSentryUser(null);
       }
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      applySession(session);
 
       if (event === "PASSWORD_RECOVERY") {
         setIsPasswordRecovery(true);
+        codeExchangeHandled = true;
       }
-      // For recovery flows, only stop loading once we get a real auth event
-      // (not INITIAL_SESSION which fires before code exchange).
-      if (event !== "INITIAL_SESSION" || codeExchangeHandled) {
+      // INITIAL_SESSION can fire before the persisted token is fully restored.
+      // Keep the app in auth-loading until getSession() has performed the
+      // authoritative storage read, otherwise protected deep links can be
+      // redirected to /landing during a hard refresh.
+      if (event !== "INITIAL_SESSION") {
         codeExchangeHandled = true;
         setLoading(false);
       }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+      applySession(session);
       // Only stop loading from getSession if there's no pending code exchange
       if (codeExchangeHandled) {
         setLoading(false);
@@ -92,6 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
       if (timeout) clearTimeout(timeout);
     };
