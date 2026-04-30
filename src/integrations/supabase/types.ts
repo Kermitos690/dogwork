@@ -4273,6 +4273,8 @@ export type Database = {
           price_chf: number | null
           slug: string | null
           sort_order: number | null
+          stripe_price_id: string | null
+          stripe_product_id: string | null
         }
         Insert: {
           credits?: number | null
@@ -4283,6 +4285,8 @@ export type Database = {
           price_chf?: number | null
           slug?: string | null
           sort_order?: number | null
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
         }
         Update: {
           credits?: number | null
@@ -4293,6 +4297,8 @@ export type Database = {
           price_chf?: number | null
           slug?: string | null
           sort_order?: number | null
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
         }
         Relationships: []
       }
@@ -4301,6 +4307,7 @@ export type Database = {
           code: string | null
           credits_cost: number | null
           description: string | null
+          id: string | null
           is_active: boolean | null
           label: string | null
           model: string | null
@@ -4309,6 +4316,7 @@ export type Database = {
           code?: string | null
           credits_cost?: number | null
           description?: string | null
+          id?: string | null
           is_active?: boolean | null
           label?: string | null
           model?: string | null
@@ -4317,6 +4325,7 @@ export type Database = {
           code?: string | null
           credits_cost?: number | null
           description?: string | null
+          id?: string | null
           is_active?: boolean | null
           label?: string | null
           model?: string | null
@@ -4407,6 +4416,30 @@ export type Database = {
           management_fee_percent?: number | null
           refuge_referral_discount_percent?: number | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      public_profile_boosts_public: {
+        Row: {
+          boost_type: string | null
+          expires_at: string | null
+          id: string | null
+          profile_kind: string | null
+          starts_at: string | null
+        }
+        Insert: {
+          boost_type?: string | null
+          expires_at?: string | null
+          id?: string | null
+          profile_kind?: string | null
+          starts_at?: string | null
+        }
+        Update: {
+          boost_type?: string | null
+          expires_at?: string | null
+          id?: string | null
+          profile_kind?: string | null
+          starts_at?: string | null
         }
         Relationships: []
       }
