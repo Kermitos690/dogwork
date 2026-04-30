@@ -78,6 +78,7 @@ const CoachExercisePreview = lazy(() => import("./pages/CoachExercisePreview"));
 const CoachExercises = lazy(() => import("./pages/CoachExercises"));
 const MessagesPage = lazy(() => import("./pages/Messages"));
 const SettingsPage = lazy(() => import("./pages/Settings"));
+const NotificationSettings = lazy(() => import("./pages/NotificationSettings"));
 const PreferencesPage = lazy(() => import("./pages/Preferences"));
 const ShelterGuard = lazy(() => import("./components/ShelterGuard").then(m => ({ default: m.ShelterGuard })));
 const ShelterDashboard = lazy(() => import("./pages/ShelterDashboard"));
@@ -261,6 +262,7 @@ function ProtectedRoutes() {
           <Route path="/courses" element={<CoursesPage />} />
           <Route path="/messages" element={<MessagesPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/settings/notifications" element={<NotificationSettings />} />
           <Route path="/support" element={<SupportTickets />} />
           <Route path="/preferences" element={<PreferencesPage />} />
           <Route path="/adoption-checkins" element={<AdoptionCheckins />} />
