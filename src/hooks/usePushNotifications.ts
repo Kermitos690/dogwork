@@ -71,9 +71,11 @@ export function usePushNotifications() {
 
       let sub = await reg.pushManager.getSubscription();
       if (!sub) {
+        const key = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
         sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+          // Cast required: TS lib types of PushManager are stricter than spec.
+          applicationServerKey: key.buffer as ArrayBuffer,
         });
       }
 
