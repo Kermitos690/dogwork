@@ -440,35 +440,59 @@ export default function TrainingSession() {
   const progressPct = Math.round((currentIndex / total) * 100);
   const flashMeta = flash ? RESULT_META[flash] : null;
 
-  // ─── Active session screen ─────────────────────────────────────────
+  // Outdoor mode = ultra-high-contrast (pure black bg + pure white text + saturated CTAs).
+  // Designed for sunlight readability on field.
+  const shellClass = outdoor
+    ? "fixed inset-0 z-[60] bg-black text-white flex flex-col overflow-hidden"
+    : "fixed inset-0 z-[60] bg-background text-foreground flex flex-col overflow-hidden";
+  const iconBtnClass = outdoor
+    ? "h-12 w-12 rounded-full bg-white/15 text-white flex items-center justify-center active:scale-95 transition-transform shrink-0 border border-white/30"
+    : "h-10 w-10 rounded-full bg-muted/60 flex items-center justify-center active:scale-95 transition-transform shrink-0";
+  const trackClass = outdoor ? "h-2 rounded-full bg-white/25 overflow-hidden" : "h-1.5 rounded-full bg-muted overflow-hidden";
+  const trackFillClass = outdoor ? "h-full bg-white" : "h-full bg-primary";
+  const subtleTextClass = outdoor ? "text-white/85" : "text-muted-foreground";
+
   return (
-    <div className="fixed inset-0 z-[60] bg-background text-foreground flex flex-col overflow-hidden">
-      {/* Top bar : Quitter · barre de progression · Voix */}
+    <div className={shellClass}>
+      {/* Top bar : Quitter · barre de progression · Outdoor · Voix */}
       <header className="px-3 pt-[max(env(safe-area-inset-top),0.75rem)] pb-2 flex items-center justify-between gap-2">
         <button
           onClick={exitSession}
           aria-label="Quitter la séance"
-          className="h-10 w-10 rounded-full bg-muted/60 flex items-center justify-center active:scale-95 transition-transform shrink-0"
+          className={iconBtnClass}
         >
-          <X className="h-5 w-5" />
+          <X className={outdoor ? "h-6 w-6" : "h-5 w-5"} />
         </button>
 
         <div className="flex-1 min-w-0">
-          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+          <div className={trackClass}>
             <motion.div
-              className="h-full bg-primary"
+              className={trackFillClass}
               initial={false}
               animate={{ width: `${progressPct}%` }}
               transition={{ duration: 0.3 }}
             />
           </div>
           <div className="mt-1 flex items-center justify-center gap-2">
-            <p className="text-[10px] text-muted-foreground tabular-nums">
+            <p className={`text-[11px] tabular-nums ${subtleTextClass}`}>
               J{id} · {currentIndex + 1} / {total}
             </p>
             <SyncStatusBadge compact />
           </div>
         </div>
+
+        <button
+          onClick={() => setOutdoor((v) => !v)}
+          aria-label={outdoor ? "Mode normal" : "Mode extérieur (haut contraste)"}
+          aria-pressed={outdoor}
+          className={
+            outdoor
+              ? "h-12 w-12 rounded-full bg-white text-black flex items-center justify-center active:scale-95 transition-all shrink-0"
+              : "h-10 w-10 rounded-full bg-muted/60 text-foreground flex items-center justify-center active:scale-95 transition-all shrink-0"
+          }
+        >
+          {outdoor ? <Sun className="h-6 w-6" /> : <Moon className="h-5 w-5" />}
+        </button>
 
         <button
           onClick={() => {
@@ -480,11 +504,15 @@ export default function TrainingSession() {
             }
           }}
           aria-label={voiceEnabled ? "Couper la voix" : "Activer la voix"}
-          className={`h-10 w-10 rounded-full flex items-center justify-center active:scale-95 transition-all shrink-0 ${
-            voiceEnabled ? "bg-primary text-primary-foreground" : "bg-muted/60 text-foreground"
-          }`}
+          className={
+            outdoor
+              ? `${voiceEnabled ? "bg-white text-black" : "bg-white/15 text-white border border-white/30"} h-12 w-12 rounded-full flex items-center justify-center active:scale-95 transition-all shrink-0`
+              : `${voiceEnabled ? "bg-primary text-primary-foreground" : "bg-muted/60 text-foreground"} h-10 w-10 rounded-full flex items-center justify-center active:scale-95 transition-all shrink-0`
+          }
         >
-          {voiceEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+          {voiceEnabled
+            ? <Volume2 className={outdoor ? "h-6 w-6" : "h-5 w-5"} />
+            : <VolumeX className={outdoor ? "h-6 w-6" : "h-5 w-5"} />}
         </button>
       </header>
 
@@ -493,20 +521,28 @@ export default function TrainingSession() {
         <button
           type="button"
           onClick={() => setOutlineOpen(true)}
-          className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-xl bg-card border border-border text-xs font-medium text-foreground active:scale-[0.98] transition-transform"
+          className={
+            outdoor
+              ? "flex-1 inline-flex items-center justify-center gap-1.5 h-11 rounded-xl bg-white/10 border border-white/30 text-sm font-semibold text-white active:scale-[0.98] transition-transform"
+              : "flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-xl bg-card border border-border text-xs font-medium text-foreground active:scale-[0.98] transition-transform"
+          }
           aria-label="Voir le sommaire de la journée"
         >
-          <ListChecks className="h-4 w-4 text-primary" />
+          <ListChecks className={outdoor ? "h-5 w-5 text-white" : "h-4 w-4 text-primary"} />
           <span>Journée</span>
-          <span className="text-muted-foreground tabular-nums">· {completedIds.length}/{total}</span>
+          <span className={outdoor ? "text-white/80 tabular-nums" : "text-muted-foreground tabular-nums"}>· {completedIds.length}/{total}</span>
         </button>
         <button
           type="button"
           onClick={() => setInstructionsOpen(true)}
-          className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-xl bg-primary/10 border border-primary/20 text-xs font-semibold text-primary active:scale-[0.98] transition-transform"
-          aria-label="Voir les consignes de l'exercice"
+          className={
+            outdoor
+              ? "flex-1 inline-flex items-center justify-center gap-1.5 h-11 rounded-xl bg-white text-black text-sm font-bold active:scale-[0.98] transition-transform"
+              : "flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-xl bg-primary/10 border border-primary/20 text-xs font-semibold text-primary active:scale-[0.98] transition-transform"
+          }
+          aria-label="Voir les consignes complètes de l'exercice"
         >
-          <BookOpen className="h-4 w-4" />
+          <BookOpen className={outdoor ? "h-5 w-5" : "h-4 w-4"} />
           <span>Consignes</span>
         </button>
       </div>
@@ -522,57 +558,91 @@ export default function TrainingSession() {
             transition={{ duration: 0.25 }}
             className="w-full max-w-md space-y-4"
           >
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+            <p className={`text-xs uppercase tracking-[0.2em] ${subtleTextClass}`}>
               Exercice {currentIndex + 1}
             </p>
-            <h1 className="text-3xl sm:text-4xl font-bold leading-tight text-foreground">
+            <h1 className={
+              outdoor
+                ? "text-4xl sm:text-5xl font-black leading-tight text-white"
+                : "text-3xl sm:text-4xl font-bold leading-tight text-foreground"
+            }>
               {exercise.name}
             </h1>
             {exercise.shortInstruction && (
-              <p className="text-base text-muted-foreground leading-relaxed line-clamp-2">
+              <p
+                className={
+                  outdoor
+                    ? "text-lg sm:text-xl text-white leading-relaxed font-medium"
+                    : "text-base text-muted-foreground leading-relaxed"
+                }
+                title={exercise.shortInstruction}
+              >
+                {/* Résumé sans coupure de mot ni ellipse au milieu d'une phrase. */}
                 {exercise.shortInstruction}
               </p>
             )}
 
-            <div className="flex items-center justify-center gap-3 pt-2 text-xs text-muted-foreground">
-              <span className="rounded-full bg-muted px-3 py-1">
+            <div className={`flex items-center justify-center gap-3 pt-2 text-sm ${subtleTextClass}`}>
+              <span className={outdoor ? "rounded-full bg-white/15 border border-white/30 px-3 py-1 font-semibold text-white" : "rounded-full bg-muted px-3 py-1"}>
                 🎯 {exercise.repetitionsTarget} rép.
               </span>
               {exercise.timerSeconds && (
-                <span className="rounded-full bg-muted px-3 py-1">⏱ {exercise.timerSeconds}s</span>
+                <span className={outdoor ? "rounded-full bg-white/15 border border-white/30 px-3 py-1 font-semibold text-white" : "rounded-full bg-muted px-3 py-1"}>
+                  ⏱ {exercise.timerSeconds}s
+                </span>
               )}
             </div>
 
-            {/* Timer */}
+            {/* Timer XL — chronomètre grand format, lisible bras tendu */}
             {timerSeconds != null && (
-              <div className="mt-2 rounded-3xl border border-border bg-card p-5">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+              <div className={
+                outdoor
+                  ? "mt-3 rounded-3xl border-2 border-white/40 bg-white/5 p-5"
+                  : "mt-3 rounded-3xl border border-border bg-card p-5"
+              }>
+                <p className={`text-[11px] uppercase tracking-widest ${subtleTextClass}`}>
                   Minuteur
                 </p>
-                <p className="text-5xl font-bold tabular-nums my-2">
+                <p
+                  className={
+                    outdoor
+                      ? "text-7xl sm:text-8xl font-black tabular-nums my-3 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]"
+                      : "text-6xl sm:text-7xl font-black tabular-nums my-3"
+                  }
+                  aria-live="polite"
+                >
                   {formatTime(timerSeconds)}
                 </p>
                 <div className="flex items-center justify-center gap-2">
                   <Button
                     size="lg"
-                    variant="outline"
-                    className="h-12 rounded-2xl"
+                    variant={outdoor ? "default" : "outline"}
+                    className={
+                      outdoor
+                        ? "h-14 min-w-[140px] rounded-2xl text-base font-bold bg-white text-black hover:bg-white/90"
+                        : "h-14 min-w-[140px] rounded-2xl text-base font-semibold"
+                    }
                     onClick={() => setTimerRunning((r) => !r)}
+                    aria-label={timerRunning ? "Mettre le minuteur en pause" : "Démarrer le minuteur"}
                   >
-                    {timerRunning ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                    {timerRunning ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
                     {timerRunning ? "Pause" : "Lancer"}
                   </Button>
                   <Button
                     size="lg"
                     variant="ghost"
-                    className="h-12 rounded-2xl"
+                    className={
+                      outdoor
+                        ? "h-14 w-14 rounded-2xl text-white border border-white/30"
+                        : "h-14 w-14 rounded-2xl"
+                    }
                     onClick={() => {
                       setTimerSeconds(exercise.timerSeconds ?? 0);
                       setTimerRunning(false);
                     }}
-                    aria-label="Réinitialiser"
+                    aria-label="Réinitialiser le minuteur"
                   >
-                    <RotateCcw className="h-5 w-5" />
+                    <RotateCcw className="h-6 w-6" />
                   </Button>
                 </div>
               </div>
@@ -581,8 +651,12 @@ export default function TrainingSession() {
         </AnimatePresence>
       </main>
 
-      {/* Action bar */}
-      <footer className="px-3 pb-[max(env(safe-area-inset-bottom),1rem)] pt-2 border-t border-border bg-background/80 backdrop-blur">
+      {/* Action bar — boutons larges utilisables au pouce, une main */}
+      <footer className={
+        outdoor
+          ? "px-3 pb-[max(env(safe-area-inset-bottom),1rem)] pt-3 border-t-2 border-white/30 bg-black"
+          : "px-3 pb-[max(env(safe-area-inset-bottom),1rem)] pt-2 border-t border-border bg-background/80 backdrop-blur"
+      }>
         <div className="grid grid-cols-4 gap-2">
           {(Object.keys(RESULT_META) as Result[]).map((r) => {
             const meta = RESULT_META[r];
@@ -591,9 +665,14 @@ export default function TrainingSession() {
               <button
                 key={r}
                 onClick={() => handleResult(r)}
-                className={`h-16 rounded-2xl flex flex-col items-center justify-center gap-0.5 text-xs font-semibold transition-all active:scale-95 ${meta.classes}`}
+                aria-label={meta.label}
+                className={
+                  outdoor
+                    ? `h-20 rounded-2xl flex flex-col items-center justify-center gap-1 text-sm font-bold transition-all active:scale-95 border-2 border-white/20 ${meta.classes}`
+                    : `h-16 rounded-2xl flex flex-col items-center justify-center gap-0.5 text-xs font-semibold transition-all active:scale-95 ${meta.classes}`
+                }
               >
-                <Icon className="h-5 w-5" />
+                <Icon className={outdoor ? "h-7 w-7" : "h-5 w-5"} />
                 <span>{meta.label}</span>
               </button>
             );
