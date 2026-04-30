@@ -76,3 +76,11 @@ verify_jwt = false
     verify_jwt = false
   [functions.email-deliverability-test]
     verify_jwt = false
+  [functions.notify-message]
+    verify_jwt = false
+  [functions.send-push]
+    verify_jwt = false
+  [functions.setup-push-internals]
+    verify_jwt = false
+  [functions.push-subscribe]
+    verify_jwt = false
