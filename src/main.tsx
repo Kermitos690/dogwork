@@ -8,7 +8,7 @@ import "./index.css";
 // Initialize Sentry as early as possible (no-op on preview / dev hosts).
 initSentry();
 
-const BUILD_FINGERPRINT = "2026-04-26T17:40Z";
+const BUILD_FINGERPRINT = "2026-04-30T09:15Z";
 const CHUNK_RELOAD_KEY = `dogwork:chunk-reload:${BUILD_FINGERPRINT}`;
 
 function reloadOnceForStaleAssets(reason: unknown) {
