@@ -102,7 +102,7 @@ self.addEventListener("fetch", (event) => {
             }
             return res;
           })
-          .catch(() => cached as Response);
+          .catch(() => cached);
       }),
     );
   }
