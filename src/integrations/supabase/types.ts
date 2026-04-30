@@ -4416,6 +4416,7 @@ export type Database = {
       public_profile_boosts_public: {
         Row: {
           boost_type: string | null
+          created_at: string | null
           expires_at: string | null
           id: string | null
           profile_kind: string | null
@@ -4423,6 +4424,7 @@ export type Database = {
         }
         Insert: {
           boost_type?: string | null
+          created_at?: string | null
           expires_at?: string | null
           id?: string | null
           profile_kind?: string | null
@@ -4430,6 +4432,7 @@ export type Database = {
         }
         Update: {
           boost_type?: string | null
+          created_at?: string | null
           expires_at?: string | null
           id?: string | null
           profile_kind?: string | null
