@@ -111,12 +111,23 @@ export default function TrainingSession() {
   const [instructionsOpen, setInstructionsOpen] = useState(false);
   const [outlineOpen, setOutlineOpen] = useState(false);
   const [persisting, setPersisting] = useState(false);
+  // Outdoor mode: very high contrast (white-on-black, XL fonts) for sunlight readability.
+  const [outdoor, setOutdoor] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("dw_training_outdoor") === "1";
+  });
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   // Wall-clock fallback for duration tracking when no timer is configured.
   const exerciseStartedAtRef = useRef<number>(Date.now());
   // Tracks which exercise ids already produced an exercise_sessions row to
   // avoid duplicate inserts if the user double-taps a result button.
   const persistedIdsRef = useRef<Set<string>>(new Set());
+
+  // Persist the outdoor preference between sessions.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("dw_training_outdoor", outdoor ? "1" : "0");
+  }, [outdoor]);
 
   // Load personalized plan day if applicable, else fall back to standard.
   const { data: planDay, isLoading: planLoading } = useQuery({
