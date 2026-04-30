@@ -87,7 +87,7 @@ export default function Pricing() {
     queryKey: ["pricing", "ai_credit_packs"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("ai_credit_packs" as any)
+        .from("ai_credit_packs_public" as any)
         .select("slug,label,credits,price_chf,sort_order")
         .eq("is_active", true)
         .order("sort_order");
