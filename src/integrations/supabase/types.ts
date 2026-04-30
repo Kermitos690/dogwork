@@ -4989,6 +4989,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_push_diagnostics: { Args: never; Returns: Json }
       assign_animal_to_shelter_space: {
         Args: { _animal_id: string; _space_id: string }
         Returns: undefined
