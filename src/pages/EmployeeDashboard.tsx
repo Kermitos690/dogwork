@@ -72,6 +72,8 @@ export default function EmployeeDashboard() {
           </Button>
         </div>
 
+        <InstallAppCard variant="compact" dismissKey="dw_install_employee" />
+
         <div className="grid grid-cols-2 gap-3">
           <Card>
             <CardContent className="p-4 text-center">
