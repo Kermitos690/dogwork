@@ -1,6 +1,8 @@
 
 -- 1) Tighten shelter_employees SELECT: hide colleague rows (incl. hashed_pin, email, phone) from regular employees
 DROP POLICY IF EXISTS "Shelter owner and employee can read" ON public.shelter_employees;
+DROP POLICY IF EXISTS "Shelter owner reads all employees" ON public.shelter_employees;
+DROP POLICY IF EXISTS "Employee reads only their own row" ON public.shelter_employees;
 
 CREATE POLICY "Shelter owner reads all employees"
 ON public.shelter_employees
