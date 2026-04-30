@@ -84,6 +84,9 @@ export default function CoachDashboard() {
           <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-primary/10 blur-2xl" />
         </motion.div>
 
+        {/* Install app CTA */}
+        <InstallAppCard variant="compact" dismissKey="dw_install_coach" />
+
         {/* Stripe Connect — finalisation paiements */}
         {connectReady === false && (
           <motion.div {...fadeUp} transition={{ delay: 0.05 }}>
