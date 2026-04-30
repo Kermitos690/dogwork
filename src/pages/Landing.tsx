@@ -102,6 +102,11 @@ export default function Landing() {
         </div>
       </nav>
 
+      {/* ========== INSTALL BANNER (sticky sous la nav) ========== */}
+      <div className="sticky top-16 z-40 pt-16">
+        <InstallAppCard variant="banner" dismissKey="dw_install_banner_landing" />
+      </div>
+
       {/* ========== HERO IA-FIRST ========== */}
       <section className="relative pt-24 pb-16 md:pt-32 md:pb-24 px-4">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
