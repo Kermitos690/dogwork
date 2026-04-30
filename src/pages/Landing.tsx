@@ -191,6 +191,13 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ========== INSTALL APP HERO ========== */}
+      <section id="install" className="px-4 py-12 md:py-16">
+        <div className="mx-auto max-w-6xl">
+          <InstallAppCard variant="hero" />
+        </div>
+      </section>
+
       {/* ========== AI CAPABILITIES (NOUVEAU — section dédiée IA) ========== */}
       <section id="ai" className="py-20 md:py-28 px-4 relative">
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
