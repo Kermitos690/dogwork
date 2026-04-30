@@ -720,6 +720,7 @@ export default function Landing() {
             <span className="font-bold">Dog<span className="text-primary">Work</span></span>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground">
+            <a href="/install" className="hover:text-foreground transition-colors font-medium">Installer l'app</a>
             <a href="/terms" className="hover:text-foreground transition-colors">Conditions</a>
             <a href="/privacy" className="hover:text-foreground transition-colors">Confidentialité</a>
             <a href="/legal" className="hover:text-foreground transition-colors">Mentions légales</a>
