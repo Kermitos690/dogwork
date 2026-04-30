@@ -3,6 +3,7 @@ import { useShelterEmployeeInfo } from "@/hooks/useCoach";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { EmployeeLayout } from "@/components/EmployeeLayout";
+import { InstallAppCard } from "@/components/InstallAppCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { PawPrint, ClipboardList, MapPin, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
