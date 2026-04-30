@@ -403,6 +403,7 @@ const App = () => {
           <BrowserRouter>
             <ScrollToTop />
             <RecoveryRouteGuard />
+            <PushInternalsBootstrap />
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/landing" element={<Landing />} />
