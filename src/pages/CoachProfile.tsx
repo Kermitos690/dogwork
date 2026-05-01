@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { LogoUploader } from "@/components/LogoUploader";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { PushNotificationCard } from "@/components/PushNotificationCard";
 import { useToast } from "@/hooks/use-toast";
 import { GraduationCap, Save, ImageIcon } from "lucide-react";
 import { motion } from "framer-motion";
@@ -148,6 +149,8 @@ export default function CoachProfile() {
             </Button>
           </CardContent>
         </Card>
+
+        <PushNotificationCard />
       </div>
     </CoachLayout>
   );

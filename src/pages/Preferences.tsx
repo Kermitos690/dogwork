@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Palette, Eye, Settings2, Check, Sun, Moon } from "lucide-react";
+import { ArrowLeft, Palette, Eye, Settings2, Check, Sun, Moon, Bell } from "lucide-react";
+import { PushNotificationCard } from "@/components/PushNotificationCard";
 import { motion } from "framer-motion";
 import { Switch } from "@/components/ui/switch";
 import { usePreferences, AccentColor } from "@/hooks/usePreferences";
@@ -141,6 +142,20 @@ export default function Preferences() {
               </div>
             ))}
           </div>
+        </motion.div>
+
+        {/* Notifications Push */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.07 }}
+          className="space-y-2"
+        >
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground px-1">
+            <Bell className="h-4 w-4 text-primary" />
+            Notifications push
+          </div>
+          <PushNotificationCard />
         </motion.div>
 
         {/* Feature Toggles */}
