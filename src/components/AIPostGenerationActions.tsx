@@ -63,16 +63,25 @@ export function AIPostGenerationActions({
     }
   };
 
-  const handlePrint = () => {
-    const ok = printDocument({
-      title: title ?? "Document DogWork",
-      summary,
-      // Prefer structured content (rich rendering, emojis, sections);
-      // fall back to the plain text payload.
-      content: content ?? text,
-      contextLabel,
-    });
-    if (!ok) toast.error("Activez les pop-ups pour exporter en PDF");
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportDocx = async () => {
+    setExporting(true);
+    try {
+      const ok = await downloadDocx({
+        title: title ?? "Document DogWork",
+        summary,
+        content: content ?? text,
+        contextLabel,
+      });
+      if (ok) {
+        toast.success("Document Word téléchargé");
+      } else {
+        toast.error("Erreur lors de l'export Word");
+      }
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
