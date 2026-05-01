@@ -115,9 +115,9 @@ export function AIPostGenerationActions({
           {copied ? <Check className="h-3.5 w-3.5 mr-1.5" /> : <Copy className="h-3.5 w-3.5 mr-1.5" />}
           {copied ? "Copié" : "Copier"}
         </Button>
-        <Button size="sm" variant="outline" onClick={handlePrint} className="flex-1 sm:flex-none justify-center">
-          <Printer className="h-3.5 w-3.5 mr-1.5" />
-          PDF
+        <Button size="sm" variant="outline" onClick={handleExportDocx} disabled={exporting} className="flex-1 sm:flex-none justify-center">
+          {exporting ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5 mr-1.5" />}
+          Word
         </Button>
       </div>
 
