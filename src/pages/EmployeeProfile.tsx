@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { EmployeeLayout } from "@/components/EmployeeLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { PushNotificationCard } from "@/components/PushNotificationCard";
 import { User, LogOut, Mail, Phone, Briefcase } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -70,6 +71,8 @@ export default function EmployeeProfile() {
             </CardContent>
           </Card>
         )}
+
+        <PushNotificationCard />
 
         <Button variant="outline" className="w-full gap-2 text-destructive" onClick={() => signOut()}>
           <LogOut className="h-4 w-4" /> Se déconnecter
