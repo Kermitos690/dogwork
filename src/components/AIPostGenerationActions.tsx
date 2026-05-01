@@ -1,11 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
-  Copy, Printer, BookMarked, Check, ExternalLink, Sparkles, Loader2,
+  Copy, FileDown, BookMarked, Check, ExternalLink, Sparkles, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
-import { printDocument } from "@/lib/pdfRenderer";
+import { downloadDocx } from "@/lib/docxRenderer";
 
 interface ExtraAction {
   label: string;
@@ -63,16 +63,25 @@ export function AIPostGenerationActions({
     }
   };
 
-  const handlePrint = () => {
-    const ok = printDocument({
-      title: title ?? "Document DogWork",
-      summary,
-      // Prefer structured content (rich rendering, emojis, sections);
-      // fall back to the plain text payload.
-      content: content ?? text,
-      contextLabel,
-    });
-    if (!ok) toast.error("Activez les pop-ups pour exporter en PDF");
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportDocx = async () => {
+    setExporting(true);
+    try {
+      const ok = await downloadDocx({
+        title: title ?? "Document DogWork",
+        summary,
+        content: content ?? text,
+        contextLabel,
+      });
+      if (ok) {
+        toast.success("Document Word téléchargé");
+      } else {
+        toast.error("Erreur lors de l'export Word");
+      }
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -106,9 +115,9 @@ export function AIPostGenerationActions({
           {copied ? <Check className="h-3.5 w-3.5 mr-1.5" /> : <Copy className="h-3.5 w-3.5 mr-1.5" />}
           {copied ? "Copié" : "Copier"}
         </Button>
-        <Button size="sm" variant="outline" onClick={handlePrint} className="flex-1 sm:flex-none justify-center">
-          <Printer className="h-3.5 w-3.5 mr-1.5" />
-          PDF
+        <Button size="sm" variant="outline" onClick={handleExportDocx} disabled={exporting} className="flex-1 sm:flex-none justify-center">
+          {exporting ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5 mr-1.5" />}
+          Word
         </Button>
       </div>
 
