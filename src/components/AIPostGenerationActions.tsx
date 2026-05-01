@@ -1,11 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
-  Copy, Printer, BookMarked, Check, ExternalLink, Sparkles, Loader2,
+  Copy, FileDown, BookMarked, Check, ExternalLink, Sparkles, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
-import { printDocument } from "@/lib/pdfRenderer";
+import { downloadDocx } from "@/lib/docxRenderer";
 
 interface ExtraAction {
   label: string;
