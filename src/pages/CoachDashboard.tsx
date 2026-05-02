@@ -28,19 +28,19 @@ export default function CoachDashboard() {
   const { data: notes = [] } = useCoachNotes();
   const { data: alerts = [] } = useProAlerts();
 
-  // Cours publiés (table educator_courses)
+  // Cours publiés (table courses) — filtré côté coach par RLS
   const { data: coursesCount = 0 } = useQuery({
     queryKey: ["coach-courses-count"],
     queryFn: async () => {
       const { count } = await supabase
-        .from("educator_courses")
+        .from("courses")
         .select("*", { count: "exact", head: true })
-        .eq("is_published", true);
+        .eq("is_active", true);
       return count || 0;
     },
   });
 
-  // Prochaines réservations (table course_bookings si dispo)
+  // Prochaines réservations (course_bookings) — RLS filtre coach=auth.uid()
   const { data: upcomingBookings = [] } = useQuery({
     queryKey: ["coach-upcoming-bookings"],
     queryFn: async () => {
@@ -50,7 +50,7 @@ export default function CoachDashboard() {
         .gte("scheduled_at", new Date().toISOString())
         .order("scheduled_at", { ascending: true })
         .limit(3);
-      return data || [];
+      return (data || []) as Array<{ id: string; scheduled_at: string; status: string; course_id: string }>;
     },
   });
 
