@@ -40,17 +40,15 @@ export default function CoachDashboard() {
     },
   });
 
-  // Prochaines réservations (course_bookings) — RLS filtre coach=auth.uid()
-  const { data: upcomingBookings = [] } = useQuery({
-    queryKey: ["coach-upcoming-bookings"],
+  // Réservations en attente / récentes (course_bookings) — RLS filtre coach via courses
+  const { data: pendingBookings = 0 } = useQuery({
+    queryKey: ["coach-pending-bookings"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { count } = await supabase
         .from("course_bookings")
-        .select("id, scheduled_at, status, course_id")
-        .gte("scheduled_at", new Date().toISOString())
-        .order("scheduled_at", { ascending: true })
-        .limit(3);
-      return (data || []) as Array<{ id: string; scheduled_at: string; status: string; course_id: string }>;
+        .select("*", { count: "exact", head: true })
+        .in("status", ["pending", "confirmed"]);
+      return count || 0;
     },
   });
 
