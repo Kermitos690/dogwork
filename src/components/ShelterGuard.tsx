@@ -50,7 +50,7 @@ export function ShelterGuard({ children }: { children: React.ReactNode }) {
   if (shelterLoading || adminLoading || (isShelter && subLoading)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Chargement...</div>
+        <div className="animate-pulse text-muted-foreground">Chargement de votre espace DogWork…</div>
       </div>
     );
   }
@@ -58,7 +58,7 @@ export function ShelterGuard({ children }: { children: React.ReactNode }) {
   // Admin bypasses shelter guard
   if (isAdmin) return <>{children}</>;
 
-  if (!isShelter) return <Navigate to="/" replace />;
+  if (!isShelter) return <Navigate to="/access-denied" replace />;
 
   // Allow access to subscription page without active subscription
   if (location.pathname === "/shelter/subscription") {

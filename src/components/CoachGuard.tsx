@@ -24,7 +24,7 @@ export function CoachGuard({ children }: { children: React.ReactNode }) {
   if (roleLoading || subLoading || adminLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Chargement...</div>
+        <div className="animate-pulse text-muted-foreground">Chargement de votre espace DogWork…</div>
       </div>
     );
   }
@@ -35,7 +35,7 @@ export function CoachGuard({ children }: { children: React.ReactNode }) {
   }
 
   if (!isCoach) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/access-denied" replace />;
   }
 
   // Allow access to subscription page even without active subscription

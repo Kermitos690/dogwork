@@ -18,7 +18,7 @@ import { isDevelopment } from "@/lib/env";
 export function AdminCockpit() {
   const navigate = useNavigate();
 
-  const { data: stats } = useQuery({
+  const { data: stats, isLoading, isError } = useQuery({
     queryKey: ["admin_cockpit_stats"],
     queryFn: async () => {
       const [users, roles, subs, ai] = await Promise.all([
@@ -65,6 +65,53 @@ export function AdminCockpit() {
   const fmt = (v: number | null | undefined) =>
     v === null || v === undefined ? "—" : v.toLocaleString("fr-FR");
 
+  // Statut honnête : basé strictement sur l'état réel des requêtes
+  const metricsKeys: Array<keyof NonNullable<typeof stats>> = [
+    "users",
+    "roles",
+    "activeSubs",
+    "aiBalanceTotal",
+  ];
+  const missingMetrics = stats
+    ? metricsKeys.filter((k) => stats[k] === null || stats[k] === undefined).length
+    : 0;
+  const totalMetrics = metricsKeys.length;
+
+  let statusTitle = "Chargement des contrôles cockpit…";
+  let statusHint =
+    "Les vérifications sont en cours. Aucun statut système n'est encore disponible.";
+  let statusTone: "neutral" | "ok" | "partial" | "error" = "neutral";
+
+  if (isError) {
+    statusTitle = "Diagnostic incomplet.";
+    statusHint =
+      "Une erreur a empêché le chargement de certaines métriques. Réessayez ou consultez les logs.";
+    statusTone = "error";
+  } else if (!isLoading && stats) {
+    if (missingMetrics === 0) {
+      statusTitle = "Contrôles cockpit disponibles.";
+      statusHint =
+        "Aucune alerte critique détectée par les contrôles actuellement disponibles. Certaines vérifications de production nécessitent encore une validation manuelle.";
+      statusTone = "ok";
+    } else if (missingMetrics < totalMetrics) {
+      statusTitle = "Vérification partielle.";
+      statusHint = `${missingMetrics} indicateur${missingMetrics > 1 ? "s" : ""} sur ${totalMetrics} indisponible${missingMetrics > 1 ? "s" : ""}. Le statut système ne peut pas être garanti.`;
+      statusTone = "partial";
+    } else {
+      statusTitle = "Diagnostic indisponible.";
+      statusHint =
+        "Aucun indicateur n'a pu être chargé. Vérifiez les permissions et réessayez.";
+      statusTone = "error";
+    }
+  }
+
+  const toneStyles: Record<typeof statusTone, string> = {
+    neutral: "text-muted-foreground",
+    ok: "text-emerald-500",
+    partial: "text-amber-500",
+    error: "text-destructive",
+  };
+
   return (
     <Card className="border-border/60 bg-gradient-to-br from-card via-card to-background">
       <CardContent className="p-4 sm:p-5 space-y-4">
@@ -75,11 +122,11 @@ export function AdminCockpit() {
               <Activity className="h-5 w-5 text-primary" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-sm sm:text-base font-semibold text-foreground truncate">
-                Votre cockpit DogWork est opérationnel.
+              <h2 className={`text-sm sm:text-base font-semibold truncate ${toneStyles[statusTone]}`}>
+                {statusTitle}
               </h2>
-              <p className="text-xs text-muted-foreground truncate">
-                Aucune alerte critique détectée pour le moment.
+              <p className="text-xs text-muted-foreground">
+                Cockpit administrateur DogWork
               </p>
             </div>
           </div>
@@ -96,13 +143,10 @@ export function AdminCockpit() {
           <Kpi icon={Sparkles} label="Crédits IA en circulation" value={fmt(stats?.aiBalanceTotal)} />
         </div>
 
-        {/* Hint */}
+        {/* Hint honnête */}
         <div className="flex items-start gap-2 rounded-lg border border-border/60 bg-secondary/30 p-2.5">
           <AlertTriangle className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Certaines vérifications de production nécessitent encore une validation manuelle. Les outils
-            de diagnostic restent réservés aux administrateurs.
-          </p>
+          <p className="text-xs text-muted-foreground leading-relaxed">{statusHint}</p>
         </div>
 
         {/* Shortcuts */}
