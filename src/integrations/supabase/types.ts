@@ -2949,40 +2949,52 @@ export type Database = {
       }
       notification_preferences: {
         Row: {
+          admin_alerts_enabled: boolean
+          appointments_enabled: boolean
           billing_enabled: boolean
           created_at: string
           exercises_enabled: boolean
           exercises_time: string
           messages_enabled: boolean
+          plans_enabled: boolean
           quiet_hours_end: string | null
           quiet_hours_start: string | null
           shelter_enabled: boolean
+          support_enabled: boolean
           timezone: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          admin_alerts_enabled?: boolean
+          appointments_enabled?: boolean
           billing_enabled?: boolean
           created_at?: string
           exercises_enabled?: boolean
           exercises_time?: string
           messages_enabled?: boolean
+          plans_enabled?: boolean
           quiet_hours_end?: string | null
           quiet_hours_start?: string | null
           shelter_enabled?: boolean
+          support_enabled?: boolean
           timezone?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          admin_alerts_enabled?: boolean
+          appointments_enabled?: boolean
           billing_enabled?: boolean
           created_at?: string
           exercises_enabled?: boolean
           exercises_time?: string
           messages_enabled?: boolean
+          plans_enabled?: boolean
           quiet_hours_end?: string | null
           quiet_hours_start?: string | null
           shelter_enabled?: boolean
+          support_enabled?: boolean
           timezone?: string
           updated_at?: string
           user_id?: string
@@ -5228,6 +5240,20 @@ export type Database = {
           source_queue: string
         }
         Returns: number
+      }
+      notify_users_push: {
+        Args: {
+          p_body: string
+          p_broadcast_role: string
+          p_category: string
+          p_data?: Json
+          p_dedup_key?: string
+          p_tag?: string
+          p_title: string
+          p_url?: string
+          p_user_id: string
+        }
+        Returns: undefined
       }
       provision_modules_for_tier: {
         Args: { _tier: string; _user_id: string }
