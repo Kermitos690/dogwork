@@ -14,20 +14,66 @@ const TEST_ACCOUNTS: Record<string, { email: string; display_name: string; role:
   shelter: { email: "test-shelter@pawplan.dev", display_name: "Test Refuge", role: "shelter" },
 };
 
+const PROD_HOSTS = new Set([
+  "dogwork-at-home.com",
+  "www.dogwork-at-home.com",
+]);
+
+function extractHost(value: string | null): string | null {
+  if (!value) return null;
+  try {
+    return new URL(value).hostname.toLowerCase();
+  } catch {
+    return value.toLowerCase();
+  }
+}
+
+function isProdHost(host: string | null): boolean {
+  if (!host) return false;
+  return PROD_HOSTS.has(host);
+}
+
+function isLovablePreviewHost(host: string | null): boolean {
+  if (!host) return false;
+  return host.endsWith(".lovable.app") || host === "lovable.app";
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  // Safe by default: dev-login is BLOCKED unless ENVIRONMENT is explicitly "development"
-  // If ENVIRONMENT is not set at all, treat as production (secure by default)
   const environment = Deno.env.get("ENVIRONMENT") || "production";
-  if (environment !== "development") {
+  const originHost = extractHost(req.headers.get("origin"));
+  const refererHost = extractHost(req.headers.get("referer"));
+  const reqHost = extractHost(req.url) || req.headers.get("host");
+
+  // Hard block: if any signal points to the real production domain, deny.
+  if (isProdHost(originHost) || isProdHost(refererHost) || isProdHost(reqHost)) {
+    console.log("dev-login denied: reason=production_domain");
     return new Response(
       JSON.stringify({ error: "Not available in this environment" }),
       { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
+
+  const isDev = environment === "development";
+  const isPreview =
+    isLovablePreviewHost(originHost) ||
+    isLovablePreviewHost(refererHost) ||
+    isLovablePreviewHost(reqHost);
+
+  if (!isDev && !isPreview) {
+    console.log("dev-login denied: reason=environment_production_without_preview");
+    return new Response(
+      JSON.stringify({ error: "Not available in this environment" }),
+      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  console.log(
+    `dev-login allowed: reason=${isDev ? "environment_development" : "lovable_preview"}`
+  );
 
   try {
     const { role } = await req.json();
@@ -45,12 +91,10 @@ Deno.serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    // Check if user exists
     const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
     let user = (existingUsers?.users as any[] | undefined)?.find((u) => u.email === account.email);
 
     if (!user) {
-      // Create the test user
       const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
         email: account.email,
         password: TEST_PASSWORD,
@@ -60,7 +104,6 @@ Deno.serve(async (req) => {
       if (createErr) throw createErr;
       user = created.user;
 
-      // Add role if not owner (owner is auto-assigned by trigger)
       if (account.role !== "owner") {
         await supabaseAdmin.from("user_roles").insert({
           user_id: user.id,
@@ -68,7 +111,6 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Create shelter profile if shelter
       if (account.role === "shelter") {
         await supabaseAdmin.from("shelter_profiles").insert({
           user_id: user.id,
@@ -77,7 +119,6 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Create coach profile if educator
       if (account.role === "educator") {
         await supabaseAdmin.from("coach_profiles").insert({
           user_id: user.id,
@@ -87,7 +128,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Sign in and return session
     const anonClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!
