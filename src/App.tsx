@@ -357,8 +357,13 @@ function ProtectedRoutes() {
         <Route path="/coach/referrals" element={<Suspense fallback={<PageLoader />}><CoachGuard><EducatorReferrals /></CoachGuard></Suspense>} />
         <Route path="/coach/compliance" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachCompliance /></CoachGuard></Suspense>} />
         <Route path="/admin/compliance" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminCompliance /></AdminGuard></Suspense>} />
-        <Route path="/admin/test-webhook" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminTestWebhook /></AdminGuard></Suspense>} />
-        <Route path="/admin/test-marketplace-p0" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminTestMarketplaceP0 /></AdminGuard></Suspense>} />
+        {/* Outils de test — accessibles uniquement hors production */}
+        {isDevelopment && (
+          <>
+            <Route path="/admin/test-webhook" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminTestWebhook /></AdminGuard></Suspense>} />
+            <Route path="/admin/test-marketplace-p0" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminTestMarketplaceP0 /></AdminGuard></Suspense>} />
+          </>
+        )}
         <Route path="/agents" element={<Navigate to="/outils" replace />} />
         <Route path="/force-password-change" element={<ForcePasswordChange />} />
         <Route path="/program" element={<Navigate to="/plan" replace />} />
