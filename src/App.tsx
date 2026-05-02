@@ -150,8 +150,6 @@ export const queryClient = new QueryClient();
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
     <div className="animate-pulse text-muted-foreground text-sm">Chargement de votre espace DogWork…</div>
-  <div className="min-h-screen bg-background flex items-center justify-center">
-    <div className="animate-pulse text-muted-foreground">Chargement...</div>
   </div>
 );
 
