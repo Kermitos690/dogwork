@@ -188,23 +188,57 @@ export function SlideMenu() {
       title: t("menu.admin"),
       items: [
         { label: t("menu.adminDashboard"), icon: Shield, path: "/admin" },
-        { label: "Utilisateurs & abonnements", icon: Users, path: "/admin/subscriptions" },
+        { label: "Utilisateurs", icon: Users, path: "/admin/users" },
+        { label: "Rôles & permissions", icon: UserCog, path: "/admin/roles" },
+        { label: "Comptes & abonnements", icon: CreditCard, path: "/admin/subscriptions" },
+        { label: "Tickets support", icon: MessageSquare, path: "/admin/tickets" },
+      ],
+    },
+    {
+      title: "Plateforme",
+      items: [
+        { label: "Refuges", icon: Building2, path: "/admin/shelters" },
+        { label: "Éducateurs & coachs", icon: GraduationCap, path: "/admin/educators" },
+        { label: "Marketplace", icon: ShoppingCart, path: "/admin/marketplace" },
+        { label: "Catalogue exercices", icon: Dumbbell, path: "/admin/exercises" },
+        { label: "Programmes", icon: ClipboardList, path: "/admin/programs" },
+        { label: "Modules commerciaux", icon: LayoutGrid, path: "/admin/modules" },
+        { label: "Conformité", icon: ShieldCheck, path: "/admin/compliance" },
+      ],
+    },
+    {
+      title: "Économie & finances",
+      items: [
         { label: "Économie IA & crédits", icon: Coins, path: "/admin/ai-economy" },
+        { label: "Crédits IA — admin", icon: Coins, path: "/admin/credits" },
         { label: "Stripe", icon: CreditCard, path: "/admin/stripe" },
         { label: "Vérif Stripe", icon: ShieldCheck, path: "/admin/stripe/verify" },
         { label: "Treasury", icon: BarChart3, path: "/admin/treasury" },
-        { label: "Tickets support", icon: MessageSquare, path: "/admin/tickets" },
-        { label: "Modules", icon: LayoutGrid, path: "/admin/modules" },
-        { label: "Conformité marketplace", icon: ShieldCheck, path: "/admin/compliance" },
+      ],
+    },
+    {
+      title: "Configuration & journaux",
+      items: [
+        { label: "Configuration plateforme", icon: Settings, path: "/admin/config" },
+        { label: "Paramètres admin", icon: Settings, path: "/admin/settings" },
+        { label: "Mes notifications admin", icon: Bell, path: "/admin/preferences" },
+        { label: "Journaux & événements", icon: ScrollText, path: "/admin/logs" },
         { label: "Diagnostics email", icon: Bell, path: "/admin/email-diagnostics" },
         { label: "Push status", icon: Bell, path: "/admin/push-status" },
         { label: "Go-live check", icon: ShieldCheck, path: "/admin/go-live-check" },
         { label: "Launch checklist", icon: ClipboardList, path: "/admin/launch" },
-        { label: "Préférences admin", icon: Settings, path: "/admin/preferences" },
-        { label: "Diagnostic webhook", icon: FlaskConical, path: "/admin/test-webhook" },
-        { label: "Audit P0 marketplace", icon: FlaskConical, path: "/admin/test-marketplace-p0" },
       ],
     },
+    // Outils internes — UNIQUEMENT en environnement de développement / preview
+    ...(isDevelopment
+      ? [{
+          title: "Outils internes (DEV)",
+          items: [
+            { label: "Diagnostic webhook", icon: FlaskConical, path: "/admin/test-webhook" },
+            { label: "Audit P0 marketplace", icon: FlaskConical, path: "/admin/test-marketplace-p0" },
+          ],
+        }]
+      : []),
   ];
 
   const shelterSections: MenuSection[] = [
