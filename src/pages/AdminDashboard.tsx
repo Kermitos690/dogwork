@@ -15,6 +15,7 @@ import {
   Search, Dog, FileText, MessageSquare, AlertTriangle, Edit2, UserCog, Mail, Rocket, Lock, FileDown, Loader2, BarChart3, Boxes, Bell,
 } from "lucide-react";
 import { PushNotificationCard } from "@/components/PushNotificationCard";
+import { AdminCockpit } from "@/components/admin/AdminCockpit";
 import { generateConnectionGuidePDF } from "@/lib/generateConnectionGuide";
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
@@ -204,6 +205,9 @@ export default function AdminDashboard() {
             <a href="/admin/preferences"><Bell className="h-3.5 w-3.5 mr-1" />Préférences</a>
           </Button>
         </div>
+
+        {/* Cockpit production DogWork */}
+        <AdminCockpit />
 
         {/* Notifications push admin */}
         <PushNotificationCard />
