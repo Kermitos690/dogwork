@@ -148,8 +148,8 @@ const PublicProfileManager = lazy(() => import("./pages/PublicProfileManager"));
 export const queryClient = new QueryClient();
 
 const PageLoader = () => (
-  <div className="min-h-screen bg-background flex items-center justify-center">
-    <div className="animate-pulse text-muted-foreground">Chargement...</div>
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="animate-pulse text-muted-foreground text-sm">Chargement de votre espace DogWork…</div>
   </div>
 );
 
@@ -482,6 +482,7 @@ const App = () => {
                 <Route path="/legal" element={<LegalPage />} />
                 <Route path="/legal/charte-coach" element={<CharteCoach />} />
                 <Route path="/gate-k9x" element={<Suspense fallback={<PageLoader />}><AdminLogin /></Suspense>} />
+                <Route path="/access-denied" element={<Suspense fallback={<PageLoader />}><AccessDenied /></Suspense>} />
                 {/* Pages publiques (anonymes) — coachs & refuges */}
                 <Route path="/annuaire/coachs" element={<PublicCoachDirectory />} />
                 <Route path="/annuaire/refuges" element={<PublicShelterDirectory />} />
