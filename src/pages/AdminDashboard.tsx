@@ -12,8 +12,9 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
   Shield, Users, GraduationCap, BookOpen, DollarSign, Plus, ArrowLeft, Trash2, Check, X, Eye, ChevronDown, Home, Sparkles, Image, Wallet, CreditCard,
-  Search, Dog, FileText, MessageSquare, AlertTriangle, Edit2, UserCog, Mail, Rocket, Lock, FileDown, Loader2, BarChart3, Boxes,
+  Search, Dog, FileText, MessageSquare, AlertTriangle, Edit2, UserCog, Mail, Rocket, Lock, FileDown, Loader2, BarChart3, Boxes, Bell,
 } from "lucide-react";
+import { PushNotificationCard } from "@/components/PushNotificationCard";
 import { generateConnectionGuidePDF } from "@/lib/generateConnectionGuide";
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
@@ -195,11 +196,17 @@ export default function AdminDashboard() {
           <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate("/")} className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center">
             <ArrowLeft className="h-4 w-4 text-foreground" />
           </motion.button>
-          <div>
+          <div className="flex-1">
             <h1 className="text-xl font-bold text-foreground flex items-center gap-2"><Shield className="h-5 w-5 text-primary" /> Administration</h1>
             <p className="text-[10px] text-muted-foreground">Gestion complète de la plateforme</p>
           </div>
+          <Button asChild size="sm" variant="ghost" className="text-xs">
+            <a href="/admin/preferences"><Bell className="h-3.5 w-3.5 mr-1" />Préférences</a>
+          </Button>
         </div>
+
+        {/* Notifications push admin */}
+        <PushNotificationCard />
 
         {/* Stats */}
         <div className="grid grid-cols-4 gap-2">
