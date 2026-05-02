@@ -2,15 +2,19 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CoachLayout } from "@/components/CoachLayout";
 import { InstallAppCard } from "@/components/InstallAppCard";
+import { CreditsSummaryCard } from "@/components/CreditsSummaryCard";
+import { EmptyState } from "@/components/EmptyState";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Users, Dog, FileText, AlertTriangle, TrendingUp, BarChart3,
   ChevronRight, Clock, Shield, Plus, Search, Activity, CreditCard,
+  BookOpen, Calendar,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useCoachClients, useCoachDogs, useCoachNotes, useProAlerts } from "@/hooks/useCoach";
+import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
