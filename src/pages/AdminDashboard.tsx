@@ -176,7 +176,7 @@ export default function AdminDashboard() {
     setCreatingShelter(false);
   };
 
-  if (adminLoading) return <AppLayout><div className="pt-4 text-center animate-pulse text-muted-foreground">Chargement...</div></AppLayout>;
+  if (adminLoading) return <AppLayout><div className="pt-4 text-center animate-pulse text-muted-foreground">Chargement de votre espace DogWork…</div></AppLayout>;
   if (!isAdmin) {
     return (
       <AppLayout>
@@ -871,7 +871,7 @@ function AdminUsersManager() {
           </div>
 
           {isLoading ? (
-            <p className="text-xs text-muted-foreground text-center py-4 animate-pulse">Chargement...</p>
+            <p className="text-xs text-muted-foreground text-center py-4 animate-pulse">Chargement de votre espace DogWork…</p>
           ) : (
             <div className="space-y-1.5 max-h-[400px] overflow-y-auto">
               {filtered.length === 0 && <p className="text-xs text-muted-foreground text-center py-3">Aucun utilisateur trouvé.</p>}
