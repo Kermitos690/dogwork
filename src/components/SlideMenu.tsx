@@ -365,7 +365,12 @@ export function SlideMenu() {
           <div className="py-2">
             {allSections.map((section) => {
               const isCoachSection = section.title === t("menu.coachSpace");
-              const isAdminSection = section.title === t("menu.admin");
+              const isAdminSection =
+                section.title === t("menu.admin") ||
+                section.title === "Plateforme" ||
+                section.title === "Économie & finances" ||
+                section.title === "Configuration & journaux" ||
+                section.title === "Outils internes (DEV)";
               const isShelterSection = section.title === t("menu.shelterSpace");
               const sectionColor = isCoachSection
                 ? "text-emerald-400"
