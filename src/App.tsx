@@ -68,6 +68,8 @@ const AdminGoLiveCheck = lazy(() => import("./pages/AdminGoLiveCheck"));
 const AdminEmailDiagnostics = lazy(() => import("./pages/AdminEmailDiagnostics"));
 const AdminPushStatus = lazy(() => import("./pages/AdminPushStatus"));
 const AdminPreferences = lazy(() => import("./pages/AdminPreferences"));
+const CoachSettings = lazy(() => import("./pages/CoachSettings"));
+const EmployeeSettings = lazy(() => import("./pages/EmployeeSettings"));
 const SupportTickets = lazy(() => import("./pages/SupportTickets"));
 const HelpPage = lazy(() => import("./pages/Help"));
 const SubscriptionPage = lazy(() => import("./pages/Subscription"));
