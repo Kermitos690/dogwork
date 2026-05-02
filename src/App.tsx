@@ -70,6 +70,8 @@ const AdminEmailDiagnostics = lazy(() => import("./pages/AdminEmailDiagnostics")
 const AdminPushStatus = lazy(() => import("./pages/AdminPushStatus"));
 const AdminPreferences = lazy(() => import("./pages/AdminPreferences"));
 const CoachSettings = lazy(() => import("./pages/CoachSettings"));
+const CoachCredits = lazy(() => import("./pages/CoachCredits"));
+const ShelterCredits = lazy(() => import("./pages/ShelterCredits"));
 const EmployeeSettings = lazy(() => import("./pages/EmployeeSettings"));
 const SupportTickets = lazy(() => import("./pages/SupportTickets"));
 const HelpPage = lazy(() => import("./pages/Help"));
@@ -298,7 +300,7 @@ function ProtectedRoutes() {
           <Route path="/credits" element={<ShopPage />} />
           <Route path="/ai" element={<OutilsPage />} />
           <Route path="/pricing" element={<PricingPage />} />
-          <Route path="/shelter/credits" element={<ShopPage />} />
+          <Route path="/shelter/credits" element={<ShelterCredits />} />
           <Route path="/shelter/ai" element={<OutilsPage />} />
           <Route path="/shelter/help" element={<HelpPage />} />
           <Route path="/shelter/pricing" element={<PricingPage />} />
@@ -386,7 +388,7 @@ function ProtectedRoutes() {
         <Route path="/coach/exercise-preview/:slug" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachExercisePreview /></CoachGuard></Suspense>} />
         <Route path="/coach/exercises" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachExercises /></CoachGuard></Suspense>} />
         <Route path="/coach/settings" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachSettings /></CoachGuard></Suspense>} />
-        <Route path="/coach/credits" element={<Suspense fallback={<PageLoader />}><CoachGuard><ShopPage /></CoachGuard></Suspense>} />
+        <Route path="/coach/credits" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachCredits /></CoachGuard></Suspense>} />
         <Route path="/coach/ai" element={<Suspense fallback={<PageLoader />}><CoachGuard><OutilsPage /></CoachGuard></Suspense>} />
         <Route path="/coach/messages" element={<Suspense fallback={<PageLoader />}><CoachGuard><MessagesPage /></CoachGuard></Suspense>} />
         <Route path="/coach/notifications" element={<Suspense fallback={<PageLoader />}><CoachGuard><NotificationSettings /></CoachGuard></Suspense>} />
