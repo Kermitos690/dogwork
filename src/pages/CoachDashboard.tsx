@@ -28,6 +28,32 @@ export default function CoachDashboard() {
   const { data: notes = [] } = useCoachNotes();
   const { data: alerts = [] } = useProAlerts();
 
+  // Cours publiés (table educator_courses)
+  const { data: coursesCount = 0 } = useQuery({
+    queryKey: ["coach-courses-count"],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("educator_courses")
+        .select("*", { count: "exact", head: true })
+        .eq("is_published", true);
+      return count || 0;
+    },
+  });
+
+  // Prochaines réservations (table course_bookings si dispo)
+  const { data: upcomingBookings = [] } = useQuery({
+    queryKey: ["coach-upcoming-bookings"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("course_bookings")
+        .select("id, scheduled_at, status, course_id")
+        .gte("scheduled_at", new Date().toISOString())
+        .order("scheduled_at", { ascending: true })
+        .limit(3);
+      return data || [];
+    },
+  });
+
   const [connectReady, setConnectReady] = useState<boolean | null>(null);
   const [connectLoading, setConnectLoading] = useState(false);
 
