@@ -281,6 +281,14 @@ function ProtectedRoutes() {
           <Route path="/documents" element={<DocumentsPage />} />
           <Route path="/agents" element={<Navigate to="/outils" replace />} />
           <Route path="/program" element={<Navigate to="/plan" replace />} />
+          {/* Aliases universels */}
+          <Route path="/credits" element={<ShopPage />} />
+          <Route path="/ai" element={<OutilsPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/shelter/credits" element={<ShopPage />} />
+          <Route path="/shelter/ai" element={<OutilsPage />} />
+          <Route path="/shelter/help" element={<HelpPage />} />
+          <Route path="/shelter/pricing" element={<PricingPage />} />
           <Route path="*" element={<Navigate to="/shelter" replace />} />
         </Routes>
       </Suspense>
