@@ -12,6 +12,7 @@ import { useDogs } from "./hooks/useDogs";
 import { useIsCoach, useIsShelter, useIsShelterEmployee } from "./hooks/useCoach";
 import { supabase } from "@/integrations/supabase/client";
 import { PushInternalsBootstrap } from "@/components/PushInternalsBootstrap";
+import { isDevelopment } from "@/lib/env";
 const AIChatBot = lazy(() => import("@/components/AIChatBot").then(m => ({ default: m.AIChatBot })));
 const GuidedTour = lazy(() => import("@/components/GuidedTour").then(m => ({ default: m.GuidedTour })));
 import { NotificationToast } from "@/components/NotificationToast";
