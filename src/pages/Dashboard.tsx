@@ -217,6 +217,15 @@ export default function Dashboard() {
         {/* ── Install app CTA (auto-hide si déjà installée) ── */}
         <InstallAppCard variant="compact" dismissKey="dw_install_dashboard" />
 
+        {/* ── Crédits IA — solde rapide ── */}
+        <motion.div custom={0.4} variants={fadeUp}>
+          <CreditsSummaryCard
+            creditsPath="/credits"
+            monthlyIncluded={monthlyIncluded}
+            planLabel={planLabel}
+          />
+        </motion.div>
+
         {/* ── Security alert (compact) ── */}
         {hasAlerts && (
           <motion.div custom={0.5} variants={fadeUp}>
