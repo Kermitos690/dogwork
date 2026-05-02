@@ -122,6 +122,18 @@ const CoachCompliance = lazy(() => import("./pages/CoachCompliance"));
 const AdminCompliance = lazy(() => import("./pages/AdminCompliance"));
 const AdminTestWebhook = lazy(() => import("./pages/AdminTestWebhook"));
 const AdminTestMarketplaceP0 = lazy(() => import("./pages/AdminTestMarketplaceP0"));
+// Admin hubs réels (passe 2 — remplacent les anciens aliases trompeurs)
+const AdminUsers = lazy(() => import("./pages/AdminUsers"));
+const AdminRoles = lazy(() => import("./pages/AdminRoles"));
+const AdminLogs = lazy(() => import("./pages/AdminLogs"));
+const AdminConfig = lazy(() => import("./pages/AdminConfig"));
+const AdminExercisesPage = lazy(() => import("./pages/AdminExercises"));
+const AdminProgramsPage = lazy(() => import("./pages/AdminPrograms"));
+const AdminSheltersPage = lazy(() => import("./pages/AdminShelters"));
+const AdminEducatorsPage = lazy(() => import("./pages/AdminEducators"));
+const AdminMarketplacePage = lazy(() => import("./pages/AdminMarketplace"));
+const AdminCreditsPage = lazy(() => import("./pages/AdminCredits"));
+const AdminSettingsPage = lazy(() => import("./pages/AdminSettings"));
 const CharteCoach = lazy(() => import("./pages/CharteCoach"));
 const PublicCoachPage = lazy(() => import("./pages/public/PublicCoachPage"));
 const PublicShelterPage = lazy(() => import("./pages/public/PublicShelterPage"));
