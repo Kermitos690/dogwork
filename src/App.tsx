@@ -404,13 +404,20 @@ function ProtectedRoutes() {
         <Route path="/admin/push-status" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminPushStatus /></AdminGuard></Suspense>} />
         <Route path="/admin/preferences" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminPreferences /></AdminGuard></Suspense>} />
         <Route path="/admin/email-diagnostics" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminEmailDiagnostics /></AdminGuard></Suspense>} />
-        {/* Admin aliases — pas de doublon, vraies pages les plus proches */}
-        <Route path="/admin/settings" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminPreferences /></AdminGuard></Suspense>} />
-        <Route path="/admin/credits" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminAIEconomy /></AdminGuard></Suspense>} />
-        <Route path="/admin/users" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminSubscriptions /></AdminGuard></Suspense>} />
+        {/* Vraies pages admin (passe 2 — chaque route correspond exactement à son intitulé) */}
+        <Route path="/admin/users" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminUsers /></AdminGuard></Suspense>} />
+        <Route path="/admin/roles" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminRoles /></AdminGuard></Suspense>} />
+        <Route path="/admin/logs" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminLogs /></AdminGuard></Suspense>} />
+        <Route path="/admin/config" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminConfig /></AdminGuard></Suspense>} />
+        <Route path="/admin/exercises" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminExercisesPage /></AdminGuard></Suspense>} />
+        <Route path="/admin/programs" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminProgramsPage /></AdminGuard></Suspense>} />
+        <Route path="/admin/shelters" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminSheltersPage /></AdminGuard></Suspense>} />
+        <Route path="/admin/educators" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminEducatorsPage /></AdminGuard></Suspense>} />
+        <Route path="/admin/marketplace" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminMarketplacePage /></AdminGuard></Suspense>} />
+        <Route path="/admin/credits" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminCreditsPage /></AdminGuard></Suspense>} />
+        <Route path="/admin/settings" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminSettingsPage /></AdminGuard></Suspense>} />
+        {/* Audit reste un alias volontaire vers Go-live (titre cohérent : audit de configuration prod) */}
         <Route path="/admin/audit" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminGoLiveCheck /></AdminGuard></Suspense>} />
-        <Route path="/admin/config" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminPreferences /></AdminGuard></Suspense>} />
-        <Route path="/admin/logs" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminEmailDiagnostics /></AdminGuard></Suspense>} />
         {/* Shelter routes for admin access (ShelterGuard allows admin) */}
         <Route path="/shelter" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterDashboard /></ShelterGuard></Suspense>} />
         <Route path="/shelter/animals" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterAnimals /></ShelterGuard></Suspense>} />
