@@ -215,7 +215,7 @@ function FeaturesTab() {
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-ai-features"] }); toast.success("Mis à jour"); },
-    onError: () => toast.error("Erreur"),
+    onError: () => toast.error("Action impossible pour le moment. Réessayez dans un instant."),
   });
 
   if (isLoading) return <Skeleton className="h-60" />;

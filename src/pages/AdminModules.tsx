@@ -49,7 +49,7 @@ export default function AdminModules() {
         .eq("admin_user_id", user.id)
         .eq("module_slug", slug);
       if (error) {
-        toast.error("Erreur : " + error.message);
+        toast.error("Action impossible pour le moment. " + error.message);
         return;
       }
     } else {
@@ -59,7 +59,7 @@ export default function AdminModules() {
           onConflict: "admin_user_id,module_slug",
         } as any);
       if (error) {
-        toast.error("Erreur : " + error.message);
+        toast.error("Action impossible pour le moment. " + error.message);
         return;
       }
     }
@@ -75,7 +75,7 @@ export default function AdminModules() {
       .delete()
       .eq("admin_user_id", user.id);
     if (error) {
-      toast.error("Erreur : " + error.message);
+      toast.error("Action impossible pour le moment. " + error.message);
       return;
     }
     toast.success("Tous les modules réactivés");
