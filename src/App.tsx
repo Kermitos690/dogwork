@@ -67,6 +67,7 @@ const AdminStripeVerify = lazy(() => import("./pages/AdminStripeVerify"));
 const AdminGoLiveCheck = lazy(() => import("./pages/AdminGoLiveCheck"));
 const AdminEmailDiagnostics = lazy(() => import("./pages/AdminEmailDiagnostics"));
 const AdminPushStatus = lazy(() => import("./pages/AdminPushStatus"));
+const AdminPreferences = lazy(() => import("./pages/AdminPreferences"));
 const SupportTickets = lazy(() => import("./pages/SupportTickets"));
 const HelpPage = lazy(() => import("./pages/Help"));
 const SubscriptionPage = lazy(() => import("./pages/Subscription"));
@@ -361,6 +362,7 @@ function ProtectedRoutes() {
         <Route path="/admin/stripe/verify" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminStripeVerify /></AdminGuard></Suspense>} />
         <Route path="/admin/go-live-check" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminGoLiveCheck /></AdminGuard></Suspense>} />
         <Route path="/admin/push-status" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminPushStatus /></AdminGuard></Suspense>} />
+        <Route path="/admin/preferences" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminPreferences /></AdminGuard></Suspense>} />
         <Route path="/admin/email-diagnostics" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminEmailDiagnostics /></AdminGuard></Suspense>} />
         {/* Shelter routes for admin access (ShelterGuard allows admin) */}
         <Route path="/shelter" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterDashboard /></ShelterGuard></Suspense>} />
