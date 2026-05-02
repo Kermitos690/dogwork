@@ -17,6 +17,9 @@ interface Prefs {
   messages_enabled: boolean;
   shelter_enabled: boolean;
   billing_enabled: boolean;
+  plans_enabled: boolean;
+  appointments_enabled: boolean;
+  support_enabled: boolean;
   quiet_hours_start: string | null;
   quiet_hours_end: string | null;
   timezone: string;
@@ -28,6 +31,9 @@ const DEFAULTS: Prefs = {
   messages_enabled: true,
   shelter_enabled: true,
   billing_enabled: true,
+  plans_enabled: true,
+  appointments_enabled: true,
+  support_enabled: true,
   quiet_hours_start: "22:00",
   quiet_hours_end: "08:00",
   timezone: typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "Europe/Zurich",
@@ -55,6 +61,9 @@ export default function NotificationSettings() {
           messages_enabled: data.messages_enabled,
           shelter_enabled: data.shelter_enabled,
           billing_enabled: data.billing_enabled,
+          plans_enabled: (data as any).plans_enabled ?? true,
+          appointments_enabled: (data as any).appointments_enabled ?? true,
+          support_enabled: (data as any).support_enabled ?? true,
           quiet_hours_start: data.quiet_hours_start ? (data.quiet_hours_start as string).slice(0, 5) : null,
           quiet_hours_end: data.quiet_hours_end ? (data.quiet_hours_end as string).slice(0, 5) : null,
           timezone: data.timezone || DEFAULTS.timezone,
@@ -133,8 +142,20 @@ export default function NotificationSettings() {
               onCheckedChange={(v) => setPrefs(p => ({ ...p, messages_enabled: v }))}
             />
             <Row
+              label="Plans & séances"
+              desc="Nouveau plan d'entraînement généré, séance proposée pour votre chien."
+              checked={prefs.plans_enabled}
+              onCheckedChange={(v) => setPrefs(p => ({ ...p, plans_enabled: v }))}
+            />
+            <Row
+              label="Rendez-vous & cours"
+              desc="Confirmation de rendez-vous coach, nouvelle réservation de cours."
+              checked={prefs.appointments_enabled}
+              onCheckedChange={(v) => setPrefs(p => ({ ...p, appointments_enabled: v }))}
+            />
+            <Row
               label="Refuge & adoption"
-              desc="Nouveau dossier d'adoption, nouvel animal, demande employé."
+              desc="Nouveau plan post-adoption, nouvel animal, demande employé."
               checked={prefs.shelter_enabled}
               onCheckedChange={(v) => setPrefs(p => ({ ...p, shelter_enabled: v }))}
             />
@@ -143,6 +164,12 @@ export default function NotificationSettings() {
               desc="Solde bas, paiement échoué, achat confirmé, renouvellement."
               checked={prefs.billing_enabled}
               onCheckedChange={(v) => setPrefs(p => ({ ...p, billing_enabled: v }))}
+            />
+            <Row
+              label="Support"
+              desc="Réponse de l'équipe support à vos tickets."
+              checked={prefs.support_enabled}
+              onCheckedChange={(v) => setPrefs(p => ({ ...p, support_enabled: v }))}
             />
           </CardContent>
         </Card>
