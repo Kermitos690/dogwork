@@ -18,7 +18,7 @@ import { isDevelopment } from "@/lib/env";
 export function AdminCockpit() {
   const navigate = useNavigate();
 
-  const { data: stats } = useQuery({
+  const { data: stats, isLoading, isError } = useQuery({
     queryKey: ["admin_cockpit_stats"],
     queryFn: async () => {
       const [users, roles, subs, ai] = await Promise.all([
