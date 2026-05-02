@@ -46,6 +46,7 @@ const ProfilePage = lazy(() => import("./pages/Profile"));
 const ExerciseLibrary = lazy(() => import("./pages/ExerciseLibrary"));
 const ExerciseDetail = lazy(() => import("./pages/ExerciseDetail"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const AccessDenied = lazy(() => import("./pages/AccessDenied"));
 const CoachDashboard = lazy(() => import("./pages/CoachDashboard"));
 const CoachClients = lazy(() => import("./pages/CoachClients"));
 const CoachDogs = lazy(() => import("./pages/CoachDogs"));
@@ -445,6 +446,7 @@ function ProtectedRoutes() {
         <Route path="/employee/settings" element={<Suspense fallback={<PageLoader />}><EmployeeGuard><EmployeeSettings /></EmployeeGuard></Suspense>} />
         <Route path="/employee/notifications" element={<Suspense fallback={<PageLoader />}><EmployeeGuard><NotificationSettings /></EmployeeGuard></Suspense>} />
         <Route path="/employee/messages" element={<Suspense fallback={<PageLoader />}><EmployeeGuard><MessagesPage /></EmployeeGuard></Suspense>} />
+        <Route path="/access-denied" element={<Suspense fallback={<PageLoader />}><AccessDenied /></Suspense>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <AIChatBot />

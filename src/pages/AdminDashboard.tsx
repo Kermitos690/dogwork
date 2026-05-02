@@ -15,6 +15,7 @@ import {
   Search, Dog, FileText, MessageSquare, AlertTriangle, Edit2, UserCog, Mail, Rocket, Lock, FileDown, Loader2, BarChart3, Boxes, Bell,
 } from "lucide-react";
 import { PushNotificationCard } from "@/components/PushNotificationCard";
+import { AdminCockpit } from "@/components/admin/AdminCockpit";
 import { generateConnectionGuidePDF } from "@/lib/generateConnectionGuide";
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
@@ -175,7 +176,7 @@ export default function AdminDashboard() {
     setCreatingShelter(false);
   };
 
-  if (adminLoading) return <AppLayout><div className="pt-4 text-center animate-pulse text-muted-foreground">Chargement...</div></AppLayout>;
+  if (adminLoading) return <AppLayout><div className="pt-4 text-center animate-pulse text-muted-foreground">Chargement de votre espace DogWork…</div></AppLayout>;
   if (!isAdmin) {
     return (
       <AppLayout>
@@ -204,6 +205,9 @@ export default function AdminDashboard() {
             <a href="/admin/preferences"><Bell className="h-3.5 w-3.5 mr-1" />Préférences</a>
           </Button>
         </div>
+
+        {/* Cockpit production DogWork */}
+        <AdminCockpit />
 
         {/* Notifications push admin */}
         <PushNotificationCard />
@@ -867,7 +871,7 @@ function AdminUsersManager() {
           </div>
 
           {isLoading ? (
-            <p className="text-xs text-muted-foreground text-center py-4 animate-pulse">Chargement...</p>
+            <p className="text-xs text-muted-foreground text-center py-4 animate-pulse">Chargement de votre espace DogWork…</p>
           ) : (
             <div className="space-y-1.5 max-h-[400px] overflow-y-auto">
               {filtered.length === 0 && <p className="text-xs text-muted-foreground text-center py-3">Aucun utilisateur trouvé.</p>}
