@@ -12,13 +12,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Dog, Mail, Lock, User, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { isProduction } from "@/lib/env";
 
 type Mode = "login" | "employee" | "signup" | "forgot";
 
-// Dev login buttons are only shown when ENVIRONMENT is explicitly set to "development"
-// Safe by default: if VITE_ENVIRONMENT is not set or is anything other than "development", dev tools are hidden
-const IS_DEV = import.meta.env.VITE_ENVIRONMENT === "development";
-const IS_PRODUCTION = !IS_DEV;
+// Dev login buttons are hidden on the production domain (www.dogwork-at-home.com)
+// and visible in local + Lovable preview to allow QA across all roles.
+const IS_PRODUCTION = isProduction;
 
 
 
