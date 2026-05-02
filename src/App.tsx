@@ -215,6 +215,9 @@ function ProtectedRoutes() {
           <Route path="/employee/activity" element={<EmployeeGuard><EmployeeActivity /></EmployeeGuard>} />
           <Route path="/employee/profile" element={<EmployeeGuard><EmployeeProfile /></EmployeeGuard>} />
           <Route path="/employee/support" element={<EmployeeGuard><SupportTickets /></EmployeeGuard>} />
+          <Route path="/employee/settings" element={<EmployeeGuard><EmployeeSettings /></EmployeeGuard>} />
+          <Route path="/employee/notifications" element={<EmployeeGuard><NotificationSettings /></EmployeeGuard>} />
+          <Route path="/employee/messages" element={<EmployeeGuard><MessagesPage /></EmployeeGuard>} />
           <Route path="*" element={<Navigate to="/employee" replace />} />
         </Routes>
       </Suspense>
