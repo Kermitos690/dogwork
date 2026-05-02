@@ -1,128 +1,160 @@
 
-# Refonte cohérente de la logique métier DogWork
+# Réparation complète du frontend DogWork — Plan d'intervention
 
-## Constat (audit Live)
+## 1. Constat (audit ciblé)
 
-L'app souffre de **3 systèmes parallèles non alignés** :
+### 1.1 Pages développées mais NON intégrées au menu / sans entrée navigation
+- `Outils.tsx` → routée `/outils`, présente dans owner menu, mais **absente** de Coach/Shelter/Employee/Admin nav.
+- `Documents.tsx` → routée, présente owner uniquement.
+- `Modules.tsx`, `Pricing.tsx`, `Shop.tsx` → routées, owner uniquement (Shop = page crédits IA effective).
+- `AdoptionFollowup.tsx` → routée, owner uniquement.
+- `AdminAIEconomy`, `AdminTreasury`, `AdminLaunchChecklist`, `AdminSubscriptions`, `AdminTickets`, `AdminStripe`, `AdminStripeVerify`, `AdminGoLiveCheck`, `AdminPushStatus`, `AdminPreferences`, `AdminEmailDiagnostics`, `AdminModules` → routées mais **invisibles dans SlideMenu admin** (qui n'expose que 4 entrées).
+- `CoachExercises`, `CoachExercisePreview`, `CoachShelterAnimals`, `CoachSubscription`, `EducatorReferrals` → routées, **absentes de CoachNav**.
+- `ShelterSettings`, `ShelterSubscription`, `ShelterCoaches`, `ShelterAdoptionPlans`, `ShelterAdoptionCheckins`, `ShelterEmployees`, `ShelterActivityLog`, `ShelterProfile` → routées mais ShelterNav n'expose que 6 onglets (atteignables seulement via Settings).
+- `EmployeeProfile` accessible mais pas de **page Settings/Notifications** dédiée employé.
+- `NotificationSettings` (`/settings/notifications`) → routée seulement dans la branche shelter, **manquante** dans la branche owner/coach/admin du switch.
+- `Help.tsx`, `Safety.tsx` → owner uniquement.
+- `PublicProfileManager` (`/ma-page-publique`) → utilisée par CoachNav et ShelterNav, OK.
 
-1. **`subscription_plans`** — Starter / Pro / Expert / Educator / Shelter (✅ existe, prix corrects côté Stripe)
-2. **`modules`** — 15 add-ons mais **tous en `pricing_type='included'` à 0 CHF** en prod (mes derniers updates n'ont pas persisté car les colonnes `is_addon`/prix ont été remises à 0 par un trigger ou par re-publication)
-3. **`ai_feature_catalog`** — 13 features, prix DB corrects (1 à 15 crédits), mais l'UI affiche **"0 crédit" partout** car les codes UI (`ai_plan_generation`, `agent_*`) ne sont pas mappés correctement à la vue publique
+### 1.2 Settings / Paramètres
+- **Owner** : `/settings` existe (`Settings.tsx`) ✅
+- **Coach** : aucune route `/coach/settings` → manquante. CoachProfile existe mais n'est pas un vrai "Settings".
+- **Shelter** : `ShelterSettings` existe (sert de hub), OK.
+- **Employee** : aucune page Settings, seulement EmployeeProfile.
+- **Admin** : `AdminPreferences` existe mais non accessible via menu.
 
-**Symptômes visibles utilisateur** (captures Outils IA) :
-- Tous les générateurs affichent "0 crédit"
-- Tous les agents IA affichent "0 crédit"
-- Les modules add-ons sont gratuits
-- Aucune cohérence offre / délivrance
+### 1.3 Crédits IA
+- Page dédiée = `Shop.tsx` (`/shop`) → fonctionne pour owner.
+- **Aucune route `/coach/credits`, `/shelter/credits`, `/employee/credits`, `/admin/credits`**.
+- Le solde s'affiche dans SlideMenu owner mais pas dans CoachLayout/ShelterLayout/EmployeeLayout headers.
 
-## Doctrine cible (modèle unifié)
+### 1.4 Routes cassées / incohérences
+- `/coach/clients/:clientId` → pointe vers `CoachClients` (pas vers un détail client). À corriger ou laisser comme filtre.
+- Dans la branche `isShelter`, route `/pricing` **manquante** alors que `/pricing` existe pour owner.
+- `/coach/ai`, `/shelter/ai`, `/employee/ai`, `/admin/ai` → **n'existent pas**, alors que la doctrine demande des hubs IA par rôle. À mapper sur `/outils` (réutilisable).
+- Pas de `/admin/users`, `/admin/exercises`, `/admin/programs`, `/admin/shelters`, `/admin/educators`, `/admin/marketplace`, `/admin/logs`, `/admin/audit`, `/admin/config` → certaines fonctions existent dans des sous-pages (AdminAIEconomy, AdminCompliance), d'autres sont à créer en alias ou en stubs.
+- SlideMenu admin référence `/admin/test-webhook` & `/admin/test-marketplace-p0` (pages de test exposées en prod).
+- `OutilsPage` est exposée à tous mais sans guard de rôle pour adapter le contenu.
 
-```text
-                ┌──────────────────────────────────────┐
-                │  ABONNEMENT (subscription_plans)     │
-                │  → définit max_dogs + crédits/mois   │
-                │  → ouvre l'accès aux MODULES inclus  │
-                └──────────────────────────────────────┘
-                                  │
-              ┌───────────────────┼───────────────────┐
-              ▼                   ▼                   ▼
-      ┌──────────────┐   ┌──────────────┐   ┌──────────────────┐
-      │   MODULES    │   │   CRÉDITS    │   │  PACKS CRÉDITS   │
-      │  (features   │   │  IA mensuels │   │   (recharge      │
-      │   produit)   │   │  (inclus)    │   │    Stripe)       │
-      └──────────────┘   └──────────────┘   └──────────────────┘
-              │                   │
-              ▼                   ▼
-      ┌──────────────┐   ┌──────────────────────────────┐
-      │   ADD-ONS    │   │  AI_FEATURE_CATALOG          │
-      │ (modules     │   │  → coût en crédits par usage │
-      │  payants     │   │  → débité à chaque appel     │
-      │  optionnels) │   └──────────────────────────────┘
-      └──────────────┘
+### 1.5 Doublons / éléments à archiver
+- `Profile.tsx` vs `Preferences.tsx` vs `Settings.tsx` → 3 pages owner qui se chevauchent. Settings = hub, Profile = identité, Preferences = visibilité sections. À garder mais mieux articuler (Settings devient le hub ; Preferences et Profile y sont liées).
+- `AdminTestWebhook`, `AdminTestMarketplaceP0` → pages techniques, à déplacer sous un sous-menu "Diagnostics" admin et masquer hors admin.
+- `Pricing.tsx` (interne) vs `Subscription.tsx` → garder, mais Pricing devient lecture seule depuis Settings.
+
+### 1.6 Guards
+- `AdminGuard` ✅ correct
+- `CoachGuard`, `ShelterGuard`, `EmployeeGuard` : tous fonctionnels (admin bypass OK).
+- **Manque** : pas de `RoleGuard` générique ni `SubscriptionGuard` réutilisable côté frontend (la logique est éparpillée dans `useFeatureGate`/`useSubscription`).
+
+---
+
+## 2. Plan correctif (exécutable en une passe)
+
+### Étape A — Routes manquantes / alias (App.tsx)
+Ajouter dans la branche **owner** ET dupliquer dans branches shelter/coach/employee/admin selon besoin :
+
+```
+/settings/notifications  → NotificationSettings  (owner branche manquante)
+/credits                 → Shop                  (alias propre vers la page achat crédits)
+/ai                      → Outils                (alias hub IA owner)
+
+/coach/settings          → SettingsPage          (réutilise la page settings)
+/coach/credits           → Shop
+/coach/ai                → Outils
+/coach/messages          → MessagesPage          (au lieu d'utiliser /messages owner)
+
+/shelter/credits         → Shop
+/shelter/ai              → Outils
+/shelter/help            → HelpPage
+/shelter/pricing         → PricingPage
+
+/employee/settings       → SettingsPage          (version simplifiée via guard)
+/employee/messages       → MessagesPage
+/employee/notifications  → NotificationSettings
+
+/admin/settings          → AdminPreferences
+/admin/credits           → AdminAIEconomy        (déjà existant, alias propre)
+/admin/users             → AdminSubscriptions    (jusqu'à création d'une vraie page users)
+/admin/audit             → AdminGoLiveCheck
+/admin/config            → AdminPreferences
+/admin/logs              → AdminEmailDiagnostics (alias temporaire)
 ```
 
-**Règles claires** :
-- 1 abonnement = X chiens autorisés + Y crédits IA/mois + N modules inclus
-- Modules **inclus** = activés automatiquement selon le plan, prix 0
-- Modules **add-ons** = optionnels, prix mensuel/annuel CHF, ajoutés via `subscribe-modules`
-- Features IA = consomment des crédits du wallet, jamais "gratuites"
-- Recharge crédits = packs Stripe one-shot
+Dans la branche `isShelter` du switch ProtectedRoutes, ajouter explicitement `/settings/notifications`, `/pricing`, `/credits`, `/ai`.
 
-## Plan d'exécution
+### Étape B — SlideMenu : refonte par rôle
 
-### 1. Nettoyer & figer le mapping AI features ↔ UI
+**Owner** (épuré, ordre) :
+Accueil • Mes chiens • Programme • Séance du jour • Bibliothèque • Journal • Stats • Outils IA • Messages • Abonnement • **Crédits IA** • **Paramètres** • Aide
 
-**Problème** : les alias UI (`ai_plan_generation`, `agent_behavior_analysis`, etc.) ne reçoivent pas leur coût car `expandAIFeaturesWithAliases` est appliqué, mais les codes canoniques sont parfois absents de la vue publique.
+**Coach** (nouveau bloc complet) :
+Dashboard coach • Clients • Chiens suivis • Programmes (notes) • Cours • Marketplace (cours) • Calendrier • **Refuges partenaires** (`/coach/shelter-animals`) • Bibliothèque (`/coach/exercises`) • **Ma page publique** • Parrainages • Conformité • Stats • **Abonnement** (`/coach/subscription`) • **Crédits IA** (`/coach/credits`) • **Paramètres** (`/coach/settings`) • Support
 
-- Vérifier que **tous** les codes canoniques utilisés par UI/agents (`plan_generator`, `behavior_analysis`, `dog_profile_analysis`, `adoption_plan`, `behavior_summary`, `chat`) sont `is_active=true` dans `ai_feature_catalog` avec un coût > 0
-- Réactiver `plan_generator` (actuellement `is_active=false`) avec coût 5 crédits
-- S'assurer que la vue `ai_feature_catalog_public` expose bien ces lignes
-- Forcer côté frontend un fallback : si `getCost(code) === 0`, utiliser une table de coûts par défaut hardcodée (sécurité produit)
+**Shelter** (compléter) :
+Dashboard refuge • Animaux • Espaces • Adoptables/Plans adoption • Suivi adoptants • Employés • Coachs partenaires • Journal d'activité • Stats • Messages • **Abonnement** • **Crédits IA** • **Paramètres** (déjà = ShelterSettings) • Ma page publique
 
-### 2. Réinitialiser proprement les modules (migration définitive)
+**Employee** (compléter EmployeeNav + ajouter Settings) :
+Accueil • Animaux • Activités • Support • Profil + entrée Settings/Notifications dans Profil
 
-Migration SQL qui :
-- Force le tarif des **5 add-ons payants** : `behavior_stats` 3.90, `branding` 4.90, `adoption_followup` 5.90, `planning` 6.90, `team_permissions` 7.90 + `pricing_type='addon'` + `is_addon=true`
-- Garantit que les **10 modules core** restent `pricing_type='included'`, `is_addon=false`, prix 0
-- Supprime tout trigger/process qui re-remettait les prix à 0 (audit `pg_trigger` sur `modules`)
+**Admin** (refonte SlideMenu admin section) :
+Dashboard admin • Utilisateurs (alias) • Abonnements • Crédits IA (AI Economy) • Stripe • Stripe Verify • Treasury • Tickets support • Modules • Conformité marketplace • Email diagnostics • Push status • Go-live check • Launch checklist • **Préférences admin** • **Diagnostics** (sous-section : test webhook, test marketplace P0)
 
-### 3. Aligner abonnements ↔ modules inclus
+### Étape C — Création/Réparation pages "Settings" par rôle
 
-Créer une vraie table de mapping `plan_included_modules (plan_code, module_slug)` au lieu d'une logique éparpillée :
-- starter → ai_chatbot, animal_management, exercise_library, progress_journal
-- pro → + ai_plans, messaging, pdf_exports
-- expert → tous les modules owner
-- educator → + educator_crm, payments_marketplace, branding
-- shelter → + shelter_management, adoption_followup
+1. **`SettingsPage` (owner)** : déjà OK, ajouter section "Notifications push" + lien "Crédits IA" + lien "Abonnement" + lien "Préférences sections".
+2. **Coach Settings** : nouvelle page `CoachSettings.tsx` (hub) qui regroupe : Profil pro (lien `/coach/profile`), Marketplace, Stripe Connect (lien existant ou via subscription), Notifications, Conformité (`/coach/compliance`), Charte (`/legal/charte-coach`), Abonnement, Crédits IA. Routée `/coach/settings`.
+3. **Employee Settings** : nouvelle page `EmployeeSettings.tsx` minimaliste : Profil personnel, Notifications, Langue, Déconnexion. Routée `/employee/settings` ; ajouter onglet/CTA dans EmployeeNav ou EmployeeProfile.
+4. **Shelter Settings** : déjà = `ShelterSettings`. Ajouter cartes manquantes (Notifications déjà via PushNotificationCard, Crédits IA, Abonnement déjà OK, Aide).
+5. **Admin Settings** : alias `/admin/settings` → `AdminPreferences` (renommer carte UI "Paramètres administrateur").
 
-Mettre à jour `useFeatureGate` / `useModules` pour lire ce mapping.
+### Étape D — Page Crédits IA dédiée
+- Garder `Shop.tsx` comme page de référence (déjà historique + packs).
+- Créer une **route alias** `/credits` (et déclinaisons `/coach/credits`, `/shelter/credits`, `/admin/credits`) → toutes pointent sur `Shop` qui s'adapte au rôle (déjà branché sur `useAIBalance`).
+- Ajouter widget solde + lien "Acheter des crédits" dans :
+  - `CoachLayout` (header)
+  - `ShelterLayout` (header)
+  - `EmployeeLayout` (header — lecture seule, pas d'achat)
+  - Dashboard admin (carte AI Economy)
 
-### 4. Refondre l'UI Outils IA (lisibilité métier)
+### Étape E — Nettoyage léger (sans suppression destructive)
+- Masquer dans SlideMenu admin les pages de **diagnostic** (test-webhook, test-marketplace-p0) derrière un sous-groupe "Diagnostics" replié.
+- Marquer en commentaire `// LEGACY` les routes alias `/program → /plan`, `/agents → /outils` (déjà présentes), aucun retrait.
+- Aucune suppression de fichier dans cette passe (risque d'imports cachés). Documentation des candidats à archiver dans le rapport final.
 
-- Afficher le coût réel (jamais 0) sur chaque carte
-- Si `wallet.balance < cost` → bouton "Recharger" plutôt que "Lancer maintenant" grisé
-- Section "Agents autonomes" : libellés humains au lieu de `agent_behavior_analysis` brut → "Agent · Analyse comportementale"
-- Badge "Inclus dans ton plan" / "Add-on actif" / "Add-on disponible" sur chaque module
+### Étape F — UX friendly (microcopy)
+- `NotFound.tsx` : message friendly ciblé DogWork (vérifier état actuel, adapter si générique).
+- Empty states : ajouter à `CoachClients`, `ShelterAnimals`, `EmployeeAnimals`, `Documents` un message d'accueil orienté action si déjà absents (vérifier au passage).
+- Guards de redirection : remplacer redirections silencieuses par toast informatif côté `CoachGuard`/`ShelterGuard`/`EmployeeGuard` (option : non bloquant pour cette passe si déjà acceptable).
 
-### 5. Refondre l'UI Modules
+### Étape G — Vérifications finales
+- Build TS (automatique).
+- Vérifier qu'aucun item de menu ne pointe vers une route 404.
+- Vérifier que chaque rôle voit uniquement ses sections (déjà géré par `roles` dans SlideMenu).
 
-- Trier : Inclus (ton plan) → Add-ons actifs → Add-ons disponibles
-- Afficher le prix CHF/mois et CHF/an
-- CTA clair : "Activer 4.90 CHF/mois" via `subscribe-modules`
+---
 
-### 6. Audit refuge SVPA (gtbi1)
+## 3. Hors périmètre (à confirmer ensuite si tu veux)
+- Création de **vraies** pages admin manquantes (`AdminUsers` réelle avec table `auth.users`, `AdminLogs` réelle, `AdminConfig` feature flags). Pour cette passe, on utilise des alias vers les pages existantes les plus proches afin de tenir la promesse du sitemap **sans inventer de fausses fonctionnalités**.
+- Refonte profonde des dashboards (contenu) : la structure actuelle reste, on n'ajoute que les widgets crédits IA + liens Settings là où ils manquent.
+- Migration backend / RLS : aucune modification.
+- Stripe / billing logic : aucune modification.
 
-- Vérifier que le compte admin du refuge a bien les rôles `owner` + `shelter` + `shelter_admin`
-- Vérifier l'accès aux pages Employés / Coachs / Bénévoles
-- Corriger toute RLS qui bloque le admin shelter sur ses propres ressources
+---
 
-### 7. Publication production
+## 4. Livrables attendus après exécution
+- `App.tsx` enrichi (~20 routes alias ajoutées).
+- `SlideMenu.tsx` refondu (sections par rôle complètes).
+- `CoachNav.tsx`, `ShelterNav.tsx`, `EmployeeNav.tsx` enrichis ou laissés (mobile bottom nav reste 5–7 onglets, le SlideMenu prend le relais pour la profondeur).
+- 2 nouvelles pages : `CoachSettings.tsx`, `EmployeeSettings.tsx`.
+- Mise à jour mineure : `ShelterSettings.tsx` (cartes manquantes), `Settings.tsx` (liens manquants), layouts (widget crédits).
+- Rapport final dans le message de réponse listant : routes ajoutées, pages intégrées, menus modifiés, doublons identifiés, éléments à archiver manuellement.
 
-- Tous les fixes appliqués via migration + redéploiement
-- Vérification post-deploy via `read_query` que :
-  - `modules` add-ons ont leur prix
-  - `ai_feature_catalog_public` retourne tous les codes attendus avec coût > 0
-  - L'UI Outils affiche les bons coûts
+---
 
-## Détails techniques
+## 5. Risques & garde-fous
+- Aucun fichier supprimé dans cette passe → zéro régression d'import.
+- Aucun guard durci (les permissions backend RLS restent la vraie sécurité).
+- Aliases plutôt que duplications → un seul composant par feature, plusieurs URLs.
+- Si une page alias doit afficher un contenu différent par rôle, la logique reste dans la page (elle utilise déjà `useIsCoach`/`useIsShelter`/`is_admin`).
 
-**Fichiers à modifier** :
-- `supabase/migrations/<new>.sql` — figer prix modules, réactiver `plan_generator`, créer `plan_included_modules`, audit triggers
-- `src/lib/aiFeatureCatalog.ts` — ajouter table de coûts par défaut (sécurité)
-- `src/hooks/useAICredits.tsx` — fusionner public view + table fallback en une seule query robuste
-- `src/pages/Outils.tsx` — utiliser coût garanti, libellés humains agents, CTA recharge
-- `src/pages/Modules.tsx` — tri + affichage prix
-- `src/hooks/useModules.tsx` / `useFeatureGate.tsx` — lecture mapping plan↔modules
-- `src/pages/ShelterDashboard.tsx` + RLS — accès admin refuge à employés/coachs
-
-**Aucune table existante n'est supprimée** — seulement nettoyage des données et ajout d'une table de mapping.
-
-**Cohérence Stripe** : les Price IDs add-ons existent déjà (mémoire `modules-addon-system`), pas de nouvelle création Stripe nécessaire.
-
-## Résultat attendu
-
-Après exécution, un utilisateur voit :
-- Outils IA avec **coûts réels** (1, 5, 8, 13, 15 crédits)
-- Modules avec **prix réels** et statut clair (inclus/actif/disponible)
-- Refuge SVPA avec **accès complet** à la gestion d'équipe
-- Une logique unique, lisible et cohérente entre UI, DB et Stripe
+Périmètre estimé : ~10 fichiers édités, 2 fichiers créés. Pas de migration SQL, pas de touche backend.

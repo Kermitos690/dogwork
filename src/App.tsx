@@ -68,6 +68,8 @@ const AdminGoLiveCheck = lazy(() => import("./pages/AdminGoLiveCheck"));
 const AdminEmailDiagnostics = lazy(() => import("./pages/AdminEmailDiagnostics"));
 const AdminPushStatus = lazy(() => import("./pages/AdminPushStatus"));
 const AdminPreferences = lazy(() => import("./pages/AdminPreferences"));
+const CoachSettings = lazy(() => import("./pages/CoachSettings"));
+const EmployeeSettings = lazy(() => import("./pages/EmployeeSettings"));
 const SupportTickets = lazy(() => import("./pages/SupportTickets"));
 const HelpPage = lazy(() => import("./pages/Help"));
 const SubscriptionPage = lazy(() => import("./pages/Subscription"));
@@ -213,6 +215,9 @@ function ProtectedRoutes() {
           <Route path="/employee/activity" element={<EmployeeGuard><EmployeeActivity /></EmployeeGuard>} />
           <Route path="/employee/profile" element={<EmployeeGuard><EmployeeProfile /></EmployeeGuard>} />
           <Route path="/employee/support" element={<EmployeeGuard><SupportTickets /></EmployeeGuard>} />
+          <Route path="/employee/settings" element={<EmployeeGuard><EmployeeSettings /></EmployeeGuard>} />
+          <Route path="/employee/notifications" element={<EmployeeGuard><NotificationSettings /></EmployeeGuard>} />
+          <Route path="/employee/messages" element={<EmployeeGuard><MessagesPage /></EmployeeGuard>} />
           <Route path="*" element={<Navigate to="/employee" replace />} />
         </Routes>
       </Suspense>
@@ -276,6 +281,14 @@ function ProtectedRoutes() {
           <Route path="/documents" element={<DocumentsPage />} />
           <Route path="/agents" element={<Navigate to="/outils" replace />} />
           <Route path="/program" element={<Navigate to="/plan" replace />} />
+          {/* Aliases universels */}
+          <Route path="/credits" element={<ShopPage />} />
+          <Route path="/ai" element={<OutilsPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/shelter/credits" element={<ShopPage />} />
+          <Route path="/shelter/ai" element={<OutilsPage />} />
+          <Route path="/shelter/help" element={<HelpPage />} />
+          <Route path="/shelter/pricing" element={<PricingPage />} />
           <Route path="*" element={<Navigate to="/shelter" replace />} />
         </Routes>
       </Suspense>
@@ -315,6 +328,10 @@ function ProtectedRoutes() {
         <Route path="/courses" element={<CoursesPage />} />
         <Route path="/messages" element={<MessagesPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/settings/notifications" element={<NotificationSettings />} />
+        <Route path="/notifications" element={<NotificationSettings />} />
+        <Route path="/credits" element={<ShopPage />} />
+        <Route path="/ai" element={<OutilsPage />} />
         <Route path="/support" element={<Suspense fallback={<PageLoader />}><SupportTickets /></Suspense>} />
         <Route path="/preferences" element={<PreferencesPage />} />
         <Route path="/adoption-checkins" element={<AdoptionCheckins />} />
@@ -350,6 +367,11 @@ function ProtectedRoutes() {
         <Route path="/coach/shelter-animal/:animalId" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachShelterAnimalEval /></CoachGuard></Suspense>} />
         <Route path="/coach/exercise-preview/:slug" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachExercisePreview /></CoachGuard></Suspense>} />
         <Route path="/coach/exercises" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachExercises /></CoachGuard></Suspense>} />
+        <Route path="/coach/settings" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachSettings /></CoachGuard></Suspense>} />
+        <Route path="/coach/credits" element={<Suspense fallback={<PageLoader />}><CoachGuard><ShopPage /></CoachGuard></Suspense>} />
+        <Route path="/coach/ai" element={<Suspense fallback={<PageLoader />}><CoachGuard><OutilsPage /></CoachGuard></Suspense>} />
+        <Route path="/coach/messages" element={<Suspense fallback={<PageLoader />}><CoachGuard><MessagesPage /></CoachGuard></Suspense>} />
+        <Route path="/coach/notifications" element={<Suspense fallback={<PageLoader />}><CoachGuard><NotificationSettings /></CoachGuard></Suspense>} />
         
         <Route path="/admin" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminDashboard /></AdminGuard></Suspense>} />
         <Route path="/admin/modules" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminModules /></AdminGuard></Suspense>} />
@@ -364,6 +386,13 @@ function ProtectedRoutes() {
         <Route path="/admin/push-status" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminPushStatus /></AdminGuard></Suspense>} />
         <Route path="/admin/preferences" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminPreferences /></AdminGuard></Suspense>} />
         <Route path="/admin/email-diagnostics" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminEmailDiagnostics /></AdminGuard></Suspense>} />
+        {/* Admin aliases — pas de doublon, vraies pages les plus proches */}
+        <Route path="/admin/settings" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminPreferences /></AdminGuard></Suspense>} />
+        <Route path="/admin/credits" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminAIEconomy /></AdminGuard></Suspense>} />
+        <Route path="/admin/users" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminSubscriptions /></AdminGuard></Suspense>} />
+        <Route path="/admin/audit" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminGoLiveCheck /></AdminGuard></Suspense>} />
+        <Route path="/admin/config" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminPreferences /></AdminGuard></Suspense>} />
+        <Route path="/admin/logs" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminEmailDiagnostics /></AdminGuard></Suspense>} />
         {/* Shelter routes for admin access (ShelterGuard allows admin) */}
         <Route path="/shelter" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterDashboard /></ShelterGuard></Suspense>} />
         <Route path="/shelter/animals" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterAnimals /></ShelterGuard></Suspense>} />
@@ -386,6 +415,9 @@ function ProtectedRoutes() {
         <Route path="/employee/activity" element={<Suspense fallback={<PageLoader />}><EmployeeGuard><EmployeeActivity /></EmployeeGuard></Suspense>} />
         <Route path="/employee/profile" element={<Suspense fallback={<PageLoader />}><EmployeeGuard><EmployeeProfile /></EmployeeGuard></Suspense>} />
         <Route path="/employee/support" element={<Suspense fallback={<PageLoader />}><EmployeeGuard><SupportTickets /></EmployeeGuard></Suspense>} />
+        <Route path="/employee/settings" element={<Suspense fallback={<PageLoader />}><EmployeeGuard><EmployeeSettings /></EmployeeGuard></Suspense>} />
+        <Route path="/employee/notifications" element={<Suspense fallback={<PageLoader />}><EmployeeGuard><NotificationSettings /></EmployeeGuard></Suspense>} />
+        <Route path="/employee/messages" element={<Suspense fallback={<PageLoader />}><EmployeeGuard><MessagesPage /></EmployeeGuard></Suspense>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <AIChatBot />
