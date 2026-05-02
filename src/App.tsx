@@ -482,6 +482,7 @@ const App = () => {
                 <Route path="/legal" element={<LegalPage />} />
                 <Route path="/legal/charte-coach" element={<CharteCoach />} />
                 <Route path="/gate-k9x" element={<Suspense fallback={<PageLoader />}><AdminLogin /></Suspense>} />
+                <Route path="/access-denied" element={<Suspense fallback={<PageLoader />}><AccessDenied /></Suspense>} />
                 {/* Pages publiques (anonymes) — coachs & refuges */}
                 <Route path="/annuaire/coachs" element={<PublicCoachDirectory />} />
                 <Route path="/annuaire/refuges" element={<PublicShelterDirectory />} />
