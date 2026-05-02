@@ -12,6 +12,7 @@ import { useDogs } from "./hooks/useDogs";
 import { useIsCoach, useIsShelter, useIsShelterEmployee } from "./hooks/useCoach";
 import { supabase } from "@/integrations/supabase/client";
 import { PushInternalsBootstrap } from "@/components/PushInternalsBootstrap";
+import { isDevelopment } from "@/lib/env";
 const AIChatBot = lazy(() => import("@/components/AIChatBot").then(m => ({ default: m.AIChatBot })));
 const GuidedTour = lazy(() => import("@/components/GuidedTour").then(m => ({ default: m.GuidedTour })));
 import { NotificationToast } from "@/components/NotificationToast";
@@ -122,6 +123,18 @@ const CoachCompliance = lazy(() => import("./pages/CoachCompliance"));
 const AdminCompliance = lazy(() => import("./pages/AdminCompliance"));
 const AdminTestWebhook = lazy(() => import("./pages/AdminTestWebhook"));
 const AdminTestMarketplaceP0 = lazy(() => import("./pages/AdminTestMarketplaceP0"));
+// Admin hubs réels (passe 2 — remplacent les anciens aliases trompeurs)
+const AdminUsers = lazy(() => import("./pages/AdminUsers"));
+const AdminRoles = lazy(() => import("./pages/AdminRoles"));
+const AdminLogs = lazy(() => import("./pages/AdminLogs"));
+const AdminConfig = lazy(() => import("./pages/AdminConfig"));
+const AdminExercisesPage = lazy(() => import("./pages/AdminExercises"));
+const AdminProgramsPage = lazy(() => import("./pages/AdminPrograms"));
+const AdminSheltersPage = lazy(() => import("./pages/AdminShelters"));
+const AdminEducatorsPage = lazy(() => import("./pages/AdminEducators"));
+const AdminMarketplacePage = lazy(() => import("./pages/AdminMarketplace"));
+const AdminCreditsPage = lazy(() => import("./pages/AdminCredits"));
+const AdminSettingsPage = lazy(() => import("./pages/AdminSettings"));
 const CharteCoach = lazy(() => import("./pages/CharteCoach"));
 const PublicCoachPage = lazy(() => import("./pages/public/PublicCoachPage"));
 const PublicShelterPage = lazy(() => import("./pages/public/PublicShelterPage"));
@@ -345,8 +358,13 @@ function ProtectedRoutes() {
         <Route path="/coach/referrals" element={<Suspense fallback={<PageLoader />}><CoachGuard><EducatorReferrals /></CoachGuard></Suspense>} />
         <Route path="/coach/compliance" element={<Suspense fallback={<PageLoader />}><CoachGuard><CoachCompliance /></CoachGuard></Suspense>} />
         <Route path="/admin/compliance" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminCompliance /></AdminGuard></Suspense>} />
-        <Route path="/admin/test-webhook" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminTestWebhook /></AdminGuard></Suspense>} />
-        <Route path="/admin/test-marketplace-p0" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminTestMarketplaceP0 /></AdminGuard></Suspense>} />
+        {/* Outils de test — accessibles uniquement hors production */}
+        {isDevelopment && (
+          <>
+            <Route path="/admin/test-webhook" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminTestWebhook /></AdminGuard></Suspense>} />
+            <Route path="/admin/test-marketplace-p0" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminTestMarketplaceP0 /></AdminGuard></Suspense>} />
+          </>
+        )}
         <Route path="/agents" element={<Navigate to="/outils" replace />} />
         <Route path="/force-password-change" element={<ForcePasswordChange />} />
         <Route path="/program" element={<Navigate to="/plan" replace />} />
@@ -386,13 +404,20 @@ function ProtectedRoutes() {
         <Route path="/admin/push-status" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminPushStatus /></AdminGuard></Suspense>} />
         <Route path="/admin/preferences" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminPreferences /></AdminGuard></Suspense>} />
         <Route path="/admin/email-diagnostics" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminEmailDiagnostics /></AdminGuard></Suspense>} />
-        {/* Admin aliases — pas de doublon, vraies pages les plus proches */}
-        <Route path="/admin/settings" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminPreferences /></AdminGuard></Suspense>} />
-        <Route path="/admin/credits" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminAIEconomy /></AdminGuard></Suspense>} />
-        <Route path="/admin/users" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminSubscriptions /></AdminGuard></Suspense>} />
+        {/* Vraies pages admin (passe 2 — chaque route correspond exactement à son intitulé) */}
+        <Route path="/admin/users" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminUsers /></AdminGuard></Suspense>} />
+        <Route path="/admin/roles" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminRoles /></AdminGuard></Suspense>} />
+        <Route path="/admin/logs" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminLogs /></AdminGuard></Suspense>} />
+        <Route path="/admin/config" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminConfig /></AdminGuard></Suspense>} />
+        <Route path="/admin/exercises" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminExercisesPage /></AdminGuard></Suspense>} />
+        <Route path="/admin/programs" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminProgramsPage /></AdminGuard></Suspense>} />
+        <Route path="/admin/shelters" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminSheltersPage /></AdminGuard></Suspense>} />
+        <Route path="/admin/educators" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminEducatorsPage /></AdminGuard></Suspense>} />
+        <Route path="/admin/marketplace" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminMarketplacePage /></AdminGuard></Suspense>} />
+        <Route path="/admin/credits" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminCreditsPage /></AdminGuard></Suspense>} />
+        <Route path="/admin/settings" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminSettingsPage /></AdminGuard></Suspense>} />
+        {/* Audit reste un alias volontaire vers Go-live (titre cohérent : audit de configuration prod) */}
         <Route path="/admin/audit" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminGoLiveCheck /></AdminGuard></Suspense>} />
-        <Route path="/admin/config" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminPreferences /></AdminGuard></Suspense>} />
-        <Route path="/admin/logs" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminEmailDiagnostics /></AdminGuard></Suspense>} />
         {/* Shelter routes for admin access (ShelterGuard allows admin) */}
         <Route path="/shelter" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterDashboard /></ShelterGuard></Suspense>} />
         <Route path="/shelter/animals" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterAnimals /></ShelterGuard></Suspense>} />
