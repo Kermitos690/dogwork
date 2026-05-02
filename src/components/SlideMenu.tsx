@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { usePreferences } from "@/hooks/usePreferences";
 import { useAIBalance } from "@/hooks/useAICredits";
+import { isDevelopment } from "@/lib/env";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +17,7 @@ import {
   MessageSquare, FileText, Users, LayoutDashboard, CalendarDays,
   Target, AlertTriangle, Dumbbell, LogOut, Settings, Star, X, Heart, ShoppingBag,
   Coins, LayoutGrid, Sparkles, BookMarked, ShieldCheck, Gift, FlaskConical,
-  Bell, Building2, Globe
+  Bell, Building2, Globe, UserCog, ScrollText, ShoppingCart
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { NotificationBell } from "@/components/NotificationBell";
