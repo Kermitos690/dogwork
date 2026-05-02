@@ -1,0 +1,10 @@
+REVOKE EXECUTE ON FUNCTION public.notify_users_push(uuid, text, text, text, text, text, text, text, jsonb) FROM anon, authenticated, public;
+REVOKE EXECUTE ON FUNCTION public.notify_push_on_new_plan() FROM anon, authenticated, public;
+REVOKE EXECUTE ON FUNCTION public.notify_push_on_appointment() FROM anon, authenticated, public;
+REVOKE EXECUTE ON FUNCTION public.notify_push_on_adoption_plan() FROM anon, authenticated, public;
+REVOKE EXECUTE ON FUNCTION public.notify_push_on_billing() FROM anon, authenticated, public;
+REVOKE EXECUTE ON FUNCTION public.notify_push_on_ticket_created() FROM anon, authenticated, public;
+REVOKE EXECUTE ON FUNCTION public.notify_push_on_ticket_replied() FROM anon, authenticated, public;
+REVOKE EXECUTE ON FUNCTION public.notify_push_on_new_signup() FROM anon, authenticated, public;
+REVOKE EXECUTE ON FUNCTION public.notify_push_on_course_submitted() FROM anon, authenticated, public;
+REVOKE EXECUTE ON FUNCTION public.notify_push_on_course_booking() FROM anon, authenticated, public;
