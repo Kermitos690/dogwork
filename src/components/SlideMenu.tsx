@@ -15,7 +15,8 @@ import {
   Calendar, User, HelpCircle, CreditCard, GraduationCap, Shield,
   MessageSquare, FileText, Users, LayoutDashboard, CalendarDays,
   Target, AlertTriangle, Dumbbell, LogOut, Settings, Star, X, Heart, ShoppingBag,
-  Coins, LayoutGrid, Sparkles, BookMarked, ShieldCheck, Gift, FlaskConical
+  Coins, LayoutGrid, Sparkles, BookMarked, ShieldCheck, Gift, FlaskConical,
+  Bell, Building2, Globe
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { NotificationBell } from "@/components/NotificationBell";
