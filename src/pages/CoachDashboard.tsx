@@ -90,8 +90,8 @@ export default function CoachDashboard() {
   const stats = [
     { label: "Clients", value: clients.length, icon: Users, color: "text-blue-400" },
     { label: "Chiens suivis", value: dogs.length, icon: Dog, color: "text-emerald-400" },
-    { label: "Plans actifs", value: activePlans, icon: FileText, color: "text-purple-400" },
-    { label: "Alertes", value: alerts.length, icon: AlertTriangle, color: "text-amber-400" },
+    { label: "Cours publiés", value: coursesCount, icon: BookOpen, color: "text-purple-400" },
+    { label: "Réservations", value: pendingBookings, icon: Calendar, color: "text-cyan-400" },
   ];
 
   return (
@@ -114,6 +114,13 @@ export default function CoachDashboard() {
 
         {/* Install app CTA */}
         <InstallAppCard variant="compact" dismissKey="dw_install_coach" />
+
+        {/* Crédits IA Coach */}
+        <CreditsSummaryCard
+          creditsPath="/coach/credits"
+          monthlyIncluded={30}
+          planLabel="Plan Educator — 30 crédits / mois"
+        />
 
         {/* Stripe Connect — finalisation paiements */}
         {connectReady === false && (
