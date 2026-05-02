@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ShelterLayout } from "@/components/ShelterLayout";
 import { InstallAppCard } from "@/components/InstallAppCard";
+import { CreditsSummaryCard } from "@/components/CreditsSummaryCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PawPrint, Plus, Clock, Heart, Stethoscope, Home, MessageSquare, Mail, Users, GraduationCap, LayoutGrid } from "lucide-react";
@@ -125,6 +126,13 @@ export default function ShelterDashboard() {
 
         {/* Install app CTA */}
         <InstallAppCard variant="compact" dismissKey="dw_install_shelter" />
+
+        {/* Crédits IA Refuge */}
+        <CreditsSummaryCard
+          creditsPath="/shelter/credits"
+          monthlyIncluded={20}
+          planLabel="Plan Shelter — 20 crédits / mois"
+        />
 
         {/* Stats par statut */}
         <div className="grid grid-cols-3 gap-2">

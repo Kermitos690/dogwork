@@ -2,15 +2,19 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CoachLayout } from "@/components/CoachLayout";
 import { InstallAppCard } from "@/components/InstallAppCard";
+import { CreditsSummaryCard } from "@/components/CreditsSummaryCard";
+import { EmptyState } from "@/components/EmptyState";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Users, Dog, FileText, AlertTriangle, TrendingUp, BarChart3,
   ChevronRight, Clock, Shield, Plus, Search, Activity, CreditCard,
+  BookOpen, Calendar,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useCoachClients, useCoachDogs, useCoachNotes, useProAlerts } from "@/hooks/useCoach";
+import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +27,30 @@ export default function CoachDashboard() {
   const { data: dogs = [] } = useCoachDogs();
   const { data: notes = [] } = useCoachNotes();
   const { data: alerts = [] } = useProAlerts();
+
+  // Cours publiés (table courses) — filtré côté coach par RLS
+  const { data: coursesCount = 0 } = useQuery({
+    queryKey: ["coach-courses-count"],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("courses")
+        .select("*", { count: "exact", head: true })
+        .eq("is_active", true);
+      return count || 0;
+    },
+  });
+
+  // Réservations en attente / récentes (course_bookings) — RLS filtre coach via courses
+  const { data: pendingBookings = 0 } = useQuery({
+    queryKey: ["coach-pending-bookings"],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("course_bookings")
+        .select("*", { count: "exact", head: true })
+        .in("status", ["pending", "confirmed"]);
+      return count || 0;
+    },
+  });
 
   const [connectReady, setConnectReady] = useState<boolean | null>(null);
   const [connectLoading, setConnectLoading] = useState(false);
@@ -62,8 +90,8 @@ export default function CoachDashboard() {
   const stats = [
     { label: "Clients", value: clients.length, icon: Users, color: "text-blue-400" },
     { label: "Chiens suivis", value: dogs.length, icon: Dog, color: "text-emerald-400" },
-    { label: "Plans actifs", value: activePlans, icon: FileText, color: "text-purple-400" },
-    { label: "Alertes", value: alerts.length, icon: AlertTriangle, color: "text-amber-400" },
+    { label: "Cours publiés", value: coursesCount, icon: BookOpen, color: "text-purple-400" },
+    { label: "Réservations", value: pendingBookings, icon: Calendar, color: "text-cyan-400" },
   ];
 
   return (
@@ -86,6 +114,13 @@ export default function CoachDashboard() {
 
         {/* Install app CTA */}
         <InstallAppCard variant="compact" dismissKey="dw_install_coach" />
+
+        {/* Crédits IA Coach */}
+        <CreditsSummaryCard
+          creditsPath="/coach/credits"
+          monthlyIncluded={30}
+          planLabel="Plan Educator — 30 crédits / mois"
+        />
 
         {/* Stripe Connect — finalisation paiements */}
         {connectReady === false && (
