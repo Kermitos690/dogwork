@@ -13,6 +13,8 @@ import {
   PawPrint, Eye, Zap, Settings, FileText, Target, ArrowRight, LogOut, Timer
 } from "lucide-react";
 import { DogSwitcher } from "@/components/DogSwitcher";
+import { CreditsSummaryCard } from "@/components/CreditsSummaryCard";
+import { useSubscription, PLANS } from "@/hooks/useSubscription";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getDayById } from "@/data/program";
@@ -37,7 +39,13 @@ export default function Dashboard() {
   const activeDog = useActiveDog();
   const { data: dogs } = useDogs();
   const adaptiveSuggestion = useAdaptiveSuggestion();
+  const { tier, subscribed } = useSubscription();
   const { t } = useTranslation();
+
+  const monthlyIncluded = tier === "expert" ? 15 : tier === "pro" ? 5 : 1;
+  const planLabel = subscribed
+    ? `Plan ${PLANS[tier as keyof typeof PLANS]?.name ?? tier}`
+    : "Plan Découverte (gratuit)";
 
   const { data: progress } = useQuery({
     queryKey: ["day_progress", activeDog?.id],
