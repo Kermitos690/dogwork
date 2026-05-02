@@ -20,13 +20,13 @@ export function EmployeeGuard({ children }: { children: React.ReactNode }) {
   if (empLoading || adminLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Chargement...</div>
+        <div className="animate-pulse text-muted-foreground">Chargement de votre espace DogWork…</div>
       </div>
     );
   }
 
   if (isAdmin) return <>{children}</>;
-  if (!isEmployee) return <Navigate to="/" replace />;
+  if (!isEmployee) return <Navigate to="/access-denied" replace />;
 
   return <>{children}</>;
 }

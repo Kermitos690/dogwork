@@ -15,16 +15,20 @@ export function AdminGuard({ children }: { children: React.ReactNode }) {
     enabled: !!user,
   });
 
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Chargement...</div>
+        <div className="animate-pulse text-muted-foreground">Chargement de votre espace DogWork…</div>
       </div>
     );
   }
 
   if (!isAdmin) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/access-denied" replace />;
   }
 
   return <>{children}</>;
