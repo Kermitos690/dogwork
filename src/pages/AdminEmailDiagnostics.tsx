@@ -247,7 +247,7 @@ export default function AdminEmailDiagnostics() {
   };
 
   return (
-    <div className="container max-w-5xl mx-auto pt-16 pb-12 px-4">
+    <div className="container max-w-5xl mx-auto pt-16 pb-32 sm:pb-12 px-4">
       <div className="mb-8">
         <h1 className="text-3xl font-bold flex items-center gap-2">
           <Mail className="h-7 w-7 text-amber-500" />
