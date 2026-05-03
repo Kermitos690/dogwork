@@ -299,13 +299,35 @@ export default function AdminEmailDiagnostics() {
         </CardContent>
       </Card>
 
-      {result && (
+      {result && (() => {
+        const channels = [
+          { key: "lovable", r: result.send.lovable },
+          { key: "ionos", r: result.send.ionos },
+        ].filter(c => c.r.attempted);
+        const okCount = channels.filter(c => c.r.status === "sent" || (c.r.status === "queued" && (!c.r.logStatus || ["pending","sent"].includes(c.r.logStatus)))).length;
+        const failCount = channels.length - okCount;
+        const allOk = channels.length > 0 && failCount === 0;
+        const allFail = channels.length > 0 && okCount === 0;
+        return (
         <div className="space-y-6">
-          <Alert>
+          <Alert variant={allFail ? "destructive" : "default"}>
             <Shield className="h-4 w-4" />
-            <AlertTitle>Diagnostic complété en {result.totalLatencyMs} ms</AlertTitle>
+            <AlertTitle>
+              {channels.length === 0
+                ? "Diagnostic DNS uniquement"
+                : allOk
+                  ? `Envoi réussi — ${okCount}/${channels.length} canal(aux)`
+                  : allFail
+                    ? `Échec d'envoi sur tous les canaux testés`
+                    : `Envoi partiel — ${okCount} OK / ${failCount} en échec`}
+              <span className="text-xs font-normal text-muted-foreground ml-2">({result.totalLatencyMs} ms)</span>
+            </AlertTitle>
             <AlertDescription>
-              Email envoyé à <strong>{result.recipient}</strong> — Vérifiez votre boîte de réception (et les spams).
+              {channels.length === 0
+                ? "Aucun canal d'envoi sélectionné. Activez Lovable ou IONOS pour tester un envoi réel."
+                : allOk
+                  ? <>Email envoyé à <strong>{result.recipient}</strong>. Vérifiez la boîte de réception et le dossier spam.</>
+                  : <>Destinataire : <strong>{result.recipient}</strong>. Consultez le détail des canaux ci-dessous pour la cause exacte.</>}
             </AlertDescription>
           </Alert>
 
@@ -323,9 +345,19 @@ export default function AdminEmailDiagnostics() {
               <DnsCard report={result.dns.root} title="Domaine racine" />
               <DnsCard report={result.dns.sender} title="Sous-domaine expéditeur" />
             </div>
+            <Alert className="mt-4">
+              <AlertTitle className="text-sm">Recommandations DNS</AlertTitle>
+              <AlertDescription className="text-xs space-y-1 mt-2">
+                <div>• <strong>DMARC manquant</strong> sur le domaine racine : ajouter un enregistrement TXT <code className="font-mono">_dmarc</code> avec la valeur <code className="font-mono">v=DMARC1; p=none; rua=mailto:contact@dogwork-at-home.com; adkim=s; aspf=s</code></div>
+                <div>• <strong>DKIM</strong> : à configurer chez le fournisseur d'envoi (IONOS pour la voie SMTP, Lovable Cloud pour notify.*).</div>
+                <div>• <strong>notify.dogwork-at-home.com</strong> est un sous-domaine d'envoi : MX entrant non requis, mais SPF/DKIM/DMARC doivent rester cohérents avec Lovable Cloud.</div>
+                <div className="text-muted-foreground italic">La configuration DNS doit être faite manuellement chez IONOS — DogWork ne modifie pas la zone automatiquement.</div>
+              </AlertDescription>
+            </Alert>
           </div>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
