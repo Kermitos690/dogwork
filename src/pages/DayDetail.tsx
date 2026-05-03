@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
-import { Play, ArrowLeft, CheckCircle2, ChevronRight, ChevronDown, Sparkles, AlertTriangle, Lock, BookOpen } from "lucide-react";
+import { Play, ArrowLeft, CheckCircle2, ChevronRight, ChevronDown, Sparkles, AlertTriangle, Lock, BookOpen, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -513,6 +513,9 @@ export default function DayDetail() {
         <div className="flex flex-col gap-2 pb-24">
           <Button variant="outline" className="w-full h-12 rounded-xl" onClick={() => setJournalOpen(true)}>
             Journal rapide
+          </Button>
+          <Button variant="outline" className="w-full h-12 rounded-xl" onClick={() => navigate("/promenade")}>
+            <MapPin className="h-4 w-4" /> Démarrer une promenade
           </Button>
           <Button variant="ghost" className="w-full h-12 rounded-xl" onClick={() => navigate(`/behavior/${id}`)}>
             Suivi comportemental détaillé
