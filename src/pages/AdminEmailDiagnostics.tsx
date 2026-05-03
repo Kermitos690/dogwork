@@ -230,8 +230,15 @@ export default function AdminEmailDiagnostics() {
         body: { recipientEmail: recipient, sendLovable, sendIonos },
       });
       if (error) throw error;
-      setResult(data as DiagnosticResponse);
-      toast.success("Diagnostic terminé");
+      const r = data as DiagnosticResponse;
+      setResult(r);
+      const channels = [r.send.lovable, r.send.ionos].filter(c => c.attempted);
+      const okCount = channels.filter(c => c.status === "sent" || (c.status === "queued" && (!c.logStatus || ["pending","sent"].includes(c.logStatus)))).length;
+      const failCount = channels.length - okCount;
+      if (channels.length === 0) toast.message("Diagnostic terminé — aucun canal testé");
+      else if (failCount === 0) toast.success(`Diagnostic OK — ${okCount}/${channels.length} canal(aux) envoyé(s)`);
+      else if (okCount === 0) toast.error(`Échec d'envoi sur ${failCount} canal(aux)`);
+      else toast.warning(`${okCount} OK, ${failCount} en échec`);
     } catch (e: any) {
       toast.error(e.message || "Erreur lors du test");
     } finally {
