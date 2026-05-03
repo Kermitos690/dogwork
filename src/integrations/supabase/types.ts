@@ -1815,6 +1815,178 @@ export type Database = {
           },
         ]
       }
+      dog_walk_points: {
+        Row: {
+          accuracy_meters: number | null
+          altitude_meters: number | null
+          heading: number | null
+          id: string
+          lat: number
+          lng: number
+          recorded_at: string
+          sequence_index: number
+          speed_mps: number | null
+          user_id: string
+          walk_id: string
+        }
+        Insert: {
+          accuracy_meters?: number | null
+          altitude_meters?: number | null
+          heading?: number | null
+          id?: string
+          lat: number
+          lng: number
+          recorded_at?: string
+          sequence_index: number
+          speed_mps?: number | null
+          user_id: string
+          walk_id: string
+        }
+        Update: {
+          accuracy_meters?: number | null
+          altitude_meters?: number | null
+          heading?: number | null
+          id?: string
+          lat?: number
+          lng?: number
+          recorded_at?: string
+          sequence_index?: number
+          speed_mps?: number | null
+          user_id?: string
+          walk_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dog_walk_points_walk_id_fkey"
+            columns: ["walk_id"]
+            isOneToOne: false
+            referencedRelation: "dog_walks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dog_walks: {
+        Row: {
+          average_speed_mps: number | null
+          created_at: string
+          day_progress_id: string | null
+          distance_meters: number | null
+          dog_id: string
+          duration_seconds: number | null
+          elevation_gain_meters: number | null
+          elevation_loss_meters: number | null
+          end_lat: number | null
+          end_lng: number | null
+          ended_at: string | null
+          energy_after: string | null
+          energy_before: string | null
+          exercise_session_id: string | null
+          id: string
+          incidents: string | null
+          location_label: string | null
+          notes: string | null
+          pee_done: boolean
+          play_level: string
+          poop_done: boolean
+          start_lat: number | null
+          start_lng: number | null
+          started_at: string
+          training_plan_id: string | null
+          updated_at: string
+          user_id: string
+          weather_condition: string | null
+          weather_humidity_percent: number | null
+          weather_precipitation_mm: number | null
+          weather_provider: string | null
+          weather_temperature_c: number | null
+          weather_wind_kph: number | null
+          zone_after: string | null
+          zone_before: string | null
+        }
+        Insert: {
+          average_speed_mps?: number | null
+          created_at?: string
+          day_progress_id?: string | null
+          distance_meters?: number | null
+          dog_id: string
+          duration_seconds?: number | null
+          elevation_gain_meters?: number | null
+          elevation_loss_meters?: number | null
+          end_lat?: number | null
+          end_lng?: number | null
+          ended_at?: string | null
+          energy_after?: string | null
+          energy_before?: string | null
+          exercise_session_id?: string | null
+          id?: string
+          incidents?: string | null
+          location_label?: string | null
+          notes?: string | null
+          pee_done?: boolean
+          play_level?: string
+          poop_done?: boolean
+          start_lat?: number | null
+          start_lng?: number | null
+          started_at?: string
+          training_plan_id?: string | null
+          updated_at?: string
+          user_id: string
+          weather_condition?: string | null
+          weather_humidity_percent?: number | null
+          weather_precipitation_mm?: number | null
+          weather_provider?: string | null
+          weather_temperature_c?: number | null
+          weather_wind_kph?: number | null
+          zone_after?: string | null
+          zone_before?: string | null
+        }
+        Update: {
+          average_speed_mps?: number | null
+          created_at?: string
+          day_progress_id?: string | null
+          distance_meters?: number | null
+          dog_id?: string
+          duration_seconds?: number | null
+          elevation_gain_meters?: number | null
+          elevation_loss_meters?: number | null
+          end_lat?: number | null
+          end_lng?: number | null
+          ended_at?: string | null
+          energy_after?: string | null
+          energy_before?: string | null
+          exercise_session_id?: string | null
+          id?: string
+          incidents?: string | null
+          location_label?: string | null
+          notes?: string | null
+          pee_done?: boolean
+          play_level?: string
+          poop_done?: boolean
+          start_lat?: number | null
+          start_lng?: number | null
+          started_at?: string
+          training_plan_id?: string | null
+          updated_at?: string
+          user_id?: string
+          weather_condition?: string | null
+          weather_humidity_percent?: number | null
+          weather_precipitation_mm?: number | null
+          weather_provider?: string | null
+          weather_temperature_c?: number | null
+          weather_wind_kph?: number | null
+          zone_after?: string | null
+          zone_before?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dog_walks_dog_id_fkey"
+            columns: ["dog_id"]
+            isOneToOne: false
+            referencedRelation: "dogs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dogs: {
         Row: {
           activity_level: string | null
