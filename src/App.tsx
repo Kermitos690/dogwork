@@ -89,6 +89,7 @@ const MessagesPage = lazy(() => import("./pages/Messages"));
 const SettingsPage = lazy(() => import("./pages/Settings"));
 const NotificationSettings = lazy(() => import("./pages/NotificationSettings"));
 const PreferencesPage = lazy(() => import("./pages/Preferences"));
+const Promenade = lazy(() => import("./pages/Promenade"));
 const ShelterGuard = lazy(() => import("./components/ShelterGuard").then(m => ({ default: m.ShelterGuard })));
 const ShelterDashboard = lazy(() => import("./pages/ShelterDashboard"));
 const ShelterAnimals = lazy(() => import("./pages/ShelterAnimals"));
@@ -346,6 +347,7 @@ function ProtectedRoutes() {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/settings/notifications" element={<NotificationSettings />} />
         <Route path="/notifications" element={<NotificationSettings />} />
+        <Route path="/promenade" element={<Promenade />} />
         <Route path="/credits" element={<ShopPage />} />
         <Route path="/ai" element={<OutilsPage />} />
         <Route path="/support" element={<Suspense fallback={<PageLoader />}><SupportTickets /></Suspense>} />

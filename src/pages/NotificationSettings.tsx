@@ -100,7 +100,7 @@ export default function NotificationSettings() {
   }
 
   return (
-    <div className="min-h-screen pt-16 pb-12">
+    <div className="min-h-screen pt-16 pb-32 sm:pb-12">
       <div className="container max-w-2xl py-6 space-y-6">
         <Button asChild variant="ghost" size="sm">
           <Link to="/settings"><ArrowLeft className="h-4 w-4 mr-2" />Retour</Link>
