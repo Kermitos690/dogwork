@@ -1,19 +1,22 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { ArrowLeft, MapPin, Play, Square, Loader2, Cloud } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { ArrowLeft, MapPin, Play, Square, Loader2, Cloud, AlertTriangle, PencilLine, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useDogs, useActiveDog } from "@/hooks/useDogs";
 
 type Phase = "idle" | "active" | "summary";
+type GpsState = "idle" | "watching" | "denied" | "unavailable";
 
 interface GpsPoint { lat: number; lng: number; t: number; accuracy?: number; }
 
@@ -27,9 +30,14 @@ function haversine(a: GpsPoint, b: GpsPoint): number {
 export default function Promenade() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const dogs = useDogs();
+  const { data: dogs } = useDogs();
   const activeDog = useActiveDog();
+  const [searchParams] = useSearchParams();
+  const prefilledDogId = searchParams.get("dogId");
+  const prefilledDayId = searchParams.get("dayId");
+
   const [dogId, setDogId] = useState<string>("");
+  const [dayId, setDayId] = useState<number | null>(prefilledDayId ? Number(prefilledDayId) : null);
   const [phase, setPhase] = useState<Phase>("idle");
   const [startedAt, setStartedAt] = useState<Date | null>(null);
   const [points, setPoints] = useState<GpsPoint[]>([]);
@@ -37,6 +45,10 @@ export default function Promenade() {
   const [tick, setTick] = useState(0);
   const [weather, setWeather] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
+  const [gpsState, setGpsState] = useState<GpsState>("idle");
+  const [manualMode, setManualMode] = useState(false);
+  const [manualDuration, setManualDuration] = useState<number>(20);
+  const [manualDistance, setManualDistance] = useState<number>(1.5);
 
   const [pee, setPee] = useState(false);
   const [poop, setPoop] = useState(false);
@@ -46,8 +58,11 @@ export default function Promenade() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!dogId && activeDog?.id) setDogId(activeDog.id);
-  }, [activeDog, dogId]);
+    if (!dogId) {
+      if (prefilledDogId) setDogId(prefilledDogId);
+      else if (activeDog?.id) setDogId(activeDog.id);
+    }
+  }, [activeDog, dogId, prefilledDogId]);
 
   useEffect(() => {
     if (phase !== "active") return;
@@ -66,27 +81,45 @@ export default function Promenade() {
       .then(({ data }) => setHistory((data as any[]) ?? []));
   }, [user, phase]);
 
+  const dogList = dogs ?? [];
   const distance = points.length < 2 ? 0 : points.slice(1).reduce((acc, p, i) => acc + haversine(points[i], p), 0);
   const duration = startedAt ? Math.floor((Date.now() - startedAt.getTime()) / 1000) + tick * 0 : 0;
+  const selectedDogName = useMemo(() => dogList.find((d: any) => d.id === dogId)?.name ?? "", [dogList, dogId]);
 
   function start() {
     if (!dogId) { toast({ title: "Sélectionnez un chien", variant: "destructive" }); return; }
-    setPoints([]); setStartedAt(new Date()); setPhase("active"); setWeather(null);
-    if ("geolocation" in navigator) {
-      const id = navigator.geolocation.watchPosition(
-        (pos) => {
-          const pt = { lat: pos.coords.latitude, lng: pos.coords.longitude, t: Date.now(), accuracy: pos.coords.accuracy };
-          setPoints((prev) => [...prev, pt]);
-          if (!weather) {
-            supabase.functions.invoke("get-walk-weather", { body: { lat: pt.lat, lng: pt.lng } })
-              .then(({ data }) => { if (data?.ok) setWeather(data); });
-          }
-        },
-        () => toast({ title: "GPS indisponible", description: "La promenade continue sans tracé." }),
-        { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 },
-      );
-      setWatchId(id);
+    setPoints([]); setStartedAt(new Date()); setPhase("active"); setWeather(null); setGpsState("idle");
+
+    if (manualMode || !("geolocation" in navigator)) {
+      setGpsState("unavailable");
+      return;
     }
+
+    const id = navigator.geolocation.watchPosition(
+      (pos) => {
+        setGpsState("watching");
+        const pt = { lat: pos.coords.latitude, lng: pos.coords.longitude, t: Date.now(), accuracy: pos.coords.accuracy };
+        setPoints((prev) => [...prev, pt]);
+        if (!weather) {
+          supabase.functions.invoke("get-walk-weather", { body: { lat: pt.lat, lng: pt.lng } })
+            .then(({ data }) => { if (data?.ok) setWeather(data); })
+            .catch(() => { /* météo optionnelle */ });
+        }
+      },
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          setGpsState("denied");
+          toast({
+            title: "GPS refusé",
+            description: "La promenade continue sans tracé. Mode manuel disponible.",
+          });
+        } else {
+          setGpsState("unavailable");
+        }
+      },
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 },
+    );
+    setWatchId(id);
   }
 
   function stop() {
@@ -100,11 +133,22 @@ export default function Promenade() {
     setSaving(true);
     const endedAt = new Date();
     const start = points[0], end = points[points.length - 1];
+
+    const useManual = points.length === 0;
+    const finalDuration = useManual
+      ? Math.max(1, manualDuration) * 60
+      : Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000);
+    const finalDistance = useManual
+      ? Math.round(Math.max(0, manualDistance) * 1000)
+      : Math.round(distance);
+
     const { data: walk, error } = await (supabase.from("dog_walks" as any).insert({
       user_id: user.id, dog_id: dogId,
+      day_id: dayId,
+      related_exercise_ids: [],
       started_at: startedAt.toISOString(), ended_at: endedAt.toISOString(),
-      duration_seconds: Math.floor((endedAt.getTime() - startedAt.getTime()) / 1000),
-      distance_meters: Math.round(distance),
+      duration_seconds: finalDuration,
+      distance_meters: finalDistance,
       start_lat: start?.lat ?? null, start_lng: start?.lng ?? null,
       end_lat: end?.lat ?? null, end_lng: end?.lng ?? null,
       weather_provider: weather?.provider ?? null,
@@ -128,18 +172,26 @@ export default function Promenade() {
     setSaving(false);
     if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Promenade enregistrée" });
-    setPhase("idle"); setPee(false); setPoop(false); setPlay("none"); setZoneAfter("green"); setNotes(""); setPoints([]); setStartedAt(null); setWeather(null);
+    setPhase("idle"); setPee(false); setPoop(false); setPlay("none"); setZoneAfter("green");
+    setNotes(""); setPoints([]); setStartedAt(null); setWeather(null); setGpsState("idle");
   }
 
   return (
     <div className="min-h-screen pt-16 pb-32 sm:pb-12">
       <div className="container max-w-2xl py-6 space-y-6">
         <Button asChild variant="ghost" size="sm">
-          <Link to="/dashboard"><ArrowLeft className="h-4 w-4 mr-2" />Retour</Link>
+          <Link to={dayId ? `/day/${dayId}?source=plan` : "/dashboard"}>
+            <ArrowLeft className="h-4 w-4 mr-2" />Retour
+          </Link>
         </Button>
         <header>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><MapPin className="h-6 w-6 text-primary" />Promenade</h1>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <MapPin className="h-6 w-6 text-primary" />Promenade
+          </h1>
           <p className="text-muted-foreground mt-1">Enregistrez la balade : tracé, météo, comportement.</p>
+          {dayId && (
+            <Badge variant="secondary" className="mt-2">Liée au Jour {dayId}</Badge>
+          )}
           <p className="text-xs text-muted-foreground mt-1">Vos données de promenade restent privées.</p>
         </header>
 
@@ -150,12 +202,27 @@ export default function Promenade() {
               <div>
                 <Label>Chien</Label>
                 <Select value={dogId} onValueChange={setDogId}>
-                  <SelectTrigger><SelectValue placeholder="Sélectionnez un chien" /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionnez un chien">
+                      {selectedDogName || undefined}
+                    </SelectValue>
+                  </SelectTrigger>
                   <SelectContent>
-                    {(dogs.data ?? []).map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                    {dogList.map((d: any) => (
+                      <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div className="space-y-0.5">
+                  <Label className="text-sm">Mode manuel (sans GPS)</Label>
+                  <p className="text-xs text-muted-foreground">Saisir durée et distance à la fin.</p>
+                </div>
+                <Switch checked={manualMode} onCheckedChange={setManualMode} />
+              </div>
+
               <Button onClick={start} className="w-full" disabled={!dogId}>
                 <Play className="h-4 w-4 mr-2" />Lancer la promenade
               </Button>
@@ -168,16 +235,49 @@ export default function Promenade() {
             <CardHeader><CardTitle className="text-base">En cours…</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-3 gap-3 text-center">
-                <div><div className="text-2xl font-bold">{Math.floor(duration / 60)}'</div><div className="text-xs text-muted-foreground">durée</div></div>
-                <div><div className="text-2xl font-bold">{(distance / 1000).toFixed(2)}</div><div className="text-xs text-muted-foreground">km</div></div>
-                <div><div className="text-2xl font-bold">{points.length}</div><div className="text-xs text-muted-foreground">points</div></div>
+                <div>
+                  <div className="text-2xl font-bold">{Math.floor(duration / 60)}'</div>
+                  <div className="text-xs text-muted-foreground">durée</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold">{(distance / 1000).toFixed(2)}</div>
+                  <div className="text-xs text-muted-foreground">km</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold">{points.length}</div>
+                  <div className="text-xs text-muted-foreground">points</div>
+                </div>
               </div>
+
+              {gpsState === "denied" && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Accès GPS refusé</AlertTitle>
+                  <AlertDescription className="text-xs space-y-1">
+                    <p>iPhone / Safari : Réglages → Safari → Position → Autoriser.</p>
+                    <p>App installée (PWA) : Réglages → DogWork → Position → Lors de l'utilisation.</p>
+                    <p>Vous pouvez continuer en mode manuel : durée et distance saisies à la fin.</p>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {gpsState === "unavailable" && !manualMode && (
+                <Alert>
+                  <Smartphone className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    GPS indisponible sur cet appareil. La balade sera enregistrée sans tracé.
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {weather && (
                 <div className="text-sm text-muted-foreground flex items-center gap-2 border-t pt-3">
                   <Cloud className="h-4 w-4" />
-                  {weather.condition} · {weather.temperature_c}°C{weather.location_label ? ` · ${weather.location_label}` : ""}
+                  {weather.condition} · {weather.temperature_c}°C
+                  {weather.location_label ? ` · ${weather.location_label}` : ""}
                 </div>
               )}
+
               <Button onClick={stop} variant="destructive" className="w-full">
                 <Square className="h-4 w-4 mr-2" />Terminer
               </Button>
@@ -189,10 +289,35 @@ export default function Promenade() {
           <Card>
             <CardHeader><CardTitle className="text-base">Résumé de la balade</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div className="text-sm text-muted-foreground">
-                {Math.floor(duration / 60)} min · {(distance / 1000).toFixed(2)} km
-                {weather && ` · ${weather.condition}, ${weather.temperature_c}°C`}
-              </div>
+              {points.length === 0 ? (
+                <div className="rounded-lg border border-dashed p-3 space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <PencilLine className="h-4 w-4" /> Saisie manuelle
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">Durée (min)</Label>
+                      <Input
+                        type="number" min={1} max={300} value={manualDuration}
+                        onChange={(e) => setManualDuration(Number(e.target.value) || 0)}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Distance (km)</Label>
+                      <Input
+                        type="number" min={0} step="0.1" max={50} value={manualDistance}
+                        onChange={(e) => setManualDistance(Number(e.target.value) || 0)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  {Math.floor(duration / 60)} min · {(distance / 1000).toFixed(2)} km
+                  {weather && ` · ${weather.condition}, ${weather.temperature_c}°C`}
+                </div>
+              )}
+
               <div className="flex items-center justify-between"><Label>Pipi</Label><Switch checked={pee} onCheckedChange={setPee} /></div>
               <div className="flex items-center justify-between"><Label>Caca</Label><Switch checked={poop} onCheckedChange={setPoop} /></div>
               <div>
@@ -238,10 +363,13 @@ export default function Promenade() {
               {history.map((w) => (
                 <div key={w.id} className="flex items-center justify-between text-sm border-b last:border-0 pb-2 last:pb-0">
                   <div>
-                    <div className="font-medium">{new Date(w.started_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</div>
+                    <div className="font-medium">
+                      {new Date(w.started_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                    </div>
                     <div className="text-xs text-muted-foreground">
                       {Math.round((w.duration_seconds ?? 0) / 60)} min · {((w.distance_meters ?? 0) / 1000).toFixed(2)} km
                       {w.weather_condition && ` · ${w.weather_condition}`}
+                      {w.day_id && <> · <span className="text-primary">Jour {w.day_id}</span></>}
                     </div>
                   </div>
                   <div className="flex gap-1">
