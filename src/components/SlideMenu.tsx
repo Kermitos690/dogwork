@@ -17,7 +17,7 @@ import {
   MessageSquare, FileText, Users, LayoutDashboard, CalendarDays,
   Target, AlertTriangle, Dumbbell, LogOut, Settings, Star, X, Heart, ShoppingBag,
   Coins, LayoutGrid, Sparkles, BookMarked, ShieldCheck, Gift, FlaskConical,
-  Bell, Building2, Globe, UserCog, ScrollText, ShoppingCart
+  Bell, Building2, Globe, UserCog, ScrollText, ShoppingCart, MapPin
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { NotificationBell } from "@/components/NotificationBell";
