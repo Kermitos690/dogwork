@@ -32,16 +32,21 @@ interface SendResult {
   idempotencyKey?: string;
   smtpCode?: string;
   hints?: string[];
+  evaluated?: { confirmed: boolean; pending: boolean; failed: boolean };
 }
 
 interface DiagnosticResponse {
-  success: boolean;
+  success: boolean | null;
   totalLatencyMs: number;
   triggeredAt: string;
   triggeredBy: string;
   recipient: string;
+  summary?: { attempted: number; confirmed: number; pending: number; failed: number };
   send: { lovable: SendResult; ionos: SendResult };
+  channels?: { lovable: any; ionos: any };
+  errors?: { channel: string; message: string; smtpCode?: string }[];
   dns: { root: DnsReport; sender: DnsReport };
+  recommendations?: string[];
 }
 
 const StatusBadge = ({ ok, warn, label }: { ok?: boolean; warn?: boolean; label: string }) => {
