@@ -156,6 +156,13 @@ export default function Preferences() {
             Notifications push
           </div>
           <PushNotificationCard />
+          <button
+            onClick={() => navigate("/settings/notifications")}
+            className="w-full mt-2 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-left flex items-center justify-between hover:border-primary/40 transition-colors"
+          >
+            <span>Gérer les catégories et heures de silence</span>
+            <span className="text-xs text-muted-foreground">→</span>
+          </button>
         </motion.div>
 
         {/* Feature Toggles */}
