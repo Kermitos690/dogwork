@@ -32,16 +32,21 @@ interface SendResult {
   idempotencyKey?: string;
   smtpCode?: string;
   hints?: string[];
+  evaluated?: { confirmed: boolean; pending: boolean; failed: boolean };
 }
 
 interface DiagnosticResponse {
-  success: boolean;
+  success: boolean | null;
   totalLatencyMs: number;
   triggeredAt: string;
   triggeredBy: string;
   recipient: string;
+  summary?: { attempted: number; confirmed: number; pending: number; failed: number };
   send: { lovable: SendResult; ionos: SendResult };
+  channels?: { lovable: any; ionos: any };
+  errors?: { channel: string; message: string; smtpCode?: string }[];
   dns: { root: DnsReport; sender: DnsReport };
+  recommendations?: string[];
 }
 
 const StatusBadge = ({ ok, warn, label }: { ok?: boolean; warn?: boolean; label: string }) => {
@@ -232,13 +237,17 @@ export default function AdminEmailDiagnostics() {
       if (error) throw error;
       const r = data as DiagnosticResponse;
       setResult(r);
-      const channels = [r.send.lovable, r.send.ionos].filter(c => c.attempted);
-      const okCount = channels.filter(c => c.status === "sent" || (c.status === "queued" && (!c.logStatus || ["pending","sent"].includes(c.logStatus)))).length;
-      const failCount = channels.length - okCount;
-      if (channels.length === 0) toast.message("Diagnostic terminé — aucun canal testé");
-      else if (failCount === 0) toast.success(`Diagnostic OK — ${okCount}/${channels.length} canal(aux) envoyé(s)`);
-      else if (okCount === 0) toast.error(`Échec d'envoi sur ${failCount} canal(aux)`);
-      else toast.warning(`${okCount} OK, ${failCount} en échec`);
+      const summary = r.summary ?? { attempted: 0, confirmed: 0, pending: 0, failed: 0 };
+      if (summary.attempted === 0) {
+        toast.message("Diagnostic DNS terminé — aucun canal d'envoi sélectionné");
+      } else if (r.success === true && summary.failed === 0 && summary.pending === 0) {
+        toast.success(`Envoi confirmé — ${summary.confirmed}/${summary.attempted} canal(aux)`);
+      } else if (r.success === true) {
+        toast.warning(`${summary.confirmed} confirmé(s), ${summary.pending} en attente, ${summary.failed} en échec`);
+      } else {
+        // Aucun canal confirmé — JAMAIS afficher "envoyé"
+        toast.error(`Aucun envoi confirmé (${summary.failed} échec, ${summary.pending} en attente)`);
+      }
     } catch (e: any) {
       toast.error(e.message || "Erreur lors du test");
     } finally {
@@ -300,36 +309,51 @@ export default function AdminEmailDiagnostics() {
       </Card>
 
       {result && (() => {
-        const channels = [
-          { key: "lovable", r: result.send.lovable },
-          { key: "ionos", r: result.send.ionos },
-        ].filter(c => c.r.attempted);
-        const okCount = channels.filter(c => c.r.status === "sent" || (c.r.status === "queued" && (!c.r.logStatus || ["pending","sent"].includes(c.r.logStatus)))).length;
-        const failCount = channels.length - okCount;
-        const allOk = channels.length > 0 && failCount === 0;
-        const allFail = channels.length > 0 && okCount === 0;
+        const summary = result.summary ?? { attempted: 0, confirmed: 0, pending: 0, failed: 0 };
+        const allConfirmed = summary.attempted > 0 && summary.confirmed === summary.attempted;
+        const noneConfirmed = summary.attempted > 0 && summary.confirmed === 0;
+        const partial = summary.attempted > 0 && !allConfirmed && !noneConfirmed;
         return (
         <div className="space-y-6">
-          <Alert variant={allFail ? "destructive" : "default"}>
+          <Alert variant={noneConfirmed ? "destructive" : "default"}>
             <Shield className="h-4 w-4" />
             <AlertTitle>
-              {channels.length === 0
+              {summary.attempted === 0
                 ? "Diagnostic DNS uniquement"
-                : allOk
-                  ? `Envoi réussi — ${okCount}/${channels.length} canal(aux)`
-                  : allFail
-                    ? `Échec d'envoi sur tous les canaux testés`
-                    : `Envoi partiel — ${okCount} OK / ${failCount} en échec`}
+                : allConfirmed
+                  ? `Envoi confirmé — ${summary.confirmed}/${summary.attempted} canal(aux)`
+                  : noneConfirmed
+                    ? `Aucun envoi confirmé (${summary.failed} en échec, ${summary.pending} en attente)`
+                    : `Envoi partiel — ${summary.confirmed} confirmé · ${summary.pending} en attente · ${summary.failed} en échec`}
               <span className="text-xs font-normal text-muted-foreground ml-2">({result.totalLatencyMs} ms)</span>
             </AlertTitle>
             <AlertDescription>
-              {channels.length === 0
+              {summary.attempted === 0
                 ? "Aucun canal d'envoi sélectionné. Activez Lovable ou IONOS pour tester un envoi réel."
-                : allOk
-                  ? <>Email envoyé à <strong>{result.recipient}</strong>. Vérifiez la boîte de réception et le dossier spam.</>
-                  : <>Destinataire : <strong>{result.recipient}</strong>. Consultez le détail des canaux ci-dessous pour la cause exacte.</>}
+                : allConfirmed
+                  ? <>Email confirmé délivré à <strong>{result.recipient}</strong>. Vérifiez la boîte de réception et le dossier spam.</>
+                  : noneConfirmed
+                    ? <>⚠ Aucun email n'est confirmé envoyé pour <strong>{result.recipient}</strong>. Consultez les erreurs ci-dessous.</>
+                    : <>Destinataire : <strong>{result.recipient}</strong>. Une partie des canaux est en attente ou en échec — voir le détail.</>}
             </AlertDescription>
           </Alert>
+
+          {result.errors && result.errors.length > 0 && (
+            <Alert variant="destructive">
+              <XCircle className="h-4 w-4" />
+              <AlertTitle>Erreurs détectées</AlertTitle>
+              <AlertDescription>
+                <ul className="list-disc list-inside text-sm space-y-1 mt-1">
+                  {result.errors.map((e, i) => (
+                    <li key={i}>
+                      <strong className="uppercase">{e.channel}</strong>: {e.message}
+                      {e.smtpCode && <code className="ml-1 text-xs">({e.smtpCode})</code>}
+                    </li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
 
           <Alert>
             <Mail className="h-4 w-4" />
@@ -355,15 +379,17 @@ export default function AdminEmailDiagnostics() {
               <DnsCard report={result.dns.root} title="Domaine racine" />
               <DnsCard report={result.dns.sender} title="Sous-domaine expéditeur" />
             </div>
-            <Alert className="mt-4">
-              <AlertTitle className="text-sm">Recommandations DNS</AlertTitle>
-              <AlertDescription className="text-xs space-y-1 mt-2">
-                <div>• <strong>DMARC manquant</strong> sur le domaine racine : ajouter un enregistrement TXT <code className="font-mono">_dmarc</code> avec la valeur <code className="font-mono">v=DMARC1; p=none; rua=mailto:contact@dogwork-at-home.com; adkim=s; aspf=s</code></div>
-                <div>• <strong>DKIM</strong> : à configurer chez le fournisseur d'envoi (IONOS pour la voie SMTP, Lovable Cloud pour notify.*).</div>
-                <div>• <strong>notify.dogwork-at-home.com</strong> est un sous-domaine d'envoi : MX entrant non requis, mais SPF/DKIM/DMARC doivent rester cohérents avec Lovable Cloud.</div>
-                <div className="text-muted-foreground italic">La configuration DNS doit être faite manuellement chez IONOS — DogWork ne modifie pas la zone automatiquement.</div>
-              </AlertDescription>
-            </Alert>
+            {result.recommendations && result.recommendations.length > 0 && (
+              <Alert className="mt-4">
+                <AlertTitle className="text-sm">Recommandations DNS</AlertTitle>
+                <AlertDescription className="text-xs space-y-1 mt-2">
+                  {result.recommendations.map((rec, i) => (
+                    <div key={i}>• {rec}</div>
+                  ))}
+                  <div className="text-muted-foreground italic mt-2">La configuration DNS doit être faite manuellement chez IONOS — DogWork ne modifie pas la zone automatiquement.</div>
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
         </div>
         );

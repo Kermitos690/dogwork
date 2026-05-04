@@ -255,7 +255,7 @@ Deno.serve(async (req) => {
   // === Récupère le statut réel de l'email Lovable depuis email_send_log ===
   if (lovableResult.idempotencyKey) {
     // Petite attente pour laisser le temps à l'enqueue de logger
-    await new Promise((r) => setTimeout(r, 800))
+    await new Promise((r) => setTimeout(r, 1200))
     const { data: logRows } = await supabase
       .from('email_send_log')
       .select('status, error_message, message_id, created_at')
@@ -268,15 +268,80 @@ Deno.serve(async (req) => {
     }
   }
 
+  // === Évaluation finale par canal ===
+  // Un canal n'est "confirmé envoyé" QUE si :
+  //  - IONOS: status === 'sent'
+  //  - Lovable: status === 'queued' ET logStatus === 'sent' (delivery confirmée par le worker)
+  //  - Lovable encore 'pending' = non confirmé (on n'affiche pas "envoyé")
+  function evalChannel(r: any, channel: 'lovable' | 'ionos'): { confirmed: boolean; pending: boolean; failed: boolean } {
+    if (!r.attempted) return { confirmed: false, pending: false, failed: false }
+    if (r.status === 'failed' || r.status === 'not_configured') return { confirmed: false, pending: false, failed: true }
+    if (channel === 'ionos') return { confirmed: r.status === 'sent', pending: false, failed: r.status !== 'sent' }
+    // Lovable
+    if (r.logStatus === 'sent') return { confirmed: true, pending: false, failed: false }
+    if (r.logStatus === 'dlq' || r.logStatus === 'failed' || r.logStatus === 'bounced') return { confirmed: false, pending: false, failed: true }
+    // queued + pending (ou pas encore loggé) → non confirmé, en attente
+    return { confirmed: false, pending: true, failed: false }
+  }
+
+  const lovEval = evalChannel(lovableResult, 'lovable')
+  const ionEval = evalChannel(ionosResult, 'ionos')
+  lovableResult.evaluated = lovEval
+  ionosResult.evaluated = ionEval
+
+  const channelsAttempted = [lovableResult, ionosResult].filter((c: any) => c.attempted)
+  const channelsConfirmed = [lovEval, ionEval].filter((e) => e.confirmed).length
+  const channelsFailed = [lovEval, ionEval].filter((e) => e.failed).length
+  const channelsPending = [lovEval, ionEval].filter((e) => e.pending).length
+
+  // success global = au moins un canal confirmé envoyé. Si aucun canal testé : null.
+  const success = channelsAttempted.length === 0 ? null : channelsConfirmed > 0
+
+  // Erreurs agrégées
+  const errors: { channel: string; message: string; smtpCode?: string }[] = []
+  if (lovableResult.attempted && (lovEval.failed || (lovEval.pending && lovableResult.logError))) {
+    errors.push({ channel: 'lovable', message: lovableResult.error || lovableResult.logError || 'En attente — non confirmé' })
+  }
+  if (ionosResult.attempted && ionEval.failed) {
+    errors.push({ channel: 'ionos', message: ionosResult.error || 'Échec IONOS', smtpCode: ionosResult.smtpCode })
+  }
+
+  // Recommandations DNS dynamiques
+  const recommendations: string[] = []
+  if (!rootReport.dmarc.found) {
+    recommendations.push(`Ajouter DMARC sur ${ROOT_DOMAIN} : TXT _dmarc avec "v=DMARC1; p=none; rua=mailto:contact@${ROOT_DOMAIN}; adkim=s; aspf=s"`)
+  }
+  if (!subReport.spf.found) {
+    recommendations.push(`SPF manquant sur ${SENDER_SUBDOMAIN} — vérifier la délégation NS Lovable.`)
+  }
+  if (!subReport.dkim.found) {
+    recommendations.push(`Aucun DKIM détecté sur ${SENDER_SUBDOMAIN} (sélecteurs testés). Vérifier la configuration Lovable Cloud.`)
+  }
+  if (ionosResult.attempted && !rootReport.dkim.found) {
+    recommendations.push(`Pour IONOS : activer DKIM dans la console IONOS (sélecteur s1024 ou s2048) et publier le TXT correspondant.`)
+  }
+  if (ionosResult.status === 'not_configured') {
+    recommendations.push(`Configurer les secrets IONOS_SMTP_USER et IONOS_SMTP_PASSWORD pour activer l'envoi via IONOS.`)
+  }
+
   return new Response(
     JSON.stringify({
-      success: true,
+      success,
       totalLatencyMs: Date.now() - startedAt,
       triggeredAt,
       triggeredBy,
       recipient: recipientEmail,
+      summary: {
+        attempted: channelsAttempted.length,
+        confirmed: channelsConfirmed,
+        pending: channelsPending,
+        failed: channelsFailed,
+      },
       send: { lovable: lovableResult, ionos: ionosResult },
+      channels: { lovable: lovEval, ionos: ionEval },
+      errors,
       dns: { root: rootReport, sender: subReport },
+      recommendations,
     }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   )
