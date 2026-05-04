@@ -1869,6 +1869,7 @@ export type Database = {
         Row: {
           average_speed_mps: number | null
           created_at: string
+          day_id: number | null
           day_progress_id: string | null
           distance_meters: number | null
           dog_id: string
@@ -1888,6 +1889,7 @@ export type Database = {
           pee_done: boolean
           play_level: string
           poop_done: boolean
+          related_exercise_ids: Json
           start_lat: number | null
           start_lng: number | null
           started_at: string
@@ -1906,6 +1908,7 @@ export type Database = {
         Insert: {
           average_speed_mps?: number | null
           created_at?: string
+          day_id?: number | null
           day_progress_id?: string | null
           distance_meters?: number | null
           dog_id: string
@@ -1925,6 +1928,7 @@ export type Database = {
           pee_done?: boolean
           play_level?: string
           poop_done?: boolean
+          related_exercise_ids?: Json
           start_lat?: number | null
           start_lng?: number | null
           started_at?: string
@@ -1943,6 +1947,7 @@ export type Database = {
         Update: {
           average_speed_mps?: number | null
           created_at?: string
+          day_id?: number | null
           day_progress_id?: string | null
           distance_meters?: number | null
           dog_id?: string
@@ -1962,6 +1967,7 @@ export type Database = {
           pee_done?: boolean
           play_level?: string
           poop_done?: boolean
+          related_exercise_ids?: Json
           start_lat?: number | null
           start_lng?: number | null
           started_at?: string
