@@ -137,6 +137,7 @@ export function SlideMenu() {
       items: [
         { label: t("nav.messages"), icon: MessageSquare, path: "/messages", badge: unreadCount },
         { label: "Suivi post-adoption", icon: Heart, path: "/adoption-followup" },
+        { label: "Promenade", icon: MapPin, path: "/promenade" },
       ],
     },
     {
