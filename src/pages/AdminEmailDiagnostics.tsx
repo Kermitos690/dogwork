@@ -331,6 +331,16 @@ export default function AdminEmailDiagnostics() {
             </AlertDescription>
           </Alert>
 
+          <Alert>
+            <Mail className="h-4 w-4" />
+            <AlertTitle className="text-sm">Deux voies d'envoi indépendantes</AlertTitle>
+            <AlertDescription className="text-xs space-y-1 mt-1">
+              <div><strong>Lovable</strong> (notify.dogwork-at-home.com) : transactionnel applicatif (auth, notifications, factures). Géré automatiquement.</div>
+              <div><strong>IONOS SMTP</strong> (contact@dogwork-at-home.com) : envois opérationnels manuels. Nécessite secrets <code>IONOS_SMTP_USER</code> / <code>IONOS_SMTP_PASSWORD</code>.</div>
+              <div className="text-muted-foreground italic">Un échec sur l'une n'affecte pas l'autre.</div>
+            </AlertDescription>
+          </Alert>
+
           <div>
             <h2 className="text-xl font-semibold mb-3">Résultats d'envoi</h2>
             <div className="grid md:grid-cols-2 gap-4">

@@ -17,7 +17,7 @@ import {
   MessageSquare, FileText, Users, LayoutDashboard, CalendarDays,
   Target, AlertTriangle, Dumbbell, LogOut, Settings, Star, X, Heart, ShoppingBag,
   Coins, LayoutGrid, Sparkles, BookMarked, ShieldCheck, Gift, FlaskConical,
-  Bell, Building2, Globe, UserCog, ScrollText, ShoppingCart
+  Bell, Building2, Globe, UserCog, ScrollText, ShoppingCart, MapPin
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -137,6 +137,7 @@ export function SlideMenu() {
       items: [
         { label: t("nav.messages"), icon: MessageSquare, path: "/messages", badge: unreadCount },
         { label: "Suivi post-adoption", icon: Heart, path: "/adoption-followup" },
+        { label: "Promenade", icon: MapPin, path: "/promenade" },
       ],
     },
     {

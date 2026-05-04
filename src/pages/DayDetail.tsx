@@ -514,7 +514,11 @@ export default function DayDetail() {
           <Button variant="outline" className="w-full h-12 rounded-xl" onClick={() => setJournalOpen(true)}>
             Journal rapide
           </Button>
-          <Button variant="outline" className="w-full h-12 rounded-xl" onClick={() => navigate("/promenade")}>
+          <Button
+            variant="outline"
+            className="w-full h-12 rounded-xl"
+            onClick={() => navigate(`/promenade?dayId=${id}${activeDog ? `&dogId=${activeDog.id}` : ""}`)}
+          >
             <MapPin className="h-4 w-4" /> Démarrer une promenade
           </Button>
           <Button variant="ghost" className="w-full h-12 rounded-xl" onClick={() => navigate(`/behavior/${id}`)}>
