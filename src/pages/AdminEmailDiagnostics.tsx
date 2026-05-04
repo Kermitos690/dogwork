@@ -237,13 +237,17 @@ export default function AdminEmailDiagnostics() {
       if (error) throw error;
       const r = data as DiagnosticResponse;
       setResult(r);
-      const channels = [r.send.lovable, r.send.ionos].filter(c => c.attempted);
-      const okCount = channels.filter(c => c.status === "sent" || (c.status === "queued" && (!c.logStatus || ["pending","sent"].includes(c.logStatus)))).length;
-      const failCount = channels.length - okCount;
-      if (channels.length === 0) toast.message("Diagnostic terminé — aucun canal testé");
-      else if (failCount === 0) toast.success(`Diagnostic OK — ${okCount}/${channels.length} canal(aux) envoyé(s)`);
-      else if (okCount === 0) toast.error(`Échec d'envoi sur ${failCount} canal(aux)`);
-      else toast.warning(`${okCount} OK, ${failCount} en échec`);
+      const summary = r.summary ?? { attempted: 0, confirmed: 0, pending: 0, failed: 0 };
+      if (summary.attempted === 0) {
+        toast.message("Diagnostic DNS terminé — aucun canal d'envoi sélectionné");
+      } else if (r.success === true && summary.failed === 0 && summary.pending === 0) {
+        toast.success(`Envoi confirmé — ${summary.confirmed}/${summary.attempted} canal(aux)`);
+      } else if (r.success === true) {
+        toast.warning(`${summary.confirmed} confirmé(s), ${summary.pending} en attente, ${summary.failed} en échec`);
+      } else {
+        // Aucun canal confirmé — JAMAIS afficher "envoyé"
+        toast.error(`Aucun envoi confirmé (${summary.failed} échec, ${summary.pending} en attente)`);
+      }
     } catch (e: any) {
       toast.error(e.message || "Erreur lors du test");
     } finally {
