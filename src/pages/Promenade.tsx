@@ -307,6 +307,35 @@ export default function Promenade() {
                 </div>
               )}
 
+              <div className="border-t pt-3 space-y-2">
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Événements ({events.length})
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  {QUICK_EVENTS.map((e) => {
+                    const Icon = e.icon;
+                    return (
+                      <Button
+                        key={e.type}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="flex flex-col h-auto py-2 px-1 gap-1"
+                        onClick={() => addEvent(e.type, e.label)}
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span className="text-[10px]">{e.label}</span>
+                      </Button>
+                    );
+                  })}
+                </div>
+                {events.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Dernier : {events[events.length - 1].label}
+                  </p>
+                )}
+              </div>
+
               <Button onClick={stop} variant="destructive" className="w-full">
                 <Square className="h-4 w-4 mr-2" />Terminer
               </Button>
