@@ -106,14 +106,15 @@ export function usePushNotifications() {
     }
 
     try {
+      setBusy(true);
+
       const registration = await getReadyPushRegistration();
 
       /*
-       * Correction critique :
-       * Si l’autorisation navigateur/iOS est encore accordée,
-       * mais que la subscription locale n’est plus retrouvée après fermeture/réouverture,
-       * DogWork ne doit PAS considérer les notifications comme désactivées.
-       * Il doit recréer la subscription et la resynchroniser côté Supabase.
+       * Important :
+       * Si iOS/navigateur autorise encore les notifications,
+       * mais que l'abonnement local est absent, on le recrée.
+       * On ne laisse pas l'app dans un faux état "désactivé".
        */
       const subscription = await createOrGetSubscription(registration);
 
@@ -124,11 +125,11 @@ export function usePushNotifications() {
       console.error("[push] refresh/repair failed", error);
 
       /*
-       * Important :
-       * Une erreur Service Worker, réseau ou Supabase n’est pas un refus iOS.
-       * Donc on ne passe jamais en "denied" ici.
+       * Une erreur réseau, service worker ou Supabase n'est pas un refus iOS.
        */
       setStatus("granted-not-subscribed");
+    } finally {
+      setBusy(false);
     }
   }, []);
 
@@ -192,8 +193,8 @@ export function usePushNotifications() {
       const subscription = await registration?.pushManager.getSubscription();
 
       /*
-       * Seule cette fonction désactive volontairement les notifications.
-       * Elle doit être appelée uniquement depuis le bouton utilisateur.
+       * Seule cette fonction désactive réellement les notifications.
+       * Elle doit être déclenchée uniquement par le bouton utilisateur "Désactiver".
        */
       if (subscription) {
         await supabase.functions.invoke("push-subscribe", {
