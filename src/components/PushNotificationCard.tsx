@@ -139,7 +139,10 @@ export function PushNotificationCard({ variant = "card", className }: Props) {
             variant={isOn ? "outline" : "default"}
             onClick={isOn ? handleDisable : handleEnable}
           >
-            {isOn ? "Désactiver" : "Activer maintenant"}
+            {isOn ? "Désactiver" : status === "granted-not-subscribed" ? "Réparer la souscription" : "Activer maintenant"}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => refresh()} disabled={busy}>
+            Revérifier
           </Button>
           {isOn && (
             <Button asChild variant="ghost" size="sm">
