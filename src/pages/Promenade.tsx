@@ -100,7 +100,7 @@ export default function Promenade() {
 
   function start() {
     if (!dogId) { toast({ title: "Sélectionnez un chien", variant: "destructive" }); return; }
-    setPoints([]); setStartedAt(new Date()); setPhase("active"); setWeather(null); setGpsState("idle");
+    setPoints([]); setEvents([]); setStartedAt(new Date()); setPhase("active"); setWeather(null); setGpsState("idle");
 
     if (manualMode || !("geolocation" in navigator)) {
       setGpsState("unavailable");
@@ -140,6 +140,14 @@ export default function Promenade() {
     setPhase("summary");
   }
 
+  function addEvent(type: string, label: string) {
+    const last = points[points.length - 1];
+    setEvents((prev) => [...prev, { type, label, t: Date.now(), lat: last?.lat, lng: last?.lng }]);
+    if (type === "pee") setPee(true);
+    if (type === "poop") setPoop(true);
+    toast({ title: label, description: "Événement ajouté à la balade." });
+  }
+
   async function save() {
     if (!user || !dogId || !startedAt) return;
     setSaving(true);
@@ -174,18 +182,27 @@ export default function Promenade() {
       notes: notes || null,
     }).select().single() as any);
 
-    if (!error && walk && points.length > 0) {
-      const rows = points.map((p, i) => ({
+    if (!error && walk) {
+      const gpsRows = points.map((p, i) => ({
         walk_id: walk.id, user_id: user.id, recorded_at: new Date(p.t).toISOString(),
         lat: p.lat, lng: p.lng, accuracy_meters: p.accuracy ?? null, sequence_index: i,
       }));
-      await (supabase.from("dog_walk_points" as any).insert(rows) as any);
+      const eventRows = events.map((e, i) => ({
+        walk_id: walk.id, user_id: user.id, recorded_at: new Date(e.t).toISOString(),
+        lat: e.lat ?? null, lng: e.lng ?? null,
+        accuracy_meters: null, sequence_index: points.length + i,
+        event_type: e.type, event_label: e.label,
+      }));
+      const allRows = [...gpsRows, ...eventRows];
+      if (allRows.length) {
+        await (supabase.from("dog_walk_points" as any).insert(allRows) as any);
+      }
     }
     setSaving(false);
     if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Promenade enregistrée" });
     setPhase("idle"); setPee(false); setPoop(false); setPlay("none"); setZoneAfter("green");
-    setNotes(""); setPoints([]); setStartedAt(null); setWeather(null); setGpsState("idle");
+    setNotes(""); setPoints([]); setEvents([]); setStartedAt(null); setWeather(null); setGpsState("idle");
   }
 
   return (
