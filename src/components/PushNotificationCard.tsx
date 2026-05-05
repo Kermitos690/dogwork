@@ -12,7 +12,7 @@ interface Props {
 }
 
 export function PushNotificationCard({ variant = "card", className }: Props) {
-  const { status, busy, enable, disable } = usePushNotifications();
+  const { status, busy, enable, disable, refresh } = usePushNotifications();
   const { toast } = useToast();
 
   if (status === "unsupported") return null;
@@ -85,12 +85,14 @@ export function PushNotificationCard({ variant = "card", className }: Props) {
       <Card className={cn("border-destructive/30", className)}>
         <CardContent className="flex items-start gap-3 py-4">
           <BellOff className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-          <div className="text-sm">
-            <p className="font-medium">Notifications bloquées</p>
-            <p className="text-muted-foreground mt-1">
-              Vous avez refusé les notifications. Pour les réactiver, ouvrez les paramètres de votre navigateur
-              ou de votre téléphone et autorisez DogWork à envoyer des notifications.
+          <div className="text-sm space-y-2 flex-1">
+            <p className="font-medium">Notifications bloquées par le système</p>
+            <p className="text-muted-foreground">
+              iPhone : Réglages → Notifications → DogWork → Autoriser. Sur Mac/Android : autorisez DogWork dans les paramètres de notifications du navigateur, puis revenez ici.
             </p>
+            <Button size="sm" variant="outline" onClick={() => refresh()} disabled={busy}>
+              J'ai corrigé, revérifier
+            </Button>
           </div>
         </CardContent>
       </Card>
