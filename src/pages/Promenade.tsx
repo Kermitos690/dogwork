@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, MapPin, Play, Square, Loader2, Cloud, AlertTriangle, PencilLine, Smartphone } from "lucide-react";
+import { ArrowLeft, MapPin, Play, Square, Loader2, Cloud, AlertTriangle, PencilLine, Smartphone, Droplets, Dog, User, AlertCircle, Heart, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -19,6 +19,17 @@ type Phase = "idle" | "active" | "summary";
 type GpsState = "idle" | "watching" | "denied" | "unavailable";
 
 interface GpsPoint { lat: number; lng: number; t: number; accuracy?: number; }
+interface WalkEvent { type: string; label: string; t: number; lat?: number; lng?: number; }
+const QUICK_EVENTS: { type: string; label: string; icon: any }[] = [
+  { type: "pee", label: "Pipi", icon: Droplets },
+  { type: "poop", label: "Caca", icon: Droplets },
+  { type: "dog_seen", label: "Chien", icon: Dog },
+  { type: "human_seen", label: "Humain", icon: User },
+  { type: "fear", label: "Peur", icon: AlertCircle },
+  { type: "calm", label: "Calme", icon: Heart },
+  { type: "leash_pull", label: "Traction", icon: AlertTriangle },
+  { type: "noise", label: "Bruit", icon: Volume2 },
+];
 
 function haversine(a: GpsPoint, b: GpsPoint): number {
   const R = 6371000, toRad = (d: number) => (d * Math.PI) / 180;
@@ -41,6 +52,7 @@ export default function Promenade() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [startedAt, setStartedAt] = useState<Date | null>(null);
   const [points, setPoints] = useState<GpsPoint[]>([]);
+  const [events, setEvents] = useState<WalkEvent[]>([]);
   const [watchId, setWatchId] = useState<number | null>(null);
   const [tick, setTick] = useState(0);
   const [weather, setWeather] = useState<any>(null);
@@ -88,7 +100,7 @@ export default function Promenade() {
 
   function start() {
     if (!dogId) { toast({ title: "Sélectionnez un chien", variant: "destructive" }); return; }
-    setPoints([]); setStartedAt(new Date()); setPhase("active"); setWeather(null); setGpsState("idle");
+    setPoints([]); setEvents([]); setStartedAt(new Date()); setPhase("active"); setWeather(null); setGpsState("idle");
 
     if (manualMode || !("geolocation" in navigator)) {
       setGpsState("unavailable");
@@ -128,6 +140,14 @@ export default function Promenade() {
     setPhase("summary");
   }
 
+  function addEvent(type: string, label: string) {
+    const last = points[points.length - 1];
+    setEvents((prev) => [...prev, { type, label, t: Date.now(), lat: last?.lat, lng: last?.lng }]);
+    if (type === "pee") setPee(true);
+    if (type === "poop") setPoop(true);
+    toast({ title: label, description: "Événement ajouté à la balade." });
+  }
+
   async function save() {
     if (!user || !dogId || !startedAt) return;
     setSaving(true);
@@ -162,18 +182,27 @@ export default function Promenade() {
       notes: notes || null,
     }).select().single() as any);
 
-    if (!error && walk && points.length > 0) {
-      const rows = points.map((p, i) => ({
+    if (!error && walk) {
+      const gpsRows = points.map((p, i) => ({
         walk_id: walk.id, user_id: user.id, recorded_at: new Date(p.t).toISOString(),
         lat: p.lat, lng: p.lng, accuracy_meters: p.accuracy ?? null, sequence_index: i,
       }));
-      await (supabase.from("dog_walk_points" as any).insert(rows) as any);
+      const eventRows = events.map((e, i) => ({
+        walk_id: walk.id, user_id: user.id, recorded_at: new Date(e.t).toISOString(),
+        lat: e.lat ?? null, lng: e.lng ?? null,
+        accuracy_meters: null, sequence_index: points.length + i,
+        event_type: e.type, event_label: e.label,
+      }));
+      const allRows = [...gpsRows, ...eventRows];
+      if (allRows.length) {
+        await (supabase.from("dog_walk_points" as any).insert(allRows) as any);
+      }
     }
     setSaving(false);
     if (error) { toast({ title: "Erreur", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Promenade enregistrée" });
     setPhase("idle"); setPee(false); setPoop(false); setPlay("none"); setZoneAfter("green");
-    setNotes(""); setPoints([]); setStartedAt(null); setWeather(null); setGpsState("idle");
+    setNotes(""); setPoints([]); setEvents([]); setStartedAt(null); setWeather(null); setGpsState("idle");
   }
 
   return (
@@ -277,6 +306,35 @@ export default function Promenade() {
                   {weather.location_label ? ` · ${weather.location_label}` : ""}
                 </div>
               )}
+
+              <div className="border-t pt-3 space-y-2">
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Événements ({events.length})
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  {QUICK_EVENTS.map((e) => {
+                    const Icon = e.icon;
+                    return (
+                      <Button
+                        key={e.type}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="flex flex-col h-auto py-2 px-1 gap-1"
+                        onClick={() => addEvent(e.type, e.label)}
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span className="text-[10px]">{e.label}</span>
+                      </Button>
+                    );
+                  })}
+                </div>
+                {events.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Dernier : {events[events.length - 1].label}
+                  </p>
+                )}
+              </div>
 
               <Button onClick={stop} variant="destructive" className="w-full">
                 <Square className="h-4 w-4 mr-2" />Terminer

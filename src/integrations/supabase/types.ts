@@ -1819,6 +1819,8 @@ export type Database = {
         Row: {
           accuracy_meters: number | null
           altitude_meters: number | null
+          event_label: string | null
+          event_type: string | null
           heading: number | null
           id: string
           lat: number
@@ -1832,6 +1834,8 @@ export type Database = {
         Insert: {
           accuracy_meters?: number | null
           altitude_meters?: number | null
+          event_label?: string | null
+          event_type?: string | null
           heading?: number | null
           id?: string
           lat: number
@@ -1845,6 +1849,8 @@ export type Database = {
         Update: {
           accuracy_meters?: number | null
           altitude_meters?: number | null
+          event_label?: string | null
+          event_type?: string | null
           heading?: number | null
           id?: string
           lat?: number
