@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, MapPin, Play, Square, Loader2, Cloud, AlertTriangle, PencilLine, Smartphone } from "lucide-react";
+import { ArrowLeft, MapPin, Play, Square, Loader2, Cloud, AlertTriangle, PencilLine, Smartphone, Droplets, Dog, User, AlertCircle, Heart, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -19,6 +19,17 @@ type Phase = "idle" | "active" | "summary";
 type GpsState = "idle" | "watching" | "denied" | "unavailable";
 
 interface GpsPoint { lat: number; lng: number; t: number; accuracy?: number; }
+interface WalkEvent { type: string; label: string; t: number; lat?: number; lng?: number; }
+const QUICK_EVENTS: { type: string; label: string; icon: any }[] = [
+  { type: "pee", label: "Pipi", icon: Droplets },
+  { type: "poop", label: "Caca", icon: Droplets },
+  { type: "dog_seen", label: "Chien", icon: Dog },
+  { type: "human_seen", label: "Humain", icon: User },
+  { type: "fear", label: "Peur", icon: AlertCircle },
+  { type: "calm", label: "Calme", icon: Heart },
+  { type: "leash_pull", label: "Traction", icon: AlertTriangle },
+  { type: "noise", label: "Bruit", icon: Volume2 },
+];
 
 function haversine(a: GpsPoint, b: GpsPoint): number {
   const R = 6371000, toRad = (d: number) => (d * Math.PI) / 180;
@@ -41,6 +52,7 @@ export default function Promenade() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [startedAt, setStartedAt] = useState<Date | null>(null);
   const [points, setPoints] = useState<GpsPoint[]>([]);
+  const [events, setEvents] = useState<WalkEvent[]>([]);
   const [watchId, setWatchId] = useState<number | null>(null);
   const [tick, setTick] = useState(0);
   const [weather, setWeather] = useState<any>(null);
