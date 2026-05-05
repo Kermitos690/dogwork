@@ -187,11 +187,31 @@ export default function PublicProfileManager() {
     return src ? slugify(src) : "";
   }, [form, kind]);
 
+  // Auto-create a draft profile row so the user can edit it directly
+  // (avoids the false "profil incomplet" lock when the row doesn't exist yet).
+  const ensureProfile = useMutation({
+    mutationFn: async () => {
+      if (!user || !kind) throw new Error("missing");
+      const payload: any = { user_id: user.id };
+      if (kind === "shelter") payload.name = "Mon refuge";
+      else payload.display_name = user.email?.split("@")[0] ?? "Coach";
+      const { error } = await supabase.from(tableName as any).insert(payload);
+      if (error && !String(error.message).match(/duplicate|unique/i)) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["public_profile_manager"] }),
+    onError: (e: any) => toast({ title: "Création impossible", description: e.message, variant: "destructive" }),
+  });
+
   if (!kind || isLoading) return <div className="container py-8 text-muted-foreground">Chargement…</div>;
   if (!profile) return (
-    <div className="container py-8 space-y-3">
+    <div className="container py-8 space-y-4 max-w-xl">
       <h1 className="text-2xl font-bold">Ma page publique</h1>
-      <p className="text-muted-foreground">Complétez d'abord votre profil pour activer votre page publique.</p>
+      <p className="text-muted-foreground">
+        Aucune fiche publique n'existe encore pour votre compte. Créez-la en un clic, puis personnalisez son contenu.
+      </p>
+      <Button onClick={() => ensureProfile.mutate()} disabled={ensureProfile.isPending}>
+        {ensureProfile.isPending ? "Création…" : "Créer ma page publique"}
+      </Button>
     </div>
   );
 

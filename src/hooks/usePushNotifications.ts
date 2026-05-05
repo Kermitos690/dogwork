@@ -50,7 +50,17 @@ export function usePushNotifications() {
     }
   }, []);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    refresh();
+    const onFocus = () => refresh();
+    const onVis = () => { if (document.visibilityState === "visible") refresh(); };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [refresh]);
 
   const enable = useCallback(async (): Promise<{ ok: boolean; reason?: string }> => {
     if (!isPushSupported()) return { ok: false, reason: "unsupported" };
