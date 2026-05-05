@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
+
 import { supabase } from "@/integrations/supabase/client";
+
 import {
   VAPID_PUBLIC_KEY,
   PUSH_SW_PATH,
@@ -20,6 +22,57 @@ export type PushStatus =
   | "granted-not-subscribed"
   | "subscribed";
 
+function getPlatform() {
+  if (isIos()) return "ios";
+  if (/Android/i.test(navigator.userAgent)) return "android";
+  return "desktop";
+}
+
+async function getReadyPushRegistration(): Promise<ServiceWorkerRegistration> {
+  let registration = await navigator.serviceWorker.getRegistration(PUSH_SW_SCOPE);
+
+  if (!registration) {
+    registration = await navigator.serviceWorker.register(PUSH_SW_PATH, {
+      scope: PUSH_SW_SCOPE,
+    });
+  }
+
+  await navigator.serviceWorker.ready;
+
+  return registration;
+}
+
+async function createOrGetSubscription(
+  registration: ServiceWorkerRegistration,
+): Promise<PushSubscription> {
+  const existing = await registration.pushManager.getSubscription();
+
+  if (existing) {
+    return existing;
+  }
+
+  const key = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+
+  return await registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: key.buffer as ArrayBuffer,
+  });
+}
+
+async function registerSubscriptionOnServer(subscription: PushSubscription) {
+  const { error } = await supabase.functions.invoke("push-subscribe", {
+    body: {
+      action: "subscribe",
+      subscription: subscription.toJSON(),
+      platform: getPlatform(),
+    },
+  });
+
+  if (error) {
+    throw error;
+  }
+}
+
 export function usePushNotifications() {
   const [status, setStatus] = useState<PushStatus>("default");
   const [busy, setBusy] = useState(false);
@@ -29,36 +82,73 @@ export function usePushNotifications() {
       setStatus("unsupported");
       return;
     }
+
     if (isPreviewOrIframe()) {
       setStatus("blocked-preview");
       return;
     }
+
     if (isIos() && !isStandalonePwa()) {
       setStatus("needs-ios-install");
       return;
     }
-    const perm = Notification.permission;
-    if (perm === "denied") { setStatus("denied"); return; }
-    if (perm === "default") { setStatus("default"); return; }
+
+    const permission = Notification.permission;
+
+    if (permission === "denied") {
+      setStatus("denied");
+      return;
+    }
+
+    if (permission === "default") {
+      setStatus("default");
+      return;
+    }
 
     try {
-      const reg = await navigator.serviceWorker.getRegistration(PUSH_SW_SCOPE);
-      const sub = await reg?.pushManager.getSubscription();
-      setStatus(sub ? "subscribed" : "granted-not-subscribed");
-    } catch {
+      const registration = await getReadyPushRegistration();
+
+      /*
+       * Correction critique :
+       * Si l’autorisation navigateur/iOS est encore accordée,
+       * mais que la subscription locale n’est plus retrouvée après fermeture/réouverture,
+       * DogWork ne doit PAS considérer les notifications comme désactivées.
+       * Il doit recréer la subscription et la resynchroniser côté Supabase.
+       */
+      const subscription = await createOrGetSubscription(registration);
+
+      await registerSubscriptionOnServer(subscription);
+
+      setStatus("subscribed");
+    } catch (error) {
+      console.error("[push] refresh/repair failed", error);
+
+      /*
+       * Important :
+       * Une erreur Service Worker, réseau ou Supabase n’est pas un refus iOS.
+       * Donc on ne passe jamais en "denied" ici.
+       */
       setStatus("granted-not-subscribed");
     }
   }, []);
 
   useEffect(() => {
     refresh();
+
     const onFocus = () => refresh();
-    const onVis = () => { if (document.visibilityState === "visible") refresh(); };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        refresh();
+      }
+    };
+
     window.addEventListener("focus", onFocus);
-    document.addEventListener("visibilitychange", onVis);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
     return () => {
       window.removeEventListener("focus", onFocus);
-      document.removeEventListener("visibilitychange", onVis);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [refresh]);
 
@@ -68,44 +158,27 @@ export function usePushNotifications() {
     if (isIos() && !isStandalonePwa()) return { ok: false, reason: "needs-ios-install" };
 
     setBusy(true);
+
     try {
-      const perm = await Notification.requestPermission();
-      if (perm !== "granted") {
+      const permission = await Notification.requestPermission();
+
+      if (permission !== "granted") {
         await refresh();
         return { ok: false, reason: "permission-denied" };
       }
 
-      // Enregistre le SW push (séparé du SW PWA)
-      const reg = await navigator.serviceWorker.register(PUSH_SW_PATH, { scope: PUSH_SW_SCOPE });
-      await navigator.serviceWorker.ready;
+      const registration = await getReadyPushRegistration();
+      const subscription = await createOrGetSubscription(registration);
 
-      let sub = await reg.pushManager.getSubscription();
-      if (!sub) {
-        const key = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
-        sub = await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          // Cast required: TS lib types of PushManager are stricter than spec.
-          applicationServerKey: key.buffer as ArrayBuffer,
-        });
-      }
-
-      const { error } = await supabase.functions.invoke("push-subscribe", {
-        body: {
-          action: "subscribe",
-          subscription: sub.toJSON(),
-          platform: isIos() ? "ios" : /Android/i.test(navigator.userAgent) ? "android" : "desktop",
-        },
-      });
-      if (error) {
-        await refresh();
-        return { ok: false, reason: error.message };
-      }
+      await registerSubscriptionOnServer(subscription);
 
       setStatus("subscribed");
+
       return { ok: true };
-    } catch (e: any) {
+    } catch (error: any) {
+      console.error("[push] enable failed", error);
       await refresh();
-      return { ok: false, reason: e?.message ?? "unknown" };
+      return { ok: false, reason: error?.message ?? "unknown" };
     } finally {
       setBusy(false);
     }
@@ -113,21 +186,39 @@ export function usePushNotifications() {
 
   const disable = useCallback(async (): Promise<{ ok: boolean }> => {
     setBusy(true);
+
     try {
-      const reg = await navigator.serviceWorker.getRegistration(PUSH_SW_SCOPE);
-      const sub = await reg?.pushManager.getSubscription();
-      if (sub) {
+      const registration = await navigator.serviceWorker.getRegistration(PUSH_SW_SCOPE);
+      const subscription = await registration?.pushManager.getSubscription();
+
+      /*
+       * Seule cette fonction désactive volontairement les notifications.
+       * Elle doit être appelée uniquement depuis le bouton utilisateur.
+       */
+      if (subscription) {
         await supabase.functions.invoke("push-subscribe", {
-          body: { action: "unsubscribe", subscription: sub.toJSON() },
+          body: {
+            action: "unsubscribe",
+            subscription: subscription.toJSON(),
+          },
         });
-        await sub.unsubscribe();
+
+        await subscription.unsubscribe();
       }
+
       setStatus("granted-not-subscribed");
+
       return { ok: true };
     } finally {
       setBusy(false);
     }
   }, []);
 
-  return { status, busy, enable, disable, refresh };
+  return {
+    status,
+    busy,
+    enable,
+    disable,
+    refresh,
+  };
 }
