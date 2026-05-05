@@ -1,5 +1,13 @@
-import { Bell, BellOff, BellRing, Smartphone, Apple, AlertTriangle } from "lucide-react";
+import {
+  AlertTriangle,
+  Apple,
+  Bell,
+  BellOff,
+  BellRing,
+  Smartphone,
+} from "lucide-react";
 import { Link } from "react-router-dom";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -18,38 +26,90 @@ export function PushNotificationCard({ variant = "card", className }: Props) {
   if (status === "unsupported") return null;
 
   async function handleEnable() {
-    const r = await enable();
-    if (r.ok) {
+    const result = await enable();
+
+    if (result.ok) {
       toast({
         title: "Notifications activées",
-        description: "Vous recevrez les rappels et messages importants, même app fermée.",
+        description:
+          "DogWork a activé et synchronisé les notifications push sur cet appareil.",
       });
-    } else if (r.reason === "permission-denied") {
+      return;
+    }
+
+    if (result.reason === "permission-denied") {
       toast({
         title: "Notifications refusées",
-        description: "Vous pouvez les réactiver dans les paramètres de votre navigateur.",
+        description:
+          "L’autorisation est bloquée par le navigateur ou l’iPhone. Réactivez-la dans les réglages système.",
         variant: "destructive",
       });
-    } else if (r.reason && r.reason !== "preview" && r.reason !== "needs-ios-install") {
-      toast({ title: "Erreur", description: r.reason, variant: "destructive" });
+      return;
+    }
+
+    if (result.reason === "needs-ios-install") {
+      toast({
+        title: "Installation requise sur iPhone",
+        description:
+          "Installez DogWork sur l’écran d’accueil pour activer les notifications iOS.",
+      });
+      return;
+    }
+
+    if (result.reason && result.reason !== "preview") {
+      toast({
+        title: "Erreur notifications",
+        description: result.reason,
+        variant: "destructive",
+      });
     }
   }
 
   async function handleDisable() {
     await disable();
-    toast({ title: "Notifications désactivées" });
+
+    toast({
+      title: "Notifications désactivées",
+      description:
+        "DogWork ne vous enverra plus de notifications push sur cet appareil.",
+    });
   }
 
-  // ---- Cas spéciaux ----
+  async function handleRefresh() {
+    await refresh();
+
+    toast({
+      title: "Vérification effectuée",
+      description:
+        "DogWork a revérifié et resynchronisé l’état des notifications push.",
+    });
+  }
+
+  function handlePreferencesClick() {
+    const categories =
+      document.getElementById("notification-categories") ||
+      document.querySelector("[data-notification-categories]");
+
+    if (categories) {
+      categories.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      return;
+    }
+
+    window.scrollTo({
+      top: document.body.scrollHeight,
+      behavior: "smooth",
+    });
+  }
+
   if (status === "blocked-preview") {
     return (
-      <Card className={cn("border-dashed", className)}>
-        <CardContent className="flex items-start gap-3 py-4">
-          <AlertTriangle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-          <div className="text-sm text-muted-foreground">
-            Les notifications push ne fonctionnent pas dans l'aperçu Lovable.
-            Testez sur votre site publié <strong>www.dogwork-at-home.com</strong>.
-          </div>
+      <Card className={cn("border-amber-200 bg-amber-50", className)}>
+        <CardContent className="p-4 text-sm text-amber-900">
+          Les notifications push ne fonctionnent pas dans l&apos;aperçu Lovable.
+          Testez sur votre site publié www.dogwork-at-home.com.
         </CardContent>
       </Card>
     );
@@ -57,24 +117,28 @@ export function PushNotificationCard({ variant = "card", className }: Props) {
 
   if (status === "needs-ios-install") {
     return (
-      <Card className={cn("border-primary/30 bg-primary/5", className)}>
-        <CardContent className="py-5 space-y-3">
-          <div className="flex items-start gap-3">
-            <Apple className="h-6 w-6 text-foreground shrink-0" />
-            <div>
-              <h3 className="font-semibold">Activer les notifications sur iPhone</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Pour recevoir les notifications sur iOS, vous devez d'abord installer DogWork sur votre écran d'accueil.
-                C'est rapide (30 secondes) et c'est une exigence Apple.
-              </p>
-            </div>
+      <Card className={cn("border-blue-200 bg-blue-50", className)}>
+        <CardContent className="flex gap-3 p-4">
+          <Apple className="mt-1 h-5 w-5 shrink-0 text-blue-600" />
+
+          <div className="space-y-2">
+            <h3 className="font-semibold text-blue-950">
+              Activer les notifications sur iPhone
+            </h3>
+
+            <p className="text-sm text-blue-900">
+              Pour recevoir les notifications sur iOS, vous devez d&apos;abord
+              installer DogWork sur votre écran d&apos;accueil. C&apos;est une
+              exigence Apple pour les apps web.
+            </p>
+
+            <Button asChild size="sm" variant="outline">
+              <Link to="/install">
+                <Smartphone className="mr-2 h-4 w-4" />
+                Installer l&apos;app
+              </Link>
+            </Button>
           </div>
-          <Button asChild className="w-full sm:w-auto">
-            <Link to="/install">
-              <Smartphone className="h-4 w-4 mr-2" />
-              Installer l'app
-            </Link>
-          </Button>
         </CardContent>
       </Card>
     );
@@ -82,16 +146,30 @@ export function PushNotificationCard({ variant = "card", className }: Props) {
 
   if (status === "denied") {
     return (
-      <Card className={cn("border-destructive/30", className)}>
-        <CardContent className="flex items-start gap-3 py-4">
-          <BellOff className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-          <div className="text-sm space-y-2 flex-1">
-            <p className="font-medium">Notifications bloquées par le système</p>
-            <p className="text-muted-foreground">
-              iPhone : Réglages → Notifications → DogWork → Autoriser. Sur Mac/Android : autorisez DogWork dans les paramètres de notifications du navigateur, puis revenez ici.
-            </p>
-            <Button size="sm" variant="outline" onClick={() => refresh()} disabled={busy}>
-              J'ai corrigé, revérifier
+      <Card className={cn("border-destructive/30 bg-destructive/5", className)}>
+        <CardContent className="flex gap-3 p-4">
+          <AlertTriangle className="mt-1 h-5 w-5 shrink-0 text-destructive" />
+
+          <div className="space-y-3">
+            <div>
+              <h3 className="font-semibold text-destructive">
+                Notifications bloquées par le système
+              </h3>
+
+              <p className="text-sm text-muted-foreground">
+                iPhone : Réglages → Notifications → DogWork → Autoriser. Sur
+                Mac/Android : autorisez DogWork dans les paramètres de
+                notifications du navigateur, puis revenez ici.
+              </p>
+            </div>
+
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleRefresh}
+              disabled={busy}
+            >
+              {busy ? "Vérification…" : "J’ai corrigé, revérifier"}
             </Button>
           </div>
         </CardContent>
@@ -99,56 +177,109 @@ export function PushNotificationCard({ variant = "card", className }: Props) {
     );
   }
 
-  // ---- Active / Inactive ----
   const isOn = status === "subscribed";
 
   if (variant === "compact") {
     return (
       <Button
-        variant={isOn ? "outline" : "default"}
+        variant={isOn ? "secondary" : "default"}
         size="sm"
-        disabled={busy}
         onClick={isOn ? handleDisable : handleEnable}
+        disabled={busy}
         className={className}
       >
-        {isOn ? <BellRing className="h-4 w-4 mr-2" /> : <Bell className="h-4 w-4 mr-2" />}
-        {isOn ? "Notifications activées" : "Activer les notifications"}
+        {isOn ? (
+          <BellRing className="mr-2 h-4 w-4" />
+        ) : (
+          <Bell className="mr-2 h-4 w-4" />
+        )}
+
+        {busy
+          ? "Traitement…"
+          : isOn
+            ? "Notifications activées"
+            : status === "granted-not-subscribed"
+              ? "Réparer les notifications"
+              : "Activer les notifications"}
       </Button>
     );
   }
 
   return (
-    <Card className={cn(isOn ? "border-emerald-500/30 bg-emerald-500/5" : "border-primary/30 bg-primary/5", className)}>
-      <CardContent className="py-5 space-y-3">
-        <div className="flex items-start gap-3">
-          {isOn ? <BellRing className="h-6 w-6 text-emerald-600 shrink-0" /> : <Bell className="h-6 w-6 text-primary shrink-0" />}
-          <div className="flex-1">
+    <Card
+      className={cn(
+        isOn ? "border-primary/30 bg-primary/5" : "border-border",
+        className,
+      )}
+    >
+      <CardContent className="flex gap-4 p-4">
+        <div
+          className={cn(
+            "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+            isOn
+              ? "bg-primary/10 text-primary"
+              : "bg-muted text-muted-foreground",
+          )}
+        >
+          {isOn ? (
+            <BellRing className="h-5 w-5" />
+          ) : (
+            <BellOff className="h-5 w-5" />
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1 space-y-3">
+          <div>
             <h3 className="font-semibold">
-              {isOn ? "Notifications actives" : "Activer les notifications"}
-            </h3>
-            <p className="text-sm text-muted-foreground mt-1">
               {isOn
-                ? "Vous recevez les rappels d'exercices, nouveaux messages et alertes importantes — même quand l'app est fermée."
-                : "Recevez rappels d'exercices, messages et alertes refuge directement sur votre écran, même app fermée."}
+                ? "Notifications actives"
+                : status === "granted-not-subscribed"
+                  ? "Notifications à réparer"
+                  : "Activer les notifications"}
+            </h3>
+
+            <p className="text-sm text-muted-foreground">
+              {isOn
+                ? "Vous recevez les rappels d’exercices, nouveaux messages et alertes importantes — même quand l’app est fermée."
+                : status === "granted-not-subscribed"
+                  ? "L’autorisation semble accordée, mais la souscription push doit être resynchronisée avec DogWork."
+                  : "Recevez rappels d’exercices, messages et alertes refuge directement sur votre écran, même quand l’app est fermée."}
             </p>
           </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            disabled={busy}
-            variant={isOn ? "outline" : "default"}
-            onClick={isOn ? handleDisable : handleEnable}
-          >
-            {isOn ? "Désactiver" : status === "granted-not-subscribed" ? "Réparer la souscription" : "Activer maintenant"}
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => refresh()} disabled={busy}>
-            Revérifier
-          </Button>
-          {isOn && (
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/settings/notifications">Préférences</Link>
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={isOn ? handleDisable : handleEnable}
+              disabled={busy}
+              variant={isOn ? "outline" : "default"}
+            >
+              {busy
+                ? "Traitement…"
+                : isOn
+                  ? "Désactiver"
+                  : status === "granted-not-subscribed"
+                    ? "Réparer la souscription"
+                    : "Activer maintenant"}
             </Button>
-          )}
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={busy}
+            >
+              {busy ? "Vérification…" : "Revérifier"}
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handlePreferencesClick}
+            >
+              Préférences
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
