@@ -110,11 +110,13 @@ export function usePushNotifications() {
 
       const registration = await getReadyPushRegistration();
 
-      /*
-       * Important :
-       * Si iOS/navigateur autorise encore les notifications,
-       * mais que l'abonnement local est absent, on le recrée.
-       * On ne laisse pas l'app dans un faux état "désactivé".
+      /**
+       * Correction critique :
+       * Si l'autorisation iOS/navigateur est encore accordée mais que la
+       * PushSubscription locale a disparu après fermeture/réouverture,
+       * DogWork la recrée et la resynchronise côté Supabase.
+       *
+       * On ne désactive jamais les notifications ici.
        */
       const subscription = await createOrGetSubscription(registration);
 
@@ -124,8 +126,9 @@ export function usePushNotifications() {
     } catch (error) {
       console.error("[push] refresh/repair failed", error);
 
-      /*
-       * Une erreur réseau, service worker ou Supabase n'est pas un refus iOS.
+      /**
+       * Important :
+       * Une erreur réseau, Service Worker ou Supabase n'est pas un refus iOS.
        */
       setStatus("granted-not-subscribed");
     } finally {
@@ -156,7 +159,9 @@ export function usePushNotifications() {
   const enable = useCallback(async (): Promise<{ ok: boolean; reason?: string }> => {
     if (!isPushSupported()) return { ok: false, reason: "unsupported" };
     if (isPreviewOrIframe()) return { ok: false, reason: "preview" };
-    if (isIos() && !isStandalonePwa()) return { ok: false, reason: "needs-ios-install" };
+    if (isIos() && !isStandalonePwa()) {
+      return { ok: false, reason: "needs-ios-install" };
+    }
 
     setBusy(true);
 
@@ -192,9 +197,9 @@ export function usePushNotifications() {
       const registration = await navigator.serviceWorker.getRegistration(PUSH_SW_SCOPE);
       const subscription = await registration?.pushManager.getSubscription();
 
-      /*
-       * Seule cette fonction désactive réellement les notifications.
-       * Elle doit être déclenchée uniquement par le bouton utilisateur "Désactiver".
+      /**
+       * Seule cette fonction désactive volontairement les notifications.
+       * Elle doit être appelée uniquement depuis le bouton utilisateur.
        */
       if (subscription) {
         await supabase.functions.invoke("push-subscribe", {
