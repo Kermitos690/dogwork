@@ -315,6 +315,28 @@ export default function Promenade() {
                 </div>
               )}
 
+              <div className="border-t pt-3">
+                {points.length > 0 ? (
+                  <MapBoundary
+                    fallback={
+                      <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
+                        Carte indisponible — tracé sauvegardé ({points.length} points, {(distance / 1000).toFixed(2)} km).
+                      </div>
+                    }
+                  >
+                    <WalkMap points={points} events={events} height={200} />
+                  </MapBoundary>
+                ) : gpsState === "watching" ? (
+                  <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground flex items-center gap-2">
+                    <Loader2 className="h-3 w-3 animate-spin" /> En attente du premier point GPS…
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
+                    Aucun tracé GPS — la balade sera enregistrée avec durée et événements.
+                  </div>
+                )}
+              </div>
+
               <div className="border-t pt-3 space-y-2">
                 <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Événements ({events.length})
