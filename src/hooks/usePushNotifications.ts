@@ -111,25 +111,26 @@ export function usePushNotifications() {
       const registration = await getReadyPushRegistration();
 
       /**
-       * Correction critique :
-       * Si l'autorisation iOS/navigateur est encore accordée mais que la
-       * PushSubscription locale a disparu après fermeture/réouverture,
-       * DogWork la recrée et la resynchronise côté Supabase.
-       *
-       * On ne désactive jamais les notifications ici.
+       * Refresh passif : on NE déclenche PAS un subscribe ici.
+       * - S'il existe déjà une souscription → on la resync côté serveur (idempotent) et on marque "subscribed".
+       * - Sinon → "granted-not-subscribed" pour proposer la réparation explicite.
+       * Ainsi un échec réseau temporaire ne fait jamais clignoter l'UI vers "à réparer".
        */
-      const subscription = await createOrGetSubscription(registration);
+      const existing = await registration.pushManager.getSubscription();
 
-      await registerSubscriptionOnServer(subscription);
-
-      setStatus("subscribed");
+      if (existing) {
+        try {
+          await registerSubscriptionOnServer(existing);
+        } catch (e) {
+          // resync best-effort, on garde l'état "subscribed" si la souscription locale est valide
+          console.warn("[push] resync failed (non-blocking)", e);
+        }
+        setStatus("subscribed");
+      } else {
+        setStatus("granted-not-subscribed");
+      }
     } catch (error) {
-      console.error("[push] refresh/repair failed", error);
-
-      /**
-       * Important :
-       * Une erreur réseau, Service Worker ou Supabase n'est pas un refus iOS.
-       */
+      console.error("[push] refresh failed", error);
       setStatus("granted-not-subscribed");
     } finally {
       setBusy(false);
