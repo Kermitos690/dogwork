@@ -1,6 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { Component, ErrorInfo, ReactNode, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, MapPin, Play, Square, Loader2, Cloud, AlertTriangle, PencilLine, Smartphone, Droplets, Dog, User, AlertCircle, Heart, Volume2 } from "lucide-react";
+import { WalkMap } from "@/components/WalkMap";
+
+class MapBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch(_e: Error, _info: ErrorInfo) { /* silent */ }
+  render() { return this.state.failed ? this.props.fallback : this.props.children; }
+}
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -306,6 +314,28 @@ export default function Promenade() {
                   {weather.location_label ? ` · ${weather.location_label}` : ""}
                 </div>
               )}
+
+              <div className="border-t pt-3">
+                {points.length > 0 ? (
+                  <MapBoundary
+                    fallback={
+                      <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
+                        Carte indisponible — tracé sauvegardé ({points.length} points, {(distance / 1000).toFixed(2)} km).
+                      </div>
+                    }
+                  >
+                    <WalkMap points={points} events={events} height={200} />
+                  </MapBoundary>
+                ) : gpsState === "watching" ? (
+                  <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground flex items-center gap-2">
+                    <Loader2 className="h-3 w-3 animate-spin" /> En attente du premier point GPS…
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
+                    Aucun tracé GPS — la balade sera enregistrée avec durée et événements.
+                  </div>
+                )}
+              </div>
 
               <div className="border-t pt-3 space-y-2">
                 <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
