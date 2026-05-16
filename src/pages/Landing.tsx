@@ -169,6 +169,8 @@ export default function Landing() {
             <div className="relative">
               <div className="absolute -inset-4 bg-gradient-to-br from-primary/20 via-transparent to-accent/20 rounded-[2rem] blur-2xl" />
               <img src={heroStaffie} alt="Staffie bleu"
+                width={1024} height={1024}
+                fetchPriority="high" decoding="async"
                 className="relative w-full rounded-3xl shadow-2xl shadow-primary/20 object-cover aspect-square" />
               <div className="absolute -bottom-4 -left-4 bg-card border border-border/60 rounded-2xl px-4 py-3 shadow-xl flex items-center gap-3 max-w-[260px]">
                 <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
