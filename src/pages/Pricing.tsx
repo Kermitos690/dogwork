@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Check, Sparkles, Coins, Info, Star, Image as ImageIcon, Award } from "lucide-react";
+import { SEO } from "@/components/SEO";
 
 interface SubscriptionPlan {
   code: string;
@@ -149,6 +150,11 @@ export default function Pricing() {
 
   return (
     <div className="container max-w-6xl py-8 px-4 space-y-12">
+      <SEO
+        title="Tarifs DogWork — Plans Starter, Pro, Expert, Educator, Shelter"
+        description="Tarifs DogWork transparents : plan gratuit Starter, Pro, Expert, abonnements éducateurs et refuges. Commission marketplace 15,8 %."
+        path="/pricing"
+      />
       <header className="text-center space-y-3">
         <Badge variant="secondary" className="mb-2">
           <Sparkles className="w-3 h-3 mr-1" />

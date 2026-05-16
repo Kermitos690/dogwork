@@ -14,6 +14,7 @@ import heroStaffie from "@/assets/hero-staffie.jpg";
 import staffieTraining from "@/assets/staffie-training.jpg";
 import staffieFamily from "@/assets/staffie-family.jpg";
 import logoDogwork from "@/assets/logo-dogwork.png";
+import { SEO } from "@/components/SEO";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
@@ -78,6 +79,11 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
+      <SEO
+        title="DogWork — Éducation canine intelligente, refuges & coachs"
+        description="Plateforme premium pour propriétaires, éducateurs et refuges : 480+ exercices, plans IA adaptatifs, suivi comportemental et préparation à l'adoption."
+        path="/landing"
+      />
       {/* ========== NAV ========== */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">

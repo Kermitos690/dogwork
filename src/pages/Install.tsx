@@ -18,6 +18,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { SEO } from "@/components/SEO";
 
 type Platform = "ios" | "android" | "desktop";
 
@@ -132,6 +133,11 @@ export default function Install() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <SEO
+        title="Installer DogWork — guide PWA iPhone, Android, Desktop"
+        description="Installez DogWork comme application sur iPhone, Android ou Desktop. Guide pas à pas pour Safari, Chrome et notifications push."
+        path="/install"
+      />
       <header className="border-b border-border/40 bg-background/80 backdrop-blur sticky top-0 z-30">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link
