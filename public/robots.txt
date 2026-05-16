@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://www.dogwork-at-home.com/sitemap.xml
+Sitemap: https://dogwork-at-home.com/sitemap.xml
