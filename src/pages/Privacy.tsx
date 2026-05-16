@@ -1,11 +1,17 @@
 import { useNavigate, Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { SEO } from "@/components/SEO";
 
 export default function Privacy() {
   const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Confidentialité — DogWork"
+        description="Comment DogWork collecte, utilise et protège vos données : RGPD, droits d'accès, sécurité et durée de conservation."
+        path="/privacy"
+      />
       <div className="max-w-3xl mx-auto px-4 py-10 space-y-8">
         <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="h-4 w-4" /> Retour
