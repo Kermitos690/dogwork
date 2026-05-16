@@ -13,6 +13,7 @@ import { Dog, Mail, Lock, User, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { isProduction } from "@/lib/env";
+import { SEO } from "@/components/SEO";
 
 type Mode = "login" | "employee" | "signup" | "forgot";
 
@@ -148,6 +149,12 @@ export default function Auth() {
 
   return (
     <main className="min-h-screen bg-background flex items-center justify-center p-4" aria-label="Authentification">
+      <SEO
+        title="Connexion — DogWork"
+        description="Connectez-vous à DogWork ou créez votre compte gratuit pour accéder à vos plans d'éducation, suivi et exercices."
+        path="/auth"
+        noindex
+      />
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
           <div className="flex justify-end mb-2">
