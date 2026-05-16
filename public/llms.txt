@@ -1,0 +1,16 @@
+# DogWork
+
+> Plateforme SaaS d'éducation canine intelligente : programmes personnalisés, suivi comportemental, gestion de refuges et accompagnement par éducateurs certifiés.
+
+DogWork aide les propriétaires de chiens, les éducateurs canins, les refuges et leurs employés à structurer l'éducation, suivre les progrès, préparer les adoptions et accéder à une bibliothèque de 480+ exercices enrichis. L'IA intégrée propose des plans d'entraînement adaptatifs, des analyses comportementales et un chatbot expert.
+
+## Pages
+
+- [Accueil](/): Présentation de DogWork et accès rapide.
+- [Landing](/landing): Page de présentation complète avec offres et bénéfices.
+- [Tarifs](/pricing): Plans Starter, Pro, Expert, Educator et Shelter — prix transparents et commission marketplace 15,8 %.
+- [Installation](/install): Guide d'installation PWA iOS/Android/Desktop.
+- [Connexion](/auth): Inscription et connexion (email + Google).
+- [Mentions légales](/legal): Informations légales de l'éditeur.
+- [Confidentialité](/privacy): Politique de confidentialité et RGPD.
+- [Conditions](/terms): Conditions générales d'utilisation.
