@@ -28,9 +28,11 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [website, setWebsite] = useState(""); // honeypot anti-bot
+  const [formStartedAt] = useState(() => Date.now());
   const [loading, setLoading] = useState(false);
   const [devLoading, setDevLoading] = useState<string | null>(null);
-  const { user, loading: authLoading, signIn, signUp, resetPassword } = useAuth();
+  const { user, loading: authLoading, signIn, resetPassword } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { t } = useTranslation();
