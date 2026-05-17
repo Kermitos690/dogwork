@@ -103,6 +103,7 @@ const ShelterMessages = lazy(() => import("./pages/ShelterMessages"));
 const ShelterSettings = lazy(() => import("./pages/ShelterSettings"));
 const ShelterEmployees = lazy(() => import("./pages/ShelterEmployees"));
 const ShelterSpaces = lazy(() => import("./pages/ShelterSpaces"));
+const ShelterSpaceDetailPage = lazy(() => import("./pages/shelter/ShelterSpaceDetailPage"));
 const ShelterActivityLog = lazy(() => import("./pages/ShelterActivityLog"));
 const ShelterStats = lazy(() => import("./pages/ShelterStats"));
 const ShelterSubscription = lazy(() => import("./pages/ShelterSubscription"));
@@ -259,6 +260,7 @@ function ProtectedRoutes() {
           <Route path="/shelter/settings" element={<ShelterGuard><ShelterSettings /></ShelterGuard>} />
           <Route path="/shelter/employees" element={<ShelterGuard><ShelterEmployees /></ShelterGuard>} />
           <Route path="/shelter/spaces" element={<ShelterGuard><ShelterSpaces /></ShelterGuard>} />
+          <Route path="/shelter/spaces/:spaceId" element={<ShelterGuard><ShelterSpaceDetailPage /></ShelterGuard>} />
           <Route path="/shelter/activity" element={<ShelterGuard><ShelterActivityLog /></ShelterGuard>} />
           <Route path="/shelter/stats" element={<ShelterGuard><ShelterStats /></ShelterGuard>} />
           <Route path="/shelter/subscription" element={<ShelterGuard><ShelterSubscription /></ShelterGuard>} />
@@ -438,6 +440,7 @@ function ProtectedRoutes() {
         <Route path="/shelter/settings" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterSettings /></ShelterGuard></Suspense>} />
         <Route path="/shelter/employees" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterEmployees /></ShelterGuard></Suspense>} />
         <Route path="/shelter/spaces" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterSpaces /></ShelterGuard></Suspense>} />
+        <Route path="/shelter/spaces/:spaceId" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterSpaceDetailPage /></ShelterGuard></Suspense>} />
         <Route path="/shelter/activity" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterActivityLog /></ShelterGuard></Suspense>} />
         <Route path="/shelter/stats" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterStats /></ShelterGuard></Suspense>} />
         <Route path="/shelter/subscription" element={<Suspense fallback={<PageLoader />}><ShelterGuard><ShelterSubscription /></ShelterGuard></Suspense>} />
