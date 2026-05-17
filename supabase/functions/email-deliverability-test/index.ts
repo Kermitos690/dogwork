@@ -248,9 +248,9 @@ Deno.serve(async (req) => {
 
 
   // === DNS / DELIVERABILITY CHECKS ===
-  // Sélecteurs DKIM communs : Lovable utilise typiquement "lovable" / "lovable1", IONOS utilise "s1024"/"s2048"
+  // Sélecteurs DKIM communs : Lovable utilise "lovable" / "lovable1", Google utilise "google"
   const [rootReport, subReport] = await Promise.all([
-    inspectDomain(ROOT_DOMAIN, ['s1024', 's2048', 'default', 'lovable']),
+    inspectDomain(ROOT_DOMAIN, ['google', 'default', 's1024', 's2048', 'lovable']),
     inspectDomain(SENDER_SUBDOMAIN, ['lovable', 'lovable1', 'default', 's1']),
   ])
 
