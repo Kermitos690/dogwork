@@ -17,6 +17,8 @@ import { motion } from "framer-motion";
 import { Spaces3DView, Space3D } from "@/components/shelter/Spaces3DView";
 import { SpaceCreateWizard } from "@/components/shelter/spaces/SpaceCreateWizard";
 import { SpaceStatusBadge, SpaceRiskBadge } from "@/components/shelter/spaces/SpaceBadges";
+import { SpaceVisualCommandCenter } from "@/components/shelter/spaces/SpaceVisualCommandCenter";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 const SPACE_TYPES = [
   { value: "box", label: "Box" },
