@@ -61,8 +61,8 @@ export function SpaceDetailHeader({ space, currentOccupancy = 0, onStatusChange,
               </Button>
               <Button
                 size="sm" variant="outline" className="h-7 gap-1.5"
-                onClick={() => toast.info("Export PDF bientôt disponible.")}
-                aria-label="Exporter la fiche en PDF (bientôt disponible)"
+                onClick={() => setExportOpen(true)}
+                aria-label="Exporter la fiche espace"
               >
                 <FileDown className="h-3.5 w-3.5" /> Exporter
               </Button>
