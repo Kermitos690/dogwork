@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Smartphone, Download, X, Apple, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { usePwaInstalled } from "@/hooks/usePwaInstalled";
 
 type Variant = "hero" | "compact" | "banner";
 
@@ -15,13 +16,8 @@ interface InstallAppCardProps {
   hideIfInstalled?: boolean;
 }
 
-function isStandalone(): boolean {
-  if (typeof window === "undefined") return false;
-  // iOS
-  // @ts-ignore
-  if (window.navigator?.standalone === true) return true;
-  return window.matchMedia?.("(display-mode: standalone)").matches ?? false;
-}
+
+
 
 /**
  * Strong "Install the app" CTA.
@@ -36,16 +32,15 @@ export function InstallAppCard({
   hideIfInstalled = true,
 }: InstallAppCardProps) {
   const [hidden, setHidden] = useState(false);
-  const [installed, setInstalled] = useState(false);
+  const installed = usePwaInstalled();
 
   useEffect(() => {
-    if (hideIfInstalled) setInstalled(isStandalone());
     if (dismissKey) {
       try {
         if (localStorage.getItem(dismissKey) === "1") setHidden(true);
       } catch {}
     }
-  }, [dismissKey, hideIfInstalled]);
+  }, [dismissKey]);
 
   const dismiss = () => {
     setHidden(true);
@@ -56,7 +51,7 @@ export function InstallAppCard({
     }
   };
 
-  if (hidden || installed) return null;
+  if (hidden || (hideIfInstalled && installed)) return null;
 
   if (variant === "banner") {
     return (

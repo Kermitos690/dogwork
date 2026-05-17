@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Download, Share, Plus, X, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { usePwaInstalled, markPwaInstalled } from "@/hooks/usePwaInstalled";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -57,13 +58,14 @@ function recentlyDismissed(): boolean {
  */
 export function InstallPromptBanner() {
   const location = useLocation();
+  const installed = usePwaInstalled();
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
   const [showIosHint, setShowIosHint] = useState(false);
   const platform = typeof window !== "undefined" ? detect() : "desktop";
 
   useEffect(() => {
-    if (isStandalone()) return;
+    if (installed) { setVisible(false); return; }
     if (recentlyDismissed()) return;
     if (location.pathname.startsWith("/install")) return;
 
@@ -77,6 +79,7 @@ export function InstallPromptBanner() {
 
     const onInstalled = () => {
       setVisible(false);
+      markPwaInstalled();
       try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch {}
     };
     window.addEventListener("appinstalled", onInstalled);
@@ -95,7 +98,7 @@ export function InstallPromptBanner() {
       window.removeEventListener("beforeinstallprompt", onBeforeInstall);
       window.removeEventListener("appinstalled", onInstalled);
     };
-  }, [location.pathname]);
+  }, [location.pathname, installed]);
 
   function dismiss() {
     setVisible(false);
@@ -118,6 +121,7 @@ export function InstallPromptBanner() {
     if (platform === "ios") setShowIosHint(true);
   }
 
+  if (installed) return null;
   if (!visible) return null;
   // Desktop sans prompt → ne pas afficher (l'utilisateur n'en a pas besoin)
   if (platform === "desktop" && !deferred) return null;
