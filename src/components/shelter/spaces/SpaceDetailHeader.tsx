@@ -115,6 +115,8 @@ export function SpaceDetailHeader({ space, currentOccupancy = 0, onStatusChange,
         )}
       </CardContent>
     </Card>
+    <SpaceQRDialog space={space} open={qrOpen} onOpenChange={setQrOpen} />
+    </>
   );
 }
 
