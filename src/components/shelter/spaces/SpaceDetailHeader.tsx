@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { useState } from "react";
 import { SpaceQRDialog } from "./SpaceQRDialog";
+import { SpaceExportDialog } from "./SpaceExportDialog";
 
 interface Props {
   space: ShelterSpace;
@@ -21,6 +22,7 @@ export function SpaceDetailHeader({ space, currentOccupancy = 0, onStatusChange,
   const max = space.capacity ?? 0;
   const rate = calculateOccupancyRate(currentOccupancy, max);
   const [qrOpen, setQrOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   return (
     <>
@@ -59,8 +61,8 @@ export function SpaceDetailHeader({ space, currentOccupancy = 0, onStatusChange,
               </Button>
               <Button
                 size="sm" variant="outline" className="h-7 gap-1.5"
-                onClick={() => toast.info("Export PDF bientôt disponible.")}
-                aria-label="Exporter la fiche en PDF (bientôt disponible)"
+                onClick={() => setExportOpen(true)}
+                aria-label="Exporter la fiche espace"
               >
                 <FileDown className="h-3.5 w-3.5" /> Exporter
               </Button>
@@ -116,6 +118,7 @@ export function SpaceDetailHeader({ space, currentOccupancy = 0, onStatusChange,
       </CardContent>
     </Card>
     <SpaceQRDialog space={space} open={qrOpen} onOpenChange={setQrOpen} />
+    <SpaceExportDialog space={space} currentOccupancy={currentOccupancy} open={exportOpen} onOpenChange={setExportOpen} />
     </>
   );
 }
