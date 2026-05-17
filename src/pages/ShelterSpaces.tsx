@@ -51,6 +51,7 @@ export default function ShelterSpaces() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<SpaceForm>(emptyForm);
   const [assignDialog, setAssignDialog] = useState<string | null>(null);
