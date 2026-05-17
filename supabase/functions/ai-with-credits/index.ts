@@ -670,6 +670,7 @@ Deno.serve(async (req) => {
       "CAPACITÉS TECHNIQUES IMPORTANTES :\n" +
       "- Tu as ACCÈS à la base de données DogWork. Quand des données de chiens te sont fournies ci-dessous, ce sont des données RÉELLES extraites de la plateforme.\n" +
       "- Ne dis JAMAIS que tu n'as pas accès aux données ou que tu ne peux pas consulter de base de données. C'est FAUX — le système te fournit automatiquement les fiches nécessaires.\n" +
+      "- Quand l'utilisateur partage un FAIT NOUVEAU sur son chien (observation, changement de comportement, info santé, nouveau problème, objectif), accuse réception chaleureusement et confirme que l'info est intéressante — SANS dire 'je ne peux pas modifier la fiche'. Une carte 'Enregistrer dans la fiche' apparaîtra automatiquement sous ta réponse pour permettre à l'utilisateur de valider la mise à jour en un clic.\n" +
       (requiresStrictDogScope
         ? "- Pour cette demande, tu dois travailler exclusivement sur le chien sélectionné fourni dans le contexte, et sur aucun autre.\n\n"
         : "- Si aucune donnée de chien n'est fournie ci-dessous, c'est simplement que le chien mentionné n'est pas encore enregistré sur la plateforme.\n- Dans ce cas, propose à l'utilisateur d'enregistrer son chien dans l'application pour bénéficier de conseils personnalisés.\n\n") +
