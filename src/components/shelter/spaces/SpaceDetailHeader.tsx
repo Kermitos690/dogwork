@@ -7,6 +7,8 @@ import { Building2, Layers, MapPin, Users, ArrowLeft, Pencil, QrCode, FileDown }
 import { Link } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { useState } from "react";
+import { SpaceQRDialog } from "./SpaceQRDialog";
 
 interface Props {
   space: ShelterSpace;
@@ -18,8 +20,10 @@ interface Props {
 export function SpaceDetailHeader({ space, currentOccupancy = 0, onStatusChange, onEdit }: Props) {
   const max = space.capacity ?? 0;
   const rate = calculateOccupancyRate(currentOccupancy, max);
+  const [qrOpen, setQrOpen] = useState(false);
 
   return (
+    <>
     <Card className="overflow-hidden border-border/60">
       {space.main_photo_url && (
         <div className="h-40 sm:h-48 w-full overflow-hidden bg-muted">
@@ -48,8 +52,8 @@ export function SpaceDetailHeader({ space, currentOccupancy = 0, onStatusChange,
               )}
               <Button
                 size="sm" variant="outline" className="h-7 gap-1.5"
-                onClick={() => toast.info("QR code bientôt disponible.", { description: "Scan rapide vers la fiche espace." })}
-                aria-label="Générer un QR code (bientôt disponible)"
+                onClick={() => setQrOpen(true)}
+                aria-label="Générer un QR code pour cet espace"
               >
                 <QrCode className="h-3.5 w-3.5" /> QR
               </Button>
@@ -111,6 +115,8 @@ export function SpaceDetailHeader({ space, currentOccupancy = 0, onStatusChange,
         )}
       </CardContent>
     </Card>
+    <SpaceQRDialog space={space} open={qrOpen} onOpenChange={setQrOpen} />
+    </>
   );
 }
 
