@@ -497,6 +497,7 @@ const App = () => {
                 <Route path="/privacy" element={<PrivacyPage />} />
                 <Route path="/legal" element={<LegalPage />} />
                 <Route path="/legal/charte-coach" element={<CharteCoach />} />
+                <Route path="/pricing" element={<Suspense fallback={<PageLoader />}><PricingPage /></Suspense>} />
                 <Route path="/gate-k9x" element={<Suspense fallback={<PageLoader />}><AdminLogin /></Suspense>} />
                 <Route path="/access-denied" element={<Suspense fallback={<PageLoader />}><AccessDenied /></Suspense>} />
                 {/* Pages publiques (anonymes) — coachs & refuges */}
