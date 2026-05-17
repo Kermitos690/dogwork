@@ -111,14 +111,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signUp = useCallback(async (email: string, password: string, displayName?: string) => {
-    const { error } = await supabase.auth.signUp({
+    const finalDisplayName = displayName || email.split("@")[0];
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: window.location.origin,
-        data: { display_name: displayName || email.split("@")[0] },
+        data: { display_name: finalDisplayName },
       },
     });
+    // Envoi d'un email de bienvenue best-effort (n'empêche jamais le signup)
+    if (!error && data?.user) {
+      try {
+        await supabase.functions.invoke("send-transactional-email", {
+          body: {
+            templateName: "welcome",
+            recipientEmail: email,
+            idempotencyKey: `welcome-${data.user.id}`,
+            templateData: { name: finalDisplayName },
+          },
+        });
+      } catch (mailErr) {
+        console.warn("[useAuth] welcome email failed", mailErr);
+      }
+    }
     return { error: error as Error | null };
   }, []);
 

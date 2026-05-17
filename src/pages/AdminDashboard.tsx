@@ -17,6 +17,7 @@ import {
 import { PushNotificationCard } from "@/components/PushNotificationCard";
 import { AdminCockpit } from "@/components/admin/AdminCockpit";
 import { generateConnectionGuidePDF } from "@/lib/generateConnectionGuide";
+import { sendOnboardingEmail } from "@/lib/sendOnboardingEmail";
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
@@ -131,7 +132,19 @@ export default function AdminDashboard() {
       }
       if (data?.error) throw new Error(data.error);
       setTempPasswordDialog({ email: newEducatorEmail, password: data.temporaryPassword });
-      toast({ title: "Éducateur créé ✅", description: `${newEducatorEmail} a été ajouté.` });
+      const mail = await sendOnboardingEmail({
+        recipientEmail: newEducatorEmail,
+        recipientName: newEducatorName || newEducatorEmail.split("@")[0],
+        role: "educator",
+        temporaryPassword: data.temporaryPassword,
+      });
+      toast({
+        title: "Éducateur créé ✅",
+        description: mail.ok
+          ? `${newEducatorEmail} a reçu ses identifiants par email.`
+          : `${newEducatorEmail} créé, mais l'email automatique a échoué : ${mail.error}`,
+        variant: mail.ok ? undefined : "destructive",
+      });
       setNewEducatorEmail(""); setNewEducatorName("");
       refetchEducators();
     } catch (err: any) {
@@ -168,7 +181,20 @@ export default function AdminDashboard() {
       }
       if (data?.error) throw new Error(data.error);
       setTempPasswordDialog({ email: newShelterEmail, password: data.temporaryPassword });
-      toast({ title: "Refuge créé ✅", description: `Le refuge « ${newShelterName} » et son administrateur (${newShelterEmail}) ont été créés.` });
+      const mail = await sendOnboardingEmail({
+        recipientEmail: newShelterEmail,
+        recipientName: newShelterAdminName || newShelterEmail.split("@")[0],
+        role: "shelter",
+        temporaryPassword: data.temporaryPassword,
+        organizationName: newShelterName,
+      });
+      toast({
+        title: "Refuge créé ✅",
+        description: mail.ok
+          ? `« ${newShelterName} » créé. Identifiants envoyés à ${newShelterEmail}.`
+          : `« ${newShelterName} » créé, mais l'email automatique a échoué : ${mail.error}`,
+        variant: mail.ok ? undefined : "destructive",
+      });
       setNewShelterEmail(""); setNewShelterName(""); setNewShelterAdminName("");
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message || "Impossible de créer le refuge", variant: "destructive" });
@@ -760,7 +786,19 @@ function AdminUsersManager() {
         [userId]: { email: data.email, tempPassword: data.temporaryPassword },
       }));
 
-      toast({ title: "Mot de passe réinitialisé ✅", description: `Nouveau MDP temporaire généré pour ${userName}. Vous pouvez maintenant télécharger la fiche PDF.` });
+      const mail = await sendOnboardingEmail({
+        recipientEmail: data.email,
+        recipientName: userName,
+        role: "owner",
+        temporaryPassword: data.temporaryPassword,
+      });
+      toast({
+        title: "Mot de passe réinitialisé ✅",
+        description: mail.ok
+          ? `Nouveau MDP envoyé par email à ${userName}. La fiche PDF reste téléchargeable.`
+          : `Nouveau MDP généré pour ${userName}, mais l'email automatique a échoué : ${mail.error}`,
+        variant: mail.ok ? undefined : "destructive",
+      });
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message || "Impossible de réinitialiser le mot de passe", variant: "destructive" });
     }
@@ -1062,7 +1100,19 @@ function AdminCreateUser({ onCreated }: { onCreated: () => void }) {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setTempPwd({ email, password: data.temporaryPassword });
-      toast({ title: "Compte créé ✅", description: `${email} devra changer son mot de passe à la première connexion.` });
+      const mail = await sendOnboardingEmail({
+        recipientEmail: email,
+        recipientName: name || email.split("@")[0],
+        role,
+        temporaryPassword: data.temporaryPassword,
+      });
+      toast({
+        title: "Compte créé ✅",
+        description: mail.ok
+          ? `Identifiants envoyés à ${email}. Il devra changer son mot de passe à la première connexion.`
+          : `${email} créé, mais l'email automatique a échoué : ${mail.error}`,
+        variant: mail.ok ? undefined : "destructive",
+      });
       setEmail(""); setName(""); setRole("owner");
       onCreated();
     } catch (err: any) {
