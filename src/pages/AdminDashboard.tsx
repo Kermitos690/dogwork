@@ -17,6 +17,7 @@ import {
 import { PushNotificationCard } from "@/components/PushNotificationCard";
 import { AdminCockpit } from "@/components/admin/AdminCockpit";
 import { generateConnectionGuidePDF } from "@/lib/generateConnectionGuide";
+import { sendOnboardingEmail } from "@/lib/sendOnboardingEmail";
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
