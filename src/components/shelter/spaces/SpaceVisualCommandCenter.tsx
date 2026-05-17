@@ -25,6 +25,7 @@ interface Props {
 
 export function SpaceVisualCommandCenter({ onCreate }: Props) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>("plan");
   const [filters, setFilters] = useState<SpaceFiltersState>(DEFAULT_FILTERS);
   const [selectedId, setSelectedId] = useState<string | null>(null);
