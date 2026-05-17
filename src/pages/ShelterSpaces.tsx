@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Grid3X3, Plus, Pencil, Trash2, PawPrint, LayoutGrid, BarChart3, Box, Move, Sparkles } from "lucide-react";
+import { Grid3X3, Plus, Pencil, Trash2, PawPrint, LayoutGrid, BarChart3, Box, Move, Sparkles, ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Spaces3DView, Space3D } from "@/components/shelter/Spaces3DView";
 import { SpaceCreateWizard } from "@/components/shelter/spaces/SpaceCreateWizard";
@@ -398,10 +399,15 @@ export default function ShelterSpaces() {
                       <p className="text-[10px] text-muted-foreground italic">Libre</p>
                     )}
 
-                    <Button variant="outline" size="sm" className="w-full text-[10px] h-7"
-                      onClick={() => setAssignDialog(space.id)}>
-                      {animalName ? "Changer" : "Assigner"}
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button asChild variant="default" size="sm" className="flex-1 text-[10px] h-7">
+                        <Link to={`/shelter/spaces/${space.id}`}><ExternalLink className="h-3 w-3 mr-1" /> Détail</Link>
+                      </Button>
+                      <Button variant="outline" size="sm" className="flex-1 text-[10px] h-7"
+                        onClick={() => setAssignDialog(space.id)}>
+                        {animalName ? "Changer" : "Assigner"}
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               );
