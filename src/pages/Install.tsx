@@ -36,6 +36,7 @@ function detectIosBrowser(): "safari" | "chrome" | "firefox" | "edge" | "inapp" 
 
 export default function Install() {
   const [platform] = useState<Platform>(detectPlatform);
+  const [iosBrowser] = useState(detectIosBrowser);
   const installed = usePwaInstalled();
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [triggered, setTriggered] = useState(false);
