@@ -106,8 +106,9 @@ function SpaceMapNodeBase({ space, x, y, w, h, cellSize, selected, onSelect, onO
 
       {/* Status pill (footer) */}
       <div className="absolute bottom-1 left-1 right-1 flex items-center gap-1">
-        <span className={cn("h-1.5 w-1.5 rounded-full shadow-sm", `bg-${status.tone}-500`)} aria-hidden
-          style={{ backgroundColor: `hsl(var(--${status.tone === "slate" ? "muted-foreground" : "primary"}))` }}
+        <span
+          className="h-1.5 w-1.5 rounded-full shadow-sm bg-foreground/70"
+          aria-hidden
         />
         <span className="text-[8px] uppercase tracking-wide font-semibold text-foreground/70 truncate">{status.label}</span>
         {status.value === "cleaning_required" && <Sparkles className="h-2.5 w-2.5 text-yellow-500 ml-auto" />}
