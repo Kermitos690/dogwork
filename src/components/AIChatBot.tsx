@@ -25,6 +25,8 @@ import { CreditConfirmDialog } from "@/components/CreditConfirmDialog";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import ReactMarkdown from "react-markdown";
+import { ChatCaptureCard } from "@/components/ChatCaptureCard";
+import { useChatCapture, type ChatCapture } from "@/hooks/useChatCapture";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -187,6 +189,8 @@ function AIChatBotInner() {
   const [loading, setLoading] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const [savedMessages, setSavedMessages] = useState<Set<number>>(new Set());
+  const [capturesByMessage, setCapturesByMessage] = useState<Record<number, ChatCapture[]>>({});
+  const { extract: extractCaptures } = useChatCapture();
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -260,6 +264,7 @@ function AIChatBotInner() {
     setShowHistory(false);
     setInput("");
     setSavedMessages(new Set());
+    setCapturesByMessage({});
   }, []);
 
   const openConversation = useCallback((id: string) => {
@@ -267,6 +272,7 @@ function AIChatBotInner() {
     setDraftMessages([]);
     setShowHistory(false);
     setSavedMessages(new Set());
+    setCapturesByMessage({});
   }, []);
 
   const executeSend = useCallback(async (text: string) => {
@@ -325,6 +331,19 @@ function AIChatBotInner() {
           setDraftMessages([]);
           queryClient.invalidateQueries({ queryKey: ["ai-balance"] });
           queryClient.invalidateQueries({ queryKey: ["ai-ledger"] });
+
+          // Capture intelligente : extraction d'événements potentiels
+          // depuis le message utilisateur, à proposer pour mise à jour de la fiche.
+          if (activeDog?.id) {
+            const assistantIndex = messages.length + 1; // user vient d'être ajouté à l'index messages.length
+            extractCaptures({ user_message: text, active_dog_id: activeDog.id })
+              .then((captures) => {
+                if (captures.length > 0) {
+                  setCapturesByMessage((prev) => ({ ...prev, [assistantIndex]: captures }));
+                }
+              })
+              .catch(() => { /* silencieux */ });
+          }
         },
         onError: (msg, code, retryAfter) => {
           setLoading(false);
@@ -358,7 +377,7 @@ function AIChatBotInner() {
       setLoading(false);
       setDraftMessages([]);
     }
-  }, [conversationId, createConversation, addMessage, messages, activeDog, dogNames, startCooldownTimer, toast, navigate, queryClient, credit.cost]);
+  }, [conversationId, createConversation, addMessage, messages, activeDog, dogNames, startCooldownTimer, toast, navigate, queryClient, credit.cost, extractCaptures]);
 
   const send = useCallback(() => {
     const text = input.trim();
@@ -566,6 +585,9 @@ function AIChatBotInner() {
                           </button>
                         )
                       )}
+                      {m.role === "assistant" && capturesByMessage[i]?.map((cap, ci) => (
+                        <ChatCaptureCard key={`${i}-${ci}`} capture={cap} />
+                      ))}
                     </div>
                   ))}
                   {loading && draftMessages.length === 0 && (

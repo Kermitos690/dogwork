@@ -1,160 +1,63 @@
+# Chat IA — capture intelligente des événements vers la fiche du chien
 
-# Réparation complète du frontend DogWork — Plan d'intervention
+## Objectif
+Quand l'utilisateur mentionne dans le chat un événement, une observation ou un changement (ex. "Zina est restée calme face à un hérisson", "Rex tire moins en laisse", "nouveau traitement antalgique"), l'agent extrait l'information et propose **en un clic** de l'enregistrer dans la fiche officielle du chien actif.
 
-## 1. Constat (audit ciblé)
+## Approche
+Pattern **"propose puis confirme"** (jamais d'écriture silencieuse) :
+1. À chaque message utilisateur (si un chien actif existe), un appel IA secondaire en JSON structuré analyse le texte et détecte 0 à N "captures" potentielles.
+2. Si au moins une capture est détectée, une carte premium s'affiche sous la réponse IA : titre, cible (fiche/champ), valeur extraite, boutons **Enregistrer dans la fiche** / **Ignorer**.
+3. Au clic, écriture réelle via RLS standard du chien actif. Toast de confirmation, invalidation des caches React Query.
 
-### 1.1 Pages développées mais NON intégrées au menu / sans entrée navigation
-- `Outils.tsx` → routée `/outils`, présente dans owner menu, mais **absente** de Coach/Shelter/Employee/Admin nav.
-- `Documents.tsx` → routée, présente owner uniquement.
-- `Modules.tsx`, `Pricing.tsx`, `Shop.tsx` → routées, owner uniquement (Shop = page crédits IA effective).
-- `AdoptionFollowup.tsx` → routée, owner uniquement.
-- `AdminAIEconomy`, `AdminTreasury`, `AdminLaunchChecklist`, `AdminSubscriptions`, `AdminTickets`, `AdminStripe`, `AdminStripeVerify`, `AdminGoLiveCheck`, `AdminPushStatus`, `AdminPreferences`, `AdminEmailDiagnostics`, `AdminModules` → routées mais **invisibles dans SlideMenu admin** (qui n'expose que 4 entrées).
-- `CoachExercises`, `CoachExercisePreview`, `CoachShelterAnimals`, `CoachSubscription`, `EducatorReferrals` → routées, **absentes de CoachNav**.
-- `ShelterSettings`, `ShelterSubscription`, `ShelterCoaches`, `ShelterAdoptionPlans`, `ShelterAdoptionCheckins`, `ShelterEmployees`, `ShelterActivityLog`, `ShelterProfile` → routées mais ShelterNav n'expose que 6 onglets (atteignables seulement via Settings).
-- `EmployeeProfile` accessible mais pas de **page Settings/Notifications** dédiée employé.
-- `NotificationSettings` (`/settings/notifications`) → routée seulement dans la branche shelter, **manquante** dans la branche owner/coach/admin du switch.
-- `Help.tsx`, `Safety.tsx` → owner uniquement.
-- `PublicProfileManager` (`/ma-page-publique`) → utilisée par CoachNav et ShelterNav, OK.
+## Types de captures supportés (v1)
+| Type | Action DB | Exemple |
+|---|---|---|
+| `behavior_log` | INSERT dans `behavior_logs` | "Zina calme face à un hérisson" → commentaire + tension/focus si déductibles |
+| `health_note` | UPDATE `dogs.health_notes` (append daté) | "vu le véto, traitement Carprofen 7 jours" |
+| `dog_field_update` | UPDATE champ unitaire whitelisté de `dogs` | poids, niveau d'activité, stérilisation, vit avec enfants… |
+| `dog_problem` | UPSERT `dog_problems` | "réagit fort aux trottinettes" |
+| `dog_objective` | INSERT `dog_objectives` | "j'aimerais qu'il se pose mieux le soir" |
 
-### 1.2 Settings / Paramètres
-- **Owner** : `/settings` existe (`Settings.tsx`) ✅
-- **Coach** : aucune route `/coach/settings` → manquante. CoachProfile existe mais n'est pas un vrai "Settings".
-- **Shelter** : `ShelterSettings` existe (sert de hub), OK.
-- **Employee** : aucune page Settings, seulement EmployeeProfile.
-- **Admin** : `AdminPreferences` existe mais non accessible via menu.
+Liste blanche stricte de champs `dogs` modifiables (jamais : `user_id`, `id`, rôles, etc.).
 
-### 1.3 Crédits IA
-- Page dédiée = `Shop.tsx` (`/shop`) → fonctionne pour owner.
-- **Aucune route `/coach/credits`, `/shelter/credits`, `/employee/credits`, `/admin/credits`**.
-- Le solde s'affiche dans SlideMenu owner mais pas dans CoachLayout/ShelterLayout/EmployeeLayout headers.
+## Backend
+**Nouvelle edge function `chat-capture-event`** (non-stream, JSON strict) :
+- Auth user, `active_dog_id` requis, charge la fiche.
+- Appel Gemini 2.5 Flash avec output JSON schémé (`captures: Array<{kind, target_field?, payload, confidence, summary}>`).
+- Coût crédits : **0** (déjà payé par le chat principal — on factorise sous le même appel grâce à un flag `capture_only` qui bypasse le débit). Sinon coût 1 crédit max.
+- Retourne uniquement les captures à confiance ≥ 0.7.
 
-### 1.4 Routes cassées / incohérences
-- `/coach/clients/:clientId` → pointe vers `CoachClients` (pas vers un détail client). À corriger ou laisser comme filtre.
-- Dans la branche `isShelter`, route `/pricing` **manquante** alors que `/pricing` existe pour owner.
-- `/coach/ai`, `/shelter/ai`, `/employee/ai`, `/admin/ai` → **n'existent pas**, alors que la doctrine demande des hubs IA par rôle. À mapper sur `/outils` (réutilisable).
-- Pas de `/admin/users`, `/admin/exercises`, `/admin/programs`, `/admin/shelters`, `/admin/educators`, `/admin/marketplace`, `/admin/logs`, `/admin/audit`, `/admin/config` → certaines fonctions existent dans des sous-pages (AdminAIEconomy, AdminCompliance), d'autres sont à créer en alias ou en stubs.
-- SlideMenu admin référence `/admin/test-webhook` & `/admin/test-marketplace-p0` (pages de test exposées en prod).
-- `OutilsPage` est exposée à tous mais sans guard de rôle pour adapter le contenu.
+**Nouvelle edge function `apply-chat-capture`** :
+- Auth user, valide `capture` payload contre une zod-like whitelist.
+- Applique l'écriture avec RLS du user (pas service role) → garantit qu'on ne peut écrire que sur SES chiens.
+- Pour `dog_field_update` : whitelist serveur des colonnes autorisées.
+- Retourne `{ ok, applied: {table, id} }`.
 
-### 1.5 Doublons / éléments à archiver
-- `Profile.tsx` vs `Preferences.tsx` vs `Settings.tsx` → 3 pages owner qui se chevauchent. Settings = hub, Profile = identité, Preferences = visibilité sections. À garder mais mieux articuler (Settings devient le hub ; Preferences et Profile y sont liées).
-- `AdminTestWebhook`, `AdminTestMarketplaceP0` → pages techniques, à déplacer sous un sous-menu "Diagnostics" admin et masquer hors admin.
-- `Pricing.tsx` (interne) vs `Subscription.tsx` → garder, mais Pricing devient lecture seule depuis Settings.
+## Frontend
+- `AIChatBot.tsx` : après `onDone` du stream, lance `chat-capture-event` en arrière-plan (avec `active_dog_id`). N'attend pas pour afficher la réponse.
+- Nouveau composant `ChatCaptureCard.tsx` rendu sous la dernière réponse assistant : carte sobre, icône 📝, titre "Mettre à jour la fiche de {dog.name} ?", résumé + bouton primaire **Enregistrer** + bouton ghost **Ignorer**.
+- État local (Map `messageId → captures[]`), pas de persistance des suggestions.
+- En cas de plusieurs captures : pile verticale, chacune indépendante.
 
-### 1.6 Guards
-- `AdminGuard` ✅ correct
-- `CoachGuard`, `ShelterGuard`, `EmployeeGuard` : tous fonctionnels (admin bypass OK).
-- **Manque** : pas de `RoleGuard` générique ni `SubscriptionGuard` réutilisable côté frontend (la logique est éparpillée dans `useFeatureGate`/`useSubscription`).
+## Système de prompt
+Le prompt système chat principal mentionne désormais : *"Si l'utilisateur partage un fait nouveau sur le chien, accuse réception sans écrire dans la base — une carte 'Enregistrer dans la fiche' apparaîtra automatiquement sous ta réponse."*
 
----
+## Hors-scope v1 (à itérer ensuite)
+- Captures multi-chiens dans un même message (v1 : uniquement chien actif).
+- Captures sur animaux de refuge (`shelter_animals`) — possible v1.5.
+- Édition de la valeur extraite avant enregistrement (v1 : valider tel quel ou ignorer).
+- Indicateur "appliqué le …" persistant côté message historique.
 
-## 2. Plan correctif (exécutable en une passe)
+## Fichiers attendus
+- Création : `supabase/functions/chat-capture-event/index.ts`
+- Création : `supabase/functions/apply-chat-capture/index.ts`
+- Création : `src/components/ChatCaptureCard.tsx`
+- Création : `src/hooks/useChatCapture.ts`
+- Modification : `src/components/AIChatBot.tsx` (déclenche capture + rend la carte)
+- Modification : `supabase/functions/ai-with-credits/index.ts` (ajout d'une ligne dans le system prompt)
 
-### Étape A — Routes manquantes / alias (App.tsx)
-Ajouter dans la branche **owner** ET dupliquer dans branches shelter/coach/employee/admin selon besoin :
-
-```
-/settings/notifications  → NotificationSettings  (owner branche manquante)
-/credits                 → Shop                  (alias propre vers la page achat crédits)
-/ai                      → Outils                (alias hub IA owner)
-
-/coach/settings          → SettingsPage          (réutilise la page settings)
-/coach/credits           → Shop
-/coach/ai                → Outils
-/coach/messages          → MessagesPage          (au lieu d'utiliser /messages owner)
-
-/shelter/credits         → Shop
-/shelter/ai              → Outils
-/shelter/help            → HelpPage
-/shelter/pricing         → PricingPage
-
-/employee/settings       → SettingsPage          (version simplifiée via guard)
-/employee/messages       → MessagesPage
-/employee/notifications  → NotificationSettings
-
-/admin/settings          → AdminPreferences
-/admin/credits           → AdminAIEconomy        (déjà existant, alias propre)
-/admin/users             → AdminSubscriptions    (jusqu'à création d'une vraie page users)
-/admin/audit             → AdminGoLiveCheck
-/admin/config            → AdminPreferences
-/admin/logs              → AdminEmailDiagnostics (alias temporaire)
-```
-
-Dans la branche `isShelter` du switch ProtectedRoutes, ajouter explicitement `/settings/notifications`, `/pricing`, `/credits`, `/ai`.
-
-### Étape B — SlideMenu : refonte par rôle
-
-**Owner** (épuré, ordre) :
-Accueil • Mes chiens • Programme • Séance du jour • Bibliothèque • Journal • Stats • Outils IA • Messages • Abonnement • **Crédits IA** • **Paramètres** • Aide
-
-**Coach** (nouveau bloc complet) :
-Dashboard coach • Clients • Chiens suivis • Programmes (notes) • Cours • Marketplace (cours) • Calendrier • **Refuges partenaires** (`/coach/shelter-animals`) • Bibliothèque (`/coach/exercises`) • **Ma page publique** • Parrainages • Conformité • Stats • **Abonnement** (`/coach/subscription`) • **Crédits IA** (`/coach/credits`) • **Paramètres** (`/coach/settings`) • Support
-
-**Shelter** (compléter) :
-Dashboard refuge • Animaux • Espaces • Adoptables/Plans adoption • Suivi adoptants • Employés • Coachs partenaires • Journal d'activité • Stats • Messages • **Abonnement** • **Crédits IA** • **Paramètres** (déjà = ShelterSettings) • Ma page publique
-
-**Employee** (compléter EmployeeNav + ajouter Settings) :
-Accueil • Animaux • Activités • Support • Profil + entrée Settings/Notifications dans Profil
-
-**Admin** (refonte SlideMenu admin section) :
-Dashboard admin • Utilisateurs (alias) • Abonnements • Crédits IA (AI Economy) • Stripe • Stripe Verify • Treasury • Tickets support • Modules • Conformité marketplace • Email diagnostics • Push status • Go-live check • Launch checklist • **Préférences admin** • **Diagnostics** (sous-section : test webhook, test marketplace P0)
-
-### Étape C — Création/Réparation pages "Settings" par rôle
-
-1. **`SettingsPage` (owner)** : déjà OK, ajouter section "Notifications push" + lien "Crédits IA" + lien "Abonnement" + lien "Préférences sections".
-2. **Coach Settings** : nouvelle page `CoachSettings.tsx` (hub) qui regroupe : Profil pro (lien `/coach/profile`), Marketplace, Stripe Connect (lien existant ou via subscription), Notifications, Conformité (`/coach/compliance`), Charte (`/legal/charte-coach`), Abonnement, Crédits IA. Routée `/coach/settings`.
-3. **Employee Settings** : nouvelle page `EmployeeSettings.tsx` minimaliste : Profil personnel, Notifications, Langue, Déconnexion. Routée `/employee/settings` ; ajouter onglet/CTA dans EmployeeNav ou EmployeeProfile.
-4. **Shelter Settings** : déjà = `ShelterSettings`. Ajouter cartes manquantes (Notifications déjà via PushNotificationCard, Crédits IA, Abonnement déjà OK, Aide).
-5. **Admin Settings** : alias `/admin/settings` → `AdminPreferences` (renommer carte UI "Paramètres administrateur").
-
-### Étape D — Page Crédits IA dédiée
-- Garder `Shop.tsx` comme page de référence (déjà historique + packs).
-- Créer une **route alias** `/credits` (et déclinaisons `/coach/credits`, `/shelter/credits`, `/admin/credits`) → toutes pointent sur `Shop` qui s'adapte au rôle (déjà branché sur `useAIBalance`).
-- Ajouter widget solde + lien "Acheter des crédits" dans :
-  - `CoachLayout` (header)
-  - `ShelterLayout` (header)
-  - `EmployeeLayout` (header — lecture seule, pas d'achat)
-  - Dashboard admin (carte AI Economy)
-
-### Étape E — Nettoyage léger (sans suppression destructive)
-- Masquer dans SlideMenu admin les pages de **diagnostic** (test-webhook, test-marketplace-p0) derrière un sous-groupe "Diagnostics" replié.
-- Marquer en commentaire `// LEGACY` les routes alias `/program → /plan`, `/agents → /outils` (déjà présentes), aucun retrait.
-- Aucune suppression de fichier dans cette passe (risque d'imports cachés). Documentation des candidats à archiver dans le rapport final.
-
-### Étape F — UX friendly (microcopy)
-- `NotFound.tsx` : message friendly ciblé DogWork (vérifier état actuel, adapter si générique).
-- Empty states : ajouter à `CoachClients`, `ShelterAnimals`, `EmployeeAnimals`, `Documents` un message d'accueil orienté action si déjà absents (vérifier au passage).
-- Guards de redirection : remplacer redirections silencieuses par toast informatif côté `CoachGuard`/`ShelterGuard`/`EmployeeGuard` (option : non bloquant pour cette passe si déjà acceptable).
-
-### Étape G — Vérifications finales
-- Build TS (automatique).
-- Vérifier qu'aucun item de menu ne pointe vers une route 404.
-- Vérifier que chaque rôle voit uniquement ses sections (déjà géré par `roles` dans SlideMenu).
-
----
-
-## 3. Hors périmètre (à confirmer ensuite si tu veux)
-- Création de **vraies** pages admin manquantes (`AdminUsers` réelle avec table `auth.users`, `AdminLogs` réelle, `AdminConfig` feature flags). Pour cette passe, on utilise des alias vers les pages existantes les plus proches afin de tenir la promesse du sitemap **sans inventer de fausses fonctionnalités**.
-- Refonte profonde des dashboards (contenu) : la structure actuelle reste, on n'ajoute que les widgets crédits IA + liens Settings là où ils manquent.
-- Migration backend / RLS : aucune modification.
-- Stripe / billing logic : aucune modification.
-
----
-
-## 4. Livrables attendus après exécution
-- `App.tsx` enrichi (~20 routes alias ajoutées).
-- `SlideMenu.tsx` refondu (sections par rôle complètes).
-- `CoachNav.tsx`, `ShelterNav.tsx`, `EmployeeNav.tsx` enrichis ou laissés (mobile bottom nav reste 5–7 onglets, le SlideMenu prend le relais pour la profondeur).
-- 2 nouvelles pages : `CoachSettings.tsx`, `EmployeeSettings.tsx`.
-- Mise à jour mineure : `ShelterSettings.tsx` (cartes manquantes), `Settings.tsx` (liens manquants), layouts (widget crédits).
-- Rapport final dans le message de réponse listant : routes ajoutées, pages intégrées, menus modifiés, doublons identifiés, éléments à archiver manuellement.
-
----
-
-## 5. Risques & garde-fous
-- Aucun fichier supprimé dans cette passe → zéro régression d'import.
-- Aucun guard durci (les permissions backend RLS restent la vraie sécurité).
-- Aliases plutôt que duplications → un seul composant par feature, plusieurs URLs.
-- Si une page alias doit afficher un contenu différent par rôle, la logique reste dans la page (elle utilise déjà `useIsCoach`/`useIsShelter`/`is_admin`).
-
-Périmètre estimé : ~10 fichiers édités, 2 fichiers créés. Pas de migration SQL, pas de touche backend.
+## Sécurité
+- Aucune écriture directe par l'IA. Tout passe par confirmation explicite utilisateur.
+- `apply-chat-capture` n'utilise PAS le service_role → RLS protège.
+- Whitelist serveur des colonnes `dogs` modifiables.
+- Logs d'audit : `metadata.source = 'ai_chat_capture'` sur chaque insert/update.
