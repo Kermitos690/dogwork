@@ -112,10 +112,24 @@ export default function Auth() {
         if (sessionErr) throw new Error(t("auth.employeeError"));
         navigate("/");
       } else if (mode === "signup") {
-        const { error } = await signUp(normalizedEmail, password, displayName);
+        const { data, error } = await supabase.functions.invoke("public-signup", {
+          body: {
+            email: normalizedEmail,
+            displayName,
+            website,
+            startedAt: formStartedAt,
+            loginUrl: `${window.location.origin}/auth`,
+          },
+        });
         if (error) throw error;
-        toast({ title: t("auth.signupSuccess"), description: t("auth.signupSuccessDesc") });
+        if (data?.error) throw new Error(data.error);
+        toast({
+          title: t("auth.signupSuccess"),
+          description: data?.message || t("auth.signupSuccessDesc"),
+        });
         setMode("login");
+        setEmail(normalizedEmail);
+        setPassword("");
       } else {
         const { error } = await resetPassword(normalizedEmail);
         if (error) throw error;
