@@ -40,11 +40,27 @@ export function SpaceDetailHeader({ space, currentOccupancy = 0, onStatusChange,
               <SpaceStatusBadge value={space.status} />
               <SpaceRiskBadge value={space.risk_level} />
             </div>
-            {onEdit && (
-              <Button size="sm" variant="outline" className="h-7 gap-1.5" onClick={onEdit}>
-                <Pencil className="h-3.5 w-3.5" /> Modifier
+            <div className="flex flex-wrap gap-1.5 justify-end">
+              {onEdit && (
+                <Button size="sm" variant="outline" className="h-7 gap-1.5" onClick={onEdit}>
+                  <Pencil className="h-3.5 w-3.5" /> Modifier
+                </Button>
+              )}
+              <Button
+                size="sm" variant="outline" className="h-7 gap-1.5"
+                onClick={() => toast.info("QR code bientôt disponible.", { description: "Scan rapide vers la fiche espace." })}
+                aria-label="Générer un QR code (bientôt disponible)"
+              >
+                <QrCode className="h-3.5 w-3.5" /> QR
               </Button>
-            )}
+              <Button
+                size="sm" variant="outline" className="h-7 gap-1.5"
+                onClick={() => toast.info("Export PDF bientôt disponible.")}
+                aria-label="Exporter la fiche en PDF (bientôt disponible)"
+              >
+                <FileDown className="h-3.5 w-3.5" /> Exporter
+              </Button>
+            </div>
           </div>
         </div>
 
