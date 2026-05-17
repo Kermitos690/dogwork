@@ -29,13 +29,17 @@ function detect(): "ios" | "android" | "desktop" {
   return "desktop";
 }
 
+function isIos(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
 function isIosSafari(): boolean {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent;
-  const isIos = /iPhone|iPad|iPod/i.test(ua);
   // Exclude in-app browsers (FB, Instagram, Twitter, Chrome iOS = CriOS, Firefox iOS = FxiOS)
   const isSafari = /Safari/i.test(ua) && !/CriOS|FxiOS|FBAN|FBAV|Instagram|Line|EdgiOS/i.test(ua);
-  return isIos && isSafari;
+  return isIos() && isSafari;
 }
 
 function recentlyDismissed(): boolean {
