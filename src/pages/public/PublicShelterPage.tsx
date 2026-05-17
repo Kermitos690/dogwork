@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,8 +43,24 @@ export default function PublicShelterPage() {
     </div>
   );
 
+  const shelterLd: Record<string, any> = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    name: data.name,
+    description: (data.mission || data.description || "Refuge canin sur DogWork").slice(0, 300),
+    url: `https://dogwork-at-home.com/r/${slug}`,
+    ...(data.logo_url ? { logo: data.logo_url, image: data.logo_url } : {}),
+    ...(data.website ? { sameAs: [data.website] } : {}),
+    ...(data.city ? { address: { "@type": "PostalAddress", addressLocality: data.city, addressCountry: data.country || undefined } } : {}),
+    ...(data.opening_hours ? { openingHours: data.opening_hours } : {}),
+    ...(data.since_year ? { foundingDate: String(data.since_year) } : {}),
+  };
+
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <script type="application/ld+json">{JSON.stringify(shelterLd)}</script>
+      </Helmet>
       <div className="relative h-48 md:h-64 bg-gradient-to-br from-purple-500/20 to-purple-500/5 overflow-hidden">
         {data.banner_url && <img src={data.banner_url} alt="" className="absolute inset-0 w-full h-full object-cover" />}
         <Link to="/annuaire/refuges" className="absolute top-4 left-4">
