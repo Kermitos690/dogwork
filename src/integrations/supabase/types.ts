@@ -1251,6 +1251,63 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_requests: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          dog_count: number | null
+          email: string
+          id: string
+          interest: string | null
+          message: string
+          name: string
+          phone: string | null
+          source: string | null
+          status: string
+          structure_name: string | null
+          structure_type: string | null
+          updated_at: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          dog_count?: number | null
+          email: string
+          id?: string
+          interest?: string | null
+          message: string
+          name: string
+          phone?: string | null
+          source?: string | null
+          status?: string
+          structure_name?: string | null
+          structure_type?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          dog_count?: number | null
+          email?: string
+          id?: string
+          interest?: string | null
+          message?: string
+          name?: string
+          phone?: string | null
+          source?: string | null
+          status?: string
+          structure_name?: string | null
+          structure_type?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       course_admin_notes: {
         Row: {
           admin_user_id: string

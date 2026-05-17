@@ -693,7 +693,7 @@ export default function Landing() {
                 Notre mission est de soutenir les refuges et associations, pas de les facturer lourdement.
                 Le prix est adapté à chaque structure. Contactez-nous pour en discuter.
               </p>
-              <Button onClick={() => window.location.href = "mailto:contact@dogwork.ch?subject=Demande%20refuge%20/%20chenil"}
+              <Button onClick={() => navigate("/contact?interest=shelter")}
                 variant="outline"
                 className="w-full rounded-full border-rose-500/30 hover:bg-rose-500/10">
                 <Mail className="w-4 h-4 mr-2" />
