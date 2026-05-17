@@ -13,6 +13,36 @@ Deno.serve(async (req) => {
     // Local (production) client
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    // Auth: require admin caller (or service-role cron via x-internal-secret)
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const internalSecret = req.headers.get("x-internal-secret");
+    const isInternal = internalSecret && internalSecret === SERVICE_ROLE_KEY;
+    if (!isInternal) {
+      if (!authHeader.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ error: "unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const userClient = createClient(SUPABASE_URL, ANON_KEY, {
+        global: { headers: { Authorization: authHeader } },
+        auth: { persistSession: false },
+      });
+      const { data: userData, error: userErr } = await userClient.auth.getUser();
+      if (userErr || !userData?.user) {
+        return new Response(JSON.stringify({ error: "unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: isAdmin } = await userClient.rpc("is_admin");
+      if (isAdmin !== true) {
+        return new Response(JSON.stringify({ error: "forbidden_admin_only" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
     // Source instance (Preview/Test - has the 480 exercises)
