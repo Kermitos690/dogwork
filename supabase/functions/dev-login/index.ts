@@ -43,16 +43,18 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  const environment = Deno.env.get("ENVIRONMENT") || "production";
+  const environment = (Deno.env.get("ENVIRONMENT") || "production").toLowerCase();
   const devLoginEnabled = (Deno.env.get("DEV_LOGIN_ENABLED") || "").toLowerCase() === "true";
   const originHost = extractHost(req.headers.get("origin"));
   const refererHost = extractHost(req.headers.get("referer"));
   const reqHost = extractHost(req.url) || req.headers.get("host");
 
-  // Hard block: in production env, refuse no matter what.
-  // Origin/Referer headers are client-controlled and MUST NOT be the sole guard.
-  if (environment === "production" && !devLoginEnabled) {
-    console.log("dev-login denied: reason=production_env_no_opt_in");
+  // Belt-and-suspenders: opt-in only. The function is allowed ONLY when
+  // ENVIRONMENT is explicitly "development" or DEV_LOGIN_ENABLED=true.
+  // Any other value (including absent/empty/typo/"production") is denied,
+  // regardless of client-controlled Origin/Referer headers.
+  if (environment !== "development" && !devLoginEnabled) {
+    console.log(`dev-login denied: reason=not_explicitly_enabled env=${environment || "unset"}`);
     return new Response(
       JSON.stringify({ error: "Not available in this environment" }),
       { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -68,14 +70,16 @@ Deno.serve(async (req) => {
     );
   }
 
-  const isDev = environment === "development" || devLoginEnabled;
+  const isDev = environment === "development";
   const isPreview =
     isLovablePreviewHost(originHost) ||
     isLovablePreviewHost(refererHost) ||
     isLovablePreviewHost(reqHost);
 
+  // When opt-in is via DEV_LOGIN_ENABLED only (no ENVIRONMENT=development),
+  // require a Lovable preview signal to avoid arbitrary external callers.
   if (!isDev && !isPreview) {
-    console.log("dev-login denied: reason=environment_production_without_preview");
+    console.log("dev-login denied: reason=opt_in_without_preview_signal");
     return new Response(
       JSON.stringify({ error: "Not available in this environment" }),
       { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -83,7 +87,7 @@ Deno.serve(async (req) => {
   }
 
   console.log(
-    `dev-login allowed: reason=${isDev ? "environment_development" : "lovable_preview"}`
+    `dev-login allowed: reason=${isDev ? "environment_development" : "dev_login_enabled_preview"}`
   );
 
   try {
