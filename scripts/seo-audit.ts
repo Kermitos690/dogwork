@@ -85,15 +85,20 @@ let cursor = 0;
 while (true) {
   const start = appTsx.indexOf("<Route", cursor);
   if (start < 0) break;
-  // Walk forward balancing < > and matching the closing /> of this tag
-  let i = start;
-  let depth = 0;
+  // Walk forward; track {} depth and angle-bracket nesting (outside braces).
+  let i = start + 1;
+  let braceDepth = 0;
+  let tagDepth = 1; // we're inside the opening <Route ...
   let end = -1;
   while (i < appTsx.length) {
     const ch = appTsx[i];
-    if (ch === "{") depth++;
-    else if (ch === "}") depth--;
-    else if (ch === ">" && depth <= 0 && appTsx[i - 1] === "/") { end = i + 1; break; }
+    if (ch === "{") braceDepth++;
+    else if (ch === "}") braceDepth--;
+    else if (braceDepth === 0) {
+      if (ch === "<" && appTsx[i + 1] !== "/") tagDepth++;
+      else if (ch === "/" && appTsx[i + 1] === ">") { tagDepth--; if (tagDepth === 0) { end = i + 2; break; } }
+      else if (ch === ">" && appTsx[i - 1] !== "/" && appTsx.startsWith("</", appTsx.lastIndexOf("<", i))) tagDepth--;
+    }
     i++;
   }
   if (end < 0) { cursor = start + 6; continue; }
