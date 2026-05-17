@@ -3,9 +3,10 @@ import { Button } from "@/components/ui/button";
 import { SpaceStatusBadge, SpaceRiskBadge } from "./SpaceBadges";
 import { getSpaceTypeLabel, calculateOccupancyRate, SPACE_STATUSES } from "@/lib/shelterSpaces";
 import type { ShelterSpace } from "@/types/shelterSpaces";
-import { Building2, Layers, MapPin, Users, ArrowLeft, Pencil } from "lucide-react";
+import { Building2, Layers, MapPin, Users, ArrowLeft, Pencil, QrCode, FileDown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
 
 interface Props {
   space: ShelterSpace;
