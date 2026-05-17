@@ -585,6 +585,9 @@ function AIChatBotInner() {
                           </button>
                         )
                       )}
+                      {m.role === "assistant" && capturesByMessage[i]?.map((cap, ci) => (
+                        <ChatCaptureCard key={`${i}-${ci}`} capture={cap} />
+                      ))}
                     </div>
                   ))}
                   {loading && draftMessages.length === 0 && (
