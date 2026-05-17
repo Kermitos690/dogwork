@@ -22,6 +22,17 @@ function detectPlatform(): Platform {
   return "desktop";
 }
 
+function detectIosBrowser(): "safari" | "chrome" | "firefox" | "edge" | "inapp" | "other" {
+  if (typeof navigator === "undefined") return "other";
+  const ua = navigator.userAgent || "";
+  if (/CriOS/i.test(ua)) return "chrome";
+  if (/FxiOS/i.test(ua)) return "firefox";
+  if (/EdgiOS/i.test(ua)) return "edge";
+  if (/FBAN|FBAV|Instagram|Line|LinkedInApp|Snapchat|Twitter|TikTok/i.test(ua)) return "inapp";
+  if (/Safari/i.test(ua)) return "safari";
+  return "other";
+}
+
 
 export default function Install() {
   const [platform] = useState<Platform>(detectPlatform);
