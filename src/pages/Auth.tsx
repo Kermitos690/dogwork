@@ -245,6 +245,21 @@ export default function Auth() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Honeypot anti-bot : champ invisible que les humains ne remplissent jamais */}
+              {mode === "signup" && (
+                <div aria-hidden="true" className="absolute left-[-9999px] top-[-9999px] h-0 w-0 overflow-hidden" tabIndex={-1}>
+                  <label htmlFor="website">Site web</label>
+                  <input
+                    id="website"
+                    name="website"
+                    type="text"
+                    autoComplete="off"
+                    tabIndex={-1}
+                    value={website}
+                    onChange={(e) => setWebsite(e.target.value)}
+                  />
+                </div>
+              )}
               {mode === "signup" && (
                 <div className="space-y-2">
                   <Label htmlFor="name">{t("auth.name")}</Label>
@@ -261,7 +276,7 @@ export default function Auth() {
                   <Input id="email" type="email" placeholder="votre@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="pl-9" />
                 </div>
               </div>
-              {mode !== "forgot" && (
+              {mode !== "forgot" && mode !== "signup" && (
                 <div className="space-y-2">
                   <Label htmlFor="password">{mode === "employee" ? t("auth.pin") : t("auth.password")}</Label>
                   <div className="relative">
@@ -278,6 +293,12 @@ export default function Auth() {
                     />
                   </div>
                 </div>
+              )}
+              {mode === "signup" && (
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Vous recevrez par email votre mot de passe temporaire ainsi qu'un guide PDF
+                  contenant vos identifiants de connexion. Aucun mot de passe à choisir maintenant.
+                </p>
               )}
               <Button type="submit" className="w-full h-12 text-base" disabled={loading}>
                 {loading ? t("common.loading") : mode === "login" ? t("auth.loginButton") : mode === "employee" ? t("auth.loginEmployee") : mode === "signup" ? t("auth.signupButton") : t("auth.sendLink")}
