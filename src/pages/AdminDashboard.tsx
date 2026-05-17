@@ -786,7 +786,19 @@ function AdminUsersManager() {
         [userId]: { email: data.email, tempPassword: data.temporaryPassword },
       }));
 
-      toast({ title: "Mot de passe réinitialisé ✅", description: `Nouveau MDP temporaire généré pour ${userName}. Vous pouvez maintenant télécharger la fiche PDF.` });
+      const mail = await sendOnboardingEmail({
+        recipientEmail: data.email,
+        recipientName: userName,
+        role: "owner",
+        temporaryPassword: data.temporaryPassword,
+      });
+      toast({
+        title: "Mot de passe réinitialisé ✅",
+        description: mail.ok
+          ? `Nouveau MDP envoyé par email à ${userName}. La fiche PDF reste téléchargeable.`
+          : `Nouveau MDP généré pour ${userName}, mais l'email automatique a échoué : ${mail.error}`,
+        variant: mail.ok ? undefined : "destructive",
+      });
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message || "Impossible de réinitialiser le mot de passe", variant: "destructive" });
     }
