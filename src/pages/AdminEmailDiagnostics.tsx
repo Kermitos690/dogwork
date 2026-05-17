@@ -386,7 +386,7 @@ export default function AdminEmailDiagnostics() {
                   {result.recommendations.map((rec, i) => (
                     <div key={i}>• {rec}</div>
                   ))}
-                  <div className="text-muted-foreground italic mt-2">La configuration DNS doit être faite manuellement chez IONOS — DogWork ne modifie pas la zone automatiquement.</div>
+                  <div className="text-muted-foreground italic mt-2">La configuration DNS (MX, SPF, DKIM, DMARC) doit être faite manuellement chez le registrar du domaine — DogWork ne modifie pas la zone automatiquement.</div>
                 </AlertDescription>
               </Alert>
             )}
