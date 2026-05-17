@@ -304,14 +304,14 @@ Deno.serve(async (req) => {
   if (lovableResult.attempted && (lovEval.failed || (lovEval.pending && lovableResult.logError))) {
     errors.push({ channel: 'lovable', message: lovableResult.error || lovableResult.logError || 'En attente — non confirmé' })
   }
-  if (ionosResult.attempted && ionEval.failed) {
-    errors.push({ channel: 'ionos', message: ionosResult.error || 'Échec IONOS', smtpCode: ionosResult.smtpCode })
+  if (googleResult.attempted && ionEval.failed) {
+    errors.push({ channel: 'google_workspace', message: googleResult.error || 'Échec Google Workspace SMTP', smtpCode: googleResult.errorCode })
   }
 
   // Recommandations DNS dynamiques
   const recommendations: string[] = []
   if (!rootReport.dmarc.found) {
-    recommendations.push(`Ajouter DMARC sur ${ROOT_DOMAIN} : TXT _dmarc avec "v=DMARC1; p=none; rua=mailto:contact@${ROOT_DOMAIN}; adkim=s; aspf=s"`)
+    recommendations.push(`Ajouter DMARC sur ${ROOT_DOMAIN} : TXT _dmarc avec "v=DMARC1; p=none; rua=mailto:admin@${ROOT_DOMAIN}; adkim=s; aspf=s"`)
   }
   if (!subReport.spf.found) {
     recommendations.push(`SPF manquant sur ${SENDER_SUBDOMAIN} — vérifier la délégation NS Lovable.`)
@@ -319,11 +319,18 @@ Deno.serve(async (req) => {
   if (!subReport.dkim.found) {
     recommendations.push(`Aucun DKIM détecté sur ${SENDER_SUBDOMAIN} (sélecteurs testés). Vérifier la configuration Lovable Cloud.`)
   }
-  if (ionosResult.attempted && !rootReport.dkim.found) {
-    recommendations.push(`Pour IONOS : activer DKIM dans la console IONOS (sélecteur s1024 ou s2048) et publier le TXT correspondant.`)
+  if (googleResult.attempted) {
+    const rootSpf = rootReport.spf.includes.join(',')
+    if (!rootSpf.includes('_spf.google.com')) {
+      recommendations.push(`Pour Google Workspace : ajouter "include:_spf.google.com" dans le SPF de ${ROOT_DOMAIN}.`)
+    }
+    const hasGoogleDkim = rootReport.dkim.selectors.find((s: any) => s.selector === 'google')?.found
+    if (!hasGoogleDkim) {
+      recommendations.push(`Pour Google Workspace : activer DKIM dans la console admin Google et publier le TXT google._domainkey.${ROOT_DOMAIN}.`)
+    }
   }
-  if (ionosResult.status === 'not_configured') {
-    recommendations.push(`Configurer les secrets IONOS_SMTP_USER et IONOS_SMTP_PASSWORD pour activer l'envoi via IONOS.`)
+  if (googleResult.status === 'not_configured') {
+    recommendations.push(`Configurer les secrets GOOGLE_SMTP_USER et GOOGLE_SMTP_PASSWORD (mot de passe d'application Google) pour activer l'envoi via Google Workspace.`)
   }
 
   return new Response(
