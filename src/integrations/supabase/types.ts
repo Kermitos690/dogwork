@@ -4309,7 +4309,6 @@ export type Database = {
           includes_base_exercises: boolean
           is_active: boolean
           max_dogs: number
-          monthly_ai_credits: number
           name: string
           updated_at: string
         }
@@ -4321,7 +4320,6 @@ export type Database = {
           includes_base_exercises?: boolean
           is_active?: boolean
           max_dogs?: number
-          monthly_ai_credits?: number
           name: string
           updated_at?: string
         }
@@ -4333,7 +4331,6 @@ export type Database = {
           includes_base_exercises?: boolean
           is_active?: boolean
           max_dogs?: number
-          monthly_ai_credits?: number
           name?: string
           updated_at?: string
         }
