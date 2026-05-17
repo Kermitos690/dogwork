@@ -171,33 +171,34 @@ Deno.serve(async (req) => {
     }
   }
 
-  // === ENVOI IONOS (via send-via-ionos / SMTP) ===
-  let ionosResult: any = { attempted: false }
-  if (sendIonos) {
-    const ionosUser = Deno.env.get('IONOS_SMTP_USER')
-    const ionosPass = Deno.env.get('IONOS_SMTP_PASSWORD')
-    if (!ionosUser || !ionosPass) {
-      ionosResult = {
+  // === ENVOI GOOGLE WORKSPACE (via send-via-google / SMTP) ===
+  let googleResult: any = { attempted: false }
+  if (sendGoogle) {
+    const googleUser = Deno.env.get('GOOGLE_SMTP_USER')
+    const googlePass = Deno.env.get('GOOGLE_SMTP_PASSWORD')
+    const googleFrom = Deno.env.get('GOOGLE_SMTP_FROM') || googleUser
+    if (!googleUser || !googlePass) {
+      googleResult = {
         attempted: true,
-        channel: 'ionos',
+        channel: 'google_workspace',
         status: 'not_configured',
-        error: 'SMTP IONOS non configuré (secrets IONOS_SMTP_USER / IONOS_SMTP_PASSWORD manquants).',
+        error: "SMTP Google Workspace non configuré (secrets GOOGLE_SMTP_USER / GOOGLE_SMTP_PASSWORD manquants).",
       }
     } else {
-      ionosResult = { attempted: true, channel: 'ionos', sender: ionosUser }
+      googleResult = { attempted: true, channel: 'google_workspace', sender: googleFrom }
       const t0 = Date.now()
-      const idempotencyKey = `email-test-ionos-${crypto.randomUUID()}`
-      const ionosHtml = `
+      const idempotencyKey = `email-test-google-${crypto.randomUUID()}`
+      const googleHtml = `
         <!DOCTYPE html>
         <html lang="fr"><head><meta charset="utf-8"></head>
         <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;background:#f5f7fa;padding:24px;color:#1a202c;">
           <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;padding:32px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
-            <h1 style="color:#2563eb;margin:0 0 16px;font-size:22px;">DogWork — Test délivrabilité IONOS</h1>
-            <p style="margin:0 0 12px;line-height:1.6;">Cet email confirme que la chaîne <strong>SMTP IONOS</strong> fonctionne :
-            authentification réussie, envoi via <code>smtp.ionos.fr:587</code>, signature DKIM appliquée par IONOS.</p>
+            <h1 style="color:#2563eb;margin:0 0 16px;font-size:22px;">DogWork — Test délivrabilité Google Workspace</h1>
+            <p style="margin:0 0 12px;line-height:1.6;">Cet email confirme que la voie <strong>Google Workspace SMTP</strong> fonctionne :
+            authentification réussie via <code>smtp.gmail.com:587</code> (STARTTLS), signature DKIM appliquée par Google.</p>
             <div style="background:#f1f5f9;border-radius:8px;padding:16px;margin:20px 0;font-size:14px;">
-              <strong>Canal :</strong> IONOS SMTP<br>
-              <strong>Expéditeur :</strong> ${ionosUser}<br>
+              <strong>Canal :</strong> Google Workspace SMTP<br>
+              <strong>Expéditeur :</strong> ${googleFrom}<br>
               <strong>Déclenché par :</strong> ${triggeredBy}<br>
               <strong>Horodatage :</strong> ${triggeredAt}
             </div>
@@ -207,43 +208,43 @@ Deno.serve(async (req) => {
           </div>
         </body></html>`
       try {
-        // Timeout côté orchestrateur pour ne jamais dépasser 25s sur la voie IONOS
-        const ionosCall = supabase.functions.invoke('send-via-ionos', {
+        const googleCall = supabase.functions.invoke('send-via-google', {
           body: {
             to: recipientEmail,
-            subject: `[DogWork] Test délivrabilité — IONOS SMTP`,
-            html: ionosHtml,
+            subject: `[DogWork] Test délivrabilité — Google Workspace SMTP`,
+            html: googleHtml,
             fromName: 'DogWork',
-            replyTo: ionosUser,
+            replyTo: googleFrom,
             idempotencyKey,
           },
           headers: { Authorization: `Bearer ${jwt}` },
         })
         const timeout = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('IONOS SMTP timeout (25s)')), 25000)
+          setTimeout(() => reject(new Error('Google SMTP timeout (25s)')), 25000)
         )
-        const { data, error } = (await Promise.race([ionosCall, timeout])) as any
-        ionosResult.latencyMs = Date.now() - t0
-        ionosResult.idempotencyKey = idempotencyKey
+        const { data, error } = (await Promise.race([googleCall, timeout])) as any
+        googleResult.latencyMs = Date.now() - t0
+        googleResult.idempotencyKey = idempotencyKey
         if (error) {
-          ionosResult.status = 'failed'
-          ionosResult.error = error.message || String(error)
-        } else if (data?.success === false) {
-          ionosResult.status = 'failed'
-          ionosResult.error = data?.details || data?.error || 'Send failed'
-          ionosResult.smtpCode = data?.smtpCode
-          ionosResult.hints = data?.hints
+          googleResult.status = 'failed'
+          googleResult.error = error.message || String(error)
+        } else if (data?.ok === false || data?.success === false) {
+          googleResult.status = 'failed'
+          googleResult.error = data?.errorMessage || data?.error || 'Send failed'
+          googleResult.errorCode = data?.errorCode
         } else {
-          ionosResult.status = 'sent'
-          ionosResult.response = data
+          googleResult.status = 'sent'
+          googleResult.response = data
         }
       } catch (e: any) {
-        ionosResult.status = 'failed'
-        ionosResult.error = e.message || String(e)
-        ionosResult.latencyMs = Date.now() - t0
+        googleResult.status = 'failed'
+        googleResult.error = e.message || String(e)
+        googleResult.latencyMs = Date.now() - t0
       }
     }
   }
+  // Alias rétrocompatible : ancien clients qui lisent .ionos
+  const ionosResult = googleResult
 
 
   // === DNS / DELIVERABILITY CHECKS ===
