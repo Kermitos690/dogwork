@@ -174,6 +174,33 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   try {
+    // --- Auth: require admin JWT OR shared CRON_SECRET header ---
+    // This function performs destructive deletes against the LIVE database
+    // using LIVE_SERVICE_ROLE_KEY. It MUST never be callable anonymously.
+    const cronSecret = Deno.env.get("CRON_SECRET");
+    const providedCron = req.headers.get("x-cron-secret");
+    const isCronCall = !!cronSecret && !!providedCron && providedCron === cronSecret;
+
+    if (!isCronCall) {
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader?.startsWith("Bearer ")) {
+        return json({ error: "Unauthorized" }, 401);
+      }
+      const jwt = authHeader.replace("Bearer ", "");
+      const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+      if (!supabaseUrl || !serviceKey) {
+        return json({ error: "missing server configuration" }, 500);
+      }
+      const adminClient = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+      const { data: u, error: uErr } = await adminClient.auth.getUser(jwt);
+      if (uErr || !u?.user) return json({ error: "Unauthorized" }, 401);
+      const { data: roleRow } = await adminClient
+        .from("user_roles").select("role")
+        .eq("user_id", u.user.id).eq("role", "admin").maybeSingle();
+      if (!roleRow) return json({ error: "Forbidden — admin only" }, 403);
+    }
+
     const requestBody = await req.json().catch(() => ({})) as CleanupRequest;
     const liveServiceKey = Deno.env.get("LIVE_SERVICE_ROLE_KEY");
 
