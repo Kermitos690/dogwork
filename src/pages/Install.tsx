@@ -32,7 +32,7 @@ function isStandalone(): boolean {
 
 export default function Install() {
   const [platform] = useState<Platform>(detectPlatform);
-  const [installed, setInstalled] = useState(isStandalone);
+  const installed = usePwaInstalled();
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [triggered, setTriggered] = useState(false);
 
@@ -42,7 +42,7 @@ export default function Install() {
       setDeferred(e as BeforeInstallPromptEvent);
     };
     const onInstalled = () => {
-      setInstalled(true);
+      markPwaInstalled();
       toast.success("DogWork installé sur votre appareil");
     };
     window.addEventListener("beforeinstallprompt", onPrompt);
@@ -67,7 +67,7 @@ export default function Install() {
     try {
       await deferred.prompt();
       const choice = await deferred.userChoice;
-      if (choice.outcome === "accepted") setInstalled(true);
+      if (choice.outcome === "accepted") markPwaInstalled();
     } catch {}
   };
 
