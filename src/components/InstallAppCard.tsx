@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Smartphone, Download, X, Apple, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { usePwaInstalled } from "@/hooks/usePwaInstalled";
 
 type Variant = "hero" | "compact" | "banner";
 
