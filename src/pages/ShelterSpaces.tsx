@@ -11,9 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Grid3X3, Plus, Pencil, Trash2, PawPrint, LayoutGrid, BarChart3, Box, Move } from "lucide-react";
+import { Grid3X3, Plus, Pencil, Trash2, PawPrint, LayoutGrid, BarChart3, Box, Move, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { Spaces3DView, Space3D } from "@/components/shelter/Spaces3DView";
+import { SpaceCreateWizard } from "@/components/shelter/spaces/SpaceCreateWizard";
+import { SpaceStatusBadge, SpaceRiskBadge } from "@/components/shelter/spaces/SpaceBadges";
 
 const SPACE_TYPES = [
   { value: "box", label: "Box" },
@@ -49,6 +51,7 @@ export default function ShelterSpaces() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<SpaceForm>(emptyForm);
   const [assignDialog, setAssignDialog] = useState<string | null>(null);
@@ -216,11 +219,15 @@ export default function ShelterSpaces() {
             <LayoutGrid className="h-5 w-5 text-primary" />
             Gestion des espaces
           </h1>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="gap-1" onClick={openNew}><Plus className="h-4 w-4" /> Ajouter</Button>
-            </DialogTrigger>
-            <DialogContent>
+          <div className="flex gap-1.5">
+            <Button size="sm" variant="outline" className="gap-1" onClick={() => setWizardOpen(true)}>
+              <Sparkles className="h-4 w-4" /> Wizard
+            </Button>
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="gap-1" onClick={openNew}><Plus className="h-4 w-4" /> Ajouter</Button>
+              </DialogTrigger>
+              <DialogContent>
               <DialogHeader><DialogTitle>{editId ? "Modifier l'espace" : "Nouvel espace"}</DialogTitle></DialogHeader>
               <div className="space-y-4 pt-2">
                 <div className="space-y-2">
@@ -250,6 +257,7 @@ export default function ShelterSpaces() {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         {/* Stats bar */}
@@ -420,6 +428,8 @@ export default function ShelterSpaces() {
             </div>
           </DialogContent>
         </Dialog>
+
+        <SpaceCreateWizard open={wizardOpen} onOpenChange={setWizardOpen} />
       </motion.div>
     </ShelterLayout>
   );

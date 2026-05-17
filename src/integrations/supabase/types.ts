@@ -4181,54 +4181,552 @@ export type Database = {
         }
         Relationships: []
       }
-      shelter_spaces: {
+      shelter_space_assignments: {
         Row: {
-          capacity: number | null
-          color: string | null
+          animal_id: string | null
+          assigned_to_user_id: string | null
           created_at: string
-          current_animal_id: string | null
-          height: number | null
+          created_by: string | null
+          ends_at: string | null
           id: string
-          name: string
           notes: string | null
-          position_x: number | null
-          position_y: number | null
+          reason: string | null
           shelter_user_id: string
-          space_type: string
-          updated_at: string
-          width: number | null
+          space_id: string
+          starts_at: string
+          status: string
         }
         Insert: {
-          capacity?: number | null
-          color?: string | null
+          animal_id?: string | null
+          assigned_to_user_id?: string | null
           created_at?: string
-          current_animal_id?: string | null
-          height?: number | null
+          created_by?: string | null
+          ends_at?: string | null
           id?: string
-          name?: string
           notes?: string | null
-          position_x?: number | null
-          position_y?: number | null
+          reason?: string | null
           shelter_user_id: string
-          space_type?: string
-          updated_at?: string
-          width?: number | null
+          space_id: string
+          starts_at?: string
+          status?: string
         }
         Update: {
-          capacity?: number | null
-          color?: string | null
+          animal_id?: string | null
+          assigned_to_user_id?: string | null
           created_at?: string
+          created_by?: string | null
+          ends_at?: string | null
+          id?: string
+          notes?: string | null
+          reason?: string | null
+          shelter_user_id?: string
+          space_id?: string
+          starts_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shelter_space_assignments_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shelter_space_assignments_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "v_shelter_spaces_grid"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shelter_space_cleaning_logs: {
+        Row: {
+          checklist: Json
+          cleaned_at: string
+          cleaned_by: string | null
+          cleaning_level: string | null
+          created_at: string
+          id: string
+          next_cleaning_at: string | null
+          notes: string | null
+          shelter_user_id: string
+          space_id: string
+        }
+        Insert: {
+          checklist?: Json
+          cleaned_at?: string
+          cleaned_by?: string | null
+          cleaning_level?: string | null
+          created_at?: string
+          id?: string
+          next_cleaning_at?: string | null
+          notes?: string | null
+          shelter_user_id: string
+          space_id: string
+        }
+        Update: {
+          checklist?: Json
+          cleaned_at?: string
+          cleaned_by?: string | null
+          cleaning_level?: string | null
+          created_at?: string
+          id?: string
+          next_cleaning_at?: string | null
+          notes?: string | null
+          shelter_user_id?: string
+          space_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shelter_space_cleaning_logs_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shelter_space_cleaning_logs_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "v_shelter_spaces_grid"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shelter_space_documents: {
+        Row: {
+          created_at: string
+          document_type: string | null
+          file_type: string | null
+          file_url: string | null
+          id: string
+          shelter_user_id: string
+          space_id: string
+          title: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_type?: string | null
+          file_type?: string | null
+          file_url?: string | null
+          id?: string
+          shelter_user_id: string
+          space_id: string
+          title?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_type?: string | null
+          file_type?: string | null
+          file_url?: string | null
+          id?: string
+          shelter_user_id?: string
+          space_id?: string
+          title?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shelter_space_documents_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shelter_space_documents_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "v_shelter_spaces_grid"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shelter_space_equipment: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          equipment_type: string | null
+          id: string
+          last_checked_at: string | null
+          name: string
+          next_check_at: string | null
+          notes: string | null
+          quantity: number
+          shelter_user_id: string
+          space_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          equipment_type?: string | null
+          id?: string
+          last_checked_at?: string | null
+          name: string
+          next_check_at?: string | null
+          notes?: string | null
+          quantity?: number
+          shelter_user_id: string
+          space_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          equipment_type?: string | null
+          id?: string
+          last_checked_at?: string | null
+          name?: string
+          next_check_at?: string | null
+          notes?: string | null
+          quantity?: number
+          shelter_user_id?: string
+          space_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shelter_space_equipment_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shelter_space_equipment_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "v_shelter_spaces_grid"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shelter_space_incidents: {
+        Row: {
+          action_taken: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          dogs_involved: Json
+          follow_up_required: boolean
+          id: string
+          incident_type: string | null
+          occurred_at: string
+          severity: string
+          shelter_user_id: string
+          space_closed: boolean
+          space_id: string
+          users_involved: Json
+        }
+        Insert: {
+          action_taken?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          dogs_involved?: Json
+          follow_up_required?: boolean
+          id?: string
+          incident_type?: string | null
+          occurred_at?: string
+          severity?: string
+          shelter_user_id: string
+          space_closed?: boolean
+          space_id: string
+          users_involved?: Json
+        }
+        Update: {
+          action_taken?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          dogs_involved?: Json
+          follow_up_required?: boolean
+          id?: string
+          incident_type?: string | null
+          occurred_at?: string
+          severity?: string
+          shelter_user_id?: string
+          space_closed?: boolean
+          space_id?: string
+          users_involved?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shelter_space_incidents_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shelter_space_incidents_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "v_shelter_spaces_grid"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shelter_space_maintenance_logs: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          description: string | null
+          due_at: string | null
+          estimated_cost: number | null
+          id: string
+          notes: string | null
+          photos: Json
+          priority: string
+          reported_by: string | null
+          resolved_at: string | null
+          shelter_user_id: string
+          space_id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          description?: string | null
+          due_at?: string | null
+          estimated_cost?: number | null
+          id?: string
+          notes?: string | null
+          photos?: Json
+          priority?: string
+          reported_by?: string | null
+          resolved_at?: string | null
+          shelter_user_id: string
+          space_id: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          description?: string | null
+          due_at?: string | null
+          estimated_cost?: number | null
+          id?: string
+          notes?: string | null
+          photos?: Json
+          priority?: string
+          reported_by?: string | null
+          resolved_at?: string | null
+          shelter_user_id?: string
+          space_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shelter_space_maintenance_logs_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shelter_space_maintenance_logs_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "v_shelter_spaces_grid"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shelter_space_notes: {
+        Row: {
+          author_id: string | null
+          created_at: string
+          id: string
+          note: string
+          pinned: boolean
+          shelter_user_id: string
+          space_id: string
+          visibility: string
+        }
+        Insert: {
+          author_id?: string | null
+          created_at?: string
+          id?: string
+          note: string
+          pinned?: boolean
+          shelter_user_id: string
+          space_id: string
+          visibility?: string
+        }
+        Update: {
+          author_id?: string | null
+          created_at?: string
+          id?: string
+          note?: string
+          pinned?: boolean
+          shelter_user_id?: string
+          space_id?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shelter_space_notes_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "shelter_spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shelter_space_notes_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "v_shelter_spaces_grid"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shelter_spaces: {
+        Row: {
+          building: string | null
+          capacity: number | null
+          capacity_recommended: number | null
+          color: string | null
+          compatibility_rules: Json
+          created_at: string
+          created_by: string | null
+          current_animal_id: string | null
+          description: string | null
+          features: Json
+          floor: string | null
+          height: number | null
+          id: string
+          indoor_outdoor: string
+          is_active: boolean
+          is_public_for_adopters: boolean
+          is_reservable: boolean
+          isolation_level: string | null
+          main_photo_url: string | null
+          name: string
+          noise_level: string | null
+          notes: string | null
+          organization_id: string | null
+          position_x: number | null
+          position_y: number | null
+          protocols: Json
+          requires_staff_validation: boolean
+          restrictions: Json
+          risk_level: string
+          schedule_config: Json
+          shelter_user_id: string
+          slug: string | null
+          space_type: string
+          status: string
+          stimulation_level: string | null
+          supervision_level: string | null
+          surface_m2: number | null
+          updated_at: string
+          updated_by: string | null
+          visual_config: Json
+          width: number | null
+          zone_label: string | null
+        }
+        Insert: {
+          building?: string | null
+          capacity?: number | null
+          capacity_recommended?: number | null
+          color?: string | null
+          compatibility_rules?: Json
+          created_at?: string
+          created_by?: string | null
           current_animal_id?: string | null
+          description?: string | null
+          features?: Json
+          floor?: string | null
           height?: number | null
           id?: string
+          indoor_outdoor?: string
+          is_active?: boolean
+          is_public_for_adopters?: boolean
+          is_reservable?: boolean
+          isolation_level?: string | null
+          main_photo_url?: string | null
           name?: string
+          noise_level?: string | null
           notes?: string | null
+          organization_id?: string | null
           position_x?: number | null
           position_y?: number | null
-          shelter_user_id?: string
+          protocols?: Json
+          requires_staff_validation?: boolean
+          restrictions?: Json
+          risk_level?: string
+          schedule_config?: Json
+          shelter_user_id: string
+          slug?: string | null
           space_type?: string
+          status?: string
+          stimulation_level?: string | null
+          supervision_level?: string | null
+          surface_m2?: number | null
           updated_at?: string
+          updated_by?: string | null
+          visual_config?: Json
           width?: number | null
+          zone_label?: string | null
+        }
+        Update: {
+          building?: string | null
+          capacity?: number | null
+          capacity_recommended?: number | null
+          color?: string | null
+          compatibility_rules?: Json
+          created_at?: string
+          created_by?: string | null
+          current_animal_id?: string | null
+          description?: string | null
+          features?: Json
+          floor?: string | null
+          height?: number | null
+          id?: string
+          indoor_outdoor?: string
+          is_active?: boolean
+          is_public_for_adopters?: boolean
+          is_reservable?: boolean
+          isolation_level?: string | null
+          main_photo_url?: string | null
+          name?: string
+          noise_level?: string | null
+          notes?: string | null
+          organization_id?: string | null
+          position_x?: number | null
+          position_y?: number | null
+          protocols?: Json
+          requires_staff_validation?: boolean
+          restrictions?: Json
+          risk_level?: string
+          schedule_config?: Json
+          shelter_user_id?: string
+          slug?: string | null
+          space_type?: string
+          status?: string
+          stimulation_level?: string | null
+          supervision_level?: string | null
+          surface_m2?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          visual_config?: Json
+          width?: number | null
+          zone_label?: string | null
         }
         Relationships: [
           {
