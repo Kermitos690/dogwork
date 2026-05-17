@@ -520,6 +520,12 @@ const App = () => {
                 <Route path="/suivi-comportement-chien" element={<Suspense fallback={<PageLoader />}><SuiviComportementChien /></Suspense>} />
                 <Route path="/refuges-animaux-vaud" element={<Suspense fallback={<PageLoader />}><RefugesAnimauxVaud /></Suspense>} />
                 <Route path="/adoption-chien-suisse-romande" element={<Suspense fallback={<PageLoader />}><AdoptionChienSuisseRomande /></Suspense>} />
+                {/* Aliases SEO additifs — redirigent vers les routes canoniques (cf. src/config/seo.ts) */}
+                <Route path="/educateurs-canins" element={<Navigate to="/annuaire/coachs" replace />} />
+                <Route path="/refuges" element={<Navigate to="/annuaire/refuges" replace />} />
+                <Route path="/adoption" element={<Navigate to="/adoption-chien-suisse-romande" replace />} />
+                <Route path="/legal/privacy" element={<Navigate to="/privacy" replace />} />
+                <Route path="/legal/terms" element={<Navigate to="/terms" replace />} />
                 <Route path="/*" element={<ProtectedRoutes />} />
               </Routes>
             </Suspense>
