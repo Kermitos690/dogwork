@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/SEO";
 import { toast } from "sonner";
+import { usePwaInstalled, markPwaInstalled } from "@/hooks/usePwaInstalled";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
