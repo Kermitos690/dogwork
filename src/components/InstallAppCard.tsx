@@ -16,13 +16,8 @@ interface InstallAppCardProps {
   hideIfInstalled?: boolean;
 }
 
-function isStandalone(): boolean {
-  if (typeof window === "undefined") return false;
-  // iOS
-  // @ts-ignore
-  if (window.navigator?.standalone === true) return true;
-  return window.matchMedia?.("(display-mode: standalone)").matches ?? false;
-}
+
+
 
 /**
  * Strong "Install the app" CTA.
