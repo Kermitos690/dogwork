@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Download, CheckCircle2, ArrowLeft, Share, Plus, Apple, Smartphone, Compass, Copy } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,75 +6,52 @@ import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/SEO";
 import { toast } from "sonner";
 import { usePwaInstalled, markPwaInstalled } from "@/hooks/usePwaInstalled";
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
-
-type Platform = "ios" | "android" | "desktop";
-
-function detectPlatform(): Platform {
-  if (typeof navigator === "undefined") return "desktop";
-  const ua = navigator.userAgent || "";
-  if (/iPad|iPhone|iPod/i.test(ua) || (/Macintosh/i.test(ua) && "ontouchend" in document)) return "ios";
-  if (/Android/i.test(ua)) return "android";
-  return "desktop";
-}
-
-function detectIosBrowser(): "safari" | "chrome" | "firefox" | "edge" | "inapp" | "other" {
-  if (typeof navigator === "undefined") return "other";
-  const ua = navigator.userAgent || "";
-  if (/CriOS/i.test(ua)) return "chrome";
-  if (/FxiOS/i.test(ua)) return "firefox";
-  if (/EdgiOS/i.test(ua)) return "edge";
-  if (/FBAN|FBAV|Instagram|Line|LinkedInApp|Snapchat|Twitter|TikTok/i.test(ua)) return "inapp";
-  if (/Safari/i.test(ua)) return "safari";
-  return "other";
-}
-
+import { detectPlatform, detectIosBrowser, useBeforeInstallPrompt } from "@/lib/pwa";
 
 export default function Install() {
-  const [platform] = useState<Platform>(detectPlatform);
-  const [iosBrowser] = useState(detectIosBrowser);
+  const platform = useMemo(() => detectPlatform(), []);
+  const iosBrowser = useMemo(() => detectIosBrowser(), []);
   const installed = usePwaInstalled();
-  const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
+  const { available, prompt } = useBeforeInstallPrompt();
   const [triggered, setTriggered] = useState(false);
+  const [showCopyFallback, setShowCopyFallback] = useState(false);
+  const linkInputRef = useRef<HTMLInputElement>(null);
+  const installUrl = typeof window !== "undefined" ? window.location.origin + "/install" : "";
 
+  // Android : déclencher automatiquement le prompt dès qu'il est dispo
   useEffect(() => {
-    const onPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferred(e as BeforeInstallPromptEvent);
-    };
-    const onInstalled = () => {
+    if (platform === "android" && available && !triggered && !installed) {
+      setTriggered(true);
+      prompt().then((outcome) => {
+        if (outcome === "accepted") {
+          markPwaInstalled();
+          toast.success("DogWork installé sur votre appareil");
+        }
+      });
+    }
+  }, [platform, available, triggered, installed, prompt]);
+
+  async function handleInstall() {
+    const outcome = await prompt();
+    if (outcome === "accepted") {
       markPwaInstalled();
       toast.success("DogWork installé sur votre appareil");
-    };
-    window.addEventListener("beforeinstallprompt", onPrompt);
-    window.addEventListener("appinstalled", onInstalled);
-    return () => {
-      window.removeEventListener("beforeinstallprompt", onPrompt);
-      window.removeEventListener("appinstalled", onInstalled);
-    };
-  }, []);
-
-  // Auto-trigger native install on Android as soon as the prompt is available
-  useEffect(() => {
-    if (deferred && !triggered && platform === "android") {
-      setTriggered(true);
-      deferred.prompt().catch(() => {});
     }
-  }, [deferred, triggered, platform]);
+  }
 
-  const handleInstall = async () => {
-    if (!deferred) return;
-    setTriggered(true);
+  async function copyLink() {
     try {
-      await deferred.prompt();
-      const choice = await deferred.userChoice;
-      if (choice.outcome === "accepted") markPwaInstalled();
-    } catch {}
-  };
+      await navigator.clipboard.writeText(installUrl);
+      toast.success("Lien copié. Ouvre Safari, colle le lien, puis ajoute DogWork à l'écran d'accueil.");
+    } catch {
+      setShowCopyFallback(true);
+      setTimeout(() => {
+        linkInputRef.current?.focus();
+        linkInputRef.current?.select();
+      }, 50);
+      toast.error("Copie impossible — sélectionne le lien manuellement.");
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background pt-16">
@@ -90,59 +67,61 @@ export default function Install() {
             <Download className="w-8 h-8 text-primary" />
           </div>
           <h1 className="text-2xl font-bold">Installer DogWork</h1>
+          <p className="text-sm text-muted-foreground">Accès rapide, plein écran, notifications.</p>
         </div>
 
+        {/* Déjà installée */}
         {installed && (
           <Card className="border-emerald-500/40 bg-emerald-500/5">
             <CardContent className="p-5 flex items-center gap-3">
               <CheckCircle2 className="w-6 h-6 text-emerald-500 shrink-0" />
-              <p className="text-sm">DogWork est déjà installé sur cet appareil. Lancez-le depuis votre écran d'accueil.</p>
+              <p className="text-sm">DogWork est déjà installé sur cet appareil. Lance-le depuis ton écran d'accueil.</p>
             </CardContent>
           </Card>
         )}
 
+        {/* Android */}
         {!installed && platform === "android" && (
           <Card>
             <CardContent className="p-5 space-y-4 text-center">
               <Smartphone className="w-10 h-10 text-primary mx-auto" />
               <p className="text-sm text-muted-foreground">
-                {deferred
-                  ? "Touchez le bouton pour ajouter DogWork à votre écran d'accueil."
-                  : "Préparation de l'installation… si rien ne s'affiche, ouvrez le menu ⋮ de Chrome puis « Installer l'application »."}
+                {available
+                  ? "Touche le bouton pour ajouter DogWork à ton écran d'accueil."
+                  : "Préparation de l'installation… si rien ne s'affiche, ouvre le menu ⋮ de Chrome puis « Installer l'application »."}
               </p>
-              <Button size="lg" className="w-full" onClick={handleInstall} disabled={!deferred}>
+              <Button size="lg" className="w-full" onClick={handleInstall} disabled={!available}>
                 <Download className="w-5 h-5 mr-2" /> Installer maintenant
               </Button>
             </CardContent>
           </Card>
         )}
 
-        {!installed && platform === "ios" && iosBrowser !== "safari" && (
-          <Card className="border-amber-500/40 bg-amber-500/5">
+        {/* iOS Safari */}
+        {!installed && platform === "ios" && iosBrowser === "safari" && (
+          <Card>
             <CardContent className="p-5 space-y-4">
-              <div className="flex items-start gap-3">
-                <Compass className="w-8 h-8 text-amber-600 shrink-0" />
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold">
-                    Ouvrez cette page dans Safari
-                  </p>
+              <div className="flex items-center gap-3">
+                <Apple className="w-8 h-8" />
+                <div>
+                  <p className="text-sm font-semibold">Installe DogWork sur ton iPhone</p>
                   <p className="text-xs text-muted-foreground">
-                    {iosBrowser === "chrome" && "Chrome sur iPhone ne peut pas installer d'application — Apple réserve cette fonction à Safari."}
-                    {iosBrowser === "firefox" && "Firefox sur iPhone ne peut pas installer d'application — Apple réserve cette fonction à Safari."}
-                    {iosBrowser === "edge" && "Edge sur iPhone ne peut pas installer d'application — Apple réserve cette fonction à Safari."}
-                    {iosBrowser === "inapp" && "Ce navigateur intégré ne permet pas l'installation. Ouvrez DogWork dans Safari."}
-                    {iosBrowser === "other" && "Votre navigateur ne permet pas l'installation. Ouvrez DogWork dans Safari."}
+                    Apple ne permet pas l'installation automatique. Trois gestes suffisent.
                   </p>
                 </div>
               </div>
-              <ol className="space-y-2 text-sm text-muted-foreground">
-                <li className="flex items-center gap-2">
-                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-muted text-xs font-bold shrink-0">1</span>
-                  Touchez le menu <strong className="text-foreground">⋯</strong> puis <strong className="text-foreground">« Ouvrir dans Safari »</strong>.
+              <ol className="space-y-3 text-sm">
+                <li className="flex items-start gap-3">
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold shrink-0">1</span>
+                  <span>Appuie sur <Share className="inline w-4 h-4 mx-1" /> <strong>Partager</strong> en bas de Safari.</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-muted text-xs font-bold shrink-0">2</span>
-                  Revenez sur cette page <code className="text-foreground">/install</code> dans Safari.
+                <li className="flex items-start gap-3">
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold shrink-0">2</span>
+                  <span>Choisis <Plus className="inline w-4 h-4 mx-1" /> <strong>Sur l'écran d'accueil</strong>.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold shrink-0">3</span>
+                  <span>Appuie sur <strong>Ajouter</strong>.</span>
                 </li>
               </ol>
               <Button
@@ -150,48 +129,86 @@ export default function Install() {
                 size="sm"
                 className="w-full"
                 onClick={() => {
-                  navigator.clipboard?.writeText(window.location.origin + "/install").then(
-                    () => toast.success("Lien copié — collez-le dans Safari"),
-                    () => toast.error("Impossible de copier le lien")
-                  );
+                  markPwaInstalled();
+                  toast.success("Merci ! DogWork est marqué comme installé.");
                 }}
               >
-                <Copy className="w-4 h-4 mr-2" /> Copier le lien
+                <CheckCircle2 className="w-4 h-4 mr-2" /> J'ai installé
               </Button>
             </CardContent>
           </Card>
         )}
 
-        {!installed && platform === "ios" && iosBrowser === "safari" && (
-          <Card>
+        {/* iOS non-Safari : Chrome iOS, Firefox iOS, Edge iOS, in-app */}
+        {!installed && platform === "ios" && iosBrowser !== "safari" && (
+          <Card className="border-amber-500/40 bg-amber-500/5">
             <CardContent className="p-5 space-y-4">
-              <div className="flex items-center gap-3">
-                <Apple className="w-8 h-8" />
-                <p className="text-sm font-medium">Deux gestes suffisent :</p>
+              <div className="flex items-start gap-3">
+                <Compass className="w-8 h-8 text-amber-600 shrink-0" />
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold">Ouvre DogWork dans Safari pour l'installer</p>
+                  <p className="text-xs text-muted-foreground">
+                    Sur iPhone, l'installation sur l'écran d'accueil passe par Safari — Apple bloque cette
+                    fonction dans {iosBrowser === "chrome" ? "Chrome" : iosBrowser === "firefox" ? "Firefox" : iosBrowser === "edge" ? "Edge" : "ce navigateur"}.
+                  </p>
+                </div>
               </div>
-              <ol className="space-y-3 text-sm">
-                <li className="flex items-start gap-3">
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold shrink-0">1</span>
-                  <span>Touchez <Share className="inline w-4 h-4 mx-1" /> <strong>Partager</strong> en bas de Safari.</span>
+
+              <ol className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-center gap-2">
+                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-muted text-xs font-bold shrink-0">1</span>
+                  Touche <strong className="text-foreground">Copier le lien</strong> ci-dessous.
                 </li>
-                <li className="flex items-start gap-3">
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold shrink-0">2</span>
-                  <span>Choisissez <Plus className="inline w-4 h-4 mx-1" /> <strong>Sur l'écran d'accueil</strong>, puis <em>Ajouter</em>.</span>
+                <li className="flex items-center gap-2">
+                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-muted text-xs font-bold shrink-0">2</span>
+                  Ouvre <strong className="text-foreground">Safari</strong>, colle le lien, charge la page.
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-muted text-xs font-bold shrink-0">3</span>
+                  Suis les 3 étapes affichées dans Safari.
                 </li>
               </ol>
+
+              {!showCopyFallback ? (
+                <Button size="lg" className="w-full" onClick={copyLink}>
+                  <Copy className="w-4 h-4 mr-2" /> Copier le lien
+                </Button>
+              ) : (
+                <div className="space-y-2">
+                  <input
+                    ref={linkInputRef}
+                    readOnly
+                    value={installUrl}
+                    onFocus={(e) => e.currentTarget.select()}
+                    className="w-full text-sm px-3 py-2 rounded-md border border-border bg-background font-mono"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      linkInputRef.current?.focus();
+                      linkInputRef.current?.select();
+                    }}
+                  >
+                    Sélectionner le lien
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
 
+        {/* Desktop */}
         {!installed && platform === "desktop" && (
           <Card>
             <CardContent className="p-5 space-y-4 text-center">
               <p className="text-sm text-muted-foreground">
-                {deferred
-                  ? "Cliquez sur Installer pour ajouter DogWork à votre bureau."
-                  : "Ouvrez cette page sur votre smartphone pour installer l'application, ou cliquez sur l'icône d'installation dans la barre d'adresse de Chrome / Edge."}
+                {available
+                  ? "Clique sur Installer pour ajouter DogWork à ton bureau."
+                  : "Ouvre cette page sur ton smartphone pour installer l'application, ou clique sur l'icône d'installation dans la barre d'adresse de Chrome / Edge."}
               </p>
-              {deferred && (
+              {available && (
                 <Button size="lg" className="w-full" onClick={handleInstall}>
                   <Download className="w-5 h-5 mr-2" /> Installer
                 </Button>
