@@ -54,8 +54,6 @@ Deno.serve(async (req) => {
     );
 
     const { type, data } = await req.json();
-    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    const FROM_EMAIL = "DogWork <noreply@notify.dogwork-at-home.com>";
     const ADMIN_EMAIL = Deno.env.get("ADMIN_EMAIL") || "teba.gaetan@gmail.com";
 
     // --- Role checks for privileged notification types ---
@@ -225,37 +223,29 @@ Deno.serve(async (req) => {
         });
     }
 
-    // Send via Resend if key is configured, otherwise log
-    if (RESEND_API_KEY) {
-      const res = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${RESEND_API_KEY}`,
-        },
-        body: JSON.stringify({
-          from: FROM_EMAIL,
-          to: [to],
-          subject,
-          html: body,
-        }),
-      });
+    // Route through the central email router (idempotency + suppression +
+    // single-provider guarantee). The provider is resolved server-side from
+    // EMAIL_PROVIDER_DEFAULT; callers MUST NOT pick a provider here.
+    const { routeEmail } = await import("../_shared/email-router.ts");
+    const eventId =
+      (data?.courseId as string | undefined) ||
+      (data?.bookingId as string | undefined) ||
+      `${type}-${to}-${new Date().toISOString().slice(0, 10)}`;
+    const routed = await routeEmail({
+      to,
+      subject,
+      html: body,
+      eventId,
+      eventType: `notification:${type}`,
+      category: "notification",
+    });
 
-      if (!res.ok) {
-        const err = await res.text();
-        console.error("Resend error (non-blocking):", err);
-        return new Response(JSON.stringify({ success: true, warning: "Email could not be delivered (sandbox mode)", subject }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const result = await res.json();
-      console.log("Email sent via Resend:", result);
-    } else {
-      console.log(`[FALLBACK] Email not sent (no RESEND_API_KEY). Subject: ${subject}, To: ${to}`);
-    }
-
-    return new Response(JSON.stringify({ success: true, subject }), {
+    return new Response(JSON.stringify({
+      success: routed.status === "sent" || routed.status === "skipped_duplicate",
+      status: routed.status,
+      provider: routed.provider,
+      subject,
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: unknown) {
