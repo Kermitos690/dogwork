@@ -189,6 +189,8 @@ function AIChatBotInner() {
   const [loading, setLoading] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const [savedMessages, setSavedMessages] = useState<Set<number>>(new Set());
+  const [capturesByMessage, setCapturesByMessage] = useState<Record<number, ChatCapture[]>>({});
+  const { extract: extractCaptures } = useChatCapture();
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
