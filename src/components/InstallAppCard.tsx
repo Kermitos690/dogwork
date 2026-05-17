@@ -32,7 +32,7 @@ export function InstallAppCard({
   hideIfInstalled = true,
 }: InstallAppCardProps) {
   const [hidden, setHidden] = useState(false);
-  const installed = usePwaInstalled();
+  const { installed } = usePwaInstalled();
 
   useEffect(() => {
     if (dismissKey) {

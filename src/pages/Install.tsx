@@ -11,7 +11,7 @@ import { detectPlatform, detectIosBrowser, useBeforeInstallPrompt } from "@/lib/
 export default function Install() {
   const platform = useMemo(() => detectPlatform(), []);
   const iosBrowser = useMemo(() => detectIosBrowser(), []);
-  const installed = usePwaInstalled();
+  const { installed } = usePwaInstalled();
   const { available, prompt } = useBeforeInstallPrompt();
   const [triggered, setTriggered] = useState(false);
   const [showCopyFallback, setShowCopyFallback] = useState(false);
