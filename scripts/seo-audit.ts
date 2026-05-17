@@ -78,10 +78,19 @@ for (const prefix of PUBLIC_ROUTES_PRIVATE_PREFIXES) {
 
 // ---------- 3. Parse App.tsx routes → component map ----------
 const appTsx = read("src/App.tsx") ?? "";
-const routeRe = /<Route\s+path=["'`]([^"'`]+)["'`][^>]*element=\{[^<]*<\s*(?:Suspense[^>]*>\s*<)?\s*(?:[A-Z][A-Za-z0-9_]*Guard\s*>\s*<)?([A-Z][A-Za-z0-9_]*)/g;
+// Pull each <Route path="..." element={...} /> line, then extract the LAST CapitalCase
+// component name inside the element block — this peels off Suspense, Guard wrappers, fallback={<PageLoader/>}, etc.
+const routeLineRe = /<Route\s+path=["'`]([^"'`]+)["'`][^/]*?element=\{([\s\S]*?)\}\s*\/?>/g;
 const routeToComp = new Map<string, string>();
-for (const m of appTsx.matchAll(routeRe)) {
-  if (!routeToComp.has(m[1])) routeToComp.set(m[1], m[2]);
+const SKIP_COMPS = new Set(["Suspense", "PageLoader", "Navigate", "Routes", "Route", "ForcePasswordChange"]);
+for (const m of appTsx.matchAll(routeLineRe)) {
+  const path = m[1];
+  const element = m[2];
+  // Find every "<ComponentName" occurrence, ignore wrappers and pick the last meaningful one
+  const comps = [...element.matchAll(/<\s*([A-Z][A-Za-z0-9_]*)\b/g)]
+    .map((x) => x[1])
+    .filter((c) => !SKIP_COMPS.has(c) && !/Guard$/.test(c));
+  if (comps.length && !routeToComp.has(path)) routeToComp.set(path, comps[comps.length - 1]);
 }
 
 // Map "ComponentName" → file path via lazy import statements
