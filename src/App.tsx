@@ -68,6 +68,7 @@ const AdminAIEconomy = lazy(() => import("./pages/AdminAIEconomy"));
 const AdminStripe = lazy(() => import("./pages/AdminStripe"));
 const AdminStripeVerify = lazy(() => import("./pages/AdminStripeVerify"));
 const AdminBillingEvents = lazy(() => import("./pages/AdminBillingEvents"));
+const AdminPwaDiagnostics = lazy(() => import("./pages/AdminPwaDiagnostics"));
 const AdminGoLiveCheck = lazy(() => import("./pages/AdminGoLiveCheck"));
 const AdminEmailDiagnostics = lazy(() => import("./pages/AdminEmailDiagnostics"));
 const AdminPushStatus = lazy(() => import("./pages/AdminPushStatus"));
