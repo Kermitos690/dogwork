@@ -1,10 +1,10 @@
 # DogWork — SEO audit report
 
 - **Status:** ❌ FAIL
-- **Generated:** 2026-05-17T10:30:38.086Z
+- **Generated:** 2026-05-17T10:31:05.291Z
 - **Canonical host:** https://www.dogwork-at-home.com
 - **Sitemap URLs:** 17
-- **Errors:** 2 · **Warnings:** 16
+- **Errors:** 2 · **Warnings:** 17
 
 ## Routes audited
 
@@ -32,8 +32,9 @@
 
 | Severity | Route | Field | Message |
 |---|---|---|---|
-| 🔴 error | `/` | <SEO> | No <SEO> component in src/pages/Dashboard.tsx |
+| 🔴 error | `/` | path | path prop "/landing" does not match route "/" |
 | 🔴 error | `/index.html` | canonical | Static <link rel=canonical> in index.html will duplicate the per-route Helmet canonical |
+| 🟡 warn | `/` | <h1> | No <h1> tag found in component |
 | 🟡 warn | `/landing` | <h1> | No <h1> tag found in component |
 | 🟡 warn | `/annuaire/refuges` | description | description too long (176 chars, target 70–160) |
 | 🟡 warn | `/contact` | title | title too short (25 chars, target 30–65) |

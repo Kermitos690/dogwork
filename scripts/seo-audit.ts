@@ -187,7 +187,8 @@ for (const [t, paths] of titles) if (paths.length > 1) push({ route: paths.join(
 for (const [d, paths] of descs) if (paths.length > 1) push({ route: paths.join(", "), field: "description", severity: "warn", message: `Duplicate description across ${paths.length} routes` });
 
 // ---------- 6. index.html static fallback ----------
-const indexHtml = read("index.html") ?? "";
+// Strip HTML comments first so commented-out tags don't trigger checks
+const indexHtml = (read("index.html") ?? "").replace(/<!--[\s\S]*?-->/g, "");
 const required: Array<[string, RegExp]> = [
   ["og:title", /<meta\s+property=["']og:title["']/],
   ["og:description", /<meta\s+property=["']og:description["']/],
