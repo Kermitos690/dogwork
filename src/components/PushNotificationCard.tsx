@@ -87,7 +87,7 @@ export function PushNotificationCard({ variant = "card", className }: Props) {
 
   function handlePreferencesClick() {
     // Route dédiée préférences notifications (catégories, quiet hours, timezone)
-    window.location.href = "/notification-settings";
+    window.location.href = "/notifications";
   }
 
   if (status === "blocked-preview") {
