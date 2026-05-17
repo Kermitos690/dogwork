@@ -243,6 +243,58 @@ export function ApplicationSuiviChien() {
   );
 }
 
+export function SuiviComportementChien() {
+  return (
+    <SeoLandingLayout
+      cfg={{
+        path: "/suivi-comportement-chien",
+        title: "Suivi du comportement du chien — Journal & analyse DogWork",
+        description:
+          "Suivez le comportement de votre chien dans la durée avec DogWork : journal quotidien, signaux d'alerte, tendances et partage avec un éducateur certifié.",
+        h1: "Suivi du comportement du chien",
+        intro:
+          "Comprendre le comportement de son chien demande du recul. DogWork structure l'observation au quotidien et révèle les tendances qui passent inaperçues à l'œil nu.",
+        bullets: [
+          "Journal quotidien des comportements, déclencheurs et contextes",
+          "Tendances et statistiques sur la durée (réactivité, calme, sommeil)",
+          "Signaux d'alerte identifiables avant qu'ils ne s'installent",
+          "Partage simple avec votre éducateur ou votre vétérinaire",
+        ],
+        primaryCta: { label: "Essayer DogWork", to: "/landing" },
+        secondaryCta: { label: "Trouver un éducateur", to: "/annuaire/coachs" },
+        longCopy: (
+          <>
+            <h2>Pourquoi suivre le comportement, et pas seulement les exercices ?</h2>
+            <p>
+              Un chien évolue. Les tensions, les peurs, les réactions sociales ou les routines changent
+              au fil des semaines. Sans suivi structuré, ces évolutions restent floues. DogWork garde
+              une trace claire, datée, contextualisée — utile pour vous, pour votre coach et pour votre
+              vétérinaire.
+            </p>
+            <h2>Des observations simples, des conclusions utiles</h2>
+            <p>
+              Quelques secondes par jour suffisent : événement, contexte, intensité. DogWork agrège
+              ensuite ces données pour faire ressortir les tendances et proposer des ajustements
+              concrets dans le plan d'éducation.
+            </p>
+            <h2>Pensé pour la Suisse romande</h2>
+            <p>
+              Si le suivi révèle un besoin d'accompagnement, l'annuaire DogWork permet d'identifier
+              rapidement un éducateur canin certifié à Lausanne, dans le canton de Vaud ou ailleurs
+              en Suisse romande.
+            </p>
+            <p>
+              DogWork n'est pas un outil médical et ne remplace pas un avis vétérinaire ou
+              comportementaliste : il facilite l'observation et la communication avec les
+              professionnels qui accompagnent votre chien.
+            </p>
+          </>
+        ),
+      }}
+    />
+  );
+}
+
 export function RefugesAnimauxVaud() {
   return (
     <SeoLandingLayout

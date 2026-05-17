@@ -43,6 +43,7 @@ const entries: SitemapEntry[] = [
   { path: "/education-canine-vaud", changefreq: "monthly", priority: "0.7", lastmod: today },
   { path: "/application-education-canine", changefreq: "monthly", priority: "0.7", lastmod: today },
   { path: "/application-suivi-chien", changefreq: "monthly", priority: "0.7", lastmod: today },
+  { path: "/suivi-comportement-chien", changefreq: "monthly", priority: "0.7", lastmod: today },
   { path: "/refuges-animaux-vaud", changefreq: "monthly", priority: "0.7", lastmod: today },
   { path: "/adoption-chien-suisse-romande", changefreq: "monthly", priority: "0.7", lastmod: today },
 ];

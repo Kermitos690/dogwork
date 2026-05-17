@@ -111,6 +111,12 @@ const routes: RouteMeta[] = [
       "Suivez le comportement, la progression et le bien-être de votre chien avec l'application DogWork. Journal, statistiques, alertes.",
   },
   {
+    path: "/suivi-comportement-chien",
+    title: "Suivi du comportement du chien — Journal & analyse | DogWork",
+    description:
+      "Suivez le comportement de votre chien dans la durée avec DogWork : journal quotidien, signaux d'alerte, tendances et partage avec un éducateur certifié.",
+  },
+  {
     path: "/refuges-animaux-vaud",
     title: "Refuges pour animaux dans le canton de Vaud | DogWork",
     description:

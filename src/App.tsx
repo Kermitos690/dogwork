@@ -32,6 +32,7 @@ const EducationCanineLausanne = lazy(() => import("./pages/seo/LocalLandings").t
 const EducationCanineVaud = lazy(() => import("./pages/seo/LocalLandings").then(m => ({ default: m.EducationCanineVaud })));
 const ApplicationEducationCanine = lazy(() => import("./pages/seo/LocalLandings").then(m => ({ default: m.ApplicationEducationCanine })));
 const ApplicationSuiviChien = lazy(() => import("./pages/seo/LocalLandings").then(m => ({ default: m.ApplicationSuiviChien })));
+const SuiviComportementChien = lazy(() => import("./pages/seo/LocalLandings").then(m => ({ default: m.SuiviComportementChien })));
 const RefugesAnimauxVaud = lazy(() => import("./pages/seo/LocalLandings").then(m => ({ default: m.RefugesAnimauxVaud })));
 const AdoptionChienSuisseRomande = lazy(() => import("./pages/seo/LocalLandings").then(m => ({ default: m.AdoptionChienSuisseRomande })));
 const Contact = lazy(() => import("./pages/Contact"));
@@ -516,6 +517,7 @@ const App = () => {
                 <Route path="/education-canine-vaud" element={<Suspense fallback={<PageLoader />}><EducationCanineVaud /></Suspense>} />
                 <Route path="/application-education-canine" element={<Suspense fallback={<PageLoader />}><ApplicationEducationCanine /></Suspense>} />
                 <Route path="/application-suivi-chien" element={<Suspense fallback={<PageLoader />}><ApplicationSuiviChien /></Suspense>} />
+                <Route path="/suivi-comportement-chien" element={<Suspense fallback={<PageLoader />}><SuiviComportementChien /></Suspense>} />
                 <Route path="/refuges-animaux-vaud" element={<Suspense fallback={<PageLoader />}><RefugesAnimauxVaud /></Suspense>} />
                 <Route path="/adoption-chien-suisse-romande" element={<Suspense fallback={<PageLoader />}><AdoptionChienSuisseRomande /></Suspense>} />
                 <Route path="/*" element={<ProtectedRoutes />} />
