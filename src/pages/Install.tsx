@@ -72,7 +72,7 @@ export default function Install() {
 
   return (
     <div className="min-h-screen bg-background pt-16">
-      <SEO title="Installer DogWork" description="Ajoutez DogWork à votre écran d'accueil en un geste." />
+      <SEO title="Installer DogWork" description="Ajoutez DogWork à votre écran d'accueil en un geste." path="/install" />
 
       <div className="max-w-md mx-auto px-4 py-8 space-y-6">
         <Link to="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
