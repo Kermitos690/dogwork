@@ -52,6 +52,22 @@ Deno.serve(async (req) => {
       const { auth_user_id, employee_id } = body;
       if (!auth_user_id || !employee_id) throw new Error("auth_user_id et employee_id requis");
 
+      // Ownership enforcement: verify the target employee belongs to the caller's shelter
+      // (admin can reset any employee). Prevents cross-shelter IDOR / account takeover.
+      const { data: targetEmp, error: targetErr } = await supabaseAdmin
+        .from("shelter_employees")
+        .select("id, shelter_user_id, auth_user_id")
+        .eq("id", employee_id)
+        .maybeSingle();
+      if (targetErr || !targetEmp) throw new Error("Employé introuvable");
+      if (!isAdmin && targetEmp.shelter_user_id !== caller.id) {
+        throw new Error("Accès refusé");
+      }
+      // Ensure the supplied auth_user_id matches the employee record (no arbitrary auth user reset)
+      if (targetEmp.auth_user_id !== auth_user_id) {
+        throw new Error("Identifiants employé incohérents");
+      }
+
       const pin = String(Math.floor(100000 + Math.random() * 900000));
 
       // Update Auth password
