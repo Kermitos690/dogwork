@@ -110,7 +110,7 @@ export function PwaWelcomeSheet() {
           icon: Sparkles,
           label: "Ou crée un compte gratuit",
           desc: "Commence ton programme en quelques minutes.",
-          to: "/auth?mode=signup",
+          to: "/auth",
           cta: "Créer",
         },
       ];
