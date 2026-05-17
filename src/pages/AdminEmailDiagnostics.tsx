@@ -219,7 +219,7 @@ const SendResultCard = ({ result, title, color }: { result: SendResult; title: s
 export default function AdminEmailDiagnostics() {
   const [recipient, setRecipient] = useState("");
   const [sendLovable, setSendLovable] = useState(true);
-  const [sendIonos, setSendIonos] = useState(false);
+  const [sendGoogle, setSendGoogle] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<DiagnosticResponse | null>(null);
 
@@ -232,7 +232,7 @@ export default function AdminEmailDiagnostics() {
     setResult(null);
     try {
       const { data, error } = await supabase.functions.invoke("email-deliverability-test", {
-        body: { recipientEmail: recipient, sendLovable, sendIonos },
+        body: { recipientEmail: recipient, sendLovable, sendGoogle },
       });
       if (error) throw error;
       const r = data as DiagnosticResponse;
