@@ -312,110 +312,124 @@ export default function ShelterSpaces() {
           </Card>
         )}
 
-        {/* Toggle vue 2D / 3D */}
-        {spaces.length > 0 && (
-          <div className="flex items-center justify-between gap-2">
-            <div className="inline-flex rounded-lg border border-border bg-card p-0.5">
-              <button
-                onClick={() => { setView("3d"); }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                  view === "3d" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Box className="h-3.5 w-3.5" /> Plan 3D
-              </button>
-              <button
-                onClick={() => { setView("2d"); setEditingLayout(false); }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                  view === "2d" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Grid3X3 className="h-3.5 w-3.5" /> Liste
-              </button>
-            </div>
-            {view === "3d" && (
-              <Button
-                variant={editingLayout ? "default" : "outline"}
-                size="sm"
-                className="gap-1.5"
-                onClick={() => setEditingLayout((v) => !v)}
-              >
-                <Move className="h-3.5 w-3.5" />
-                {editingLayout ? "Terminer" : "Éditer plan"}
-              </Button>
+        {/* Tabs : Plan premium (cockpit) | Plan classique */}
+        <Tabs defaultValue="premium" className="w-full">
+          <TabsList className="grid grid-cols-2 w-full max-w-sm">
+            <TabsTrigger value="premium" className="gap-1.5"><Sparkles className="h-3.5 w-3.5" /> Plan premium</TabsTrigger>
+            <TabsTrigger value="classic" className="gap-1.5"><Box className="h-3.5 w-3.5" /> Plan classique</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="premium" className="mt-3">
+            <SpaceVisualCommandCenter onCreate={() => setWizardOpen(true)} />
+          </TabsContent>
+
+          <TabsContent value="classic" className="mt-3 space-y-3">
+            {/* Toggle vue 2D / 3D existant */}
+            {spaces.length > 0 && (
+              <div className="flex items-center justify-between gap-2">
+                <div className="inline-flex rounded-lg border border-border bg-card p-0.5">
+                  <button
+                    onClick={() => { setView("3d"); }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                      view === "3d" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Box className="h-3.5 w-3.5" /> Plan 3D
+                  </button>
+                  <button
+                    onClick={() => { setView("2d"); setEditingLayout(false); }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                      view === "2d" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Grid3X3 className="h-3.5 w-3.5" /> Liste
+                  </button>
+                </div>
+                {view === "3d" && (
+                  <Button
+                    variant={editingLayout ? "default" : "outline"}
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => setEditingLayout((v) => !v)}
+                  >
+                    <Move className="h-3.5 w-3.5" />
+                    {editingLayout ? "Terminer" : "Éditer plan"}
+                  </Button>
+                )}
+              </div>
             )}
-          </div>
-        )}
 
-        {/* Vue */}
-        {isLoading ? (
-          <div className="animate-pulse text-muted-foreground text-center py-8">Chargement...</div>
-        ) : spaces.length === 0 ? (
-          <Card>
-            <CardContent className="p-6 text-center">
-              <Grid3X3 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">Aucun espace créé</p>
-              <p className="text-xs text-muted-foreground mt-1">Créez des boxes, enclos et zones pour organiser votre refuge</p>
-              <Button variant="outline" size="sm" className="mt-3 gap-1" onClick={openNew}>
-                <Plus className="h-4 w-4" /> Créer un espace
-              </Button>
-            </CardContent>
-          </Card>
-        ) : view === "3d" ? (
-          <Spaces3DView
-            spaces={spaces3D}
-            editing={editingLayout}
-            onSelect={(s) => setAssignDialog(s.id)}
-            onMove={(id, x, y) => moveMutation.mutate({ id, x, y })}
-          />
-        ) : (
-          <div className="grid grid-cols-2 gap-2">
-            {spaces.map((space: any) => {
-              const animalName = space.animal_name || null;
-              const colorClass = SPACE_COLORS[space.space_type] || "bg-muted border-border";
-              return (
-                <Card key={space.id} className={`border ${colorClass} overflow-hidden`}>
-                  <CardContent className="p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-bold text-foreground truncate">{space.name}</p>
-                      <div className="flex gap-0.5">
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEdit(space)}>
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => deleteMutation.mutate(space.id)}>
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground capitalize">{SPACE_TYPES.find(t => t.value === space.space_type)?.label || space.space_type}</p>
-                    
-                    {animalName ? (
-                      <div className="flex items-center gap-1 p-1.5 rounded bg-primary/10">
-                        <PawPrint className="h-3 w-3 text-primary" />
-                        <span className="text-xs font-medium text-primary truncate">{animalName}</span>
-                        {space.animal_species && (
-                          <Badge variant="secondary" className="text-[8px] ml-auto">{space.animal_species}</Badge>
+            {/* Vue classique */}
+            {isLoading ? (
+              <div className="animate-pulse text-muted-foreground text-center py-8">Chargement...</div>
+            ) : spaces.length === 0 ? (
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <Grid3X3 className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">Aucun espace créé</p>
+                  <p className="text-xs text-muted-foreground mt-1">Créez des boxes, enclos et zones pour organiser votre refuge</p>
+                  <Button variant="outline" size="sm" className="mt-3 gap-1" onClick={openNew}>
+                    <Plus className="h-4 w-4" /> Créer un espace
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : view === "3d" ? (
+              <Spaces3DView
+                spaces={spaces3D}
+                editing={editingLayout}
+                onSelect={(s) => setAssignDialog(s.id)}
+                onMove={(id, x, y) => moveMutation.mutate({ id, x, y })}
+              />
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                {spaces.map((space: any) => {
+                  const animalName = space.animal_name || null;
+                  const colorClass = SPACE_COLORS[space.space_type] || "bg-muted border-border";
+                  return (
+                    <Card key={space.id} className={`border ${colorClass} overflow-hidden`}>
+                      <CardContent className="p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-bold text-foreground truncate">{space.name}</p>
+                          <div className="flex gap-0.5">
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEdit(space)}>
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => deleteMutation.mutate(space.id)}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground capitalize">{SPACE_TYPES.find(t => t.value === space.space_type)?.label || space.space_type}</p>
+
+                        {animalName ? (
+                          <div className="flex items-center gap-1 p-1.5 rounded bg-primary/10">
+                            <PawPrint className="h-3 w-3 text-primary" />
+                            <span className="text-xs font-medium text-primary truncate">{animalName}</span>
+                            {space.animal_species && (
+                              <Badge variant="secondary" className="text-[8px] ml-auto">{space.animal_species}</Badge>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-[10px] text-muted-foreground italic">Libre</p>
                         )}
-                      </div>
-                    ) : (
-                      <p className="text-[10px] text-muted-foreground italic">Libre</p>
-                    )}
 
-                    <div className="flex gap-1">
-                      <Button asChild variant="default" size="sm" className="flex-1 text-[10px] h-7">
-                        <Link to={`/shelter/spaces/${space.id}`}><ExternalLink className="h-3 w-3 mr-1" /> Détail</Link>
-                      </Button>
-                      <Button variant="outline" size="sm" className="flex-1 text-[10px] h-7"
-                        onClick={() => setAssignDialog(space.id)}>
-                        {animalName ? "Changer" : "Assigner"}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+                        <div className="flex gap-1">
+                          <Button asChild variant="default" size="sm" className="flex-1 text-[10px] h-7">
+                            <Link to={`/shelter/spaces/${space.id}`}><ExternalLink className="h-3 w-3 mr-1" /> Détail</Link>
+                          </Button>
+                          <Button variant="outline" size="sm" className="flex-1 text-[10px] h-7"
+                            onClick={() => setAssignDialog(space.id)}>
+                            {animalName ? "Changer" : "Assigner"}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
 
         {/* Assign dialog */}
         <Dialog open={!!assignDialog} onOpenChange={() => setAssignDialog(null)}>
