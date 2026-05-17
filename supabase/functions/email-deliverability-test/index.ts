@@ -119,12 +119,13 @@ Deno.serve(async (req) => {
 
   let recipientEmail: string
   let sendLovable = true
-  let sendIonos = false
+  let sendGoogle = false
   try {
     const body = await req.json()
     recipientEmail = body.recipientEmail
     sendLovable = body.sendLovable !== false
-    sendIonos = body.sendIonos === true
+    // Compat: accepter sendGoogle ou ancien sendIonos
+    sendGoogle = body.sendGoogle === true || body.sendIonos === true
     if (!recipientEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(recipientEmail)) {
       throw new Error('Invalid recipient email')
     }
