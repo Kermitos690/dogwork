@@ -1,6 +1,6 @@
 import { Helmet } from "react-helmet-async";
 
-const SITE = "https://dogwork-at-home.com";
+const SITE = "https://www.dogwork-at-home.com";
 
 interface SEOProps {
   title: string;

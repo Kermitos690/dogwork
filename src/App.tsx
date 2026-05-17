@@ -28,6 +28,12 @@ import Auth from "./pages/Auth";
 
 // Lazy loaded pages
 const Landing = lazy(() => import("./pages/Landing"));
+const EducationCanineLausanne = lazy(() => import("./pages/seo/LocalLandings").then(m => ({ default: m.EducationCanineLausanne })));
+const EducationCanineVaud = lazy(() => import("./pages/seo/LocalLandings").then(m => ({ default: m.EducationCanineVaud })));
+const ApplicationEducationCanine = lazy(() => import("./pages/seo/LocalLandings").then(m => ({ default: m.ApplicationEducationCanine })));
+const ApplicationSuiviChien = lazy(() => import("./pages/seo/LocalLandings").then(m => ({ default: m.ApplicationSuiviChien })));
+const RefugesAnimauxVaud = lazy(() => import("./pages/seo/LocalLandings").then(m => ({ default: m.RefugesAnimauxVaud })));
+const AdoptionChienSuisseRomande = lazy(() => import("./pages/seo/LocalLandings").then(m => ({ default: m.AdoptionChienSuisseRomande })));
 const Contact = lazy(() => import("./pages/Contact"));
 const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
@@ -505,6 +511,13 @@ const App = () => {
                 <Route path="/annuaire/refuges" element={<PublicShelterDirectory />} />
                 <Route path="/c/:slug" element={<PublicCoachPage />} />
                 <Route path="/r/:slug" element={<PublicShelterPage />} />
+                {/* SEO landing pages (Suisse romande long-tail) */}
+                <Route path="/education-canine-lausanne" element={<Suspense fallback={<PageLoader />}><EducationCanineLausanne /></Suspense>} />
+                <Route path="/education-canine-vaud" element={<Suspense fallback={<PageLoader />}><EducationCanineVaud /></Suspense>} />
+                <Route path="/application-education-canine" element={<Suspense fallback={<PageLoader />}><ApplicationEducationCanine /></Suspense>} />
+                <Route path="/application-suivi-chien" element={<Suspense fallback={<PageLoader />}><ApplicationSuiviChien /></Suspense>} />
+                <Route path="/refuges-animaux-vaud" element={<Suspense fallback={<PageLoader />}><RefugesAnimauxVaud /></Suspense>} />
+                <Route path="/adoption-chien-suisse-romande" element={<Suspense fallback={<PageLoader />}><AdoptionChienSuisseRomande /></Suspense>} />
                 <Route path="/*" element={<ProtectedRoutes />} />
               </Routes>
             </Suspense>

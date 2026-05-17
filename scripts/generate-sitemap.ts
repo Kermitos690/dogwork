@@ -37,6 +37,14 @@ const entries: SitemapEntry[] = [
   { path: "/legal/charte-coach", changefreq: "yearly", priority: "0.3", lastmod: today },
   { path: "/privacy", changefreq: "yearly", priority: "0.3", lastmod: today },
   { path: "/terms", changefreq: "yearly", priority: "0.3", lastmod: today },
+
+  // SEO landing pages — Suisse romande long-tail acquisition
+  { path: "/education-canine-lausanne", changefreq: "monthly", priority: "0.7", lastmod: today },
+  { path: "/education-canine-vaud", changefreq: "monthly", priority: "0.7", lastmod: today },
+  { path: "/application-education-canine", changefreq: "monthly", priority: "0.7", lastmod: today },
+  { path: "/application-suivi-chien", changefreq: "monthly", priority: "0.7", lastmod: today },
+  { path: "/refuges-animaux-vaud", changefreq: "monthly", priority: "0.7", lastmod: today },
+  { path: "/adoption-chien-suisse-romande", changefreq: "monthly", priority: "0.7", lastmod: today },
 ];
 
 function generateSitemap(entries: SitemapEntry[]) {

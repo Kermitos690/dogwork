@@ -1,11 +1,17 @@
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, ShieldCheck, AlertTriangle, CreditCard, Percent } from "lucide-react";
+import { SEO } from "@/components/SEO";
 
 export default function CharteCoach() {
   const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-background">
+      <SEO
+        title="Charte Coach & Éducateur — DogWork"
+        description="Engagements contractuels, commission marketplace (15.8%), conditions de paiement et règles éthiques pour les coachs et éducateurs canins sur DogWork."
+        path="/legal/charte-coach"
+      />
       <div className="max-w-3xl mx-auto px-4 py-10 space-y-8">
         <button
           onClick={() => navigate(-1)}
