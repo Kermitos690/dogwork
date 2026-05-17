@@ -79,6 +79,7 @@ export function InstallPromptBanner() {
 
     const onInstalled = () => {
       setVisible(false);
+      markPwaInstalled();
       try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch {}
     };
     window.addEventListener("appinstalled", onInstalled);
