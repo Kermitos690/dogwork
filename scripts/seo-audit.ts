@@ -108,8 +108,11 @@ for (const m of appTsx.matchAll(staticRe)) {
 }
 
 // ---------- 4. Audit each sitemap path ----------
+// "/" is the SPA root: anonymous users land on /landing, so audit "/" against Landing.tsx
+const auditAlias: Record<string, string> = { "/": "/landing" };
 for (const path of sitemapPaths) {
-  const comp = routeToComp.get(path);
+  const lookupPath = auditAlias[path] ?? path;
+  const comp = routeToComp.get(lookupPath);
   if (!comp) {
     push({ route: path, field: "route", severity: "error", message: "Path in sitemap but no <Route> declared in src/App.tsx" });
     continue;
