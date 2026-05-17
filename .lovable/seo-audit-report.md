@@ -1,10 +1,10 @@
 # DogWork — SEO audit report
 
-- **Status:** ✅ PASS
-- **Generated:** 2026-05-17T10:32:33.614Z
+- **Status:** ❌ FAIL
+- **Generated:** 2026-05-17T10:33:27.241Z
 - **Canonical host:** https://www.dogwork-at-home.com
 - **Sitemap URLs:** 17
-- **Errors:** 0 · **Warnings:** 17
+- **Errors:** 6 · **Warnings:** 11
 
 ## Routes audited
 
@@ -21,17 +21,23 @@
 | `/legal/charte-coach` | CharteCoach | src/pages/CharteCoach.tsx |
 | `/privacy` | PrivacyPage | src/pages/Privacy.tsx |
 | `/terms` | TermsPage | src/pages/Terms.tsx |
-| `/education-canine-lausanne` | Suspense | — |
-| `/education-canine-vaud` | Suspense | — |
-| `/application-education-canine` | Suspense | — |
-| `/application-suivi-chien` | Suspense | — |
-| `/refuges-animaux-vaud` | Suspense | — |
-| `/adoption-chien-suisse-romande` | Suspense | — |
+| `/education-canine-lausanne` | — | — |
+| `/education-canine-vaud` | — | — |
+| `/application-education-canine` | — | — |
+| `/application-suivi-chien` | — | — |
+| `/refuges-animaux-vaud` | — | — |
+| `/adoption-chien-suisse-romande` | — | — |
 
 ## Findings
 
 | Severity | Route | Field | Message |
 |---|---|---|---|
+| 🔴 error | `/education-canine-lausanne` | route | Path in sitemap but no <Route> declared in src/App.tsx |
+| 🔴 error | `/education-canine-vaud` | route | Path in sitemap but no <Route> declared in src/App.tsx |
+| 🔴 error | `/application-education-canine` | route | Path in sitemap but no <Route> declared in src/App.tsx |
+| 🔴 error | `/application-suivi-chien` | route | Path in sitemap but no <Route> declared in src/App.tsx |
+| 🔴 error | `/refuges-animaux-vaud` | route | Path in sitemap but no <Route> declared in src/App.tsx |
+| 🔴 error | `/adoption-chien-suisse-romande` | route | Path in sitemap but no <Route> declared in src/App.tsx |
 | 🟡 warn | `/` | <h1> | No <h1> tag found in component |
 | 🟡 warn | `/landing` | <h1> | No <h1> tag found in component |
 | 🟡 warn | `/annuaire/refuges` | description | description too long (176 chars, target 70–160) |
@@ -43,12 +49,6 @@
 | 🟡 warn | `/legal` | title | title too short (26 chars, target 30–65) |
 | 🟡 warn | `/privacy` | title | title too short (25 chars, target 30–65) |
 | 🟡 warn | `/terms` | description | description too short (22 chars, target 70–160) |
-| 🟡 warn | `/education-canine-lausanne` | file | Component <Suspense> not resolved to a source file (skipped on-page checks) |
-| 🟡 warn | `/education-canine-vaud` | file | Component <Suspense> not resolved to a source file (skipped on-page checks) |
-| 🟡 warn | `/application-education-canine` | file | Component <Suspense> not resolved to a source file (skipped on-page checks) |
-| 🟡 warn | `/application-suivi-chien` | file | Component <Suspense> not resolved to a source file (skipped on-page checks) |
-| 🟡 warn | `/refuges-animaux-vaud` | file | Component <Suspense> not resolved to a source file (skipped on-page checks) |
-| 🟡 warn | `/adoption-chien-suisse-romande` | file | Component <Suspense> not resolved to a source file (skipped on-page checks) |
 
 ## Checks performed
 

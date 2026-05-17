@@ -78,16 +78,31 @@ for (const prefix of PUBLIC_ROUTES_PRIVATE_PREFIXES) {
 
 // ---------- 3. Parse App.tsx routes → component map ----------
 const appTsx = read("src/App.tsx") ?? "";
-// Pull each <Route path="..." element={...} /> line, then extract the LAST CapitalCase
-// component name inside the element block — this peels off Suspense, Guard wrappers, fallback={<PageLoader/>}, etc.
-const routeLineRe = /<Route\s+path=["'`]([^"'`]+)["'`][^/]*?element=\{([\s\S]*?)\}\s*\/?>/g;
 const routeToComp = new Map<string, string>();
 const SKIP_COMPS = new Set(["Suspense", "PageLoader", "Navigate", "Routes", "Route", "ForcePasswordChange"]);
-for (const m of appTsx.matchAll(routeLineRe)) {
-  const path = m[1];
-  const element = m[2];
-  // Find every "<ComponentName" occurrence, ignore wrappers and pick the last meaningful one
-  const comps = [...element.matchAll(/<\s*([A-Z][A-Za-z0-9_]*)\b/g)]
+// Locate every "<Route ... />" segment by brace-counting from each <Route occurrence.
+let cursor = 0;
+while (true) {
+  const start = appTsx.indexOf("<Route", cursor);
+  if (start < 0) break;
+  // Walk forward balancing < > and matching the closing /> of this tag
+  let i = start;
+  let depth = 0;
+  let end = -1;
+  while (i < appTsx.length) {
+    const ch = appTsx[i];
+    if (ch === "{") depth++;
+    else if (ch === "}") depth--;
+    else if (ch === ">" && depth <= 0 && appTsx[i - 1] === "/") { end = i + 1; break; }
+    i++;
+  }
+  if (end < 0) { cursor = start + 6; continue; }
+  const segment = appTsx.slice(start, end);
+  cursor = end;
+  const pathM = segment.match(/path=["'`]([^"'`]+)["'`]/);
+  if (!pathM) continue;
+  const path = pathM[1];
+  const comps = [...segment.matchAll(/<\s*([A-Z][A-Za-z0-9_]*)\b/g)]
     .map((x) => x[1])
     .filter((c) => !SKIP_COMPS.has(c) && !/Guard$/.test(c));
   if (comps.length && !routeToComp.has(path)) routeToComp.set(path, comps[comps.length - 1]);
