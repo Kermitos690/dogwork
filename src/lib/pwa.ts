@@ -57,7 +57,12 @@ export function isStandalone(): boolean {
   if (typeof window === "undefined") return false;
   try {
     if ((window.navigator as any)?.standalone === true) return true;
-    return window.matchMedia?.("(display-mode: standalone)").matches ?? false;
+    if (window.matchMedia?.("(display-mode: standalone)").matches) return true;
+    if (window.matchMedia?.("(display-mode: minimal-ui)").matches) return true;
+    if (window.matchMedia?.("(display-mode: fullscreen)").matches) return true;
+    if (window.matchMedia?.("(display-mode: window-controls-overlay)").matches) return true;
+    if (typeof document !== "undefined" && document.referrer?.startsWith("android-app://")) return true;
+    return false;
   } catch {
     return false;
   }
