@@ -181,7 +181,20 @@ export default function AdminDashboard() {
       }
       if (data?.error) throw new Error(data.error);
       setTempPasswordDialog({ email: newShelterEmail, password: data.temporaryPassword });
-      toast({ title: "Refuge créé ✅", description: `Le refuge « ${newShelterName} » et son administrateur (${newShelterEmail}) ont été créés.` });
+      const mail = await sendOnboardingEmail({
+        recipientEmail: newShelterEmail,
+        recipientName: newShelterAdminName || newShelterEmail.split("@")[0],
+        role: "shelter",
+        temporaryPassword: data.temporaryPassword,
+        organizationName: newShelterName,
+      });
+      toast({
+        title: "Refuge créé ✅",
+        description: mail.ok
+          ? `« ${newShelterName} » créé. Identifiants envoyés à ${newShelterEmail}.`
+          : `« ${newShelterName} » créé, mais l'email automatique a échoué : ${mail.error}`,
+        variant: mail.ok ? undefined : "destructive",
+      });
       setNewShelterEmail(""); setNewShelterName(""); setNewShelterAdminName("");
     } catch (err: any) {
       toast({ title: "Erreur", description: err.message || "Impossible de créer le refuge", variant: "destructive" });
