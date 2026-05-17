@@ -1,19 +1,15 @@
-import { useEffect } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, MapPin, Search } from "lucide-react";
-import { useState } from "react";
 import { Input } from "@/components/ui/input";
+import { SEO } from "@/components/SEO";
 
 export default function PublicCoachDirectory() {
   const [q, setQ] = useState("");
-
-  useEffect(() => {
-    document.title = "Annuaire des éducateurs canins — DogWork";
-  }, []);
 
   const { data: coaches = [], isLoading } = useQuery({
     queryKey: ["directory_coaches"],
@@ -41,9 +37,16 @@ export default function PublicCoachDirectory() {
 
   return (
     <div className="container max-w-5xl py-8 px-4 space-y-6">
-      <header className="text-center space-y-2">
-        <h1 className="text-3xl md:text-4xl font-bold">Éducateurs canins</h1>
-        <p className="text-muted-foreground">Trouvez un professionnel près de chez vous, vérifié sur DogWork.</p>
+      <SEO
+        title="Éducateurs canins en Suisse romande — Annuaire DogWork"
+        description="Trouvez un éducateur canin certifié à Lausanne, dans le canton de Vaud et toute la Suisse romande. Profils vérifiés, spécialités, ville et contact direct."
+        path="/annuaire/coachs"
+      />
+      <header className="text-center space-y-3">
+        <h1 className="text-3xl md:text-4xl font-bold">Éducateurs canins en Suisse romande</h1>
+        <p className="text-muted-foreground max-w-2xl mx-auto">
+          Annuaire DogWork des éducateurs et coachs canins actifs en Suisse romande — Lausanne, Vaud, Genève, Fribourg, Neuchâtel et Valais. Tous les profils sont vérifiés, avec spécialités, ville d'exercice et contact direct.
+        </p>
       </header>
 
       <div className="relative max-w-md mx-auto">

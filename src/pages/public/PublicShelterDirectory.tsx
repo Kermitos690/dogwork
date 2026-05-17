@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,13 +6,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Sparkles, MapPin, Search } from "lucide-react";
+import { SEO } from "@/components/SEO";
 
 export default function PublicShelterDirectory() {
   const [q, setQ] = useState("");
-
-  useEffect(() => {
-    document.title = "Annuaire des refuges — DogWork";
-  }, []);
 
   const { data: shelters = [], isLoading } = useQuery({
     queryKey: ["directory_shelters"],
@@ -40,9 +37,16 @@ export default function PublicShelterDirectory() {
 
   return (
     <div className="container max-w-5xl py-8 px-4 space-y-6">
-      <header className="text-center space-y-2">
-        <h1 className="text-3xl md:text-4xl font-bold">Refuges & associations</h1>
-        <p className="text-muted-foreground">Découvrez les refuges actifs sur DogWork et soutenez l'adoption responsable.</p>
+      <SEO
+        title="Refuges & associations canines en Suisse romande — DogWork"
+        description="Découvrez les refuges et associations actifs sur DogWork à Lausanne, dans le canton de Vaud et en Suisse romande. Adoption responsable, profils enrichis et suivi post-adoption."
+        path="/annuaire/refuges"
+      />
+      <header className="text-center space-y-3">
+        <h1 className="text-3xl md:text-4xl font-bold">Refuges & associations en Suisse romande</h1>
+        <p className="text-muted-foreground max-w-2xl mx-auto">
+          Annuaire DogWork des refuges et associations canines actifs en Suisse romande — Vaud, Genève, Fribourg, Neuchâtel, Valais. Soutenez l'adoption responsable et découvrez les chiens à l'adoption près de chez vous.
+        </p>
       </header>
 
       <div className="relative max-w-md mx-auto">
