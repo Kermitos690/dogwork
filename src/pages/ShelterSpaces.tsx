@@ -219,11 +219,15 @@ export default function ShelterSpaces() {
             <LayoutGrid className="h-5 w-5 text-primary" />
             Gestion des espaces
           </h1>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="gap-1" onClick={openNew}><Plus className="h-4 w-4" /> Ajouter</Button>
-            </DialogTrigger>
-            <DialogContent>
+          <div className="flex gap-1.5">
+            <Button size="sm" variant="outline" className="gap-1" onClick={() => setWizardOpen(true)}>
+              <Sparkles className="h-4 w-4" /> Wizard
+            </Button>
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="gap-1" onClick={openNew}><Plus className="h-4 w-4" /> Ajouter</Button>
+              </DialogTrigger>
+              <DialogContent>
               <DialogHeader><DialogTitle>{editId ? "Modifier l'espace" : "Nouvel espace"}</DialogTitle></DialogHeader>
               <div className="space-y-4 pt-2">
                 <div className="space-y-2">
