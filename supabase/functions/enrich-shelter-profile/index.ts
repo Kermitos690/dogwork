@@ -55,14 +55,77 @@ const TOOL = {
   },
 };
 
+// SECURITY: prevent SSRF. Reject hostnames that resolve to private / loopback /
+// link-local / reserved IP ranges (RFC1918, 127/8, 169.254/16, IPv6 ULA, etc.)
+// and reject non-http(s) schemes, credentials, and suspicious hosts.
+function isPrivateIPv4(ip: string): boolean {
+  const parts = ip.split(".").map(Number);
+  if (parts.length !== 4 || parts.some(p => Number.isNaN(p) || p < 0 || p > 255)) return true;
+  const [a, b] = parts;
+  if (a === 10) return true;
+  if (a === 127) return true;
+  if (a === 0) return true;
+  if (a === 169 && b === 254) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT
+  if (a >= 224) return true; // multicast + reserved
+  return false;
+}
+
+function isBlockedHostnameLiteral(host: string): boolean {
+  const h = host.toLowerCase();
+  if (h === "localhost" || h.endsWith(".localhost")) return true;
+  if (h === "metadata.google.internal") return true;
+  // IPv6 loopback / unspecified / ULA / link-local
+  if (h === "::1" || h === "::" || h.startsWith("fc") || h.startsWith("fd") || h.startsWith("fe80")) return true;
+  // IPv4 literal
+  if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(h)) {
+    return isPrivateIPv4(h);
+  }
+  return false;
+}
+
+async function assertPublicUrl(rawUrl: string): Promise<URL> {
+  let parsed: URL;
+  try { parsed = new URL(rawUrl); }
+  catch { throw new Error("URL invalide"); }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error("Seuls les schémas http(s) sont autorisés");
+  }
+  if (parsed.username || parsed.password) {
+    throw new Error("Les URLs avec identifiants ne sont pas autorisées");
+  }
+  if (isBlockedHostnameLiteral(parsed.hostname)) {
+    throw new Error("Cet hôte n'est pas autorisé");
+  }
+  // Best-effort DNS resolution via Deno; reject if any A record is private.
+  try {
+    // @ts-ignore Deno API
+    const records = await Deno.resolveDns(parsed.hostname, "A").catch(() => [] as string[]);
+    for (const ip of records as string[]) {
+      if (isPrivateIPv4(ip)) throw new Error("L'hôte résout vers une IP privée");
+    }
+  } catch (e) {
+    if ((e as Error).message?.startsWith("L'hôte résout")) throw e;
+    // DNS failure : on continue, le fetch échouera de toute façon proprement.
+  }
+  return parsed;
+}
+
 async function fetchPageText(url: string): Promise<string> {
-  const res = await fetch(url, {
+  const safeUrl = await assertPublicUrl(url);
+  const res = await fetch(safeUrl.toString(), {
     headers: {
       "User-Agent":
         "Mozilla/5.0 (compatible; DogWorkBot/1.0; +https://dogwork-at-home.com)",
       Accept: "text/html",
     },
+    redirect: "manual", // empêche redirect vers une IP privée
   });
+  if (res.status >= 300 && res.status < 400) {
+    throw new Error("Redirections non autorisées pour des raisons de sécurité");
+  }
   if (!res.ok) throw new Error(`Impossible de charger la page (HTTP ${res.status})`);
   const html = await res.text();
   // Strip scripts/styles, garder texte lisible (max ~40k chars pour rester sous le contexte)
