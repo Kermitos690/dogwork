@@ -34,12 +34,20 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceRoleKey);
     const logs: string[] = [];
 
-    const ADMIN_EMAIL = "teba.gaetan@gmail.com";
-    const KEEP_EMAILS = [
-      ADMIN_EMAIL,
-      "presciglia@hotmail.com",
-      "ms.brandenberger@gmail.com",
-    ];
+    // SECURITY: protected emails are sourced from edge function secrets,
+    // never hardcoded in repo. Set CLEANUP_KEEP_EMAILS as a comma-separated
+    // list (e.g. "admin@x.com,owner@y.com"). Optional CLEANUP_ADMIN_EMAIL
+    // overrides the primary admin email if needed.
+    const envEmails = (Deno.env.get("CLEANUP_KEEP_EMAILS") ?? "")
+      .split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+    const ADMIN_EMAIL = (Deno.env.get("CLEANUP_ADMIN_EMAIL") ?? envEmails[0] ?? "").toLowerCase();
+    const KEEP_EMAILS = Array.from(new Set([ADMIN_EMAIL, ...envEmails].filter(Boolean)));
+
+    if (KEEP_EMAILS.length === 0) {
+      return new Response(JSON.stringify({
+        error: "CLEANUP_KEEP_EMAILS not configured — refusing to run to avoid deleting all accounts.",
+      }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     // List all auth users
     const { data: { users }, error: listErr } = await admin.auth.admin.listUsers();
