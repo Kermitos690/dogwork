@@ -271,8 +271,15 @@ Deno.serve(async (req) => {
     }
 
     // ── PDF + signed URL ──────────────────────────────────────
+    // Restrict loginUrl to canonical DogWork origins to prevent phishing
+    // injection via the onboarding PDF.
+    const ALLOWED_LOGIN_ORIGINS = [
+      "https://www.dogwork-at-home.com",
+      "https://dogwork-at-home.com",
+    ];
     const loginUrl =
-      (typeof clientLoginUrl === "string" && /^https:\/\//.test(clientLoginUrl))
+      typeof clientLoginUrl === "string" &&
+      ALLOWED_LOGIN_ORIGINS.some((o) => clientLoginUrl.startsWith(o + "/") || clientLoginUrl === o)
         ? clientLoginUrl
         : "https://www.dogwork-at-home.com/auth";
 
