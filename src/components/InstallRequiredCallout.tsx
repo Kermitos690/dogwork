@@ -16,7 +16,7 @@ export function InstallRequiredCallout({
   feature?: string;
   className?: string;
 }) {
-  const installed = usePwaInstalled();
+  const { installed } = usePwaInstalled();
   if (installed) return null;
 
   return (

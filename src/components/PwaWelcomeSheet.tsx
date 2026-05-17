@@ -39,7 +39,7 @@ function rememberWelcomed() {
 }
 
 export function PwaWelcomeSheet() {
-  const installed = usePwaInstalled();
+  const { installed } = usePwaInstalled();
   const { user, loading } = useAuth();
   const [open, setOpen] = useState(false);
 

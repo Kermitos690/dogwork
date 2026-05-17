@@ -38,7 +38,7 @@ function rememberDismiss() {
  */
 export function InstallPromptBanner() {
   const location = useLocation();
-  const installed = usePwaInstalled();
+  const { installed } = usePwaInstalled();
   const { available, prompt } = useBeforeInstallPrompt();
   const platform = useMemo(() => detectPlatform(), []);
   const iosBrowser = useMemo(() => detectIosBrowser(), []);
