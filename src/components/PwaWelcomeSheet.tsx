@@ -137,10 +137,10 @@ export function PwaWelcomeSheet() {
         </div>
 
         <ul className="divide-y divide-border">
-          {checklist.map((item) => {
+          {checklist.map((item, idx) => {
             const Icon = item.icon;
             return (
-              <li key={item.to} className="flex items-center gap-3 px-5 py-3">
+              <li key={`${item.to}-${idx}`} className="flex items-center gap-3 px-5 py-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground">
                   <Icon className="h-4 w-4" />
                 </div>
