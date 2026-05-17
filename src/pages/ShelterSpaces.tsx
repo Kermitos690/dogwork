@@ -11,9 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Grid3X3, Plus, Pencil, Trash2, PawPrint, LayoutGrid, BarChart3, Box, Move } from "lucide-react";
+import { Grid3X3, Plus, Pencil, Trash2, PawPrint, LayoutGrid, BarChart3, Box, Move, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { Spaces3DView, Space3D } from "@/components/shelter/Spaces3DView";
+import { SpaceCreateWizard } from "@/components/shelter/spaces/SpaceCreateWizard";
+import { SpaceStatusBadge, SpaceRiskBadge } from "@/components/shelter/spaces/SpaceBadges";
 
 const SPACE_TYPES = [
   { value: "box", label: "Box" },
