@@ -22,13 +22,17 @@ self.addEventListener("push", (event) => {
   const options = {
     body: data.body || "",
     icon: data.icon || "/icons/icon-192.png",
-    badge: data.badge || "/icons/badge-72.png",
+    badge: data.badge || "/icons/icon-192.png",
+    image: data.image || undefined,
     tag: data.tag || "dogwork",
     renotify: true,
-    requireInteraction: false,
+    requireInteraction: data.priority === "high",
+    timestamp: data.timestamp || Date.now(),
     data: {
       url: data.url || "/",
-      ...data.data,
+      notificationId: data.notificationId || null,
+      type: data.type || data.category || "system",
+      ...(data.data || {}),
     },
   };
 
