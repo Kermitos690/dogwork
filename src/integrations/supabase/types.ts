@@ -5808,6 +5808,18 @@ export type Database = {
         Returns: undefined
       }
       admin_ai_economy_summary: { Args: never; Returns: Json }
+      admin_get_shelter_spaces_stats: {
+        Args: never
+        Returns: {
+          active_shelters: number
+          free_spaces: number
+          occupancy_pct: number
+          occupied_spaces: number
+          space_types: number
+          total_capacity: number
+          total_spaces: number
+        }[]
+      }
       admin_list_users: {
         Args: never
         Returns: {
