@@ -20,6 +20,7 @@ import { OfflineQueueRunner } from "@/components/OfflineQueueRunner";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { InstallPromptBanner } from "@/components/InstallPromptBanner";
 import { PwaWelcomeSheet } from "@/components/PwaWelcomeSheet";
+import { OpenInstalledAppPrompt } from "@/components/pwa/OpenInstalledAppPrompt";
 
 // Eagerly loaded (critical path)
 import Auth from "./pages/Auth";
@@ -505,6 +506,7 @@ const App = () => {
             <Suspense fallback={null}><GuidedTour /></Suspense>
             <InstallPromptBanner />
             <PwaWelcomeSheet />
+            <OpenInstalledAppPrompt />
           </BrowserRouter>
         </TooltipProvider>
         </EducatorSubscriptionProvider>
