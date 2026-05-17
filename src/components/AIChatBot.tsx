@@ -264,6 +264,7 @@ function AIChatBotInner() {
     setShowHistory(false);
     setInput("");
     setSavedMessages(new Set());
+    setCapturesByMessage({});
   }, []);
 
   const openConversation = useCallback((id: string) => {
@@ -271,6 +272,7 @@ function AIChatBotInner() {
     setDraftMessages([]);
     setShowHistory(false);
     setSavedMessages(new Set());
+    setCapturesByMessage({});
   }, []);
 
   const executeSend = useCallback(async (text: string) => {
