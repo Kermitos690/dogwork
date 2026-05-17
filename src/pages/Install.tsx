@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Download, CheckCircle2, ArrowLeft, Share, Plus, Apple, Smartphone } from "lucide-react";
+import { Download, CheckCircle2, ArrowLeft, Share, Plus, Apple, Smartphone, Compass, Copy } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/SEO";
@@ -22,9 +22,21 @@ function detectPlatform(): Platform {
   return "desktop";
 }
 
+function detectIosBrowser(): "safari" | "chrome" | "firefox" | "edge" | "inapp" | "other" {
+  if (typeof navigator === "undefined") return "other";
+  const ua = navigator.userAgent || "";
+  if (/CriOS/i.test(ua)) return "chrome";
+  if (/FxiOS/i.test(ua)) return "firefox";
+  if (/EdgiOS/i.test(ua)) return "edge";
+  if (/FBAN|FBAV|Instagram|Line|LinkedInApp|Snapchat|Twitter|TikTok/i.test(ua)) return "inapp";
+  if (/Safari/i.test(ua)) return "safari";
+  return "other";
+}
+
 
 export default function Install() {
   const [platform] = useState<Platform>(detectPlatform);
+  const [iosBrowser] = useState(detectIosBrowser);
   const installed = usePwaInstalled();
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [triggered, setTriggered] = useState(false);
@@ -105,12 +117,57 @@ export default function Install() {
           </Card>
         )}
 
-        {!installed && platform === "ios" && (
+        {!installed && platform === "ios" && iosBrowser !== "safari" && (
+          <Card className="border-amber-500/40 bg-amber-500/5">
+            <CardContent className="p-5 space-y-4">
+              <div className="flex items-start gap-3">
+                <Compass className="w-8 h-8 text-amber-600 shrink-0" />
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold">
+                    Ouvrez cette page dans Safari
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {iosBrowser === "chrome" && "Chrome sur iPhone ne peut pas installer d'application — Apple réserve cette fonction à Safari."}
+                    {iosBrowser === "firefox" && "Firefox sur iPhone ne peut pas installer d'application — Apple réserve cette fonction à Safari."}
+                    {iosBrowser === "edge" && "Edge sur iPhone ne peut pas installer d'application — Apple réserve cette fonction à Safari."}
+                    {iosBrowser === "inapp" && "Ce navigateur intégré ne permet pas l'installation. Ouvrez DogWork dans Safari."}
+                    {iosBrowser === "other" && "Votre navigateur ne permet pas l'installation. Ouvrez DogWork dans Safari."}
+                  </p>
+                </div>
+              </div>
+              <ol className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-center gap-2">
+                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-muted text-xs font-bold shrink-0">1</span>
+                  Touchez le menu <strong className="text-foreground">⋯</strong> puis <strong className="text-foreground">« Ouvrir dans Safari »</strong>.
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-muted text-xs font-bold shrink-0">2</span>
+                  Revenez sur cette page <code className="text-foreground">/install</code> dans Safari.
+                </li>
+              </ol>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => {
+                  navigator.clipboard?.writeText(window.location.origin + "/install").then(
+                    () => toast.success("Lien copié — collez-le dans Safari"),
+                    () => toast.error("Impossible de copier le lien")
+                  );
+                }}
+              >
+                <Copy className="w-4 h-4 mr-2" /> Copier le lien
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {!installed && platform === "ios" && iosBrowser === "safari" && (
           <Card>
             <CardContent className="p-5 space-y-4">
               <div className="flex items-center gap-3">
                 <Apple className="w-8 h-8" />
-                <p className="text-sm font-medium">iOS ne permet pas l'installation en un clic. Deux gestes suffisent :</p>
+                <p className="text-sm font-medium">Deux gestes suffisent :</p>
               </div>
               <ol className="space-y-3 text-sm">
                 <li className="flex items-start gap-3">

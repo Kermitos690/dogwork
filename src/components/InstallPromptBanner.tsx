@@ -29,13 +29,17 @@ function detect(): "ios" | "android" | "desktop" {
   return "desktop";
 }
 
+function isIos(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
 function isIosSafari(): boolean {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent;
-  const isIos = /iPhone|iPad|iPod/i.test(ua);
   // Exclude in-app browsers (FB, Instagram, Twitter, Chrome iOS = CriOS, Firefox iOS = FxiOS)
   const isSafari = /Safari/i.test(ua) && !/CriOS|FxiOS|FBAN|FBAV|Instagram|Line|EdgiOS/i.test(ua);
-  return isIos && isSafari;
+  return isIos() && isSafari;
 }
 
 function recentlyDismissed(): boolean {
@@ -84,8 +88,9 @@ export function InstallPromptBanner() {
     };
     window.addEventListener("appinstalled", onInstalled);
 
-    // iOS Safari — pas de beforeinstallprompt → afficher banner manuel après court délai
-    if (isIosSafari()) {
+    // iOS (Safari OU Chrome/Firefox/Edge iOS) — pas de beforeinstallprompt
+    // → afficher banner manuel pour guider vers l'install (ou vers Safari)
+    if (isIos()) {
       const t = setTimeout(() => setVisible(true), 1500);
       return () => {
         clearTimeout(t);
@@ -157,7 +162,7 @@ export function InstallPromptBanner() {
               <X className="h-4 w-4" />
             </button>
           </div>
-        ) : (
+        ) : isIosSafari() ? (
           <div className="p-4 space-y-3">
             <div className="flex items-start justify-between gap-3">
               <p className="text-sm font-semibold">Ajouter à l'écran d'accueil</p>
@@ -186,6 +191,30 @@ export function InstallPromptBanner() {
               onClick={() => setVisible(false)}
             >
               Guide complet
+            </Link>
+          </div>
+        ) : (
+          <div className="p-4 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-sm font-semibold">Ouvrez dans Safari pour installer</p>
+              <button
+                type="button"
+                onClick={dismiss}
+                aria-label="Fermer"
+                className="p-1 rounded-md text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Sur iPhone, seul Safari permet d'ajouter une app à l'écran d'accueil. Touchez le menu <strong className="text-foreground">⋯</strong> de votre navigateur puis <strong className="text-foreground">« Ouvrir dans Safari »</strong>.
+            </p>
+            <Link
+              to="/install"
+              className="block text-xs text-primary underline-offset-2 hover:underline"
+              onClick={() => setVisible(false)}
+            >
+              Voir le guide complet
             </Link>
           </div>
         )}
