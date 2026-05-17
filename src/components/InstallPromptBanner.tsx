@@ -88,8 +88,9 @@ export function InstallPromptBanner() {
     };
     window.addEventListener("appinstalled", onInstalled);
 
-    // iOS Safari — pas de beforeinstallprompt → afficher banner manuel après court délai
-    if (isIosSafari()) {
+    // iOS (Safari OU Chrome/Firefox/Edge iOS) — pas de beforeinstallprompt
+    // → afficher banner manuel pour guider vers l'install (ou vers Safari)
+    if (isIos()) {
       const t = setTimeout(() => setVisible(true), 1500);
       return () => {
         clearTimeout(t);
