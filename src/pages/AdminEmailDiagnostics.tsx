@@ -295,10 +295,10 @@ export default function AdminEmailDiagnostics() {
 
             <div className="flex items-center justify-between p-3 border rounded-lg">
               <div>
-                <Label className="font-medium">Voie IONOS SMTP</Label>
-                <p className="text-xs text-muted-foreground">contact@dogwork-at-home.com (en attente de configuration)</p>
+                <Label className="font-medium">Voie Google Workspace SMTP</Label>
+                <p className="text-xs text-muted-foreground">admin@dogwork-at-home.com · smtp.gmail.com:587 · STARTTLS</p>
               </div>
-              <Switch checked={sendIonos} onCheckedChange={setSendIonos} disabled={loading} />
+              <Switch checked={sendGoogle} onCheckedChange={setSendGoogle} disabled={loading} />
             </div>
           </div>
 
