@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { useState } from "react";
 import { SpaceQRDialog } from "./SpaceQRDialog";
+import { SpaceExportDialog } from "./SpaceExportDialog";
 
 interface Props {
   space: ShelterSpace;
@@ -21,6 +22,7 @@ export function SpaceDetailHeader({ space, currentOccupancy = 0, onStatusChange,
   const max = space.capacity ?? 0;
   const rate = calculateOccupancyRate(currentOccupancy, max);
   const [qrOpen, setQrOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   return (
     <>
