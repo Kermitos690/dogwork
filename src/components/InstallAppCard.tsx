@@ -37,16 +37,15 @@ export function InstallAppCard({
   hideIfInstalled = true,
 }: InstallAppCardProps) {
   const [hidden, setHidden] = useState(false);
-  const [installed, setInstalled] = useState(false);
+  const installed = usePwaInstalled();
 
   useEffect(() => {
-    if (hideIfInstalled) setInstalled(isStandalone());
     if (dismissKey) {
       try {
         if (localStorage.getItem(dismissKey) === "1") setHidden(true);
       } catch {}
     }
-  }, [dismissKey, hideIfInstalled]);
+  }, [dismissKey]);
 
   const dismiss = () => {
     setHidden(true);
@@ -57,7 +56,7 @@ export function InstallAppCard({
     }
   };
 
-  if (hidden || installed) return null;
+  if (hidden || (hideIfInstalled && installed)) return null;
 
   if (variant === "banner") {
     return (
