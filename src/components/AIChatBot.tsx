@@ -331,6 +331,19 @@ function AIChatBotInner() {
           setDraftMessages([]);
           queryClient.invalidateQueries({ queryKey: ["ai-balance"] });
           queryClient.invalidateQueries({ queryKey: ["ai-ledger"] });
+
+          // Capture intelligente : extraction d'événements potentiels
+          // depuis le message utilisateur, à proposer pour mise à jour de la fiche.
+          if (activeDog?.id) {
+            const assistantIndex = messages.length + 1; // user vient d'être ajouté à l'index messages.length
+            extractCaptures({ user_message: text, active_dog_id: activeDog.id })
+              .then((captures) => {
+                if (captures.length > 0) {
+                  setCapturesByMessage((prev) => ({ ...prev, [assistantIndex]: captures }));
+                }
+              })
+              .catch(() => { /* silencieux */ });
+          }
         },
         onError: (msg, code, retryAfter) => {
           setLoading(false);
