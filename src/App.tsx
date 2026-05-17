@@ -406,6 +406,7 @@ function ProtectedRoutes() {
         <Route path="/admin/ai-economy" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminAIEconomy /></AdminGuard></Suspense>} />
         <Route path="/admin/stripe" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminStripe /></AdminGuard></Suspense>} />
         <Route path="/admin/stripe/verify" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminStripeVerify /></AdminGuard></Suspense>} />
+        <Route path="/admin/billing-events" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminBillingEvents /></AdminGuard></Suspense>} />
         <Route path="/admin/go-live-check" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminGoLiveCheck /></AdminGuard></Suspense>} />
         <Route path="/admin/push-status" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminPushStatus /></AdminGuard></Suspense>} />
         <Route path="/admin/preferences" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminPreferences /></AdminGuard></Suspense>} />
