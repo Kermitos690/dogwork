@@ -20,8 +20,11 @@
 // IMPORTANT: This is a read-only attack-surface test. It MUST NOT succeed in
 // rotating any real PIN. Every assertion expects a 400 error response.
 
-import "https://deno.land/std@0.224.0/dotenv/load.ts";
+import { loadSync } from "https://deno.land/std@0.224.0/dotenv/mod.ts";
 import { assertEquals, assert } from "https://deno.land/std@0.224.0/assert/mod.ts";
+
+// Best-effort .env load; do not fail if example vars are missing.
+try { loadSync({ export: true, examplePath: null, allowEmptyValues: true }); } catch { /* noop */ }
 
 const SUPABASE_URL = Deno.env.get("VITE_SUPABASE_URL")!;
 const ANON_KEY = Deno.env.get("VITE_SUPABASE_PUBLISHABLE_KEY")!;
