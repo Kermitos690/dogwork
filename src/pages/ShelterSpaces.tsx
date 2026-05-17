@@ -428,6 +428,8 @@ export default function ShelterSpaces() {
             </div>
           </DialogContent>
         </Dialog>
+
+        <SpaceCreateWizard open={wizardOpen} onOpenChange={setWizardOpen} />
       </motion.div>
     </ShelterLayout>
   );
