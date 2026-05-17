@@ -496,6 +496,7 @@ const App = () => {
               </Routes>
             </Suspense>
             <Suspense fallback={null}><GuidedTour /></Suspense>
+            <InstallPromptBanner />
           </BrowserRouter>
         </TooltipProvider>
         </EducatorSubscriptionProvider>
