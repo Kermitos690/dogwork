@@ -369,7 +369,7 @@ export default function AdminEmailDiagnostics() {
             <h2 className="text-xl font-semibold mb-3">Résultats d'envoi</h2>
             <div className="grid md:grid-cols-2 gap-4">
               <SendResultCard result={result.send.lovable} title="Lovable" color="border-l-blue-500" />
-              <SendResultCard result={result.send.ionos} title="IONOS SMTP" color="border-l-purple-500" />
+              <SendResultCard result={(result.send.google ?? result.send.ionos) as SendResult} title="Google Workspace SMTP" color="border-l-emerald-500" />
             </div>
           </div>
 
