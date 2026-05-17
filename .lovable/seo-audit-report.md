@@ -1,7 +1,7 @@
 # DogWork — SEO audit report
 
 - **Status:** ❌ FAIL
-- **Generated:** 2026-05-17T10:31:23.229Z
+- **Generated:** 2026-05-17T10:31:37.628Z
 - **Canonical host:** https://www.dogwork-at-home.com
 - **Sitemap URLs:** 17
 - **Errors:** 1 · **Warnings:** 17

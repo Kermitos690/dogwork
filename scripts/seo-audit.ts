@@ -160,7 +160,7 @@ for (const path of sitemapPaths) {
       if (len > 160) push({ route: path, field: "description", severity: "warn", message: `description too long (${len} chars, target 70–160)` });
     }
     if (!pathM) push({ route: path, field: "path", severity: "error", message: "Missing path prop (canonical depends on it)" });
-    else if (pathM[1] !== path) push({ route: path, field: "path", severity: "error", message: `path prop "${pathM[1]}" does not match route "${path}"` });
+    else if (pathM[1] !== lookupPath) push({ route: path, field: "path", severity: "error", message: `path prop "${pathM[1]}" does not match audited route "${lookupPath}"` });
   }
 
   // <h1>
