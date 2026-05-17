@@ -81,33 +81,12 @@ const appTsx = read("src/App.tsx") ?? "";
 const routeToComp = new Map<string, string>();
 const SKIP_COMPS = new Set(["Suspense", "PageLoader", "Navigate", "Routes", "Route", "ForcePasswordChange"]);
 // Locate every "<Route ... />" segment by brace-counting from each <Route occurrence.
-let cursor = 0;
-while (true) {
-  const start = appTsx.indexOf("<Route", cursor);
-  if (start < 0) break;
-  // Walk forward; track {} depth and angle-bracket nesting (outside braces).
-  let i = start + 1;
-  let braceDepth = 0;
-  let tagDepth = 1; // we're inside the opening <Route ...
-  let end = -1;
-  while (i < appTsx.length) {
-    const ch = appTsx[i];
-    if (ch === "{") braceDepth++;
-    else if (ch === "}") braceDepth--;
-    else if (braceDepth === 0) {
-      if (ch === "<" && appTsx[i + 1] !== "/") tagDepth++;
-      else if (ch === "/" && appTsx[i + 1] === ">") { tagDepth--; if (tagDepth === 0) { end = i + 2; break; } }
-      else if (ch === ">" && appTsx[i - 1] !== "/" && appTsx.startsWith("</", appTsx.lastIndexOf("<", i))) tagDepth--;
-    }
-    i++;
-  }
-  if (end < 0) { cursor = start + 6; continue; }
-  const segment = appTsx.slice(start, end);
-  cursor = end;
-  const pathM = segment.match(/path=["'`]([^"'`]+)["'`]/);
-  if (!pathM) continue;
-  const path = pathM[1];
-  const comps = [...segment.matchAll(/<\s*([A-Z][A-Za-z0-9_]*)\b/g)]
+// Match <Route path="..." element={...} /> allowing up to 2 levels of nested {}.
+const routeLineRe = /<Route\s+path=["'`]([^"'`]+)["'`]\s+element=\{((?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*)\}\s*\/?>/g;
+for (const m of appTsx.matchAll(routeLineRe)) {
+  const path = m[1];
+  const element = m[2];
+  const comps = [...element.matchAll(/<\s*([A-Z][A-Za-z0-9_]*)\b/g)]
     .map((x) => x[1])
     .filter((c) => !SKIP_COMPS.has(c) && !/Guard$/.test(c));
   if (comps.length && !routeToComp.has(path)) routeToComp.set(path, comps[comps.length - 1]);
