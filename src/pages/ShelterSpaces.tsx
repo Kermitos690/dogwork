@@ -257,6 +257,7 @@ export default function ShelterSpaces() {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         {/* Stats bar */}
