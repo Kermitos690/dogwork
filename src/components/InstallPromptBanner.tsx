@@ -121,6 +121,7 @@ export function InstallPromptBanner() {
     if (platform === "ios") setShowIosHint(true);
   }
 
+  if (installed) return null;
   if (!visible) return null;
   // Desktop sans prompt → ne pas afficher (l'utilisateur n'en a pas besoin)
   if (platform === "desktop" && !deferred) return null;
