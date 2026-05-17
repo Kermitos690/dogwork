@@ -42,8 +42,8 @@ interface DiagnosticResponse {
   triggeredBy: string;
   recipient: string;
   summary?: { attempted: number; confirmed: number; pending: number; failed: number };
-  send: { lovable: SendResult; ionos: SendResult };
-  channels?: { lovable: any; ionos: any };
+  send: { lovable: SendResult; google?: SendResult; ionos?: SendResult };
+  channels?: { lovable: any; google?: any; ionos?: any };
   errors?: { channel: string; message: string; smtpCode?: string }[];
   dns: { root: DnsReport; sender: DnsReport };
   recommendations?: string[];
@@ -219,7 +219,7 @@ const SendResultCard = ({ result, title, color }: { result: SendResult; title: s
 export default function AdminEmailDiagnostics() {
   const [recipient, setRecipient] = useState("");
   const [sendLovable, setSendLovable] = useState(true);
-  const [sendIonos, setSendIonos] = useState(false);
+  const [sendGoogle, setSendGoogle] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<DiagnosticResponse | null>(null);
 
@@ -232,7 +232,7 @@ export default function AdminEmailDiagnostics() {
     setResult(null);
     try {
       const { data, error } = await supabase.functions.invoke("email-deliverability-test", {
-        body: { recipientEmail: recipient, sendLovable, sendIonos },
+        body: { recipientEmail: recipient, sendLovable, sendGoogle },
       });
       if (error) throw error;
       const r = data as DiagnosticResponse;
@@ -295,10 +295,10 @@ export default function AdminEmailDiagnostics() {
 
             <div className="flex items-center justify-between p-3 border rounded-lg">
               <div>
-                <Label className="font-medium">Voie IONOS SMTP</Label>
-                <p className="text-xs text-muted-foreground">contact@dogwork-at-home.com (en attente de configuration)</p>
+                <Label className="font-medium">Voie Google Workspace SMTP</Label>
+                <p className="text-xs text-muted-foreground">admin@dogwork-at-home.com · smtp.gmail.com:587 · STARTTLS</p>
               </div>
-              <Switch checked={sendIonos} onCheckedChange={setSendIonos} disabled={loading} />
+              <Switch checked={sendGoogle} onCheckedChange={setSendGoogle} disabled={loading} />
             </div>
           </div>
 
@@ -329,7 +329,7 @@ export default function AdminEmailDiagnostics() {
             </AlertTitle>
             <AlertDescription>
               {summary.attempted === 0
-                ? "Aucun canal d'envoi sélectionné. Activez Lovable ou IONOS pour tester un envoi réel."
+                ? "Aucun canal d'envoi sélectionné. Activez Lovable ou Google Workspace SMTP pour tester un envoi réel."
                 : allConfirmed
                   ? <>Email confirmé délivré à <strong>{result.recipient}</strong>. Vérifiez la boîte de réception et le dossier spam.</>
                   : noneConfirmed
@@ -360,7 +360,7 @@ export default function AdminEmailDiagnostics() {
             <AlertTitle className="text-sm">Deux voies d'envoi indépendantes</AlertTitle>
             <AlertDescription className="text-xs space-y-1 mt-1">
               <div><strong>Lovable</strong> (notify.dogwork-at-home.com) : transactionnel applicatif (auth, notifications, factures). Géré automatiquement.</div>
-              <div><strong>IONOS SMTP</strong> (contact@dogwork-at-home.com) : envois opérationnels manuels. Nécessite secrets <code>IONOS_SMTP_USER</code> / <code>IONOS_SMTP_PASSWORD</code>.</div>
+              <div><strong>Google Workspace SMTP</strong> (admin@dogwork-at-home.com) : envois opérationnels signés via Google. Nécessite secrets <code>GOOGLE_SMTP_USER</code> / <code>GOOGLE_SMTP_PASSWORD</code> (mot de passe d'application Google).</div>
               <div className="text-muted-foreground italic">Un échec sur l'une n'affecte pas l'autre.</div>
             </AlertDescription>
           </Alert>
@@ -369,7 +369,7 @@ export default function AdminEmailDiagnostics() {
             <h2 className="text-xl font-semibold mb-3">Résultats d'envoi</h2>
             <div className="grid md:grid-cols-2 gap-4">
               <SendResultCard result={result.send.lovable} title="Lovable" color="border-l-blue-500" />
-              <SendResultCard result={result.send.ionos} title="IONOS SMTP" color="border-l-purple-500" />
+              <SendResultCard result={(result.send.google ?? result.send.ionos) as SendResult} title="Google Workspace SMTP" color="border-l-emerald-500" />
             </div>
           </div>
 
@@ -386,7 +386,7 @@ export default function AdminEmailDiagnostics() {
                   {result.recommendations.map((rec, i) => (
                     <div key={i}>• {rec}</div>
                   ))}
-                  <div className="text-muted-foreground italic mt-2">La configuration DNS doit être faite manuellement chez IONOS — DogWork ne modifie pas la zone automatiquement.</div>
+                  <div className="text-muted-foreground italic mt-2">La configuration DNS (MX, SPF, DKIM, DMARC) doit être faite manuellement chez le registrar du domaine — DogWork ne modifie pas la zone automatiquement.</div>
                 </AlertDescription>
               </Alert>
             )}
