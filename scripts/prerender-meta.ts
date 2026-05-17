@@ -3,200 +3,128 @@
 // tags injected into the head, so non-JS crawlers (Facebook, LinkedIn,
 // Slack, Twitter, Discord) see accurate previews without executing JS.
 //
-// The SPA still hydrates normally on the client (the bundle paths are
-// absolute and unchanged). Helmet keeps overriding tags for JS crawlers.
+// Source de vérité : src/config/seo.ts (alimente aussi <SEOHead> côté client).
+// Le SPA s'hydrate normalement ; Helmet réécrit les tags pour Googlebot.
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
 import { resolve, join } from "path";
+import {
+  SEO_ROUTES,
+  DEFAULT_OG_IMAGE_WIDTH,
+  DEFAULT_OG_IMAGE_HEIGHT,
+  DEFAULT_OG_IMAGE_TYPE,
+  DEFAULT_OG_LOCALE,
+  SITE_NAME,
+  type SeoRouteConfig,
+} from "../src/config/seo";
 
-const SITE = "https://www.dogwork-at-home.com";
-const OG_IMAGE = `${SITE}/og-image.png`;
 const DIST = resolve("dist");
-
-interface RouteMeta {
-  path: string;
-  title: string;
-  description: string;
-  ogType?: "website" | "article" | "profile";
-}
-
-// Public, indexable routes only. Must stay aligned with sitemap + App.tsx.
-const routes: RouteMeta[] = [
-  {
-    path: "/",
-    title: "DogWork — Éducation canine intelligente, refuges & coachs",
-    description:
-      "DogWork : programmes d'éducation canine personnalisés, gestion de refuge et suivi comportemental. Devenez l'éducateur que votre chien mérite.",
-  },
-  {
-    path: "/landing",
-    title: "DogWork — La plateforme premium pour propriétaires, coachs et refuges",
-    description:
-      "Plans IA personnalisés, suivi comportemental, annuaire de coachs certifiés et outils refuges. Découvrez DogWork.",
-  },
-  {
-    path: "/pricing",
-    title: "Tarifs DogWork — Starter, Pro & Expert dès 0 CHF",
-    description:
-      "Choisissez l'abonnement DogWork adapté : Starter gratuit, Pro 7.90 CHF, Expert 12.90 CHF. Crédits IA, plans personnalisés, suivi avancé.",
-  },
-  {
-    path: "/annuaire/coachs",
-    title: "Annuaire des éducateurs canins certifiés — Suisse romande | DogWork",
-    description:
-      "Trouvez un éducateur canin certifié près de chez vous : Lausanne, Vaud, Genève, Fribourg. Profils vérifiés, spécialités, tarifs transparents.",
-  },
-  {
-    path: "/annuaire/refuges",
-    title: "Refuges & associations canines — Suisse romande | DogWork",
-    description:
-      "Découvrez les refuges et associations canines partenaires DogWork. Chiens à l'adoption, suivi comportemental et accompagnement post-adoption.",
-  },
-  {
-    path: "/contact",
-    title: "Contact — DogWork",
-    description:
-      "Une question, un partenariat, un retour ? Contactez l'équipe DogWork. Réponse sous 48h ouvrées.",
-  },
-  {
-    path: "/install",
-    title: "Installer DogWork sur votre téléphone",
-    description:
-      "Installez l'application DogWork sur iOS et Android pour un accès rapide à vos plans, exercices et suivis.",
-  },
-  {
-    path: "/legal",
-    title: "Mentions légales — DogWork",
-    description: "Mentions légales et informations éditeur de la plateforme DogWork.",
-  },
-  {
-    path: "/legal/charte-coach",
-    title: "Charte des coachs DogWork",
-    description:
-      "Engagements éthiques, qualité et déontologie des éducateurs canins référencés sur DogWork.",
-  },
-  {
-    path: "/privacy",
-    title: "Politique de confidentialité — DogWork",
-    description:
-      "Comment DogWork collecte, utilise et protège vos données personnelles. Conformité RGPD et LPD suisse.",
-  },
-  {
-    path: "/terms",
-    title: "Conditions générales — DogWork",
-    description: "Conditions générales d'utilisation et de vente de la plateforme DogWork.",
-  },
-  {
-    path: "/education-canine-lausanne",
-    title: "Éducation canine à Lausanne — Coachs certifiés & app DogWork",
-    description:
-      "Éducation canine à Lausanne : trouvez un éducateur certifié et suivez la progression de votre chien avec l'application DogWork.",
-  },
-  {
-    path: "/education-canine-vaud",
-    title: "Éducation canine dans le canton de Vaud | DogWork",
-    description:
-      "Coachs canins certifiés dans le canton de Vaud et plans d'éducation personnalisés. Trouvez votre éducateur sur DogWork.",
-  },
-  {
-    path: "/application-education-canine",
-    title: "Application d'éducation canine — Plans IA personnalisés | DogWork",
-    description:
-      "L'application DogWork génère des plans d'éducation canine personnalisés grâce à l'IA. Exercices, suivi et progression mesurable.",
-  },
-  {
-    path: "/application-suivi-chien",
-    title: "Application de suivi du chien — Comportement, santé, progression | DogWork",
-    description:
-      "Suivez le comportement, la progression et le bien-être de votre chien avec l'application DogWork. Journal, statistiques, alertes.",
-  },
-  {
-    path: "/suivi-comportement-chien",
-    title: "Suivi du comportement du chien — Journal & analyse | DogWork",
-    description:
-      "Suivez le comportement de votre chien dans la durée avec DogWork : journal quotidien, signaux d'alerte, tendances et partage avec un éducateur certifié.",
-  },
-  {
-    path: "/refuges-animaux-vaud",
-    title: "Refuges pour animaux dans le canton de Vaud | DogWork",
-    description:
-      "Refuges canins partenaires DogWork dans le canton de Vaud. Chiens à l'adoption, accompagnement et suivi post-adoption.",
-  },
-  {
-    path: "/adoption-chien-suisse-romande",
-    title: "Adoption d'un chien en Suisse romande | DogWork",
-    description:
-      "Adoptez un chien en Suisse romande via les refuges DogWork. Profils détaillés, suivi comportemental et accompagnement post-adoption.",
-  },
-];
 
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-function injectMeta(template: string, meta: RouteMeta): string {
-  const url = `${SITE}${meta.path === "/" ? "/" : meta.path}`;
-  const title = escapeHtml(meta.title);
-  const desc = escapeHtml(meta.description);
-  const ogType = meta.ogType ?? "website";
+function replaceOrAppend(html: string, regex: RegExp, replacement: string): string {
+  return regex.test(html)
+    ? html.replace(regex, replacement)
+    : html.replace(/<\/head>/i, `    ${replacement}\n  </head>`);
+}
+
+function injectMeta(template: string, cfg: SeoRouteConfig): string {
+  const title = escapeHtml(cfg.title);
+  const desc = escapeHtml(cfg.description);
+  const url = cfg.canonicalUrl;
+  const img = cfg.ogImage;
+  const alt = cfg.ogImageAlt ? escapeHtml(cfg.ogImageAlt) : null;
 
   let html = template;
 
-  // Replace <title>
   html = html.replace(/<title>[^<]*<\/title>/i, `<title>${title}</title>`);
 
-  // Replace meta description
-  html = html.replace(
+  html = replaceOrAppend(
+    html,
     /<meta\s+name=["']description["'][^>]*>/i,
     `<meta name="description" content="${desc}">`,
   );
 
-  // Replace og:title / twitter:title
-  html = html.replace(
-    /<meta\s+property=["']og:title["'][^>]*>/i,
-    `<meta property="og:title" content="${title}">`,
-  );
-  html = html.replace(
-    /<meta\s+name=["']twitter:title["'][^>]*>/i,
-    `<meta name="twitter:title" content="${title}">`,
+  // og:* / twitter:*
+  const pairs: Array<[RegExp, string]> = [
+    [/<meta\s+property=["']og:title["'][^>]*>/i, `<meta property="og:title" content="${title}">`],
+    [
+      /<meta\s+property=["']og:description["'][^>]*>/i,
+      `<meta property="og:description" content="${desc}">`,
+    ],
+    [/<meta\s+property=["']og:url["'][^>]*>/i, `<meta property="og:url" content="${url}">`],
+    [/<meta\s+property=["']og:type["'][^>]*>/i, `<meta property="og:type" content="${cfg.ogType}">`],
+    [/<meta\s+property=["']og:image["'][^>]*>/i, `<meta property="og:image" content="${img}">`],
+    [
+      /<meta\s+property=["']og:image:width["'][^>]*>/i,
+      `<meta property="og:image:width" content="${DEFAULT_OG_IMAGE_WIDTH}">`,
+    ],
+    [
+      /<meta\s+property=["']og:image:height["'][^>]*>/i,
+      `<meta property="og:image:height" content="${DEFAULT_OG_IMAGE_HEIGHT}">`,
+    ],
+    [
+      /<meta\s+property=["']og:image:type["'][^>]*>/i,
+      `<meta property="og:image:type" content="${DEFAULT_OG_IMAGE_TYPE}">`,
+    ],
+    [
+      /<meta\s+property=["']og:site_name["'][^>]*>/i,
+      `<meta property="og:site_name" content="${SITE_NAME}">`,
+    ],
+    [
+      /<meta\s+property=["']og:locale["'][^>]*>/i,
+      `<meta property="og:locale" content="${DEFAULT_OG_LOCALE}">`,
+    ],
+    [/<meta\s+name=["']twitter:card["'][^>]*>/i, `<meta name="twitter:card" content="${cfg.twitterCard}">`],
+    [/<meta\s+name=["']twitter:title["'][^>]*>/i, `<meta name="twitter:title" content="${title}">`],
+    [
+      /<meta\s+name=["']twitter:description["'][^>]*>/i,
+      `<meta name="twitter:description" content="${desc}">`,
+    ],
+    [/<meta\s+name=["']twitter:image["'][^>]*>/i, `<meta name="twitter:image" content="${img}">`],
+  ];
+  for (const [re, repl] of pairs) html = replaceOrAppend(html, re, repl);
+
+  if (alt) {
+    html = replaceOrAppend(
+      html,
+      /<meta\s+property=["']og:image:alt["'][^>]*>/i,
+      `<meta property="og:image:alt" content="${alt}">`,
+    );
+    html = replaceOrAppend(
+      html,
+      /<meta\s+name=["']twitter:image:alt["'][^>]*>/i,
+      `<meta name="twitter:image:alt" content="${alt}">`,
+    );
+  }
+
+  // Canonical (pas dans index.html par défaut — Helmet gère le cas JS).
+  html = replaceOrAppend(
+    html,
+    /<link\s+rel=["']canonical["'][^>]*>/i,
+    `<link rel="canonical" href="${url}">`,
   );
 
-  // Replace og:description / twitter:description
-  html = html.replace(
-    /<meta\s+property=["']og:description["'][^>]*>/i,
-    `<meta property="og:description" content="${desc}">`,
-  );
-  html = html.replace(
-    /<meta\s+name=["']twitter:description["'][^>]*>/i,
-    `<meta name="twitter:description" content="${desc}">`,
-  );
-
-  // Replace og:url
-  html = html.replace(
-    /<meta\s+property=["']og:url["'][^>]*>/i,
-    `<meta property="og:url" content="${url}">`,
-  );
-
-  // Replace og:type
-  html = html.replace(
-    /<meta\s+property=["']og:type["'][^>]*>/i,
-    `<meta property="og:type" content="${ogType}">`,
-  );
-
-  // Inject canonical (static index.html intentionally omits it for Helmet).
-  // Insert just before </head> so it ships in the static HTML for non-JS crawlers.
-  const canonical = `<link rel="canonical" href="${url}">`;
-  html = html.replace(/<\/head>/i, `    ${canonical}\n  </head>`);
+  // Robots noindex pour aliases / pages non indexables (évite duplicate content).
+  if (cfg.noindex || cfg.aliasOf) {
+    html = replaceOrAppend(
+      html,
+      /<meta\s+name=["']robots["'][^>]*>/i,
+      `<meta name="robots" content="noindex,follow">`,
+    );
+  }
 
   return html;
 }
 
-function writeRouteHtml(meta: RouteMeta, template: string) {
-  const html = injectMeta(template, meta);
-  if (meta.path === "/") {
+function writeRouteHtml(cfg: SeoRouteConfig, template: string) {
+  const html = injectMeta(template, cfg);
+  if (cfg.path === "/") {
     writeFileSync(join(DIST, "index.html"), html);
     return;
   }
-  const dir = join(DIST, meta.path.replace(/^\//, ""));
+  const dir = join(DIST, cfg.path.replace(/^\//, ""));
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "index.html"), html);
 }
@@ -208,8 +136,8 @@ function main() {
     return;
   }
   const template = readFileSync(indexPath, "utf8");
-  for (const route of routes) writeRouteHtml(route, template);
-  console.log(`[prerender-meta] wrote ${routes.length} route HTML files in dist/`);
+  for (const route of SEO_ROUTES) writeRouteHtml(route, template);
+  console.log(`[prerender-meta] wrote ${SEO_ROUTES.length} route HTML files in dist/`);
 }
 
 main();
