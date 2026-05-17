@@ -1,60 +1,53 @@
 # DogWork — SEO audit report
 
 - **Status:** ❌ FAIL
-- **Generated:** 2026-05-17T10:33:44.913Z
+- **Generated:** 2026-05-17T10:34:03.266Z
 - **Canonical host:** https://www.dogwork-at-home.com
 - **Sitemap URLs:** 17
-- **Errors:** 6 · **Warnings:** 17
+- **Errors:** 14 · **Warnings:** 2
 
 ## Routes audited
 
 | Route | Component | Source |
 |---|---|---|
-| `/` | Dashboard | src/pages/Dashboard.tsx |
-| `/landing` | Landing | src/pages/Landing.tsx |
+| `/` | — | — |
+| `/landing` | GuidedTour | @/components/GuidedTour.tsx |
 | `/pricing` | PricingPage | src/pages/Pricing.tsx |
-| `/annuaire/coachs` | PublicCoachDirectory | src/pages/public/PublicCoachDirectory.tsx |
-| `/annuaire/refuges` | PublicShelterDirectory | src/pages/public/PublicShelterDirectory.tsx |
-| `/contact` | Contact | src/pages/Contact.tsx |
-| `/install` | Install | src/pages/Install.tsx |
-| `/legal` | LegalPage | src/pages/Legal.tsx |
-| `/legal/charte-coach` | CharteCoach | src/pages/CharteCoach.tsx |
-| `/privacy` | PrivacyPage | src/pages/Privacy.tsx |
-| `/terms` | TermsPage | src/pages/Terms.tsx |
-| `/education-canine-lausanne` | EducationCanineLausanne | src/pages/seo/LocalLandings.tsx |
-| `/education-canine-vaud` | EducationCanineVaud | src/pages/seo/LocalLandings.tsx |
-| `/application-education-canine` | ApplicationEducationCanine | src/pages/seo/LocalLandings.tsx |
-| `/application-suivi-chien` | ApplicationSuiviChien | src/pages/seo/LocalLandings.tsx |
-| `/refuges-animaux-vaud` | RefugesAnimauxVaud | src/pages/seo/LocalLandings.tsx |
-| `/adoption-chien-suisse-romande` | AdoptionChienSuisseRomande | src/pages/seo/LocalLandings.tsx |
+| `/annuaire/coachs` | — | — |
+| `/annuaire/refuges` | — | — |
+| `/contact` | — | — |
+| `/install` | — | — |
+| `/legal` | — | — |
+| `/legal/charte-coach` | — | — |
+| `/privacy` | — | — |
+| `/terms` | — | — |
+| `/education-canine-lausanne` | — | — |
+| `/education-canine-vaud` | — | — |
+| `/application-education-canine` | — | — |
+| `/application-suivi-chien` | — | — |
+| `/refuges-animaux-vaud` | — | — |
+| `/adoption-chien-suisse-romande` | — | — |
 
 ## Findings
 
 | Severity | Route | Field | Message |
 |---|---|---|---|
-| 🔴 error | `/education-canine-lausanne` | <SEO> | No <SEO> component in src/pages/seo/LocalLandings.tsx |
-| 🔴 error | `/education-canine-vaud` | <SEO> | No <SEO> component in src/pages/seo/LocalLandings.tsx |
-| 🔴 error | `/application-education-canine` | <SEO> | No <SEO> component in src/pages/seo/LocalLandings.tsx |
-| 🔴 error | `/application-suivi-chien` | <SEO> | No <SEO> component in src/pages/seo/LocalLandings.tsx |
-| 🔴 error | `/refuges-animaux-vaud` | <SEO> | No <SEO> component in src/pages/seo/LocalLandings.tsx |
-| 🔴 error | `/adoption-chien-suisse-romande` | <SEO> | No <SEO> component in src/pages/seo/LocalLandings.tsx |
-| 🟡 warn | `/` | <h1> | No <h1> tag found in component |
-| 🟡 warn | `/landing` | <h1> | No <h1> tag found in component |
-| 🟡 warn | `/annuaire/refuges` | description | description too long (176 chars, target 70–160) |
-| 🟡 warn | `/contact` | title | title too short (25 chars, target 30–65) |
-| 🟡 warn | `/contact` | description | description too short (31 chars, target 70–160) |
-| 🟡 warn | `/contact` | <h1> | No <h1> tag found in component |
-| 🟡 warn | `/install` | title | title too short (17 chars, target 30–65) |
-| 🟡 warn | `/install` | description | description too short (31 chars, target 70–160) |
-| 🟡 warn | `/legal` | title | title too short (26 chars, target 30–65) |
-| 🟡 warn | `/privacy` | title | title too short (25 chars, target 30–65) |
-| 🟡 warn | `/terms` | description | description too short (22 chars, target 70–160) |
-| 🟡 warn | `/education-canine-lausanne` | <h1> | No <h1> tag found in component |
-| 🟡 warn | `/education-canine-vaud` | <h1> | No <h1> tag found in component |
-| 🟡 warn | `/application-education-canine` | <h1> | No <h1> tag found in component |
-| 🟡 warn | `/application-suivi-chien` | <h1> | No <h1> tag found in component |
-| 🟡 warn | `/refuges-animaux-vaud` | <h1> | No <h1> tag found in component |
-| 🟡 warn | `/adoption-chien-suisse-romande` | <h1> | No <h1> tag found in component |
+| 🔴 error | `/annuaire/coachs` | route | Path in sitemap but no <Route> declared in src/App.tsx |
+| 🔴 error | `/annuaire/refuges` | route | Path in sitemap but no <Route> declared in src/App.tsx |
+| 🔴 error | `/contact` | route | Path in sitemap but no <Route> declared in src/App.tsx |
+| 🔴 error | `/install` | route | Path in sitemap but no <Route> declared in src/App.tsx |
+| 🔴 error | `/legal` | route | Path in sitemap but no <Route> declared in src/App.tsx |
+| 🔴 error | `/legal/charte-coach` | route | Path in sitemap but no <Route> declared in src/App.tsx |
+| 🔴 error | `/privacy` | route | Path in sitemap but no <Route> declared in src/App.tsx |
+| 🔴 error | `/terms` | route | Path in sitemap but no <Route> declared in src/App.tsx |
+| 🔴 error | `/education-canine-lausanne` | route | Path in sitemap but no <Route> declared in src/App.tsx |
+| 🔴 error | `/education-canine-vaud` | route | Path in sitemap but no <Route> declared in src/App.tsx |
+| 🔴 error | `/application-education-canine` | route | Path in sitemap but no <Route> declared in src/App.tsx |
+| 🔴 error | `/application-suivi-chien` | route | Path in sitemap but no <Route> declared in src/App.tsx |
+| 🔴 error | `/refuges-animaux-vaud` | route | Path in sitemap but no <Route> declared in src/App.tsx |
+| 🔴 error | `/adoption-chien-suisse-romande` | route | Path in sitemap but no <Route> declared in src/App.tsx |
+| 🟡 warn | `/` | file | Source file @/components/GuidedTour.tsx not found |
+| 🟡 warn | `/landing` | file | Source file @/components/GuidedTour.tsx not found |
 
 ## Checks performed
 

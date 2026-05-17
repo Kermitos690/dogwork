@@ -166,8 +166,13 @@ for (const path of sitemapPaths) {
     if (m) scope = m[0];
   }
 
-  // <SEO> presence
-  const seoMatch = scope.match(/<SEO\b[\s\S]*?\/>/);
+  // <SEO> presence — accept either a direct <SEO ... /> or a <SeoLandingLayout cfg={...} />
+  // whose cfg object literal carries title/description/path.
+  let seoMatch = scope.match(/<SEO\b[\s\S]*?\/>/);
+  if (!seoMatch) {
+    const layoutM = scope.match(/cfg=\{\s*\{([\s\S]*?)\}\s*\}/);
+    if (layoutM) seoMatch = ["<SEO " + layoutM[1] + " />"] as RegExpMatchArray;
+  }
   if (!seoMatch) {
     push({ route: path, field: "<SEO>", severity: "error", message: `No <SEO> component in ${fileMeta}` });
   } else {
