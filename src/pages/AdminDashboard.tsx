@@ -1100,7 +1100,19 @@ function AdminCreateUser({ onCreated }: { onCreated: () => void }) {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setTempPwd({ email, password: data.temporaryPassword });
-      toast({ title: "Compte créé ✅", description: `${email} devra changer son mot de passe à la première connexion.` });
+      const mail = await sendOnboardingEmail({
+        recipientEmail: email,
+        recipientName: name || email.split("@")[0],
+        role,
+        temporaryPassword: data.temporaryPassword,
+      });
+      toast({
+        title: "Compte créé ✅",
+        description: mail.ok
+          ? `Identifiants envoyés à ${email}. Il devra changer son mot de passe à la première connexion.`
+          : `${email} créé, mais l'email automatique a échoué : ${mail.error}`,
+        variant: mail.ok ? undefined : "destructive",
+      });
       setEmail(""); setName(""); setRole("owner");
       onCreated();
     } catch (err: any) {
