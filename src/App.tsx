@@ -19,6 +19,7 @@ import { NotificationToast } from "@/components/NotificationToast";
 import { OfflineQueueRunner } from "@/components/OfflineQueueRunner";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { InstallPromptBanner } from "@/components/InstallPromptBanner";
+import { PwaWelcomeSheet } from "@/components/PwaWelcomeSheet";
 
 // Eagerly loaded (critical path)
 import Auth from "./pages/Auth";
@@ -500,6 +501,7 @@ const App = () => {
             </Suspense>
             <Suspense fallback={null}><GuidedTour /></Suspense>
             <InstallPromptBanner />
+            <PwaWelcomeSheet />
           </BrowserRouter>
         </TooltipProvider>
         </EducatorSubscriptionProvider>
