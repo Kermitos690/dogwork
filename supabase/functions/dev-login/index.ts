@@ -44,11 +44,22 @@ Deno.serve(async (req) => {
   }
 
   const environment = Deno.env.get("ENVIRONMENT") || "production";
+  const devLoginEnabled = (Deno.env.get("DEV_LOGIN_ENABLED") || "").toLowerCase() === "true";
   const originHost = extractHost(req.headers.get("origin"));
   const refererHost = extractHost(req.headers.get("referer"));
   const reqHost = extractHost(req.url) || req.headers.get("host");
 
-  // Hard block: if any signal points to the real production domain, deny.
+  // Hard block: in production env, refuse no matter what.
+  // Origin/Referer headers are client-controlled and MUST NOT be the sole guard.
+  if (environment === "production" && !devLoginEnabled) {
+    console.log("dev-login denied: reason=production_env_no_opt_in");
+    return new Response(
+      JSON.stringify({ error: "Not available in this environment" }),
+      { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  // Defense in depth: if any signal points to the real production domain, deny.
   if (isProdHost(originHost) || isProdHost(refererHost) || isProdHost(reqHost)) {
     console.log("dev-login denied: reason=production_domain");
     return new Response(
@@ -57,7 +68,7 @@ Deno.serve(async (req) => {
     );
   }
 
-  const isDev = environment === "development";
+  const isDev = environment === "development" || devLoginEnabled;
   const isPreview =
     isLovablePreviewHost(originHost) ||
     isLovablePreviewHost(refererHost) ||
