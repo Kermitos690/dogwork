@@ -124,7 +124,7 @@ export default function Contact() {
   if (submitted) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <SEO title="Demande envoyée — DogWork" description="Votre demande a bien été reçue." />
+        <SEO title="Demande envoyée — DogWork" description="Votre demande a bien été reçue." path="/contact" />
         <Card className="max-w-lg w-full">
           <CardHeader className="text-center">
             <div className="mx-auto rounded-full bg-emerald-500/10 p-4 w-fit mb-4">
@@ -159,7 +159,7 @@ export default function Contact() {
     <div className="min-h-screen bg-background pt-16 pb-16 px-4">
       <SEO
         title={`Contact ${interestLabel} — DogWork`}
-        description="Contactez l'équipe DogWork pour discuter de vos besoins en refuge, chenil, éducation canine ou partenariat."
+        description="Contactez l'équipe DogWork pour discuter de vos besoins en refuge, chenil, éducation canine ou partenariat." path="/contact"
       />
       <div className="max-w-2xl mx-auto">
         <Button
