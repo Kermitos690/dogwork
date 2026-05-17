@@ -43,13 +43,13 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const mode = body.mode || "enrich";
 
-    if (mode === "enrich") {
-      const isAdmin = await verifyAdmin(supabase, req);
-      if (!isAdmin) {
-        return new Response(JSON.stringify({ error: "Accès refusé : admin requis" }), {
-          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    // SECURITY: admin gate applies to ALL modes (enrich, fix-json, stats)
+    // — each one performs service-role DB reads/writes that must not be public.
+    const isAdmin = await verifyAdmin(supabase, req);
+    if (!isAdmin) {
+      return new Response(JSON.stringify({ error: "Accès refusé : admin requis" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // ─── MODE: fix-json ───
