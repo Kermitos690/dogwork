@@ -3278,6 +3278,51 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          actor_user_id: string | null
+          body: string
+          created_at: string
+          id: string
+          image_url: string | null
+          metadata: Json
+          priority: string
+          read_at: string | null
+          recipient_user_id: string
+          title: string
+          type: string
+          url: string | null
+        }
+        Insert: {
+          actor_user_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          metadata?: Json
+          priority?: string
+          read_at?: string | null
+          recipient_user_id: string
+          title: string
+          type: string
+          url?: string | null
+        }
+        Update: {
+          actor_user_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          metadata?: Json
+          priority?: string
+          read_at?: string | null
+          recipient_user_id?: string
+          title?: string
+          type?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
       organization_members: {
         Row: {
           created_at: string
@@ -5816,6 +5861,20 @@ export type Database = {
       consume_my_credits: {
         Args: { _credits?: number; _feature_code: string }
         Returns: boolean
+      }
+      create_notification: {
+        Args: {
+          p_actor_user_id?: string
+          p_body?: string
+          p_image_url?: string
+          p_metadata?: Json
+          p_priority?: string
+          p_recipient_user_id: string
+          p_title: string
+          p_type: string
+          p_url?: string
+        }
+        Returns: string
       }
       credit_ai_wallet: {
         Args: {

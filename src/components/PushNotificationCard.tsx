@@ -86,22 +86,8 @@ export function PushNotificationCard({ variant = "card", className }: Props) {
   }
 
   function handlePreferencesClick() {
-    const categories =
-      document.getElementById("notification-categories") ||
-      document.querySelector("[data-notification-categories]");
-
-    if (categories) {
-      categories.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-      return;
-    }
-
-    window.scrollTo({
-      top: document.body.scrollHeight,
-      behavior: "smooth",
-    });
+    // Route dédiée préférences notifications (catégories, quiet hours, timezone)
+    window.location.href = "/notifications";
   }
 
   if (status === "blocked-preview") {

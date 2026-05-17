@@ -16,6 +16,7 @@ import { isDevelopment } from "@/lib/env";
 const AIChatBot = lazy(() => import("@/components/AIChatBot").then(m => ({ default: m.AIChatBot })));
 const GuidedTour = lazy(() => import("@/components/GuidedTour").then(m => ({ default: m.GuidedTour })));
 import { NotificationToast } from "@/components/NotificationToast";
+import { DogWorkNotificationToaster } from "@/components/DogWorkNotificationToaster";
 import { OfflineQueueRunner } from "@/components/OfflineQueueRunner";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { InstallPromptBanner } from "@/components/InstallPromptBanner";
@@ -464,6 +465,7 @@ function ProtectedRoutes() {
       </Routes>
       <AIChatBot />
       <NotificationToast />
+      <DogWorkNotificationToaster />
       <OfflineQueueRunner />
     </Suspense>
   );
