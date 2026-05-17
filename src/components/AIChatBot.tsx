@@ -25,6 +25,8 @@ import { CreditConfirmDialog } from "@/components/CreditConfirmDialog";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import ReactMarkdown from "react-markdown";
+import { ChatCaptureCard } from "@/components/ChatCaptureCard";
+import { useChatCapture, type ChatCapture } from "@/hooks/useChatCapture";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
