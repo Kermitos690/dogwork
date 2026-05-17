@@ -84,10 +84,24 @@ export function usePwaInstalled(): boolean {
     };
     window.addEventListener("storage", onStorage);
 
+    // Recheck quand l'app revient au premier plan (cas iOS où on bascule depuis l'écran d'accueil)
+    const recheck = () => {
+      if (readStandalone()) {
+        setInstalled(true);
+        persist();
+      }
+    };
+    window.addEventListener("focus", recheck);
+    document.addEventListener("visibilitychange", recheck);
+    window.addEventListener("pageshow", recheck);
+
     return () => {
       mql?.removeEventListener?.("change", onDisplayModeChange);
       window.removeEventListener("appinstalled", onInstalled);
       window.removeEventListener("storage", onStorage);
+      window.removeEventListener("focus", recheck);
+      document.removeEventListener("visibilitychange", recheck);
+      window.removeEventListener("pageshow", recheck);
     };
   }, []);
 
