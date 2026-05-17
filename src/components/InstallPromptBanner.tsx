@@ -98,7 +98,7 @@ export function InstallPromptBanner() {
       window.removeEventListener("beforeinstallprompt", onBeforeInstall);
       window.removeEventListener("appinstalled", onInstalled);
     };
-  }, [location.pathname]);
+  }, [location.pathname, installed]);
 
   function dismiss() {
     setVisible(false);
