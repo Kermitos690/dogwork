@@ -951,6 +951,42 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_sync_alerts: {
+        Row: {
+          event_count: number
+          id: string
+          message: string
+          metadata: Json
+          period_hours: number
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          triggered_at: string
+        }
+        Insert: {
+          event_count?: number
+          id?: string
+          message: string
+          metadata?: Json
+          period_hours?: number
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          triggered_at?: string
+        }
+        Update: {
+          event_count?: number
+          id?: string
+          message?: string
+          metadata?: Json
+          period_hours?: number
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          triggered_at?: string
+        }
+        Relationships: []
+      }
       client_links: {
         Row: {
           client_user_id: string
@@ -5205,6 +5241,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      check_billing_events_sync: {
+        Args: { _period_hours?: number }
+        Returns: Json
       }
       compute_booking_commission: {
         Args: {
