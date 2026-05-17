@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,8 +43,23 @@ export default function PublicCoachPage() {
     </div>
   );
 
+  const coachLd = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: data.display_name,
+    jobTitle: data.specialty || "Éducateur canin",
+    description: (data.bio || data.specialty || "Profil éducateur canin sur DogWork").slice(0, 300),
+    url: `https://dogwork-at-home.com/c/${slug}`,
+    ...(data.avatar_url ? { image: data.avatar_url } : {}),
+    ...(data.city ? { address: { "@type": "PostalAddress", addressLocality: data.city, addressCountry: data.country || undefined } } : {}),
+    ...(data.website ? { sameAs: [data.website] } : {}),
+  };
+
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <script type="application/ld+json">{JSON.stringify(coachLd)}</script>
+      </Helmet>
       {/* Banner */}
       <div className="relative h-48 md:h-64 bg-gradient-to-br from-primary/20 to-primary/5 overflow-hidden">
         {data.banner_url && (
