@@ -162,7 +162,7 @@ export function InstallPromptBanner() {
               <X className="h-4 w-4" />
             </button>
           </div>
-        ) : (
+        ) : isIosSafari() ? (
           <div className="p-4 space-y-3">
             <div className="flex items-start justify-between gap-3">
               <p className="text-sm font-semibold">Ajouter à l'écran d'accueil</p>
@@ -191,6 +191,30 @@ export function InstallPromptBanner() {
               onClick={() => setVisible(false)}
             >
               Guide complet
+            </Link>
+          </div>
+        ) : (
+          <div className="p-4 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-sm font-semibold">Ouvrez dans Safari pour installer</p>
+              <button
+                type="button"
+                onClick={dismiss}
+                aria-label="Fermer"
+                className="p-1 rounded-md text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Sur iPhone, seul Safari permet d'ajouter une app à l'écran d'accueil. Touchez le menu <strong className="text-foreground">⋯</strong> de votre navigateur puis <strong className="text-foreground">« Ouvrir dans Safari »</strong>.
+            </p>
+            <Link
+              to="/install"
+              className="block text-xs text-primary underline-offset-2 hover:underline"
+              onClick={() => setVisible(false)}
+            >
+              Voir le guide complet
             </Link>
           </div>
         )}
