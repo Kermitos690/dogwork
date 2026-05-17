@@ -58,13 +58,14 @@ function recentlyDismissed(): boolean {
  */
 export function InstallPromptBanner() {
   const location = useLocation();
+  const installed = usePwaInstalled();
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
   const [showIosHint, setShowIosHint] = useState(false);
   const platform = typeof window !== "undefined" ? detect() : "desktop";
 
   useEffect(() => {
-    if (isStandalone()) return;
+    if (installed) { setVisible(false); return; }
     if (recentlyDismissed()) return;
     if (location.pathname.startsWith("/install")) return;
 
