@@ -174,7 +174,7 @@ export function SpaceVisualCommandCenter({ onCreate }: Props) {
               spaces={display}
               selectedId={selectedId}
               onSelect={handleSelect}
-              onOpen={(id) => { /* navigation handled by Link in side panel; opening here too via dblclick on node */ window.location.assign(`/shelter/spaces/${id}`); }}
+              onOpen={(id) => navigate(`/shelter/spaces/${id}`)}
             />
           ) : (
             <SpaceCardsGrid spaces={display} mode={mode} selectedId={selectedId} onSelect={handleSelect} />
