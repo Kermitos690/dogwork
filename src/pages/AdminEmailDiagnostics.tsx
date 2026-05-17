@@ -360,7 +360,7 @@ export default function AdminEmailDiagnostics() {
             <AlertTitle className="text-sm">Deux voies d'envoi indépendantes</AlertTitle>
             <AlertDescription className="text-xs space-y-1 mt-1">
               <div><strong>Lovable</strong> (notify.dogwork-at-home.com) : transactionnel applicatif (auth, notifications, factures). Géré automatiquement.</div>
-              <div><strong>IONOS SMTP</strong> (contact@dogwork-at-home.com) : envois opérationnels manuels. Nécessite secrets <code>IONOS_SMTP_USER</code> / <code>IONOS_SMTP_PASSWORD</code>.</div>
+              <div><strong>Google Workspace SMTP</strong> (admin@dogwork-at-home.com) : envois opérationnels signés via Google. Nécessite secrets <code>GOOGLE_SMTP_USER</code> / <code>GOOGLE_SMTP_PASSWORD</code> (mot de passe d'application Google).</div>
               <div className="text-muted-foreground italic">Un échec sur l'une n'affecte pas l'autre.</div>
             </AlertDescription>
           </Alert>
