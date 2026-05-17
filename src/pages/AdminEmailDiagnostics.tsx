@@ -42,8 +42,8 @@ interface DiagnosticResponse {
   triggeredBy: string;
   recipient: string;
   summary?: { attempted: number; confirmed: number; pending: number; failed: number };
-  send: { lovable: SendResult; ionos: SendResult };
-  channels?: { lovable: any; ionos: any };
+  send: { lovable: SendResult; google?: SendResult; ionos?: SendResult };
+  channels?: { lovable: any; google?: any; ionos?: any };
   errors?: { channel: string; message: string; smtpCode?: string }[];
   dns: { root: DnsReport; sender: DnsReport };
   recommendations?: string[];
