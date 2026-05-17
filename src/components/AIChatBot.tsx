@@ -377,7 +377,7 @@ function AIChatBotInner() {
       setLoading(false);
       setDraftMessages([]);
     }
-  }, [conversationId, createConversation, addMessage, messages, activeDog, dogNames, startCooldownTimer, toast, navigate, queryClient, credit.cost]);
+  }, [conversationId, createConversation, addMessage, messages, activeDog, dogNames, startCooldownTimer, toast, navigate, queryClient, credit.cost, extractCaptures]);
 
   const send = useCallback(() => {
     const text = input.trim();
