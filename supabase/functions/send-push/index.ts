@@ -21,14 +21,17 @@ webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
 
 interface PushPayload {
   user_id: string;
-  category: "exercises" | "messages" | "shelter" | "billing" | "system";
+  category: "exercises" | "messages" | "shelter" | "billing" | "system" | "plans" | "appointments" | "adoption" | "support" | "admin_alerts" | "credits";
   title: string;
   body?: string;
   url?: string;
   icon?: string;
   badge?: string;
+  image?: string;
   tag?: string;
   dedup_key?: string;
+  priority?: "low" | "normal" | "high";
+  actor_user_id?: string;
   data?: Record<string, unknown>;
 }
 
@@ -174,14 +177,37 @@ Deno.serve(async (req) => {
     });
   }
 
+  // Insert dans table notifications (user-facing) — alimente la popup interne via Realtime.
+  // Best-effort : si insert échoue, on continue le Web Push.
+  let notificationId: string | null = null;
+  try {
+    const { data: notif } = await admin.from("notifications").insert({
+      recipient_user_id: user_id,
+      actor_user_id: payload.actor_user_id ?? null,
+      type: category,
+      title,
+      body: payload.body ?? "",
+      url: payload.url ?? null,
+      image_url: payload.image ?? null,
+      priority: payload.priority ?? "normal",
+      metadata: payload.data ?? {},
+    }).select("id").single();
+    notificationId = notif?.id ?? null;
+  } catch (_) { /* non-blocking */ }
+
   const notifPayload = JSON.stringify({
     title,
     body: payload.body ?? "",
     url: payload.url ?? "/",
     icon: payload.icon ?? "/icons/icon-192.png",
-    badge: payload.badge ?? "/icons/badge-72.png",
+    badge: payload.badge ?? "/icons/icon-192.png",
+    image: payload.image ?? undefined,
     tag: payload.tag ?? category,
+    type: category,
     category,
+    notificationId,
+    priority: payload.priority ?? "normal",
+    timestamp: Date.now(),
     data: payload.data ?? {},
   });
 
