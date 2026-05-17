@@ -18,6 +18,7 @@ const GuidedTour = lazy(() => import("@/components/GuidedTour").then(m => ({ def
 import { NotificationToast } from "@/components/NotificationToast";
 import { OfflineQueueRunner } from "@/components/OfflineQueueRunner";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { InstallPromptBanner } from "@/components/InstallPromptBanner";
 
 // Eagerly loaded (critical path)
 import Auth from "./pages/Auth";
@@ -496,6 +497,7 @@ const App = () => {
               </Routes>
             </Suspense>
             <Suspense fallback={null}><GuidedTour /></Suspense>
+            <InstallPromptBanner />
           </BrowserRouter>
         </TooltipProvider>
         </EducatorSubscriptionProvider>
