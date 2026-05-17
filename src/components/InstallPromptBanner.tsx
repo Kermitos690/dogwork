@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Download, Share, Plus, X, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { usePwaInstalled, markPwaInstalled } from "@/hooks/usePwaInstalled";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
