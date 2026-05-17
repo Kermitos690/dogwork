@@ -28,6 +28,7 @@ import Auth from "./pages/Auth";
 
 // Lazy loaded pages
 const Landing = lazy(() => import("./pages/Landing"));
+const SeoLocalLandings = lazy(() => import("./pages/seo/LocalLandings"));
 const Contact = lazy(() => import("./pages/Contact"));
 const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
