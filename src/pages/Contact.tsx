@@ -11,7 +11,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, CheckCircle2, Mail, Send } from "lucide-react";
-import SEO from "@/components/SEO";
+import { SEO } from "@/components/SEO";
 
 const INTEREST_LABELS: Record<string, string> = {
   shelter: "Refuge & Chenil",
