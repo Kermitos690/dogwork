@@ -411,6 +411,7 @@ function ProtectedRoutes() {
         <Route path="/admin/billing-events" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminBillingEvents /></AdminGuard></Suspense>} />
         <Route path="/admin/go-live-check" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminGoLiveCheck /></AdminGuard></Suspense>} />
         <Route path="/admin/push-status" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminPushStatus /></AdminGuard></Suspense>} />
+        <Route path="/admin/pwa-diagnostics" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminPwaDiagnostics /></AdminGuard></Suspense>} />
         <Route path="/admin/preferences" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminPreferences /></AdminGuard></Suspense>} />
         <Route path="/admin/email-diagnostics" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminEmailDiagnostics /></AdminGuard></Suspense>} />
         {/* Vraies pages admin (passe 2 — chaque route correspond exactement à son intitulé) */}
