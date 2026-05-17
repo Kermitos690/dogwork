@@ -329,7 +329,7 @@ export default function AdminEmailDiagnostics() {
             </AlertTitle>
             <AlertDescription>
               {summary.attempted === 0
-                ? "Aucun canal d'envoi sélectionné. Activez Lovable ou IONOS pour tester un envoi réel."
+                ? "Aucun canal d'envoi sélectionné. Activez Lovable ou Google Workspace SMTP pour tester un envoi réel."
                 : allConfirmed
                   ? <>Email confirmé délivré à <strong>{result.recipient}</strong>. Vérifiez la boîte de réception et le dossier spam.</>
                   : noneConfirmed
