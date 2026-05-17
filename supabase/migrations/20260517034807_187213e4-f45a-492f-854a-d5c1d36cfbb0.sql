@@ -1,0 +1,1 @@
+ALTER TABLE public.subscription_plans DROP COLUMN IF EXISTS monthly_ai_credits;
