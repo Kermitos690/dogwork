@@ -22,13 +22,6 @@ function detectPlatform(): Platform {
   return "desktop";
 }
 
-function isStandalone(): boolean {
-  if (typeof window === "undefined") return false;
-  return (
-    window.matchMedia?.("(display-mode: standalone)").matches ||
-    (window.navigator as any).standalone === true
-  );
-}
 
 export default function Install() {
   const [platform] = useState<Platform>(detectPlatform);
