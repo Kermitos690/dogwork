@@ -104,6 +104,9 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Admin display name is sourced from env to avoid hardcoding PII in repo.
+    const ADMIN_DISPLAY_NAME = Deno.env.get("CLEANUP_ADMIN_DISPLAY_NAME") ?? "Admin";
+
     // Ensure admin has full setup
     const adminUser = authUsers.find(u => u.email?.toLowerCase() === ADMIN_EMAIL);
     if (adminUser) {
@@ -112,7 +115,7 @@ Deno.serve(async (req) => {
       await admin.from("profiles").delete().eq("user_id", adminUser.id);
 
       // Recreate profile
-      await admin.from("profiles").insert({ user_id: adminUser.id, display_name: "Gaëtan Teba" });
+      await admin.from("profiles").insert({ user_id: adminUser.id, display_name: ADMIN_DISPLAY_NAME });
       logs.push("✅ Admin profile recreated");
 
       // Recreate ALL roles
@@ -125,7 +128,7 @@ Deno.serve(async (req) => {
       await admin.from("coach_profiles").delete().eq("user_id", adminUser.id);
       await admin.from("coach_profiles").insert({
         user_id: adminUser.id,
-        display_name: "Gaëtan Teba",
+        display_name: ADMIN_DISPLAY_NAME,
       });
       logs.push("✅ Coach profile recreated");
 
@@ -133,34 +136,22 @@ Deno.serve(async (req) => {
       await admin.auth.admin.updateUserById(adminUser.id, { email_confirm: true });
     }
 
-    // Ensure Presciglia
-    const presUser = authUsers.find(u => u.email?.toLowerCase() === "presciglia@hotmail.com");
-    if (presUser) {
+    // Preserve all non-admin emails listed in CLEANUP_KEEP_EMAILS (generic, no PII in repo).
+    for (const email of KEEP_EMAILS) {
+      if (!email || email === ADMIN_EMAIL) continue;
+      const u = authUsers.find(x => x.email?.toLowerCase() === email);
+      if (!u) continue;
+      const fallbackName = email.split("@")[0];
       await admin.from("profiles").upsert(
-        { user_id: presUser.id, display_name: "Preshiba" },
+        { user_id: u.id, display_name: fallbackName },
         { onConflict: "user_id" }
       );
       await admin.from("user_roles").upsert(
-        { user_id: presUser.id, role: "owner" },
+        { user_id: u.id, role: "owner" },
         { onConflict: "user_id,role" }
       );
-      await admin.auth.admin.updateUserById(presUser.id, { email_confirm: true });
-      logs.push("✅ Presciglia preserved");
-    }
-
-    // Ensure Mel/Micup
-    const melUser = authUsers.find(u => u.email?.toLowerCase() === "ms.brandenberger@gmail.com");
-    if (melUser) {
-      await admin.from("profiles").upsert(
-        { user_id: melUser.id, display_name: "Mel" },
-        { onConflict: "user_id" }
-      );
-      await admin.from("user_roles").upsert(
-        { user_id: melUser.id, role: "owner" },
-        { onConflict: "user_id,role" }
-      );
-      await admin.auth.admin.updateUserById(melUser.id, { email_confirm: true });
-      logs.push("✅ Mel preserved");
+      await admin.auth.admin.updateUserById(u.id, { email_confirm: true });
+      logs.push(`✅ Preserved ${email}`);
     }
 
     return new Response(JSON.stringify({ success: true, logs, deleted: toDelete.length }), {
