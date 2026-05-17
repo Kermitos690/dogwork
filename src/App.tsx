@@ -501,6 +501,7 @@ const App = () => {
             </Suspense>
             <Suspense fallback={null}><GuidedTour /></Suspense>
             <InstallPromptBanner />
+            <PwaWelcomeSheet />
           </BrowserRouter>
         </TooltipProvider>
         </EducatorSubscriptionProvider>
