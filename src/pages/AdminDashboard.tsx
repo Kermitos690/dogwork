@@ -132,7 +132,19 @@ export default function AdminDashboard() {
       }
       if (data?.error) throw new Error(data.error);
       setTempPasswordDialog({ email: newEducatorEmail, password: data.temporaryPassword });
-      toast({ title: "Éducateur créé ✅", description: `${newEducatorEmail} a été ajouté.` });
+      const mail = await sendOnboardingEmail({
+        recipientEmail: newEducatorEmail,
+        recipientName: newEducatorName || newEducatorEmail.split("@")[0],
+        role: "educator",
+        temporaryPassword: data.temporaryPassword,
+      });
+      toast({
+        title: "Éducateur créé ✅",
+        description: mail.ok
+          ? `${newEducatorEmail} a reçu ses identifiants par email.`
+          : `${newEducatorEmail} créé, mais l'email automatique a échoué : ${mail.error}`,
+        variant: mail.ok ? undefined : "destructive",
+      });
       setNewEducatorEmail(""); setNewEducatorName("");
       refetchEducators();
     } catch (err: any) {
