@@ -324,7 +324,7 @@ export default function Promenade() {
                       </div>
                     }
                   >
-                    <WalkMap points={points} events={events} height={200} />
+                    <WalkMapLive points={points} events={events} height={240} follow />
                   </MapBoundary>
                 ) : gpsState === "watching" ? (
                   <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground flex items-center gap-2">
