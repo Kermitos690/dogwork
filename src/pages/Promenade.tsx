@@ -218,11 +218,11 @@ export default function Promenade() {
 
     if (!error && walk) {
       const gpsRows = points.map((p, i) => ({
-        walk_id: walk.id, user_id: user.id, recorded_at: new Date(p.t).toISOString(),
+        walk_id: walk.id, user_id: walkOwnerId, recorded_at: new Date(p.t).toISOString(),
         lat: p.lat, lng: p.lng, accuracy_meters: p.accuracy ?? null, sequence_index: i,
       }));
       const eventRows = events.map((e, i) => ({
-        walk_id: walk.id, user_id: user.id, recorded_at: new Date(e.t).toISOString(),
+        walk_id: walk.id, user_id: walkOwnerId, recorded_at: new Date(e.t).toISOString(),
         lat: e.lat ?? null, lng: e.lng ?? null,
         accuracy_meters: null, sequence_index: points.length + i,
         event_type: e.type, event_label: e.label,
