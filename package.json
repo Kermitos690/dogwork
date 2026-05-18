@@ -5,14 +5,14 @@
   "description": "Plateforme digitale premium pour l'écosystème canin professionnel",
   "type": "module",
   "scripts": {
-    "predev": "bunx tsx scripts/generate-sitemap.ts",
+    "predev": "tsx scripts/generate-sitemap.ts",
     "dev": "vite",
-    "prebuild": "bunx tsx scripts/generate-sitemap.ts",
+    "prebuild": "tsx scripts/generate-sitemap.ts",
     "build": "vite build",
     "build:dev": "vite build --mode development",
-    "postbuild": "bunx tsx scripts/prerender-meta.ts && bunx tsx scripts/seo-audit.ts",
-    "seo:prerender": "bunx tsx scripts/prerender-meta.ts",
-    "seo:audit": "bunx tsx scripts/seo-audit.ts",
+    "postbuild": "tsx scripts/prerender-meta.ts && tsx scripts/seo-audit.ts",
+    "seo:prerender": "tsx scripts/prerender-meta.ts",
+    "seo:audit": "tsx scripts/seo-audit.ts",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
@@ -116,6 +116,7 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
     "vite": "^5.4.19",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "tsx": "^4.19.2"
   }
 }
