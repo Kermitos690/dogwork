@@ -400,11 +400,21 @@ export default function Promenade() {
                   </div>
                 </div>
               ) : (
-                <div className="text-sm text-muted-foreground">
-                  {Math.floor(duration / 60)} min · {(distance / 1000).toFixed(2)} km
-                  {weather && ` · ${weather.condition}, ${weather.temperature_c}°C`}
+                <div className="space-y-3">
+                  <div className="text-sm text-muted-foreground">
+                    {Math.floor(duration / 60)} min · {(distance / 1000).toFixed(2)} km
+                    {weather && ` · ${weather.condition}, ${weather.temperature_c}°C`}
+                  </div>
+                  <MapBoundary
+                    fallback={
+                      <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
+                        Carte indisponible — tracé sauvegardé ({points.length} points).
+                      </div>
+                    }
+                  >
+                    <WalkMapLive points={points} events={events} height={260} />
+                  </MapBoundary>
                 </div>
-              )}
 
               <div className="flex items-center justify-between"><Label>Pipi</Label><Switch checked={pee} onCheckedChange={setPee} /></div>
               <div className="flex items-center justify-between"><Label>Caca</Label><Switch checked={poop} onCheckedChange={setPoop} /></div>
