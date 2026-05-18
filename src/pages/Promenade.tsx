@@ -50,11 +50,26 @@ function haversine(a: GpsPoint, b: GpsPoint): number {
 export default function Promenade() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { data: dogs } = useDogs();
+  const { data: ownDogs } = useDogs();
   const activeDog = useActiveDog();
   const [searchParams] = useSearchParams();
   const prefilledDogId = searchParams.get("dogId");
   const prefilledDayId = searchParams.get("dayId");
+
+  // Charge tous les chiens accessibles via RLS (propriétaire + clients liés pour un coach).
+  // Inclut user_id pour rattacher la promenade au bon journal.
+  const { data: walkableDogs } = useQuery({
+    queryKey: ["walkable-dogs", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dogs")
+        .select("id, name, user_id, is_active")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data as any[]) ?? [];
+    },
+  });
 
   const [dogId, setDogId] = useState<string>("");
   const [dayId, setDayId] = useState<number | null>(prefilledDayId ? Number(prefilledDayId) : null);
