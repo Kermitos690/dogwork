@@ -262,21 +262,38 @@ export default function Promenade() {
           <Card>
             <CardHeader><CardTitle className="text-base">Nouvelle promenade</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label>Chien</Label>
-                <Select value={dogId} onValueChange={setDogId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionnez un chien">
-                      {selectedDogName || undefined}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {dogList.map((d: any) => (
-                      <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {dogList.length === 0 ? (
+                <Alert>
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Aucun chien accessible</AlertTitle>
+                  <AlertDescription className="text-xs">
+                    Vous n'avez encore aucun chien rattaché. Ajoutez un chien depuis votre profil, ou faites-vous lier comme coach à un client pour suivre ses promenades.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <div>
+                  <Label>Chien</Label>
+                  <Select value={dogId} onValueChange={setDogId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionnez un chien">
+                        {selectedDogName || undefined}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {dogList.map((d: any) => (
+                        <SelectItem key={d.id} value={d.id}>
+                          {d.name}{user && d.user_id !== user.id ? " (client)" : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {isProxyWalk && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Cette promenade sera enregistrée dans le journal du client.
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div className="flex items-center justify-between rounded-lg border p-3">
                 <div className="space-y-0.5">
