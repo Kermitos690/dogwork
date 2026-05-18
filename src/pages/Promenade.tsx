@@ -117,10 +117,18 @@ export default function Promenade() {
       .then(({ data }) => setHistory((data as any[]) ?? []));
   }, [user, phase]);
 
-  const dogList = dogs ?? [];
+  // Fusion : chiens accessibles via RLS + own dogs (au cas où la requête large échoue)
+  const dogList = useMemo(() => {
+    const map = new Map<string, any>();
+    (walkableDogs ?? []).forEach((d: any) => map.set(d.id, d));
+    (ownDogs ?? []).forEach((d: any) => { if (!map.has(d.id)) map.set(d.id, d); });
+    return Array.from(map.values());
+  }, [walkableDogs, ownDogs]);
+  const selectedDog = useMemo(() => dogList.find((d: any) => d.id === dogId), [dogList, dogId]);
+  const isProxyWalk = !!(selectedDog && user && selectedDog.user_id !== user.id);
   const distance = points.length < 2 ? 0 : points.slice(1).reduce((acc, p, i) => acc + haversine(points[i], p), 0);
   const duration = startedAt ? Math.floor((Date.now() - startedAt.getTime()) / 1000) + tick * 0 : 0;
-  const selectedDogName = useMemo(() => dogList.find((d: any) => d.id === dogId)?.name ?? "", [dogList, dogId]);
+  const selectedDogName = selectedDog?.name ?? "";
 
   function start() {
     if (!dogId) { toast({ title: "Sélectionnez un chien", variant: "destructive" }); return; }
