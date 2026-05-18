@@ -108,10 +108,10 @@ export default function Promenade() {
 
   useEffect(() => {
     if (!user) return;
+    // Pas de filtre user_id : RLS donne accès aux promenades propres + (coach) celles des clients liés.
     supabase
       .from("dog_walks" as any)
       .select("*")
-      .eq("user_id", user.id)
       .order("started_at", { ascending: false })
       .limit(10)
       .then(({ data }) => setHistory((data as any[]) ?? []));
