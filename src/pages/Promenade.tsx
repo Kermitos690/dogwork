@@ -1,7 +1,7 @@
 import { Component, ErrorInfo, ReactNode, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, MapPin, Play, Square, Loader2, Cloud, AlertTriangle, PencilLine, Smartphone, Droplets, Dog, User, AlertCircle, Heart, Volume2 } from "lucide-react";
-import { WalkMap } from "@/components/WalkMap";
+import { WalkMapLive } from "@/components/WalkMapLive";
 
 class MapBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
   state = { failed: false };
