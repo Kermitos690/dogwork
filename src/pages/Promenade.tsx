@@ -1,7 +1,7 @@
 import { Component, ErrorInfo, ReactNode, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, MapPin, Play, Square, Loader2, Cloud, AlertTriangle, PencilLine, Smartphone, Droplets, Dog, User, AlertCircle, Heart, Volume2 } from "lucide-react";
-import { WalkMap } from "@/components/WalkMap";
+import { WalkMapLive } from "@/components/WalkMapLive";
 
 class MapBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
   state = { failed: false };
@@ -324,7 +324,7 @@ export default function Promenade() {
                       </div>
                     }
                   >
-                    <WalkMap points={points} events={events} height={200} />
+                    <WalkMapLive points={points} events={events} height={240} follow />
                   </MapBoundary>
                 ) : gpsState === "watching" ? (
                   <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground flex items-center gap-2">
@@ -400,9 +400,20 @@ export default function Promenade() {
                   </div>
                 </div>
               ) : (
-                <div className="text-sm text-muted-foreground">
-                  {Math.floor(duration / 60)} min · {(distance / 1000).toFixed(2)} km
-                  {weather && ` · ${weather.condition}, ${weather.temperature_c}°C`}
+                <div className="space-y-3">
+                  <div className="text-sm text-muted-foreground">
+                    {Math.floor(duration / 60)} min · {(distance / 1000).toFixed(2)} km
+                    {weather && ` · ${weather.condition}, ${weather.temperature_c}°C`}
+                  </div>
+                  <MapBoundary
+                    fallback={
+                      <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
+                        Carte indisponible — tracé sauvegardé ({points.length} points).
+                      </div>
+                    }
+                  >
+                    <WalkMapLive points={points} events={events} height={260} />
+                  </MapBoundary>
                 </div>
               )}
 
