@@ -1,7 +1,8 @@
 import { Component, ErrorInfo, ReactNode, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, MapPin, Play, Square, Loader2, Cloud, AlertTriangle, PencilLine, Smartphone, Droplets, Dog, User, AlertCircle, Heart, Volume2 } from "lucide-react";
+import { ArrowLeft, MapPin, Play, Square, Loader2, Cloud, AlertTriangle, PencilLine, Smartphone, Droplets, Dog, User, AlertCircle, Heart, Volume2, Maximize2 } from "lucide-react";
 import { WalkMapLive } from "@/components/WalkMapLive";
+import { WalkFullscreenMap } from "@/components/WalkFullscreenMap";
 
 class MapBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
   state = { failed: false };
@@ -92,6 +93,7 @@ export default function Promenade() {
   const [zoneAfter, setZoneAfter] = useState<"green" | "orange" | "red">("green");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [fullscreenMap, setFullscreenMap] = useState(false);
 
   useEffect(() => {
     if (!dogId) {
@@ -360,15 +362,20 @@ export default function Promenade() {
 
               <div className="border-t pt-3">
                 {points.length > 0 ? (
-                  <MapBoundary
-                    fallback={
-                      <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
-                        Carte indisponible — tracé sauvegardé ({points.length} points, {(distance / 1000).toFixed(2)} km).
-                      </div>
-                    }
-                  >
-                    <WalkMapLive points={points} events={events} height={240} follow />
-                  </MapBoundary>
+                  <div className="space-y-2">
+                    <MapBoundary
+                      fallback={
+                        <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
+                          Carte indisponible — tracé sauvegardé ({points.length} points, {(distance / 1000).toFixed(2)} km).
+                        </div>
+                      }
+                    >
+                      <WalkMapLive points={points} events={events} height={240} follow />
+                    </MapBoundary>
+                    <Button type="button" variant="secondary" className="w-full h-12" onClick={() => setFullscreenMap(true)}>
+                      <Maximize2 className="h-4 w-4 mr-2" />Ouvrir la carte en plein écran
+                    </Button>
+                  </div>
                 ) : gpsState === "watching" ? (
                   <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground flex items-center gap-2">
                     <Loader2 className="h-3 w-3 animate-spin" /> En attente du premier point GPS…
@@ -527,6 +534,17 @@ export default function Promenade() {
           </Card>
         )}
       </div>
+      {fullscreenMap && phase === "active" && (
+        <WalkFullscreenMap
+          points={points}
+          events={events}
+          durationSec={duration}
+          distanceMeters={distance}
+          onClose={() => setFullscreenMap(false)}
+          onStop={() => { setFullscreenMap(false); stop(); }}
+          onEvent={(t, l) => addEvent(t, l)}
+        />
+      )}
     </div>
   );
 }

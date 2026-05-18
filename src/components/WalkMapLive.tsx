@@ -9,7 +9,7 @@ export interface WalkMapEvent { type: string; label: string; lat?: number; lng?:
 interface Props {
   points: WalkMapPoint[];
   events?: WalkMapEvent[];
-  height?: number;
+  height?: number | string;
   className?: string;
   /** En mode live, recentre/zoome sur le dernier point. En mode résumé, fit bounds. */
   follow?: boolean;
@@ -57,8 +57,9 @@ export function WalkMapLive({ points, events = [], height = 260, className, foll
     delete (L.Icon.Default.prototype as any)._getIconUrl;
   }, []);
 
+  const resolvedHeight = height === undefined ? "100%" : height;
   return (
-    <div className={className} style={{ height }}>
+    <div className={className} style={{ height: resolvedHeight, width: "100%" }}>
       <MapContainer
         center={center}
         zoom={start ? 16 : 8}
