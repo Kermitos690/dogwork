@@ -42,7 +42,8 @@ function FitOrFollow({ points, follow }: { points: WalkMapPoint[]; follow: boole
   return null;
 }
 
-export function WalkMapLive({ points, events = [], height = 260, className, follow = false }: Props) {
+interface PropsExt extends Props { height?: number | string; }
+export function WalkMapLive({ points, events = [], height = 260, className, follow = false }: PropsExt) {
   const path = useMemo<LatLngExpression[]>(
     () => points.map((p) => [p.lat, p.lng] as LatLngExpression),
     [points],
@@ -57,8 +58,9 @@ export function WalkMapLive({ points, events = [], height = 260, className, foll
     delete (L.Icon.Default.prototype as any)._getIconUrl;
   }, []);
 
+  const resolvedHeight = height === undefined ? "100%" : height;
   return (
-    <div className={className} style={{ height }}>
+    <div className={className} style={{ height: resolvedHeight, width: "100%" }}>
       <MapContainer
         center={center}
         zoom={start ? 16 : 8}
