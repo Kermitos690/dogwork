@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useDogs, useActiveDog } from "@/hooks/useDogs";
+import { useQuery } from "@tanstack/react-query";
 
 type Phase = "idle" | "active" | "summary";
 type GpsState = "idle" | "watching" | "denied" | "unavailable";
@@ -49,11 +50,26 @@ function haversine(a: GpsPoint, b: GpsPoint): number {
 export default function Promenade() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { data: dogs } = useDogs();
+  const { data: ownDogs } = useDogs();
   const activeDog = useActiveDog();
   const [searchParams] = useSearchParams();
   const prefilledDogId = searchParams.get("dogId");
   const prefilledDayId = searchParams.get("dayId");
+
+  // Charge tous les chiens accessibles via RLS (propriétaire + clients liés pour un coach).
+  // Inclut user_id pour rattacher la promenade au bon journal.
+  const { data: walkableDogs } = useQuery({
+    queryKey: ["walkable-dogs", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("dogs")
+        .select("id, name, user_id, is_active")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data as any[]) ?? [];
+    },
+  });
 
   const [dogId, setDogId] = useState<string>("");
   const [dayId, setDayId] = useState<number | null>(prefilledDayId ? Number(prefilledDayId) : null);
@@ -92,19 +108,27 @@ export default function Promenade() {
 
   useEffect(() => {
     if (!user) return;
+    // Pas de filtre user_id : RLS donne accès aux promenades propres + (coach) celles des clients liés.
     supabase
       .from("dog_walks" as any)
       .select("*")
-      .eq("user_id", user.id)
       .order("started_at", { ascending: false })
       .limit(10)
       .then(({ data }) => setHistory((data as any[]) ?? []));
   }, [user, phase]);
 
-  const dogList = dogs ?? [];
+  // Fusion : chiens accessibles via RLS + own dogs (au cas où la requête large échoue)
+  const dogList = useMemo(() => {
+    const map = new Map<string, any>();
+    (walkableDogs ?? []).forEach((d: any) => map.set(d.id, d));
+    (ownDogs ?? []).forEach((d: any) => { if (!map.has(d.id)) map.set(d.id, d); });
+    return Array.from(map.values());
+  }, [walkableDogs, ownDogs]);
+  const selectedDog = useMemo(() => dogList.find((d: any) => d.id === dogId), [dogList, dogId]);
+  const isProxyWalk = !!(selectedDog && user && selectedDog.user_id !== user.id);
   const distance = points.length < 2 ? 0 : points.slice(1).reduce((acc, p, i) => acc + haversine(points[i], p), 0);
   const duration = startedAt ? Math.floor((Date.now() - startedAt.getTime()) / 1000) + tick * 0 : 0;
-  const selectedDogName = useMemo(() => dogList.find((d: any) => d.id === dogId)?.name ?? "", [dogList, dogId]);
+  const selectedDogName = selectedDog?.name ?? "";
 
   function start() {
     if (!dogId) { toast({ title: "Sélectionnez un chien", variant: "destructive" }); return; }
@@ -170,8 +194,10 @@ export default function Promenade() {
       ? Math.round(Math.max(0, manualDistance) * 1000)
       : Math.round(distance);
 
+    // Rattacher la promenade au propriétaire du chien (le client si coach proxy).
+    const walkOwnerId = selectedDog?.user_id ?? user.id;
     const { data: walk, error } = await (supabase.from("dog_walks" as any).insert({
-      user_id: user.id, dog_id: dogId,
+      user_id: walkOwnerId, dog_id: dogId,
       day_id: dayId,
       related_exercise_ids: [],
       started_at: startedAt.toISOString(), ended_at: endedAt.toISOString(),
@@ -192,11 +218,11 @@ export default function Promenade() {
 
     if (!error && walk) {
       const gpsRows = points.map((p, i) => ({
-        walk_id: walk.id, user_id: user.id, recorded_at: new Date(p.t).toISOString(),
+        walk_id: walk.id, user_id: walkOwnerId, recorded_at: new Date(p.t).toISOString(),
         lat: p.lat, lng: p.lng, accuracy_meters: p.accuracy ?? null, sequence_index: i,
       }));
       const eventRows = events.map((e, i) => ({
-        walk_id: walk.id, user_id: user.id, recorded_at: new Date(e.t).toISOString(),
+        walk_id: walk.id, user_id: walkOwnerId, recorded_at: new Date(e.t).toISOString(),
         lat: e.lat ?? null, lng: e.lng ?? null,
         accuracy_meters: null, sequence_index: points.length + i,
         event_type: e.type, event_label: e.label,
@@ -236,21 +262,38 @@ export default function Promenade() {
           <Card>
             <CardHeader><CardTitle className="text-base">Nouvelle promenade</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label>Chien</Label>
-                <Select value={dogId} onValueChange={setDogId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionnez un chien">
-                      {selectedDogName || undefined}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {dogList.map((d: any) => (
-                      <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {dogList.length === 0 ? (
+                <Alert>
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Aucun chien accessible</AlertTitle>
+                  <AlertDescription className="text-xs">
+                    Vous n'avez encore aucun chien rattaché. Ajoutez un chien depuis votre profil, ou faites-vous lier comme coach à un client pour suivre ses promenades.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <div>
+                  <Label>Chien</Label>
+                  <Select value={dogId} onValueChange={setDogId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionnez un chien">
+                        {selectedDogName || undefined}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {dogList.map((d: any) => (
+                        <SelectItem key={d.id} value={d.id}>
+                          {d.name}{user && d.user_id !== user.id ? " (client)" : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {isProxyWalk && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Cette promenade sera enregistrée dans le journal du client.
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div className="flex items-center justify-between rounded-lg border p-3">
                 <div className="space-y-0.5">

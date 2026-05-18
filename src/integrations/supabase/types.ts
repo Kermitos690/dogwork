@@ -5858,6 +5858,7 @@ export type Database = {
         Args: { _period_hours?: number }
         Returns: Json
       }
+      coach_can_access_dog: { Args: { _dog_id: string }; Returns: boolean }
       compute_booking_commission: {
         Args: {
           _course_id: string
