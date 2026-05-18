@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useDogs, useActiveDog } from "@/hooks/useDogs";
+import { useQuery } from "@tanstack/react-query";
 
 type Phase = "idle" | "active" | "summary";
 type GpsState = "idle" | "watching" | "denied" | "unavailable";
