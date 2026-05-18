@@ -194,8 +194,10 @@ export default function Promenade() {
       ? Math.round(Math.max(0, manualDistance) * 1000)
       : Math.round(distance);
 
+    // Rattacher la promenade au propriétaire du chien (le client si coach proxy).
+    const walkOwnerId = selectedDog?.user_id ?? user.id;
     const { data: walk, error } = await (supabase.from("dog_walks" as any).insert({
-      user_id: user.id, dog_id: dogId,
+      user_id: walkOwnerId, dog_id: dogId,
       day_id: dayId,
       related_exercise_ids: [],
       started_at: startedAt.toISOString(), ended_at: endedAt.toISOString(),
