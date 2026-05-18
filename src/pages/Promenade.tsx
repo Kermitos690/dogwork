@@ -534,6 +534,17 @@ export default function Promenade() {
           </Card>
         )}
       </div>
+      {fullscreenMap && phase === "active" && (
+        <WalkFullscreenMap
+          points={points}
+          events={events}
+          durationSec={duration}
+          distanceMeters={distance}
+          onClose={() => setFullscreenMap(false)}
+          onStop={() => { setFullscreenMap(false); stop(); }}
+          onEvent={(t, l) => addEvent(t, l)}
+        />
+      )}
     </div>
   );
 }
