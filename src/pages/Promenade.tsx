@@ -415,6 +415,7 @@ export default function Promenade() {
                     <WalkMapLive points={points} events={events} height={260} />
                   </MapBoundary>
                 </div>
+              )}
 
               <div className="flex items-center justify-between"><Label>Pipi</Label><Switch checked={pee} onCheckedChange={setPee} /></div>
               <div className="flex items-center justify-between"><Label>Caca</Label><Switch checked={poop} onCheckedChange={setPoop} /></div>
