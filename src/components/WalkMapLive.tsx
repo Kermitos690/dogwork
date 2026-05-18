@@ -9,7 +9,7 @@ export interface WalkMapEvent { type: string; label: string; lat?: number; lng?:
 interface Props {
   points: WalkMapPoint[];
   events?: WalkMapEvent[];
-  height?: number;
+  height?: number | string;
   className?: string;
   /** En mode live, recentre/zoome sur le dernier point. En mode résumé, fit bounds. */
   follow?: boolean;
@@ -42,8 +42,7 @@ function FitOrFollow({ points, follow }: { points: WalkMapPoint[]; follow: boole
   return null;
 }
 
-interface PropsExt extends Props { height?: number | string; }
-export function WalkMapLive({ points, events = [], height = 260, className, follow = false }: PropsExt) {
+export function WalkMapLive({ points, events = [], height = 260, className, follow = false }: Props) {
   const path = useMemo<LatLngExpression[]>(
     () => points.map((p) => [p.lat, p.lng] as LatLngExpression),
     [points],
