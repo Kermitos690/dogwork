@@ -4,8 +4,23 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CheckCircle2, XCircle, RefreshCw, AlertTriangle, Bell, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { CheckCircle2, XCircle, RefreshCw, AlertTriangle, Bell, Loader2, Smartphone, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { VAPID_PUBLIC_KEY, PUSH_SW_PATH, isPushSupported, isIos, isStandalonePwa } from "@/lib/push/config";
+
+type ClientDiag = {
+  notification_permission: NotificationPermission | "unsupported";
+  sw_registered: boolean;
+  sw_active: boolean;
+  push_subscription_present: boolean;
+  push_endpoint_short: string | null;
+  is_ios: boolean;
+  is_standalone: boolean;
+  push_supported: boolean;
+  vapid_public_short: string;
+};
 
 type Diag = {
   trigger_function_exists: boolean;
