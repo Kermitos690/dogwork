@@ -73,7 +73,7 @@ export default function AdminPushStatus() {
       return;
     }
     const perm = Notification.permission;
-    let regs: ServiceWorkerRegistration[] = [];
+    let regs: readonly ServiceWorkerRegistration[] = [];
     try { regs = await navigator.serviceWorker.getRegistrations(); } catch {}
     const pushReg = regs.find((r) => (r.active?.scriptURL || r.installing?.scriptURL || r.waiting?.scriptURL || "").includes(PUSH_SW_PATH));
     let subscription: PushSubscription | null = null;
