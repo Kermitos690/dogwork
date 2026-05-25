@@ -54,9 +54,42 @@ function StatusRow({ ok, label, hint }: { ok: boolean; label: string; hint?: str
 
 export default function AdminPushStatus() {
   const [diag, setDiag] = useState<Diag | null>(null);
+  const [client, setClient] = useState<ClientDiag | null>(null);
   const [loading, setLoading] = useState(true);
   const [bootstrapping, setBootstrapping] = useState(false);
+  const [targetUserId, setTargetUserId] = useState("");
+  const [sendingTest, setSendingTest] = useState(false);
   const { toast } = useToast();
+
+  const refreshClient = useCallback(async () => {
+    const supported = isPushSupported();
+    if (!supported) {
+      setClient({
+        notification_permission: "unsupported",
+        sw_registered: false, sw_active: false, push_subscription_present: false,
+        push_endpoint_short: null, is_ios: isIos(), is_standalone: isStandalonePwa(),
+        push_supported: false, vapid_public_short: VAPID_PUBLIC_KEY.slice(0, 16) + "…",
+      });
+      return;
+    }
+    const perm = Notification.permission;
+    let regs: ServiceWorkerRegistration[] = [];
+    try { regs = await navigator.serviceWorker.getRegistrations(); } catch {}
+    const pushReg = regs.find((r) => (r.active?.scriptURL || r.installing?.scriptURL || r.waiting?.scriptURL || "").includes(PUSH_SW_PATH));
+    let subscription: PushSubscription | null = null;
+    try { subscription = (await pushReg?.pushManager.getSubscription()) ?? null; } catch {}
+    setClient({
+      notification_permission: perm,
+      sw_registered: !!pushReg,
+      sw_active: !!pushReg?.active,
+      push_subscription_present: !!subscription,
+      push_endpoint_short: subscription?.endpoint ? subscription.endpoint.slice(0, 60) + "…" : null,
+      is_ios: isIos(),
+      is_standalone: isStandalonePwa(),
+      push_supported: true,
+      vapid_public_short: VAPID_PUBLIC_KEY.slice(0, 16) + "…",
+    });
+  }, []);
 
   const fetchDiag = useCallback(async () => {
     setLoading(true);
@@ -66,8 +99,10 @@ export default function AdminPushStatus() {
     } else {
       setDiag(data as unknown as Diag);
     }
+    await refreshClient();
     setLoading(false);
-  }, [toast]);
+  }, [toast, refreshClient]);
+
 
   useEffect(() => { fetchDiag(); }, [fetchDiag]);
 
