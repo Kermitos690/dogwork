@@ -45,17 +45,15 @@ export default function AdoptionFollowup() {
     enabled: !!user,
   });
 
-  // Fetch animal info for plans
+  // Fetch animal info for plans (via SECURITY DEFINER RPC — strips adopter PII)
   const { data: animals } = useQuery({
     queryKey: ["adopter-plan-animals", plans?.map(p => p.animal_id)],
     queryFn: async () => {
       if (!plans?.length) return [];
-      const ids = plans.map(p => p.animal_id);
-      const { data } = await supabase
-        .from("shelter_animals_safe")
-        .select("id, name, breed, photo_url")
-        .in("id", ids);
-      return data ?? [];
+      const ids = new Set(plans.map(p => p.animal_id));
+      const { data } = await supabase.rpc("get_my_adopted_animals" as any);
+      const rows = (data ?? []) as Array<{ id: string; name: string; breed: string | null; photo_url: string | null }>;
+      return rows.filter(r => ids.has(r.id));
     },
     enabled: !!plans?.length,
   });
