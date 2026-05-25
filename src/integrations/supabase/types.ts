@@ -5981,6 +5981,24 @@ export type Database = {
           module_slug: string
         }[]
       }
+      get_my_adopted_animals: {
+        Args: never
+        Returns: {
+          arrival_date: string
+          breed: string
+          created_at: string
+          description: string
+          estimated_age: string
+          id: string
+          is_sterilized: boolean
+          name: string
+          photo_url: string
+          sex: string
+          species: string
+          status: string
+          weight_kg: number
+        }[]
+      }
       get_my_credit_balance: {
         Args: never
         Returns: {
