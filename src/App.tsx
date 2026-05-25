@@ -81,6 +81,7 @@ const AdminStripeVerify = lazy(() => import("./pages/AdminStripeVerify"));
 const AdminBillingEvents = lazy(() => import("./pages/AdminBillingEvents"));
 const AdminPwaDiagnostics = lazy(() => import("./pages/AdminPwaDiagnostics"));
 const AdminGoLiveCheck = lazy(() => import("./pages/AdminGoLiveCheck"));
+const AdminSqlLiveRunner = lazy(() => import("./pages/AdminSqlLiveRunner"));
 const AdminEmailDiagnostics = lazy(() => import("./pages/AdminEmailDiagnostics"));
 const AdminPushStatus = lazy(() => import("./pages/AdminPushStatus"));
 const AdminSystemHealth = lazy(() => import("./pages/AdminSystemHealth"));
@@ -424,6 +425,7 @@ function ProtectedRoutes() {
         <Route path="/admin/stripe/verify" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminStripeVerify /></AdminGuard></Suspense>} />
         <Route path="/admin/billing-events" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminBillingEvents /></AdminGuard></Suspense>} />
         <Route path="/admin/go-live-check" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminGoLiveCheck /></AdminGuard></Suspense>} />
+        <Route path="/admin/sql-live-runner" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminSqlLiveRunner /></AdminGuard></Suspense>} />
         <Route path="/admin/push-status" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminPushStatus /></AdminGuard></Suspense>} />
         <Route path="/admin/system-health" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminSystemHealth /></AdminGuard></Suspense>} />
         <Route path="/admin/pwa-diagnostics" element={<Suspense fallback={<PageLoader />}><AdminGuard><AdminPwaDiagnostics /></AdminGuard></Suspense>} />
