@@ -134,6 +134,45 @@ export default function AdminPushStatus() {
     setTimeout(fetchDiag, 3000);
   };
 
+  const sendTestToSelf = async () => {
+    setSendingTest(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setSendingTest(false); return; }
+    const { error } = await supabase.rpc("admin_send_test_notification", {
+      _target_user_id: user.id,
+      _title: "Test push admin",
+      _body: "Notification de test envoyée depuis /admin/push-status.",
+    });
+    setSendingTest(false);
+    if (error) {
+      toast({ title: "Erreur test", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Test envoyé", description: "In-app + push déclenchés. Diag dans 3s…" });
+    setTimeout(fetchDiag, 3000);
+  };
+
+  const sendTestToUser = async () => {
+    const uid = targetUserId.trim();
+    if (!uid || !/^[0-9a-f-]{36}$/i.test(uid)) {
+      toast({ title: "User ID invalide", description: "Format UUID attendu.", variant: "destructive" });
+      return;
+    }
+    setSendingTest(true);
+    const { error } = await supabase.rpc("admin_send_test_notification", {
+      _target_user_id: uid,
+      _title: "Test push (envoi admin)",
+      _body: "Un admin DogWork vous envoie une notification de test.",
+    });
+    setSendingTest(false);
+    if (error) {
+      toast({ title: "Erreur envoi", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Envoyé", description: `Notification envoyée à ${uid.slice(0, 8)}…` });
+    setTimeout(fetchDiag, 3000);
+  };
+
   const allReady =
     !!diag?.trigger_function_exists &&
     !!diag?.trigger_attached &&
