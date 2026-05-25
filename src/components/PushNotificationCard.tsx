@@ -231,6 +231,11 @@ export function PushNotificationCard({ variant = "card", className }: Props) {
                   ? "L’autorisation semble accordée, mais la souscription push doit être resynchronisée avec DogWork."
                   : "Recevez rappels d’exercices, messages et alertes refuge directement sur votre écran, même quand l’app est fermée."}
             </p>
+            {isOn && /iPhone|iPad|iPod/i.test(navigator.userAgent) && (
+              <p className="text-xs text-muted-foreground italic">
+                Sur iPhone, les notifications hors app nécessitent que DogWork soit installé sur l'écran d'accueil (iOS 16.4+).
+              </p>
+            )}
           </div>
 
           <div className="flex flex-wrap gap-2">

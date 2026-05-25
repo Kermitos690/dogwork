@@ -5831,6 +5831,10 @@ export type Database = {
         }[]
       }
       admin_push_diagnostics: { Args: never; Returns: Json }
+      admin_send_test_notification: {
+        Args: { _body?: string; _target_user_id: string; _title?: string }
+        Returns: Json
+      }
       assign_animal_to_shelter_space: {
         Args: { _animal_id: string; _space_id: string }
         Returns: undefined
