@@ -280,11 +280,11 @@ export default function AdminGoLiveCheck() {
               <CardContent className="space-y-2 text-xs text-muted-foreground">
                 <p className="text-foreground font-medium">Webhook plateforme (mode LIVE)</p>
                 <code className="block bg-muted/50 p-2 rounded text-[11px] break-all">
-                  https://dcwbqsfeouvghcnvhrpj.supabase.co/functions/v1/stripe-webhook
+                  https://hdmmqwpypvhwohhhaqnf.supabase.co/functions/v1/stripe-webhook
                 </code>
                 <p className="text-foreground font-medium pt-2">Webhook Connect (mode LIVE, Connected accounts)</p>
                 <code className="block bg-muted/50 p-2 rounded text-[11px] break-all">
-                  https://dcwbqsfeouvghcnvhrpj.supabase.co/functions/v1/stripe-course-webhook
+                  https://hdmmqwpypvhwohhhaqnf.supabase.co/functions/v1/stripe-course-webhook
                 </code>
                 <p className="pt-2">
                   ⚠️ Le 2<sup>e</sup> endpoint doit avoir l'option <strong>"Listen to events on Connected accounts"</strong> activée
