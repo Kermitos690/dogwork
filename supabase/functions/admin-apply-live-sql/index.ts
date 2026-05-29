@@ -125,6 +125,15 @@ Deno.serve(async (req) => {
     try { mgmtJson = JSON.parse(mgmtText); } catch { /* keep text */ }
 
     const success = mgmtResp.ok;
+    const managementError = !success && mgmtResp.status === 403
+      ? {
+          code: "management_api_forbidden",
+          message:
+            "Le token LIVE_MANAGEMENT_PAT n'a pas les droits nécessaires sur le projet Live cible, ou il a expiré.",
+          action:
+            "Remplacer LIVE_MANAGEMENT_PAT par un Personal Access Token ayant accès au projet Live, ou appliquer le SQL manuellement dans Cloud View > Database > Run SQL > Live.",
+        }
+      : null;
 
     // Audit post
     await supabaseAdmin.from("billing_events").insert({
@@ -147,7 +156,8 @@ Deno.serve(async (req) => {
       dryRun,
       httpStatus: mgmtResp.status,
       result: mgmtJson ?? mgmtText,
-    }, success ? 200 : 400);
+      error: managementError,
+    }, 200);
   } catch (e) {
     return jsonResp({ error: "internal_error", detail: (e as Error).message }, 500);
   }
