@@ -15,6 +15,11 @@ interface RunResult {
   dryRun: boolean;
   httpStatus: number;
   result: unknown;
+  error?: {
+    code: string;
+    message: string;
+    action: string;
+  } | null;
 }
 
 export default function AdminSqlLiveRunner() {
@@ -155,6 +160,15 @@ export default function AdminSqlLiveRunner() {
               </div>
             </CardHeader>
             <CardContent>
+              {result.error && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription className="text-sm space-y-1">
+                    <div className="font-medium">{result.error.message}</div>
+                    <div>{result.error.action}</div>
+                  </AlertDescription>
+                </Alert>
+              )}
               <pre className="bg-muted/40 border border-border/40 rounded-lg p-4 text-xs font-mono overflow-auto max-h-[480px]">
                 {JSON.stringify(result.result, null, 2)}
               </pre>
